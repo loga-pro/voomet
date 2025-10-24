@@ -8,6 +8,45 @@ const auth = require('../middleware/auth');
 
 const router = express.Router();
 
+// Get projects by stage for popup details
+router.get('/projects-by-stage/:stage', auth, async (req, res) => {
+  try {
+    let { stage } = req.params;
+    
+    // Map frontend stage IDs to backend stage values
+    const stageMapping = {
+      'rfq': 'rfq',
+      'boq': 'boq',
+      'awarded': 'awarded',
+      'under-execution': 'under_execution',
+      'completed': 'completed',
+      'post-implementation': 'post_implementation'
+    };
+    
+    // Convert frontend ID to backend stage value
+    const backendStage = stageMapping[stage] || stage;
+    
+    const projects = await Project.find({ stage: backendStage })
+      .select('projectName customerName totalProjectValue stage createdAt updatedAt')
+      .sort({ updatedAt: -1 })
+      .limit(10);
+    
+    // Transform projects to match expected format in frontend
+    const transformedProjects = projects.map(project => ({
+      ...project.toObject(),
+      customer: {
+        name: project.customerName,
+        email: 'N/A'
+      }
+    }));
+    
+    res.json(transformedProjects);
+  } catch (error) {
+    console.error('Error fetching projects by stage:', error);
+    res.status(500).json({ message: 'Server error fetching projects' });
+  }
+});
+
 // Get all dashboard KPIs
 router.get('/kpis', auth, async (req, res) => {
   try {

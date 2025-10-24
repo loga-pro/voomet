@@ -12,11 +12,10 @@ import {
   ClockIcon,
   UserGroupIcon,
   TruckIcon,
-  ShieldCheckIcon,
-  ChevronDownIcon,
-  ChevronUpIcon
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline';
 import { projectsAPI, customersAPI, vendorsAPI, dashboardAPI } from '../services/api';
+import ProjectDetailsModal from '../components/Modals/ProjectDetailsModal';
 
 const Dashboard = () => {
   const [kpis, setKpis] = useState({
@@ -61,7 +60,9 @@ const Dashboard = () => {
     }
   });
   const [loading, setLoading] = useState(true);
-  const [expandedCards, setExpandedCards] = useState({});
+  const [selectedStage, setSelectedStage] = useState(null);
+  const [selectedStageTitle, setSelectedStageTitle] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -85,24 +86,16 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
-  const toggleHistory = (cardId) => {
-    setExpandedCards(prev => ({
-      ...prev,
-      [cardId]: !prev[cardId]
-    }));
+  const handleStageClick = (stage, title) => {
+    setSelectedStage(stage);
+    setSelectedStageTitle(title);
+    setIsModalOpen(true);
   };
 
-  // Mock history data - replace with actual API calls
-  const getHistoryData = (type, title) => {
-    // This would typically come from an API
-    const mockHistory = [
-      { date: '2024-01-15', value: Math.floor(Math.random() * 100), change: '+5' },
-      { date: '2024-01-14', value: Math.floor(Math.random() * 100), change: '-2' },
-      { date: '2024-01-13', value: Math.floor(Math.random() * 100), change: '+3' },
-      { date: '2024-01-12', value: Math.floor(Math.random() * 100), change: '+1' },
-      { date: '2024-01-11', value: Math.floor(Math.random() * 100), change: '-4' },
-    ];
-    return mockHistory;
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedStage(null);
+    setSelectedStageTitle('');
   };
 
   if (loading) {
@@ -224,13 +217,13 @@ const Dashboard = () => {
     { id: 'resolution-rate', title: 'Resolution Rate', value: `${kpis.qualityKPIs.totalIssues ? Math.round(((kpis.qualityKPIs.closedIssues || 0) / kpis.qualityKPIs.totalIssues) * 100) : 0}%`, icon: ShieldCheckIcon, color: 'bg-green-500' }
   ];
 
-  // Enhanced KPI Card with gradient background and history
+  // Enhanced KPI Card with gradient background - clickable to show project details
   const GradientKpiCard = ({ id, title, value, icon: Icon, gradient, description }) => {
-    const isExpanded = expandedCards[id];
-    const historyData = getHistoryData('project', title);
-
     return (
-      <div className={`bg-gradient-to-r ${gradient} text-white rounded-lg shadow p-6 hover:shadow-lg transition-all transform hover:scale-105 duration-200`}>
+      <div 
+        className={`bg-gradient-to-r ${gradient} text-white rounded-lg shadow p-6 hover:shadow-lg transition-all transform hover:scale-105 duration-200 cursor-pointer`}
+        onClick={() => handleStageClick(id, title)}
+      >
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <p className="text-white text-opacity-90 text-sm font-medium">{title}</p>
@@ -241,48 +234,13 @@ const Dashboard = () => {
             <div className="p-2 bg-white bg-opacity-20 rounded-full">
               <Icon className="h-6 w-6 text-white" />
             </div>
-            <button
-              onClick={() => toggleHistory(id)}
-              className="p-1 bg-white bg-opacity-20 rounded-full hover:bg-opacity-30 transition-colors"
-            >
-              {isExpanded ? (
-                <ChevronUpIcon className="h-4 w-4 text-white" />
-              ) : (
-                <ChevronDownIcon className="h-4 w-4 text-white" />
-              )}
-            </button>
           </div>
         </div>
-        
-        {/* History Section */}
-        {isExpanded && (
-          <div className="mt-4 pt-4 border-t border-white border-opacity-20">
-            <h4 className="text-sm font-medium text-white text-opacity-90 mb-2">History (Last 5 days)</h4>
-            <div className="space-y-2">
-              {historyData.map((item, index) => (
-                <div key={index} className="flex justify-between items-center text-xs">
-                  <span className="text-white text-opacity-75">{item.date}</span>
-                  <span className="font-medium">{item.value}</span>
-                  <span className={`px-1 rounded ${
-                    item.change.startsWith('+') 
-                      ? 'bg-green-500 bg-opacity-20 text-green-200' 
-                      : 'bg-red-500 bg-opacity-20 text-red-200'
-                  }`}>
-                    {item.change}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     );
   };
 
   const KpiCard = ({ id, title, value, icon: Icon, color }) => {
-    const isExpanded = expandedCards[id];
-    const historyData = getHistoryData('financial', title);
-
     return (
       <div className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-all">
         <div className="flex items-center justify-between">
@@ -295,86 +253,17 @@ const Dashboard = () => {
               <p className="text-lg font-bold text-gray-900">{value}</p>
             </div>
           </div>
-          <button
-            onClick={() => toggleHistory(id)}
-            className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            {isExpanded ? (
-              <ChevronUpIcon className="h-4 w-4" />
-            ) : (
-              <ChevronDownIcon className="h-4 w-4" />
-            )}
-          </button>
         </div>
-        
-        {/* History Section */}
-        {isExpanded && (
-          <div className="mt-3 pt-3 border-t border-gray-200">
-            <h4 className="text-xs font-medium text-gray-600 mb-2">History (Last 5 days)</h4>
-            <div className="space-y-1">
-              {historyData.map((item, index) => (
-                <div key={index} className="flex justify-between items-center text-xs">
-                  <span className="text-gray-500">{item.date}</span>
-                  <span className="font-medium text-gray-900">{item.value}</span>
-                  <span className={`px-1 rounded ${
-                    item.change.startsWith('+') 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {item.change}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     );
   };
 
   const StatusKpiCard = ({ id, title, value, icon: Icon, color }) => {
-    const isExpanded = expandedCards[id];
-    const historyData = getHistoryData('status', title);
-
     return (
       <div className="bg-gray-50 rounded-lg p-3 text-center hover:bg-gray-100 transition-colors">
         <Icon className={`h-5 w-5 mx-auto ${color.replace('bg-', 'text-')}`} />
         <p className="text-xs text-gray-600 mt-1">{title}</p>
-        <div className="flex items-center justify-center space-x-1">
-          <p className="text-lg font-bold text-gray-900">{value}</p>
-          <button
-            onClick={() => toggleHistory(id)}
-            className="p-0.5 text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            {isExpanded ? (
-              <ChevronUpIcon className="h-3 w-3" />
-            ) : (
-              <ChevronDownIcon className="h-3 w-3" />
-            )}
-          </button>
-        </div>
-        
-        {/* History Section */}
-        {isExpanded && (
-          <div className="mt-2 pt-2 border-t border-gray-300">
-            <h4 className="text-xs font-medium text-gray-600 mb-1">Trend</h4>
-            <div className="space-y-1">
-              {historyData.map((item, index) => (
-                <div key={index} className="flex justify-between items-center text-xs">
-                  <span className="text-gray-500">{item.date}</span>
-                  <span className="font-medium">{item.value}</span>
-                  <span className={`px-1 rounded ${
-                    item.change.startsWith('+') 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {item.change}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <p className="text-lg font-bold text-gray-900">{value}</p>
       </div>
     );
   };
@@ -469,6 +358,14 @@ const Dashboard = () => {
           />
         </div>
       </div>
+
+      {/* Project Details Modal */}
+      <ProjectDetailsModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        stage={selectedStage}
+        stageTitle={selectedStageTitle}
+      />
     </div>
   );
 };

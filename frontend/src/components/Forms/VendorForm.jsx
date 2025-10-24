@@ -31,9 +31,22 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    // Validation for specific fields with length restrictions
+    let validatedValue = value;
+    if (name === 'vendorName') {
+      validatedValue = value.replace(/[^A-Za-z\s]/g, '');
+    } else if (name === 'contactPerson') {
+      validatedValue = value.replace(/[^A-Za-z\s]/g, '');
+    } else if (name === 'mobileNumber') {
+      validatedValue = value.replace(/\D/g, '').slice(0, 10);
+    } else if (name === 'bankAccountNumber') {
+      validatedValue = value.replace(/\D/g, '').slice(0, 16);
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: validatedValue
     }));
 
     if (errors[name]) {
@@ -48,13 +61,22 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
     const newErrors = {};
 
     if (!formData.vendorName) newErrors.vendorName = 'Vendor name is required';
+    else if (formData.vendorName.length < 2) newErrors.vendorName = 'Vendor name must be at least 2 characters';
+    else if (formData.vendorName.length > 50) newErrors.vendorName = 'Vendor name must not exceed 50 characters';
+    
     if (!formData.address) newErrors.address = 'Address is required';
     if (!formData.bankAccountNumber) newErrors.bankAccountNumber = 'Bank account number is required';
+    else if (!/^[0-9]{16}$/.test(formData.bankAccountNumber)) newErrors.bankAccountNumber = 'Bank account number must be 16 digits';
     if (!formData.email) newErrors.email = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid';
     if (!formData.gstNumber) newErrors.gstNumber = 'GST number is required';
     if (!formData.mobileNumber) newErrors.mobileNumber = 'Mobile number is required';
     else if (!/^[0-9]{10}$/.test(formData.mobileNumber)) newErrors.mobileNumber = 'Mobile number must be 10 digits';
+    
+    // Contact person validation (optional field)
+    if (formData.contactPerson && formData.contactPerson.length > 50) {
+      newErrors.contactPerson = 'Contact person name must not exceed 50 characters';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;

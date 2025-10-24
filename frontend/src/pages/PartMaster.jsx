@@ -161,12 +161,12 @@ const PartMaster = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this part?')) {
+  const handleDelete = async (part) => {
+    if (window.confirm(`Are you sure you want to delete the part "${part.partName}"?`)) {
       try {
-        await partsAPI.delete(id);
+        await partsAPI.delete(part._id);
         fetchParts(); // Refresh the list
-        showSuccess('Part deleted successfully');
+        showSuccess(`Part "${part.partName}" deleted successfully`);
       } catch (error) {
         console.error('Error deleting part:', error);
       }
@@ -379,7 +379,7 @@ const PartMaster = () => {
                             <PencilSquareIcon className="h-5 w-5" />
                           </button>
                           <button
-                            onClick={() => handleDelete(part._id)}
+                            onClick={() => handleDelete(part)}
                             className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
                             title="Delete"
                           >
@@ -418,7 +418,7 @@ const PartMaster = () => {
                         <PencilSquareIcon className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleDelete(part._id)}
+                        onClick={() => handleDelete(part)}
                         className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
                         title="Delete"
                       >
@@ -600,8 +600,9 @@ const PartMaster = () => {
         </button>
         <button
           onClick={() => {
-            // Add edit functionality here
-            console.log('Edit part:', selectedPart);
+            setViewModal(false);
+            setEditingPart(selectedPart);
+            setShowModal(true);
           }}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >

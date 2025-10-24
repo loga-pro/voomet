@@ -148,7 +148,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose }) => {
         <div className="flex justify-between items-center p-4 border-b print:hidden">
           <h2 className="text-xl font-semibold">BOQ PDF Generator - {boqData.customer}</h2>
           <div className="flex space-x-3">
-            <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-md text-sm flex items-center">
+            <label className="cursor-pointer bg-blue-100 hover:bg-blue-200 px-3 py-2 rounded-md text-sm flex items-center">
               <PhotoIcon className="h-4 w-4 mr-2" />
               Logo
               <input 
@@ -183,11 +183,11 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose }) => {
         </div>
 
         {/* Editable Controls - Only Terms & Conditions and Estimate # */}
-        <div className="p-4 bg-gray-50 border-b print:hidden">
+        <div className="p-4 bg-blue-50 border-b print:hidden">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Estimate Number Editor */}
             <div>
-              <h3 className="font-semibold mb-3 text-gray-700">Estimate Number</h3>
+              <h3 className="font-semibold mb-3 text-blue-700">Estimate Number</h3>
               <div className="flex items-center space-x-3">
                 <input
                   type="text"
@@ -196,7 +196,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose }) => {
                   placeholder="Leave empty for auto-generated number"
                   className="flex-1 p-2 border rounded text-sm"
                 />
-                <span className="text-sm text-gray-600 whitespace-nowrap">
+                <span className="text-sm text-blue-600 whitespace-nowrap">
                   Auto: {generateBOQCode()}
                 </span>
               </div>
@@ -205,7 +205,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose }) => {
             {/* Terms & Conditions Editor */}
             <div>
               <div className="flex justify-between items-center mb-3">
-                <h3 className="font-semibold text-gray-700">Terms & Conditions</h3>
+                <h3 className="font-semibold text-blue-700">Terms & Conditions</h3>
                 <button
                   onClick={addTerm}
                   className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
@@ -236,10 +236,10 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose }) => {
         </div>
 
         {/* PDF Content */}
-        <div className="flex-1 overflow-auto bg-gray-100 p-4">
+        <div className="flex-1 overflow-auto bg-blue-100 p-4">
           <div ref={contentRef} className="bg-white p-8 shadow-lg max-w-5xl mx-auto" style={{ minHeight: '297mm' }}>
             {/* Header Section */}
-            <div className="flex justify-between items-start mb-8 pb-4 border-b-4 border-gray-900">
+            <div className="flex justify-between items-start mb-8 pb-4 border-b-4 border-blue-900">
               <div className="flex items-center space-x-6">
                 {companyLogo ? (
                   <img 
@@ -248,15 +248,15 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose }) => {
                     className="h-20 w-20 object-contain"
                   />
                 ) : (
-                  <div className="h-20 w-20 bg-gray-200 flex items-center justify-center rounded">
-                    <PhotoIcon className="h-8 w-8 text-gray-400" />
+                  <div className="h-20 w-20 bg-blue-200 flex items-center justify-center rounded">
+                    <PhotoIcon className="h-8 w-8 text-blue-400" />
                   </div>
                 )}
                 <div>
                   <h1 className="text-3xl font-bold bg-gray-900 text-white px-4 py-2 inline-block">
                     {companyInfo.name}
                   </h1>
-                  <div className="mt-2 text-sm font-medium text-gray-700">
+                  <div className="mt-2 text-sm font-medium text-blue-700">
                     {companyInfo.tagline}
                   </div>
                 </div>
@@ -276,7 +276,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose }) => {
 
             {/* Title and Client Info */}
             <div className="mb-8">
-              <div className="bg-gray-900 text-white p-4 mb-6">
+              <div className="bg-blue-900 text-white p-4 mb-6">
                 <h2 className="text-xl font-bold text-center">BILL OF QUANTITIES (BOQ)</h2>
                 <h3 className="text-lg font-semibold text-center mt-1">Tentative Interior Design Costing</h3>
               </div>
@@ -321,28 +321,28 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose }) => {
                 <h3 className="font-bold text-center">DETAILED QUOTATION</h3>
               </div>
               
-              <table className="w-full border-collapse border-2 border-gray-900">
+              <table className="w-full border-collapse border-2 border-blue-900">
                 <thead>
-                  <tr className="bg-gray-200">
-                    <th className="border border-gray-900 p-3 text-sm font-bold text-left" style={{width: '25%'}}>
+                  <tr className="bg-blue-200">
+                    <th className="border border-blue-900 p-3 text-sm font-bold text-left" style={{width: '25%'}}>
                       DESCRIPTION
                     </th>
-                    <th className="border border-gray-900 p-3 text-sm font-bold text-center" style={{width: '15%'}}>
+                    <th className="border border-blue-900 p-3 text-sm font-bold text-center" style={{width: '15%'}}>
                       SPECIFICATION
                     </th>
-                    <th className="border border-gray-900 p-3 text-sm font-bold text-center" style={{width: '8%'}}>
+                    <th className="border border-blue-900 p-3 text-sm font-bold text-center" style={{width: '8%'}}>
                       QTY
                     </th>
-                    <th className="border border-gray-900 p-3 text-sm font-bold text-center" style={{width: '12%'}}>
+                    <th className="border border-blue-900 p-3 text-sm font-bold text-center" style={{width: '12%'}}>
                       UNIT
                     </th>
-                    <th className="border border-gray-900 p-3 text-sm font-bold text-center" style={{width: '12%'}}>
+                    <th className="border border-blue-900 p-3 text-sm font-bold text-center" style={{width: '12%'}}>
                       RATE (₹)
                     </th>
-                    <th className="border border-gray-900 p-3 text-sm font-bold text-center" style={{width: '12%'}}>
+                    <th className="border border-blue-900 p-3 text-sm font-bold text-center" style={{width: '12%'}}>
                       AMOUNT (₹)
                     </th>
-                    <th className="border border-gray-900 p-3 text-sm font-bold text-center" style={{width: '16%'}}>
+                    <th className="border border-blue-900 p-3 text-sm font-bold text-center" style={{width: '16%'}}>
                       REMARKS
                     </th>
                   </tr>
@@ -351,7 +351,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose }) => {
                   {/* Scope of Work Headers */}
                   {boqData.scopeOfWork && boqData.scopeOfWork.length > 0 && (
                     <tr>
-                      <td className="border border-gray-900 p-3 font-bold bg-gray-100 text-center" colSpan="7">
+                      <td className="border border-blue-900 p-3 font-bold bg-blue-100 text-center" colSpan="7">
                         SCOPE: {boqData.scopeOfWork.join(' | ')}
                       </td>
                     </tr>
@@ -359,32 +359,32 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose }) => {
                   
                   {/* Items */}
                   {boqData.items && boqData.items.map((item, index) => (
-                    <tr key={index} className="text-sm hover:bg-gray-50">
-                      <td className="border border-gray-900 p-3 align-top">
+                    <tr key={index} className="text-sm hover:bg-blue-50">
+                      <td className="border border-blue-900 p-3 align-top">
                         <div className="font-medium">{item.partName}</div>
                       </td>
-                      <td className="border border-gray-900 p-3 text-center align-top">
+                      <td className="border border-blue-900 p-3 text-center align-top">
                         {item.unitType}
                       </td>
-                      <td className="border border-gray-900 p-3 text-center align-top font-mono">
+                      <td className="border border-blue-900 p-3 text-center align-top font-mono">
                         {parseFloat(item.numberOfUnits || 0).toLocaleString()}
                       </td>
-                      <td className="border border-gray-900 p-3 text-center align-top">
+                      <td className="border border-blue-900 p-3 text-center align-top">
                         {item.unitType}
                       </td>
-                      <td className="border border-gray-900 p-3 text-right align-top font-mono">
+                      <td className="border border-blue-900 p-3 text-right align-top font-mono">
                         {parseFloat(item.unitPrice || 0).toLocaleString('en-IN', {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2
                         })}
                       </td>
-                      <td className="border border-gray-900 p-3 text-right align-top font-mono font-semibold">
+                      <td className="border border-blue-900 p-3 text-right align-top font-mono font-semibold">
                         {parseFloat(item.totalPrice || 0).toLocaleString('en-IN', {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2
                         })}
                       </td>
-                      <td className="border border-gray-900 p-3 text-center align-top">
+                      <td className="border border-blue-900 p-3 text-center align-top">
                         <div className="space-y-1">
                           {item.remarks && (
                             <div className="text-xs">{item.remarks}</div>
@@ -400,16 +400,16 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose }) => {
                   {/* Transportation Charges Row */}
                   {transportationCharges > 0 && (
                     <tr className="text-sm bg-blue-50">
-                      <td className="border border-gray-900 p-3 font-medium" colSpan="5">
+                      <td className="border border-blue-900 p-3 font-medium" colSpan="5">
                         Transportation & Handling Charges
                       </td>
-                      <td className="border border-gray-900 p-3 text-right font-mono font-semibold">
+                      <td className="border border-blue-900 p-3 text-right font-mono font-semibold">
                         {transportationCharges.toLocaleString('en-IN', {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2
                         })}
                       </td>
-                      <td className="border border-gray-900 p-3"></td>
+                      <td className="border border-blue-900 p-3"></td>
                     </tr>
                   )}
                 </tbody>
@@ -417,15 +417,15 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose }) => {
             </div>
 
             {/* Totals Section */}
-            <div className="bg-gray-900 text-white mb-8">
+            <div className="bg-blue-900 text-white mb-8">
               <div className="grid grid-cols-3">
-                <div className="p-6 border-r border-gray-600 text-center">
+                <div className="p-6 border-r border-blue-600 text-center">
                   <div className="text-sm font-medium mb-2">SUBTOTAL (Excl. GST)</div>
                   <div className="text-2xl font-bold font-mono">
                     ₹{finalTotalWithoutGST.toLocaleString('en-IN')}
                   </div>
                 </div>
-                <div className="p-6 border-r border-gray-600 text-center">
+                <div className="p-6 border-r border-blue-600 text-center">
                   <div className="text-sm font-medium mb-2">GST @ {gstPercentage}%</div>
                   <div className="text-2xl font-bold font-mono text-yellow-300">
                     ₹{gstAmount.toLocaleString('en-IN')}
@@ -442,9 +442,9 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose }) => {
 
             {/* Terms and Conditions */}
             <div className="mb-8">
-              <div className="bg-gray-100 p-4 border-l-4 border-blue-600">
-                <h4 className="font-bold mb-3 text-gray-800">Terms & Conditions:</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm text-gray-700">
+              <div className="bg-blue-100 p-4 border-l-4 border-blue-600">
+                <h4 className="font-bold mb-3 text-blue-800">Terms & Conditions:</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm text-blue-700">
                   <ul className="space-y-1">
                     {termsAndConditions.slice(0, Math.ceil(termsAndConditions.length/2)).map((term, index) => (
                       <li key={index}>{term}</li>
@@ -468,17 +468,17 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose }) => {
             )}
 
             {/* Signature Section */}
-            <div className="grid grid-cols-2 gap-12 mt-12 pt-8 border-t-2 border-gray-300">
+            <div className="grid grid-cols-2 gap-12 mt-12 pt-8 border-t-2 border-blue-300">
               <div className="text-center">
-                <div className="border-t border-gray-400 pt-2 mt-16">
+                <div className="border-t border-blue-400 pt-2 mt-16">
                   <div className="font-semibold">{companyInfo.authorizedPerson}</div>
-                  <div className="text-sm text-gray-600 mt-1">{companyInfo.name}</div>
+                  <div className="text-sm text-blue-600 mt-1">{companyInfo.name}</div>
                 </div>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="mt-12 pt-4 border-t text-center text-sm text-gray-600">
+            <div className="mt-12 pt-4 border-t text-center text-sm text-blue-600">
               <p className="font-medium">This is a system generated quotation - {currentDate}</p>
               <p className="mt-2">Thank you for choosing {companyInfo.name} for your interior design needs!</p>
             </div>

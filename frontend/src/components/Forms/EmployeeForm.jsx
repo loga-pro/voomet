@@ -69,8 +69,15 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
     } else if (name === 'phone') {
       validatedValue = value.replace(/\D/g, '').slice(0, 10);
     } else if (name === 'bankAccountNumber') {
-      validatedValue = value.replace(/\D/g, '');
+      validatedValue = value.replace(/\D/g, '').slice(0, 16);
+    }else if (name === 'department') {
+      validatedValue = value.replace(/[^A-Za-z\s]/g, '');
+    }else if (name === 'bankName') {
+      validatedValue = value.replace(/[^A-Za-z\s]/g, '');
+    }else if (name === 'branch') {
+      validatedValue = value.replace(/[^A-Za-z\s]/g, '');
     }
+
 
     setFormData(prev => ({
       ...prev,
@@ -106,6 +113,11 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
     
     if (!validateForm()) return;
 
+    // Only submit if we're on the bank tab (final step)
+    if (activeTab !== 'bank') {
+      return;
+    }
+
     setLoading(true);
     try {
       if (employee) {
@@ -122,6 +134,13 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Prevent form submission on Enter key
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && e.target.type !== 'textarea') {
+      e.preventDefault();
     }
   };
 
@@ -171,7 +190,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="px-8 pb-8">
+      <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="px-8 pb-8">
         {errors.submit && (
           <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mb-6 flex items-center">
             <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -347,7 +366,8 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
         <div className="flex justify-between pt-8 mt-8 border-t border-gray-200">
           <button
             type="button"
-            onClick={() => {
+            onClick={(e) => {
+              e.preventDefault(); // Explicitly prevent form submission
               const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
               if (currentIndex > 0) {
                 setActiveTab(tabs[currentIndex - 1].id);
@@ -383,7 +403,8 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
             ) : (
               <button
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault(); // Explicitly prevent form submission
                   const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
                   if (currentIndex < tabs.length - 1) {
                     setActiveTab(tabs[currentIndex + 1].id);

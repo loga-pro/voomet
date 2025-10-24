@@ -64,8 +64,9 @@ const CustomerMaster = () => {
   const fetchAwardedProjects = async () => {
     try {
       const response = await projectsAPI.getAll();
-      const awarded = response.data.filter(project => project.stage === 'awarded');
-      setAwardedProjects(awarded);
+      // Show all projects except RFQ stage (boq, awarded, under_execution, completed, post_implementation)
+      const nonRfqProjects = response.data.filter(project => project.stage !== 'rfq');
+      setAwardedProjects(nonRfqProjects);
     } catch (error) {
       console.error('Error fetching awarded projects:', error);
     }
@@ -304,7 +305,7 @@ const CustomerMaster = () => {
                       Billing Address
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Awarded Projects
+                      Projects Tracking
                     </th>
                     <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -339,15 +340,28 @@ const CustomerMaster = () => {
                           <div className="text-sm text-gray-900">
                             {customerAwardedProjects.length > 0 ? (
                               <div className="space-y-1">
-                                {customerAwardedProjects.map((project, index) => (
-                                  <div key={project._id} className="flex items-center justify-between bg-green-50 px-2 py-1 rounded text-xs">
-                                    <span className="font-medium text-green-800">{project.projectName}</span>
-                                    <span className="text-green-600">₹{project.totalProjectValue.toLocaleString()}</span>
-                                  </div>
-                                ))}
+                                {customerAwardedProjects.map((project, index) => {
+                                  const stageColors = {
+                                    boq: 'bg-blue-50 text-blue-800 border-blue-200',
+                                    awarded: 'bg-green-50 text-green-800 border-green-200',
+                                    under_execution: 'bg-yellow-50 text-yellow-800 border-yellow-200',
+                                    completed: 'bg-purple-50 text-purple-800 border-purple-200',
+                                    post_implementation: 'bg-gray-50 text-gray-800 border-gray-200'
+                                  };
+                                  const colorClass = stageColors[project.stage] || 'bg-gray-50 text-gray-800 border-gray-200';
+                                  return (
+                                    <div key={project._id} className={`flex items-center justify-between ${colorClass} px-2 py-1 rounded text-xs border`}>
+                                      <div className="flex items-center space-x-2">
+                                        <span className="font-medium">{project.projectName}</span>
+                                        <span className="text-xs opacity-75">({project.stage.replace('_', ' ').toUpperCase()})</span>
+                                      </div>
+                                      <span>₹{project.totalProjectValue.toLocaleString()}</span>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             ) : (
-                              <span className="text-gray-500">No awarded projects</span>
+                              <span className="text-gray-500">No projects (excluding RFQ)</span>
                             )}
                           </div>
                         </td>
@@ -426,15 +440,28 @@ const CustomerMaster = () => {
                         <span className="font-medium">Address:</span> {customer.billingAddress}
                       </div>
                       <div>
-                        <span className="font-medium">Awarded Projects:</span> {customerAwardedProjects.length}
+                        <span className="font-medium">Projects (Non-RFQ):</span> {customerAwardedProjects.length}
                         {customerAwardedProjects.length > 0 && (
                           <div className="mt-1 space-y-1">
-                            {customerAwardedProjects.slice(0, 2).map((project) => (
-                              <div key={project._id} className="bg-green-50 px-2 py-1 rounded text-xs">
-                                <span className="font-medium text-green-800">{project.projectName}</span>
-                                <span className="text-green-600 ml-2">₹{project.totalProjectValue.toLocaleString()}</span>
-                              </div>
-                            ))}
+                            {customerAwardedProjects.slice(0, 2).map((project) => {
+                              const stageColors = {
+                                boq: 'bg-blue-50 text-blue-800 border-blue-200',
+                                awarded: 'bg-green-50 text-green-800 border-green-200',
+                                under_execution: 'bg-yellow-50 text-yellow-800 border-yellow-200',
+                                completed: 'bg-purple-50 text-purple-800 border-purple-200',
+                                post_implementation: 'bg-gray-50 text-gray-800 border-gray-200'
+                              };
+                              const colorClass = stageColors[project.stage] || 'bg-gray-50 text-gray-800 border-gray-200';
+                              return (
+                                <div key={project._id} className={`${colorClass} px-2 py-1 rounded text-xs border`}>
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium">{project.projectName}</span>
+                                    <span>₹{project.totalProjectValue.toLocaleString()}</span>
+                                  </div>
+                                  <div className="text-xs opacity-75 mt-1">{project.stage.replace('_', ' ').toUpperCase()}</div>
+                                </div>
+                              );
+                            })}
                             {customerAwardedProjects.length > 2 && (
                               <div className="text-xs text-gray-500">+{customerAwardedProjects.length - 2} more</div>
                             )}
@@ -540,7 +567,7 @@ const CustomerMaster = () => {
         </div>
         <div className="bg-blue-50 px-3 py-1 rounded-full">
           <span className="text-xs font-medium text-blue-700">
-            {getAwardedProjectsForCustomer(selectedCustomer.customerName).length} Awarded Projects
+            {getAwardedProjectsForCustomer(selectedCustomer.customerName).length} Projects (Non-RFQ)
           </span>
         </div>
       </div>

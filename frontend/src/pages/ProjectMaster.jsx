@@ -146,12 +146,12 @@ const ProjectMaster = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this project?')) {
+  const handleDelete = async (project) => {
+    if (window.confirm(`Are you sure you want to delete project "${project.projectName}"?`)) {
       try {
-        await projectsAPI.delete(id);
+        await projectsAPI.delete(project._id);
         fetchProjects(); // Refresh the list
-        showSuccess('Project deleted successfully');
+        showSuccess(`Project "${project.projectName}" deleted successfully`);
       } catch (error) {
         console.error('Error deleting project:', error);
       }
@@ -361,7 +361,7 @@ const ProjectMaster = () => {
                             <PencilSquareIcon className="h-5 w-5" />
                           </button>
                           <button
-                            onClick={() => handleDelete(project._id)}
+                            onClick={() => handleDelete(project)}
                             className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
                             title="Delete"
                           >
@@ -400,7 +400,7 @@ const ProjectMaster = () => {
                         <PencilSquareIcon className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleDelete(project._id)}
+                        onClick={() => handleDelete(project)}
                         className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
                         title="Delete"
                       >
@@ -575,8 +575,9 @@ const ProjectMaster = () => {
         </button>
         <button
           onClick={() => {
-            // Add edit functionality here
-            console.log('Edit project:', selectedProject);
+            setViewModal(false);
+            setEditingProject(selectedProject);
+            setShowModal(true);
           }}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >

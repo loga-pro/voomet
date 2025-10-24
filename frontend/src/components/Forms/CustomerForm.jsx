@@ -12,6 +12,7 @@ const CustomerForm = ({ customer, onSubmit, onCancel }) => {
   const [projects, setProjects] = useState([]);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [isFromAwardedProject, setIsFromAwardedProject] = useState(false);
 
   useEffect(() => {
     fetchAwardedProjects();
@@ -23,8 +24,11 @@ const CustomerForm = ({ customer, onSubmit, onCancel }) => {
         invoiceEmail: customer.invoiceEmail || '',
         billingAddress: customer.billingAddress || ''
       });
+      // Check if this customer came from an awarded project by checking if they have any awarded projects
+      const hasAwardedProjects = projects.some(project => project.customerName === customer.customerName);
+      setIsFromAwardedProject(hasAwardedProjects);
     }
-  }, [customer]);
+  }, [customer, projects]);
 
   const fetchAwardedProjects = async () => {
     try {
@@ -42,6 +46,9 @@ const CustomerForm = ({ customer, onSubmit, onCancel }) => {
         ...prev,
         customerName: project.customerName
       }));
+      setIsFromAwardedProject(true); // Freeze customer fields when selected from awarded project
+    } else {
+      setIsFromAwardedProject(false); // Unfreeze if no project selected
     }
   };
 
@@ -115,27 +122,30 @@ const CustomerForm = ({ customer, onSubmit, onCancel }) => {
         </div>
       )}
 
-      <div>
+      {!isFromAwardedProject && (
+        <div>
+          <FloatingInput
+            type="select"
+            name="projectSelect"
+            label="Select from Awarded Projects"
+            value=""
+            onChange={(e) => handleProjectSelect(e.target.value)}
+            options={projectOptions}
+          />
+        </div>
+      )}
+    
         <FloatingInput
-          type="select"
-          name="projectSelect"
-          label="Select from Awarded Projects"
-          value=""
-          onChange={(e) => handleProjectSelect(e.target.value)}
-          options={projectOptions}
+          type="text"
+          name="customerName"
+          label="Customer Name"
+          value={formData.customerName}
+          onChange={handleChange}
+          error={errors.customerName}
+          required={true}
+          disabled={isFromAwardedProject}
         />
-      </div>
-
-      <FloatingInput
-        type="text"
-        name="customerName"
-        label="Customer Name"
-        value={formData.customerName}
-        onChange={handleChange}
-        error={errors.customerName}
-        required={true}
-      />
-
+      
       <FloatingInput
         type="email"
         name="customerEmail"

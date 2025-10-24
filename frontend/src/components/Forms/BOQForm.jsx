@@ -507,119 +507,128 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError }) => {
             </button>
           </div>
 
-          {formData.items.map((item, index) => (
-            <div key={index} className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6 p-4 border border-gray-200 rounded-md bg-white shadow-sm">
-              <FloatingInput
-                label="Part Name"
-                value={item.partName}
-                onChange={(e) => handlePartSelect(index, e.target.value)}
-                error={errors[`item-${index}-partName`]}
-                type="select"
-                options={parts.map(part => ({
-                  value: part.partName,
-                  label: `${part.partName} (${part.unitType}) - ₹${part.partPrice}`
-                }))}
-                required
-              />
-
-              <FloatingInput
-                label="Number of Units"
-                value={item.numberOfUnits}
-                onChange={(e) => handleItemChange(index, 'numberOfUnits', e.target.value)}
-                error={errors[`item-${index}-numberOfUnits`]}
-                type="number"
-                step="0.01"
-                min="0"
-                required
-              />
-
-              <FloatingInput
-                label="Unit Type"
-                value={item.unitType}
-                onChange={(e) => handleItemChange(index, 'unitType', e.target.value)}
-                readOnly
-              />
-
-              <FloatingInput
-                label="Unit Price (₹)"
-                value={item.unitPrice}
-                onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
-                error={errors[`item-${index}-unitPrice`]}
-                type="number"
-                step="0.01"
-                min="0"
-                readOnly
-                required
-              />
-
-              <FloatingInput
-                label="Total Price (₹)"
-                value={item.totalPrice}
-                readOnly
-                type="number"
-                step="0.01"
-                min="0"
-              />
-
-              <div className="flex flex-col space-y-2">
-                <FloatingInput
-                  label="Remarks"
-                  value={item.remarks}
-                  onChange={(e) => handleItemChange(index, 'remarks', e.target.value)}
-                  type="text"
-                />
-                
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Item Image/File</label>
-                  <input
-                    type="file"
-                    onChange={(e) => handleItemFileChange(index, e)}
-                    accept="image/*,.pdf"
-                    className="block w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  />
-                    {item.image && typeof item.image === 'string' && (
-                    <div className="mt-2">
-                      <a 
-                        href={item.image.startsWith('http') ? item.image : `${process.env.REACT_APP_API_URL || 'https://3z1p79h8-5000.inc1.devtunnels.ms'}${item.image}`} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-xs text-blue-600 hover:underline flex items-center"
+          <div className={`${formData.items.length > 3 ? 'max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-2 bg-gray-50' : ''}`}>
+            <div className="space-y-4">
+              {formData.items.map((item, index) => (
+                <div key={index} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm font-medium text-gray-700 bg-blue-100 px-2 py-1 rounded">
+                      Item {index + 1}
+                    </span>
+                    {formData.items.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeItemRow(index)}
+                        className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        title="Remove item"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        View uploaded file
-                      </a>
-                    </div>
-                  )}
-                  {item.image && item.image instanceof File && (
-                    <div className="mt-2">
-                      <span className="text-xs text-green-600 flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        New file selected: {item.image.name}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
+                        <TrashIcon />
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                    <FloatingInput
+                      label="Part Name"
+                      value={item.partName}
+                      onChange={(e) => handlePartSelect(index, e.target.value)}
+                      error={errors[`item-${index}-partName`]}
+                      type="select"
+                      options={parts.map(part => ({
+                        value: part.partName,
+                        label: `${part.partName} (${part.unitType}) - ₹${part.partPrice}`
+                      }))}
+                      required
+                    />
 
-              {formData.items.length > 1 && (
-                <div className="md:col-span-6 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => removeItemRow(index)}
-                    className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                    title="Remove item"
-                  >
-                    <TrashIcon />
-                  </button>
+                    <FloatingInput
+                      label="Number of Units"
+                      value={item.numberOfUnits}
+                      onChange={(e) => handleItemChange(index, 'numberOfUnits', e.target.value)}
+                      error={errors[`item-${index}-numberOfUnits`]}
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      required
+                    />
+
+                    <FloatingInput
+                      label="Unit Type"
+                      value={item.unitType}
+                      onChange={(e) => handleItemChange(index, 'unitType', e.target.value)}
+                      readOnly
+                    />
+
+                    <FloatingInput
+                      label="Unit Price (₹)"
+                      value={item.unitPrice}
+                      onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
+                      error={errors[`item-${index}-unitPrice`]}
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      readOnly
+                      required
+                    />
+
+                    <FloatingInput
+                      label="Total Price (₹)"
+                      value={item.totalPrice}
+                      readOnly
+                      type="number"
+                      step="0.01"
+                      min="0"
+                    />
+
+                    <div className="flex flex-col space-y-2">
+                      <FloatingInput
+                        label="Remarks"
+                        value={item.remarks}
+                        onChange={(e) => handleItemChange(index, 'remarks', e.target.value)}
+                        type="text"
+                      />
+                      
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Item Image/File</label>
+                        <input
+                          type="file"
+                          onChange={(e) => handleItemFileChange(index, e)}
+                          accept="image/*,.pdf"
+                          className="block w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        />
+                          {item.image && typeof item.image === 'string' && (
+                          <div className="mt-2">
+                            <a 
+                              href={item.image.startsWith('http') ? item.image : `${process.env.REACT_APP_API_URL || 'https://3z1p79h8-5000.inc1.devtunnels.ms'}${item.image}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600 hover:underline flex items-center"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              View uploaded file
+                            </a>
+                          </div>
+                        )}
+                        {item.image && item.image instanceof File && (
+                          <div className="mt-2">
+                            <span className="text-xs text-green-600 flex items-center">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              New file selected: {item.image.name}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              )}
+              ))}
             </div>
-          ))}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-md">

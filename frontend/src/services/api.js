@@ -166,6 +166,7 @@ export const paymentsAPI = {
 // Dashboard API
 export const dashboardAPI = {
   getKPIs: () => api.get('/dashboard/kpis'),
+  getProjectsByStage: (stage) => api.get(`/dashboard/projects-by-stage/${stage}`),
 };
 // vendor API
 export const vendorPaymentsAPI = {

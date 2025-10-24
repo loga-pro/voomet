@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { partsAPI } from '../../services/api';
-import FloatingInput from './FloatingInput'; // Adjust the import path as needed
+import FloatingInput from './FloatingInput'; 
 
 const PartForm = ({ part, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -14,33 +14,33 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
   const [loading, setLoading] = useState(false);
 
   const scopeOptions = [
-    { value: 'electrical', label: 'ELECTRICAL' },
-    { value: 'data', label: 'DATA' },
-    { value: 'cctv', label: 'CCTV' },
-    { value: 'partion', label: 'PARTION' },
-    { value: 'fire_and_safety', label: 'FIRE AND SAFETY' },
-    { value: 'access', label: 'ACCESS' }
+    { value: 'ELECTRICAL', label: 'ELECTRICAL' },
+    { value: 'DATA', label: 'DATA' },
+    { value: 'CCTV', label: 'CCTV' },
+    { value: 'PARTION', label: 'PARTION' },
+    { value: 'FIRE AND SAFETY', label: 'FIRE AND SAFETY' },
+    { value: 'ACCESS', label: 'ACCESS' }
   ];
 
   const categoryOptions = [
-    { value: 'inhouse', label: 'INHOUSE' },
-    { value: 'out_sourced', label: 'OUT SOURCED' },
-    { value: 'bought_out', label: 'BOUGHT OUT' }
+    { value: 'INHOUSE', label: 'INHOUSE' },
+    { value: 'OUT SOURCED', label: 'OUT SOURCED' },
+    { value: 'BOUGHT OUT', label: 'BOUGHT OUT' }
   ];
 
   const unitTypeOptions = [
-    { value: 'sq_feet', label: 'SQ FEET' },
-    { value: 'number', label: 'NUMBER' },
-    { value: 'meter', label: 'METER' }
+    { value: 'SQ FEET', label: 'SQ FEET' },
+    { value: 'NUMBER', label: 'NUMBER' },
+    { value: 'METER', label: 'METER' }
   ];
 
   useEffect(() => {
     if (part) {
       setFormData({
-        scopeOfWork: part.scopeOfWork || 'electrical',
+        scopeOfWork: part.scopeOfWork || 'ELECTRICAL',
         partName: part.partName || '',
-        category: part.category || 'inhouse',
-        unitType: part.unitType || 'sq_feet',
+        category: part.category || 'INHOUSE',
+        unitType: part.unitType || 'SQ FEET',
         partPrice: part.partPrice || ''
       });
     }
@@ -48,10 +48,21 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    if (name === 'partPrice') {
+      // Allow empty string or validate decimal places
+      if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
+        setFormData(prev => ({
+          ...prev,
+          [name]: value
+        }));
+      }
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
 
     if (errors[name]) {
       setErrors(prev => ({
@@ -68,6 +79,8 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
     if (!formData.partPrice) newErrors.partPrice = 'Part price is required';
     else if (isNaN(formData.partPrice) || parseFloat(formData.partPrice) <= 0) {
       newErrors.partPrice = 'Part price must be a valid number greater than 0';
+    } else if (!/^\d*\.?\d{0,2}$/.test(formData.partPrice)) {
+      newErrors.partPrice = 'Part price must have maximum 2 decimal places';
     }
 
     setErrors(newErrors);

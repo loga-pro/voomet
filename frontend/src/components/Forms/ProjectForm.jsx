@@ -51,10 +51,22 @@ const ProjectForm = ({ project, onSubmit, onCancel }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    // Special validation for totalProjectValue to allow only 2 decimal places
+    if (name === 'totalProjectValue') {
+      // Allow empty string or numbers with up to 2 decimal places
+      if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
+        setFormData(prev => ({
+          ...prev,
+          [name]: value
+        }));
+      }
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
 
     if (errors[name]) {
       setErrors(prev => ({
@@ -82,6 +94,8 @@ const ProjectForm = ({ project, onSubmit, onCancel }) => {
     if (!formData.totalProjectValue) newErrors.totalProjectValue = 'Project value is required';
     else if (isNaN(formData.totalProjectValue) || parseFloat(formData.totalProjectValue) <= 0) {
       newErrors.totalProjectValue = 'Project value must be a valid number greater than 0';
+    } else if (!/^\d*\.?\d{0,2}$/.test(formData.totalProjectValue)) {
+      newErrors.totalProjectValue = 'Project value must have maximum 2 decimal places';
     }
     if (formData.scopeOfWork.length === 0) newErrors.scopeOfWork = 'At least one scope of work is required';
 
