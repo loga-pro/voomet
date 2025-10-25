@@ -6,12 +6,6 @@ const ProjectDetailsModal = ({ isOpen, onClose, stage, stageTitle }) => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (isOpen && stage) {
-      fetchProjects();
-    }
-  }, [isOpen, stage, fetchProjects]);
-
   const fetchProjects = useCallback(async () => {
     try {
       setLoading(true);
@@ -23,6 +17,12 @@ const ProjectDetailsModal = ({ isOpen, onClose, stage, stageTitle }) => {
       setLoading(false);
     }
   }, [stage]);
+
+  useEffect(() => {
+    if (isOpen && stage) {
+      fetchProjects();
+    }
+  }, [isOpen, stage, fetchProjects]);
 
   if (!isOpen) return null;
 
