@@ -56,14 +56,7 @@ const InventoryForm = ({ inventory, onSubmit, onCancel, showNotification, showEr
             total: receipt.total || (receipt.quantity * inventory.partPrice) || 0,
             cumulativeQuantity: receipt.cumulativeQuantity || 0,
             cumulativePrice: receipt.cumulativePrice || 0
-          })) : [{
-            date: new Date().toISOString().split('T')[0],
-            quantity: '',
-            unit: 'nos',
-            total: 0,
-            cumulativeQuantity: 0,
-            cumulativePrice: 0
-          }],
+          })) : [],
         dispatches: inventory.dispatches && inventory.dispatches.length > 0 ?
           inventory.dispatches.map(dispatch => ({
             date: dispatch.date ? new Date(dispatch.date).toISOString().split('T')[0] : '',
@@ -71,13 +64,7 @@ const InventoryForm = ({ inventory, onSubmit, onCancel, showNotification, showEr
             unit: dispatch.unit || 'nos',
             cumulativeQuantity: dispatch.cumulativeQuantity || 0,
             cumulativePrice: dispatch.cumulativePrice || 0
-          })) : [{
-            date: '',
-            quantity: '',
-            unit: 'nos',
-            cumulativeQuantity: 0,
-            cumulativePrice: 0
-          }],
+          })) : [],
         returns: inventory.returns && inventory.returns.length > 0 ?
           inventory.returns.map(returnItem => ({
             date: returnItem.date ? new Date(returnItem.date).toISOString().split('T')[0] : '',
@@ -85,13 +72,7 @@ const InventoryForm = ({ inventory, onSubmit, onCancel, showNotification, showEr
             unit: returnItem.unit || 'nos',
             cumulativeQuantity: returnItem.cumulativeQuantity || 0,
             cumulativePrice: returnItem.cumulativePrice || 0
-          })) : [{
-            date: '',
-            quantity: '',
-            unit: 'nos',
-            cumulativeQuantity: 0,
-            cumulativePrice: 0
-          }],
+          })) : [],
         remarks: inventory.remarks || ''
       };
       setFormData(formattedData);
@@ -142,73 +123,74 @@ const InventoryForm = ({ inventory, onSubmit, onCancel, showNotification, showEr
       
       // Use setTimeout to break the render cycle
       setTimeout(() => {
-        const partPrice = parseFloat(formData.partPrice) || 0;
-        
-        // Calculate cumulative values for receipts
-        let cumulativeReceiptQuantity = 0;
-        const updatedReceipts = formData.receipts.map(receipt => {
-          const quantity = parseFloat(receipt.quantity) || 0;
-          if (receipt.date && quantity) {
-            cumulativeReceiptQuantity += quantity;
-          }
+        setFormData(prev => {
+          const partPrice = parseFloat(prev.partPrice) || 0;
+          
+          // Calculate cumulative values for receipts
+          let cumulativeReceiptQuantity = 0;
+          const updatedReceipts = prev.receipts.map(receipt => {
+            const quantity = parseFloat(receipt.quantity) || 0;
+            if (receipt.date && quantity) {
+              cumulativeReceiptQuantity += quantity;
+            }
+            return {
+              ...receipt,
+              total: quantity * partPrice,
+              unit: receipt.unit || 'nos',
+              cumulativeQuantity: cumulativeReceiptQuantity,
+              cumulativePrice: cumulativeReceiptQuantity * partPrice
+            };
+          });
+          
+          // Calculate cumulative values for dispatches
+          let cumulativeDispatchQuantity = 0;
+          const updatedDispatches = prev.dispatches.map(dispatch => {
+            const quantity = parseFloat(dispatch.quantity) || 0;
+            if (dispatch.date && quantity) {
+              cumulativeDispatchQuantity += quantity;
+            }
+            return {
+              ...dispatch,
+              unit: dispatch.unit || 'nos',
+              cumulativeQuantity: cumulativeDispatchQuantity,
+              cumulativePrice: cumulativeDispatchQuantity * partPrice
+            };
+          });
+          
+          // Calculate cumulative values for returns
+          let cumulativeReturnQuantity = 0;
+          const updatedReturns = prev.returns.map(returnItem => {
+            const quantity = parseFloat(returnItem.quantity) || 0;
+            if (returnItem.date && quantity) {
+              cumulativeReturnQuantity += quantity;
+            }
+            return {
+              ...returnItem,
+              unit: returnItem.unit || 'nos',
+              cumulativeQuantity: cumulativeReturnQuantity,
+              cumulativePrice: cumulativeReturnQuantity * partPrice
+            };
+          });
+          
+          // Calculate overall cumulative values
+          const cumulativeQuantity = cumulativeReceiptQuantity - cumulativeDispatchQuantity + cumulativeReturnQuantity;
+          const cumulativePrice = cumulativeQuantity * partPrice;
+          
           return {
-            ...receipt,
-            total: quantity * partPrice,
-            unit: receipt.unit || 'nos',
-            cumulativeQuantity: cumulativeReceiptQuantity,
-            cumulativePrice: cumulativeReceiptQuantity * partPrice
+            ...prev,
+            receipts: updatedReceipts,
+            dispatches: updatedDispatches,
+            returns: updatedReturns,
+            cumulativeQuantityAtVoomet: cumulativeQuantity,
+            cumulativePriceValue: cumulativePrice
           };
         });
-        
-        // Calculate cumulative values for dispatches
-        let cumulativeDispatchQuantity = 0;
-        const updatedDispatches = formData.dispatches.map(dispatch => {
-          const quantity = parseFloat(dispatch.quantity) || 0;
-          if (dispatch.date && quantity) {
-            cumulativeDispatchQuantity += quantity;
-          }
-          return {
-            ...dispatch,
-            unit: dispatch.unit || 'nos',
-            cumulativeQuantity: cumulativeDispatchQuantity,
-            cumulativePrice: cumulativeDispatchQuantity * partPrice
-          };
-        });
-        
-        // Calculate cumulative values for returns
-        let cumulativeReturnQuantity = 0;
-        const updatedReturns = formData.returns.map(returnItem => {
-          const quantity = parseFloat(returnItem.quantity) || 0;
-          if (returnItem.date && quantity) {
-            cumulativeReturnQuantity += quantity;
-          }
-          return {
-            ...returnItem,
-            unit: returnItem.unit || 'nos',
-            cumulativeQuantity: cumulativeReturnQuantity,
-            cumulativePrice: cumulativeReturnQuantity * partPrice
-          };
-        });
-        
-        // Calculate overall cumulative values
-        const cumulativeQuantity = cumulativeReceiptQuantity - cumulativeDispatchQuantity + cumulativeReturnQuantity;
-        const cumulativePrice = cumulativeQuantity * partPrice;
-        
-        // Update state once with all calculated values
-        setFormData(prev => ({
-          ...prev,
-          receipts: updatedReceipts,
-          dispatches: updatedDispatches,
-          returns: updatedReturns,
-          cumulativeQuantityAtVoomet: cumulativeQuantity,
-          cumulativePriceValue: cumulativePrice
-        }));
         
         isCalculating.current = false;
-      }, 0);
+      }, 100); // Increased timeout to ensure proper state updates
     }
     
-  }, [formData.partPrice, formData.receipts.length, formData.dispatches.length, formData.returns.length]);
+  }, [formData.partPrice, formData.receipts, formData.dispatches, formData.returns]); // Watch the actual arrays, not just lengths
 
   const fetchParts = async () => {
     try {
@@ -381,7 +363,7 @@ const InventoryForm = ({ inventory, onSubmit, onCancel, showNotification, showEr
     setFormData(prev => ({
       ...prev,
       [type]: [
-        ...prev[type],
+        ...(prev[type] || []),
         {
           date: type === 'receipts' ? new Date().toISOString().split('T')[0] : '',
           quantity: '',
@@ -395,12 +377,15 @@ const InventoryForm = ({ inventory, onSubmit, onCancel, showNotification, showEr
   };
 
   const removeRow = (type, index) => {
-    if (formData[type].length > 1) {
-      setFormData(prev => ({
+    setFormData(prev => {
+      console.log(`Removing row: type=${type}, index=${index}, current length=${prev[type].length}`);
+      const newArray = prev[type].filter((_, i) => i !== index);
+      console.log(`New ${type} array length:`, newArray.length);
+      return {
         ...prev,
-        [type]: prev[type].filter((_, i) => i !== index)
-      }));
-    }
+        [type]: newArray
+      };
+    });
   };
 
   const validateForm = () => {
@@ -411,9 +396,9 @@ const InventoryForm = ({ inventory, onSubmit, onCancel, showNotification, showEr
     if (!formData.partPrice || formData.partPrice <= 0) newErrors.partPrice = 'Valid part price is required';
     if (!formData.dateOfReceipt) newErrors.dateOfReceipt = 'Date of receipt is required';
     
-    // Validate receipts - at least one valid receipt is required
+    // Validate receipts - at least one valid receipt is required for new items only
     const validReceipts = formData.receipts.filter(receipt => receipt.date && receipt.quantity && parseFloat(receipt.quantity) > 0);
-    if (validReceipts.length === 0) {
+    if (validReceipts.length === 0 && !inventory) {
       newErrors.receipts = 'At least one valid receipt is required';
     }
     
@@ -450,6 +435,8 @@ const InventoryForm = ({ inventory, onSubmit, onCancel, showNotification, showEr
 
     setLoading(true);
     try {
+      console.log('Form data before cleaning:', formData);
+      
       // Clean and validate data before submission
       const submitData = {
         ...formData,
@@ -477,22 +464,29 @@ const InventoryForm = ({ inventory, onSubmit, onCancel, showNotification, showEr
           cumulativeQuantity: parseFloat(dispatch.cumulativeQuantity) || 0,
           cumulativePrice: parseFloat(dispatch.cumulativePrice) || 0
         })),
-        returns: formData.returns.map(returnItem => ({
-          ...returnItem,
-          date: returnItem.date ? new Date(returnItem.date) : null,
-          quantity: parseFloat(returnItem.quantity) || 0,
-          cumulativeQuantity: parseFloat(returnItem.cumulativeQuantity) || 0,
-          cumulativePrice: parseFloat(returnItem.cumulativePrice) || 0
-        }))
+        returns: formData.returns
+          .filter(returnItem => returnItem.date && parseFloat(returnItem.quantity) > 0)
+          .map(returnItem => ({
+            ...returnItem,
+            date: returnItem.date ? new Date(returnItem.date) : null,
+            quantity: parseFloat(returnItem.quantity) || 0,
+            cumulativeQuantity: parseFloat(returnItem.cumulativeQuantity) || 0,
+            cumulativePrice: parseFloat(returnItem.cumulativePrice) || 0
+          }))
       };
 
-      // Ensure we have at least one valid receipt
-      if (submitData.receipts.length === 0) {
+      // Ensure we have at least one valid receipt for new items only
+      if (submitData.receipts.length === 0 && !inventory) {
         showError('At least one valid receipt with date and quantity is required');
         setErrors({ receipts: 'At least one valid receipt is required' });
         setLoading(false);
         return;
       }
+
+      // Ensure empty arrays are sent as empty arrays, not undefined
+      submitData.receipts = submitData.receipts || [];
+      submitData.dispatches = submitData.dispatches || [];
+      submitData.returns = submitData.returns || [];
 
       // Ensure all required fields have valid values
       if (!submitData.partPrice || submitData.partPrice <= 0) {
@@ -502,11 +496,15 @@ const InventoryForm = ({ inventory, onSubmit, onCancel, showNotification, showEr
       }
 
       let response;
+      console.log('Submitting data:', submitData);
+      
       if (inventory) {
         response = await inventoryAPI.update(inventory._id, submitData);
       } else {
         response = await inventoryAPI.create(submitData);
       }
+      
+      console.log('API response:', response);
       
       // Verify we got a successful response with data
       if (!response || !response.data) {
@@ -571,61 +569,68 @@ const InventoryForm = ({ inventory, onSubmit, onCancel, showNotification, showEr
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {formData[type].map((item, index) => (
-                <tr key={`${type}-${index}`} className="hover:bg-gray-50">
-                  <td className="px-3 py-2">
-                    <input
-                      name={`${type}.${index}.date`}
-                      value={item.date}
-                      onChange={handleChange}
-                      type="date"
-                      required={type === 'receipts'}
-                      className="text-xs w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                    {errors[`${type}.${index}.date`] && (
-                      <p className="text-xs text-red-500 mt-1">{errors[`${type}.${index}.date`]}</p>
-                    )}
-                  </td>
-                  
-                  <td className="px-3 py-2">
-                    <input
-                      name={`${type}.${index}.quantity`}
-                      value={item.quantity}
-                      onChange={handleChange}
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      required={type === 'receipts'}
-                      className="text-xs w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                    {errors[`${type}.${index}.quantity`] && (
-                      <p className="text-xs text-red-500 mt-1">{errors[`${type}.${index}.quantity`]}</p>
-                    )}
-                  </td>
-                  <td className="px-3 py-2">
-                    <input
-                      name={`${type}.${index}.cumulativeQuantity`}
-                      value={item.cumulativeQuantity}
-                      type="number"
-                      readOnly={true}
-                      className="text-xs w-full px-2 py-1 border border-gray-300 rounded bg-gray-50"
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <button
-                      type="button"
-                      onClick={() => removeRow(type, index)}
-                      className="text-red-600 hover:text-red-800 hover:bg-red-50 p-1 rounded transition-colors"
-                      disabled={formData[type].length <= 1}
-                      title="Remove Row"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+              {formData[type] && formData[type].length > 0 ? (
+                formData[type].map((item, index) => (
+                  <tr key={`${type}-${index}-${item.date || ''}-${item.quantity || ''}`} className="hover:bg-gray-50">
+                    <td className="px-3 py-2">
+                      <input
+                        name={`${type}.${index}.date`}
+                        value={item.date}
+                        onChange={handleChange}
+                        type="date"
+                        required={type === 'receipts'}
+                        className="text-xs w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                      {errors[`${type}.${index}.date`] && (
+                        <p className="text-xs text-red-500 mt-1">{errors[`${type}.${index}.date`]}</p>
+                      )}
+                    </td>
+                    
+                    <td className="px-3 py-2">
+                      <input
+                        name={`${type}.${index}.quantity`}
+                        value={item.quantity}
+                        onChange={handleChange}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        required={type === 'receipts'}
+                        className="text-xs w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                      {errors[`${type}.${index}.quantity`] && (
+                        <p className="text-xs text-red-500 mt-1">{errors[`${type}.${index}.quantity`]}</p>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        name={`${type}.${index}.cumulativeQuantity`}
+                        value={item.cumulativeQuantity}
+                        type="number"
+                        readOnly={true}
+                        className="text-xs w-full px-2 py-1 border border-gray-300 rounded bg-gray-50"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <button
+                        type="button"
+                        onClick={() => removeRow(type, index)}
+                        className="text-red-600 hover:text-red-800 hover:bg-red-50 p-1 rounded transition-colors"
+                        title="Remove Row"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4" className="px-3 py-8 text-center text-gray-500 text-sm">
+                    No {type} records. Click "Add" to create one.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>

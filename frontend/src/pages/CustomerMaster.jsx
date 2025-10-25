@@ -146,15 +146,23 @@ const CustomerMaster = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this customer?')) {
-      try {
-        await customersAPI.delete(id);
-        fetchCustomers(); // Refresh the list
-        showSuccess('Customer deleted successfully');
-      } catch (error) {
-        console.error('Error deleting customer:', error);
-      }
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState(null);
+
+  const handleDelete = (customer) => {
+    setCustomerToDelete(customer);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await customersAPI.delete(customerToDelete._id);
+      fetchCustomers(); // Refresh the list
+      showSuccess(`Customer "${customerToDelete.customerName}" deleted successfully`);
+      setShowDeleteModal(false);
+      setCustomerToDelete(null);
+    } catch (error) {
+      console.error('Error deleting customer:', error);
     }
   };
 
@@ -382,7 +390,7 @@ const CustomerMaster = () => {
                               <PencilSquareIcon className="h-5 w-5" />
                             </button>
                             <button
-                              onClick={() => handleDelete(customer._id)}
+                              onClick={() => handleDelete(customer)}
                               className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
                               title="Delete"
                             >
@@ -424,7 +432,7 @@ const CustomerMaster = () => {
                           <PencilSquareIcon className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(customer._id)}
+                          onClick={() => handleDelete(customer)}
                           className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
                           title="Delete"
                         >
@@ -657,6 +665,34 @@ const CustomerMaster = () => {
         isVisible={notification.isVisible}
         onClose={hideNotification}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title="Confirm Delete"
+        size="sm"
+      >
+        <div className="p-4">
+          <p className="mb-4 text-gray-700">
+            Are you sure you want to delete {customerToDelete?.customerName || 'this customer'}? This action cannot be undone.
+          </p>
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmDelete}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

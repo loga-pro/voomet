@@ -41,7 +41,20 @@ router.post('/', auth, async (req, res) => {
     await part.save();
     res.status(201).json(part);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    if (error.name === 'ValidationError') {
+      // Handle validation errors
+      const validationErrors = {};
+      for (let field in error.errors) {
+        validationErrors[field] = error.errors[field].message;
+      }
+      res.status(400).json({ 
+        message: 'Validation failed', 
+        errors: validationErrors 
+      });
+    } else {
+      console.error('Part creation error:', error);
+      res.status(500).json({ message: 'Server error', error: error.message });
+    }
   }
 });
 
@@ -58,7 +71,20 @@ router.put('/:id', auth, async (req, res) => {
     }
     res.json(part);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    if (error.name === 'ValidationError') {
+      // Handle validation errors
+      const validationErrors = {};
+      for (let field in error.errors) {
+        validationErrors[field] = error.errors[field].message;
+      }
+      res.status(400).json({ 
+        message: 'Validation failed', 
+        errors: validationErrors 
+      });
+    } else {
+      console.error('Part update error:', error);
+      res.status(500).json({ message: 'Server error', error: error.message });
+    }
   }
 });
 

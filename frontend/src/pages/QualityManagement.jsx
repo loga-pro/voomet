@@ -176,16 +176,24 @@ const QualityManagement = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this quality issue?')) {
-      try {
-        await qualityAPI.delete(id);
-        showSuccess('Quality issue deleted successfully');
-        fetchQualityIssues();
-      } catch (error) {
-        console.error('Error deleting quality issue:', error);
-        showError('Failed to delete quality issue');
-      }
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [issueToDelete, setIssueToDelete] = useState(null);
+
+  const handleDelete = (id) => {
+    setIssueToDelete(id);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await qualityAPI.delete(issueToDelete);
+      showSuccess('Quality issue deleted successfully');
+      fetchQualityIssues();
+      setShowDeleteModal(false);
+      setIssueToDelete(null);
+    } catch (error) {
+      console.error('Error deleting quality issue:', error);
+      showError('Failed to delete quality issue');
     }
   };
 
@@ -603,6 +611,38 @@ const QualityManagement = () => {
             />
           )}
         </Modal>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <Modal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          title="Confirm Delete"
+        >
+          <div className="p-4">
+            <p className="mb-4 text-gray-700">
+              Are you sure you want to delete this quality issue?
+            </p>
+            <p className="mb-4 text-sm text-red-600">
+              This action cannot be undone and will permanently remove all quality issue data.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                DELETE
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
       </div>
     </div>
   );

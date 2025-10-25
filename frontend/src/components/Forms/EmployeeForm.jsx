@@ -26,12 +26,37 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
 
+  // Map fields to their respective tabs for error navigation
+  const fieldToTabMap = {
+    name: 'personal',
+    email: 'personal',
+    gender: 'personal',
+    dob: 'personal',
+    phone: 'personal',
+    aadhar: 'personal',
+    address: 'personal',
+    qualification: 'professional',
+    designation: 'professional',
+    department: 'professional',
+    pan: 'professional',
+    uan: 'professional',
+    bankName: 'bank',
+    bankAccountNumber: 'bank',
+    branch: 'bank'
+  };
+
   // Define tabs with labels and SVG icons
   const tabs = [
     { id: 'personal', label: 'Personal', icon: <UserIcon className="h-6 w-6 text-gray-600" /> },
     { id: 'professional', label: 'Professional', icon: <BriefcaseIcon className="h-6 w-6 text-gray-600" /> },
     { id: 'bank', label: 'Bank', icon: <BanknotesIcon className="h-6 w-6 text-gray-600" /> }
   ];
+
+  // Function to check if a tab has errors
+  const hasTabErrors = (tabId) => {
+    const tabFields = Object.keys(fieldToTabMap).filter(field => fieldToTabMap[field] === tabId);
+    return tabFields.some(field => errors[field]);
+  };
 
   useEffect(() => {
     if (employee) {
@@ -54,6 +79,18 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
       });
     }
   }, [employee]);
+
+  // Function to navigate to tab containing validation errors
+  const navigateToErrorTab = (errors) => {
+    const errorFields = Object.keys(errors);
+    if (errorFields.length > 0) {
+      const firstErrorField = errorFields[0];
+      const targetTab = fieldToTabMap[firstErrorField];
+      if (targetTab && targetTab !== activeTab) {
+        setActiveTab(targetTab);
+      }
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -105,6 +142,12 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
     if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan)) newErrors.pan = 'PAN must be in format ABCDE1234F';
 
     setErrors(newErrors);
+    
+    // Navigate to tab with first error if there are errors
+    if (Object.keys(newErrors).length > 0) {
+      navigateToErrorTab(newErrors);
+    }
+    
     return Object.keys(newErrors).length === 0;
   };
 
@@ -127,7 +170,12 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
       }
       onSubmit();
     } catch (error) {
-      if (error.response?.data?.message) {
+      if (error.response?.data?.errors) {
+        // Handle field-specific validation errors
+        setErrors(error.response.data.errors);
+        // Navigate to tab with first error
+        navigateToErrorTab(error.response.data.errors);
+      } else if (error.response?.data?.message) {
         setErrors({ submit: error.response.data.message });
       } else {
         setErrors({ submit: 'An error occurred. Please try again.' });
@@ -161,6 +209,8 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                   className={`flex items-center justify-center w-14 h-14 rounded-full border-2 transition-all duration-300 ${
                     activeTab === tab.id
                       ? 'bg-blue-600 border-blue-600 text-white shadow-lg transform scale-110'
+                      : hasTabErrors(tab.id)
+                      ? 'bg-red-100 border-red-500 text-red-600'
                       : index < currentTabIndex
                       ? 'bg-green-100 border-green-500 text-green-600'
                       : 'bg-white border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600'
@@ -178,6 +228,11 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                   activeTab === tab.id ? 'text-blue-600' : 'text-gray-600'
                 }`}>
                   {tab.label}
+                  {hasTabErrors(tab.id) && (
+                    <span className="ml-1 bg-red-500 text-white text-xs rounded-full px-2 py-1">
+                      !
+                    </span>
+                  )}
                 </span>
               </div>
               {index < tabs.length - 1 && (
@@ -241,6 +296,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                   { value: 'Female', label: 'Female' },
                   { value: 'Other', label: 'Other' }
                 ]}
+                 required
               />
 
               <FloatingInput
@@ -268,6 +324,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                 onChange={handleChange}
                 error={errors.aadhar}
                 maxLength={12}
+                 required
               />
 
               <div className="md:col-span-2">
@@ -319,6 +376,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                 onChange={handleChange}
                 error={errors.pan}
                 maxLength={10}
+                 required
               />
 
               <FloatingInput

@@ -244,26 +244,35 @@ const InventoryManagement = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (item) => {
-    const confirmMessage = `Are you sure you want to delete this inventory item?\n\nScope of Work: ${item.scopeOfWork?.replace('_', ' ').toUpperCase()}\nPart Name: ${item.partName}`;
-    
-    if (window.confirm(confirmMessage)) {
-      try {
-        await inventoryAPI.delete(item._id);
-        showSuccess('Inventory item deleted successfully');
-        fetchInventoryItems();
-      } catch (error) {
-        console.error('Error deleting inventory item:', error);
-        showError('Failed to delete inventory item');
-      }
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+
+  const handleDelete = (item) => {
+    setItemToDelete(item);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await inventoryAPI.delete(itemToDelete._id);
+      showSuccess('Inventory item deleted successfully');
+      fetchInventoryItems();
+      setShowDeleteModal(false);
+      setItemToDelete(null);
+    } catch (error) {
+      console.error('Error deleting inventory item:', error);
+      showError('Failed to delete inventory item');
     }
   };
 
-  const handleFormSubmit = (isEdit = false) => {
+  const handleFormSubmit = async (isEdit = false) => {
     setShowModal(false);
     setEditingItem(null);
     showSuccess(isEdit ? 'Inventory item updated successfully' : 'Inventory item added successfully');
-    fetchInventoryItems();
+    // Add a small delay to ensure the form submission is complete before refreshing
+    setTimeout(() => {
+      fetchInventoryItems();
+    }, 500);
   };
 
   if (loading) {
@@ -1109,6 +1118,68 @@ const InventoryManagement = () => {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title="Confirm Delete"
+        size="sm"
+      >
+        <div className="p-6">
+          <div className="flex items-center mb-4">
+            <div className="flex-shrink-0">
+              <svg className="h-10 w-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div className="ml-4">
+              <h3 className="text-lg font-medium text-gray-900">Delete Inventory Item</h3>
+              <p className="text-sm text-gray-500">
+                Are you sure you want to delete this inventory item? This action cannot be undone.
+              </p>
+            </div>
+          </div>
+          
+          {itemToDelete && (
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium text-gray-700">Part Name:</span>
+                  <p className="text-gray-900">{itemToDelete.partName}</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Scope:</span>
+                  <p className="text-gray-900">{itemToDelete.scopeOfWork?.replace(/_/g, ' ').toUpperCase()}</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Current Stock:</span>
+                  <p className="text-gray-900">{calculateTotals(itemToDelete).currentStock.toFixed(2)}</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Unit Price:</span>
+                  <p className="text-gray-900">₹{itemToDelete.partPrice}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmDelete}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

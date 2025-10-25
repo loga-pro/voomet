@@ -146,15 +146,23 @@ const ProjectMaster = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (project) => {
-    if (window.confirm(`Are you sure you want to delete project "${project.projectName}"?`)) {
-      try {
-        await projectsAPI.delete(project._id);
-        fetchProjects(); // Refresh the list
-        showSuccess(`Project "${project.projectName}" deleted successfully`);
-      } catch (error) {
-        console.error('Error deleting project:', error);
-      }
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState(null);
+
+  const handleDelete = (project) => {
+    setProjectToDelete(project);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await projectsAPI.delete(projectToDelete._id);
+      fetchProjects(); // Refresh the list
+      showSuccess(`Project "${projectToDelete.projectName}" deleted successfully`);
+      setShowDeleteModal(false);
+      setProjectToDelete(null);
+    } catch (error) {
+      console.error('Error deleting project:', error);
     }
   };
 
@@ -595,6 +603,34 @@ const ProjectMaster = () => {
         isVisible={notification.isVisible}
         onClose={hideNotification}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title="Confirm Delete"
+        size="sm"
+      >
+        <div className="p-4">
+          <p className="mb-4 text-gray-700">
+            Are you sure you want to delete {projectToDelete?.projectName || 'this project'}? This action cannot be undone.
+          </p>
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmDelete}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

@@ -14,33 +14,33 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
   const [loading, setLoading] = useState(false);
 
   const scopeOptions = [
-    { value: 'ELECTRICAL', label: 'ELECTRICAL' },
-    { value: 'DATA', label: 'DATA' },
-    { value: 'CCTV', label: 'CCTV' },
-    { value: 'PARTION', label: 'PARTION' },
-    { value: 'FIRE AND SAFETY', label: 'FIRE AND SAFETY' },
-    { value: 'ACCESS', label: 'ACCESS' }
+    { value: 'electrical', label: 'ELECTRICAL' },
+    { value: 'data', label: 'DATA' },
+    { value: 'cctv', label: 'CCTV' },
+    { value: 'partion', label: 'PARTION' },
+    { value: 'fire_and_safety', label: 'FIRE AND SAFETY' },
+    { value: 'access', label: 'ACCESS' }
   ];
 
   const categoryOptions = [
-    { value: 'INHOUSE', label: 'INHOUSE' },
-    { value: 'OUT SOURCED', label: 'OUT SOURCED' },
-    { value: 'BOUGHT OUT', label: 'BOUGHT OUT' }
+    { value: 'inhouse', label: 'INHOUSE' },
+    { value: 'out_sourced', label: 'OUT SOURCED' },
+    { value: 'bought_out', label: 'BOUGHT OUT' }
   ];
 
   const unitTypeOptions = [
-    { value: 'SQ FEET', label: 'SQ FEET' },
-    { value: 'NUMBER', label: 'NUMBER' },
-    { value: 'METER', label: 'METER' }
+    { value: 'sq_feet', label: 'SQ FEET' },
+    { value: 'number', label: 'NUMBER' },
+    { value: 'meter', label: 'METER' }
   ];
 
   useEffect(() => {
     if (part) {
       setFormData({
-        scopeOfWork: part.scopeOfWork || 'ELECTRICAL',
+        scopeOfWork: part.scopeOfWork || 'electrical',
         partName: part.partName || '',
-        category: part.category || 'INHOUSE',
-        unitType: part.unitType || 'SQ FEET',
+        category: part.category || 'inhouse',
+        unitType: part.unitType || 'sq_feet',
         partPrice: part.partPrice || ''
       });
     }

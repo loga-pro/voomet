@@ -14,9 +14,12 @@ router.get('/', auth, async (req, res) => {
     if (department) filter.department = new RegExp(department, 'i');
     if (designation) filter.designation = new RegExp(designation, 'i');
 
+    console.log('Employee GET request - Filter:', filter);
     const employees = await Employee.find(filter);
+    console.log(`Found ${employees.length} employees`);
     res.json(employees);
   } catch (error) {
+    console.error('Employee GET error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -37,14 +40,29 @@ router.get('/:id', auth, async (req, res) => {
 // Create new employee
 router.post('/', auth, async (req, res) => {
   try {
+    console.log('Employee creation attempt - Request body:', JSON.stringify(req.body, null, 2));
     const employee = new Employee(req.body);
     await employee.save();
+    console.log('Employee created successfully');
     res.status(201).json(employee);
   } catch (error) {
+    console.error('Employee creation error details:', error);
     if (error.code === 11000) {
       res.status(400).json({ message: 'Employee with this email already exists' });
+    } else if (error.name === 'ValidationError') {
+      // Handle validation errors
+      const validationErrors = {};
+      for (let field in error.errors) {
+        validationErrors[field] = error.errors[field].message;
+      }
+      console.log('Validation errors:', validationErrors);
+      res.status(400).json({ 
+        message: 'Validation failed', 
+        errors: validationErrors 
+      });
     } else {
-      res.status(500).json({ message: 'Server error' });
+      console.error('Employee creation error:', error);
+      res.status(500).json({ message: 'Server error', error: error.message });
     }
   }
 });
@@ -62,7 +80,22 @@ router.put('/:id', auth, async (req, res) => {
     }
     res.json(employee);
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    if (error.name === 'ValidationError') {
+      // Handle validation errors
+      const validationErrors = {};
+      for (let field in error.errors) {
+        validationErrors[field] = error.errors[field].message;
+      }
+      res.status(400).json({ 
+        message: 'Validation failed', 
+        errors: validationErrors 
+      });
+    } else if (error.code === 11000) {
+      res.status(400).json({ message: 'Employee with this email already exists' });
+    } else {
+      console.error('Employee update error:', error);
+      res.status(500).json({ message: 'Server error', error: error.message });
+    }
   }
 });
 

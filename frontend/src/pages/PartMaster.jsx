@@ -161,15 +161,23 @@ const PartMaster = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (part) => {
-    if (window.confirm(`Are you sure you want to delete the part "${part.partName}"?`)) {
-      try {
-        await partsAPI.delete(part._id);
-        fetchParts(); // Refresh the list
-        showSuccess(`Part "${part.partName}" deleted successfully`);
-      } catch (error) {
-        console.error('Error deleting part:', error);
-      }
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [partToDelete, setPartToDelete] = useState(null);
+
+  const handleDelete = (part) => {
+    setPartToDelete(part);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await partsAPI.delete(partToDelete._id);
+      fetchParts(); // Refresh the list
+      showSuccess(`Part "${partToDelete.partName}" deleted successfully`);
+      setShowDeleteModal(false);
+      setPartToDelete(null);
+    } catch (error) {
+      console.error('Error deleting part:', error);
     }
   };
 
@@ -620,6 +628,34 @@ const PartMaster = () => {
         isVisible={notification.isVisible}
         onClose={hideNotification}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title="Confirm Delete"
+        size="sm"
+      >
+        <div className="p-4">
+          <p className="mb-4 text-gray-700">
+            Are you sure you want to delete "{partToDelete?.partName || 'this part'}"? This action cannot be undone.
+          </p>
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmDelete}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
