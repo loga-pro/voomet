@@ -475,7 +475,9 @@ const Reports = () => {
       { header: 'Project Name', accessor: 'projectName' },
       { header: 'Stage', accessor: row => row.stage?.replace('_', ' ').toUpperCase() || 'N/A' },
       { header: 'Total Value (₹)', accessor: row => `₹${row.totalProjectValue?.toLocaleString() || '0'}` },
-      { header: 'Milestone Completion', accessor: row => `${row.milestoneData?.milestoneCompletionRate || 0}%` },
+      { header: 'Total Tasks', accessor: row => row.milestoneData?.totalTasks || 0 },
+      { header: 'Finished Tasks', accessor: row => row.milestoneData?.completedTasks || 0 },
+      { header: 'Task Completion', accessor: row => `${row.milestoneData?.taskCompletionRate || 0}%` },
       { header: 'Payment Received (₹)', accessor: row => `₹${row.paymentData?.totalPaymentReceived?.toLocaleString() || '0'}` },
       { header: 'Balance (₹)', accessor: row => `₹${row.paymentData?.balanceAmount?.toLocaleString() || '0'}` },
       {
@@ -738,7 +740,7 @@ const Reports = () => {
           {activeReport === 'project-comprehensive' && comprehensiveProjectData.length > 0 && (
             <>
               <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-md font-medium text-gray-900 mb-3">Milestone Completion by Project</h3>
+                <h3 className="text-md font-medium text-gray-900 mb-3">Task Completion by Project</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={comprehensiveProjectData}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -746,7 +748,7 @@ const Reports = () => {
                     <YAxis />
                     <Tooltip formatter={(value) => [`${value}%`, 'Completion']} />
                     <Legend />
-                    <Bar dataKey="milestoneCompletion" name="Milestone Completion (%)" fill="#00C49F" />
+                    <Bar dataKey="taskCompletionRate" name="Task Completion (%)" fill="#00C49F" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
