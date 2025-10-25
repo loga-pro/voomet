@@ -9,7 +9,9 @@ import {
   EyeIcon,
   PaperAirplaneIcon,
   EnvelopeIcon,
-  ArrowDownTrayIcon
+  ArrowDownTrayIcon,
+  ArrowPathIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -37,29 +39,29 @@ import {
   vendorPaymentsAPI,
   reportsAPI
 } from '../services/api';
-import ReportGenerator from '../components/Reports/ReportGenerator';
 
 const Reports = () => {
   const [activeReport, setActiveReport] = useState('project-comprehensive');
   const [loading, setLoading] = useState(false);
   const [viewModal, setViewModal] = useState({ isOpen: false, data: null, type: '' });
   const [emailAddress, setEmailAddress] = useState('');
+  const [showReportDropdown, setShowReportDropdown] = useState(false);
   
   // Data states for all report types
   const [projectData, setProjectData] = useState([]);
-  const [milestoneData, setMilestoneData] = useState([]);
   const [inventoryData, setInventoryData] = useState([]);
   const [qualityData, setQualityData] = useState([]);
-  const [paymentData, setPaymentData] = useState([]);
   const [vendorPaymentData, setVendorPaymentData] = useState([]);
   
   // Chart data states
   const [projectChartData, setProjectChartData] = useState([]);
-  const [paymentChartData, setPaymentChartData] = useState([]);
   const [inventoryChartData, setInventoryChartData] = useState([]);
   const [qualityChartData, setQualityChartData] = useState([]);
   const [comprehensiveProjectData, setComprehensiveProjectData] = useState([]);
   const [vendorPaymentChartData, setVendorPaymentChartData] = useState([]);
+
+  // Employee report data
+  const [employeeReport, setEmployeeReport] = useState([]);
 
   useEffect(() => {
     fetchDataForAllReports();
@@ -68,7 +70,7 @@ const Reports = () => {
   const fetchDataForAllReports = async () => {
     setLoading(true);
     try {
-      // Fetch data for remaining reports in parallel
+      // Fetch data for all reports in parallel
       const [
         projectsRes,
         inventoryRes,
@@ -79,23 +81,29 @@ const Reports = () => {
         projectsAPI.getAll(),
         inventoryAPI.getAll(),
         qualityAPI.getAll(),
-        vendorPaymentsAPI.getAll({ limit: 10000 }), // Get all vendor payments for reports
-        reportsAPI.getComprehensiveProjects() // Get comprehensive project data
+        vendorPaymentsAPI.getAll({ limit: 10000 }),
+        reportsAPI.getComprehensiveProjects()
       ]);
 
       console.log('Comprehensive projects API response:', comprehensiveProjectsRes);
-      console.log('Comprehensive projects data:', comprehensiveProjectsRes.data);
 
       setProjectData(projectsRes.data || []);
       setInventoryData(inventoryRes.data || []);
       setQualityData(qualityRes.data?.qualityIssues || []);
       setVendorPaymentData(vendorPaymentsRes.payments || []);
 
-      // Process chart data for remaining reports
+      // Process chart data for all reports
+      processProjectChartData(projectsRes.data || []);
       processInventoryChartData(inventoryRes.data || []);
       processQualityChartData(qualityRes.data?.qualityIssues || []);
       processComprehensiveProjectChartData(comprehensiveProjectsRes.data || []);
       processVendorPaymentChartData(vendorPaymentsRes.payments || []);
+      
+      // Process jobs status and employee data
+      processJobsStatus(comprehensiveProjectsRes.data || []);
+      processEmployeeOverview(comprehensiveProjectsRes.data || []);
+      processEmployeeReport(comprehensiveProjectsRes.data || []);
+
     } catch (error) {
       console.error('Error fetching report data:', error);
     } finally {
@@ -117,18 +125,6 @@ const Reports = () => {
     }));
 
     setProjectChartData(chartData);
-  };
-
-  const processPaymentChartData = (customerPayments, vendorPayments) => {
-    const totalCustomerPayments = customerPayments.reduce((sum, payment) => sum + (payment.totalPayments || 0), 0);
-    const totalVendorPayments = vendorPayments.reduce((sum, payment) => sum + (payment.totalPayments || 0), 0);
-
-    const chartData = [
-      { name: 'Customer Payments', value: totalCustomerPayments },
-      { name: 'Vendor Payments', value: totalVendorPayments }
-    ];
-
-    setPaymentChartData(chartData);
   };
 
   const processInventoryChartData = (inventory) => {
@@ -164,18 +160,13 @@ const Reports = () => {
   };
 
   const processComprehensiveProjectChartData = (comprehensiveProjects) => {
-    // Process data for comprehensive project charts
-    console.log('Raw comprehensive projects data:', comprehensiveProjects);
-    
     const completionData = comprehensiveProjects.map(project => {
-      console.log('Individual project data:', project);
       return {
         name: project.projectName,
         milestoneCompletion: project.milestoneData?.milestoneCompletionRate || 0,
         paymentReceived: project.paymentData?.totalPaymentReceived || 0,
         balanceAmount: project.paymentData?.balanceAmount || 0,
         stage: project.stage?.replace('_', ' ').toUpperCase() || 'Unknown',
-        // Add customer name and other fields for the table
         customerName: project.customerName,
         projectName: project.projectName,
         stage: project.stage,
@@ -185,19 +176,16 @@ const Reports = () => {
       };
     });
 
-    console.log('Processed completion data:', completionData);
     setComprehensiveProjectData(completionData);
   };
 
   const processVendorPaymentChartData = (vendorPayments) => {
-    // Group vendor payments by vendor name
     const vendorTotals = vendorPayments.reduce((acc, payment) => {
       const vendor = payment.vendor || 'Unknown Vendor';
       acc[vendor] = (acc[vendor] || 0) + (payment.totalPayments || 0);
       return acc;
     }, {});
 
-    // Sort by total payment amount and take top 10 vendors
     const chartData = Object.entries(vendorTotals)
       .map(([vendor, total]) => ({ name: vendor, value: total }))
       .sort((a, b) => b.value - a.value)
@@ -206,8 +194,34 @@ const Reports = () => {
     setVendorPaymentChartData(chartData);
   };
 
+  const processJobsStatus = (projects) => {
+    const statusCounts = projects.reduce((acc, project) => {
+      const status = project.stage || 'open';
+      if (status.includes('completed') || status.includes('Completed')) {
+        acc.completed++;
+      } else if (status.includes('progress') || status.includes('Progress')) {
+        acc.inProgress++;
+      } else {
+        acc.open++;
+      }
+      return acc;
+    }, { open: 0, inProgress: 0, completed: 0 });
+
+    setJobsStatus(statusCounts);
+  };
+
+  const processEmployeeOverview = (projects) => {
+    const overview = {
+      totalProjects: projects.length,
+      completed: projects.filter(p => p.stage?.includes('completed') || p.stage?.includes('Completed')).length,
+      inProgress: projects.filter(p => p.stage?.includes('progress') || p.stage?.includes('Progress')).length,
+      open: projects.filter(p => !p.stage?.includes('completed') && !p.stage?.includes('progress')).length
+    };
+
+    setEmployeeOverview(overview);
+  };
+
   const handleView = (item, type) => {
-    // Open modal with detailed information
     console.log('View', item, type);
     setViewModal({ isOpen: true, data: item, type });
   };
@@ -221,7 +235,7 @@ const Reports = () => {
     if (!data) return null;
 
     switch (type) {
-      case 'project':
+      case 'project-comprehensive':
         return (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">Project Details</h3>
@@ -239,178 +253,72 @@ const Reports = () => {
                 <p className="text-sm text-gray-900">{data.stage?.replace('_', ' ').toUpperCase() || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">Enquiry Date</p>
-                <p className="text-sm text-gray-900">{data.enquiryDate ? new Date(data.enquiryDate).toLocaleDateString() : 'N/A'}</p>
-              </div>
-              <div>
                 <p className="text-sm font-medium text-gray-500">Total Value</p>
                 <p className="text-sm text-gray-900">₹{data.totalProjectValue?.toLocaleString() || '0'}</p>
               </div>
               <div>
+                <p className="text-sm font-medium text-gray-500">Milestone Completion</p>
+                <p className="text-sm text-gray-900">{data.milestoneData?.milestoneCompletionRate || 0}%</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Payment Received</p>
+                <p className="text-sm text-gray-900">₹{data.paymentData?.totalPaymentReceived?.toLocaleString() || '0'}</p>
+              </div>
+            </div>
+          </div>
+        );
+      
+      case 'inventory':
+        return (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">Inventory Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
                 <p className="text-sm font-medium text-gray-500">Scope of Work</p>
-                <p className="text-sm text-gray-900">{data.scopeOfWork?.join(', ') || 'N/A'}</p>
+                <p className="text-sm text-gray-900">{data.scopeOfWork?.replace('_', ' ').toUpperCase() || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Part Name</p>
+                <p className="text-sm text-gray-900">{data.partName || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Part Price</p>
+                <p className="text-sm text-gray-900">₹{data.partPrice?.toLocaleString() || '0'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Cumulative Quantity</p>
+                <p className="text-sm text-gray-900">{data.cumulativeQuantityAtVoomet || 0}</p>
               </div>
             </div>
           </div>
         );
       
-      case 'milestone':
+      case 'quality':
         return (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Milestone Details</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Quality Issue Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-gray-500">Customer</p>
                 <p className="text-sm text-gray-900">{data.customer || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">Project Name</p>
-                <p className="text-sm text-gray-900">{data.projectName || 'N/A'}</p>
+                <p className="text-sm font-medium text-gray-500">Scope of Work</p>
+                <p className="text-sm text-gray-900">{data.scopeOfWork || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">Start Date</p>
-                <p className="text-sm text-gray-900">{data.startDate ? new Date(data.startDate).toLocaleDateString() : 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">End Date</p>
-                <p className="text-sm text-gray-900">{data.endDate ? new Date(data.endDate).toLocaleDateString() : 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Status</p>
-                <p className="text-sm text-gray-900">{data.projectStatus || 'Not Started'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Total Activities</p>
-                <p className="text-sm text-gray-900">{data.tasks ? data.tasks.length : 0}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Completed Activities</p>
-                <p className="text-sm text-gray-900">{data.tasks ? data.tasks.filter(task => task.status === 'Completed').length : 0}</p>
-              </div>
-            </div>
-            
-            {data.tasks && data.tasks.length > 0 && (
-              <div className="mt-6">
-                <h4 className="text-md font-semibold text-gray-900 mb-3">Activities</h4>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phase</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completion %</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actual Start</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actual End</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {data.tasks.map((task, index) => (
-                        <tr key={index}>
-                          <td className="px-4 py-2 text-sm text-gray-900">{task.phase || 'N/A'}</td>
-                          <td className="px-4 py-2 text-sm text-gray-900">{task.task || 'N/A'}</td>
-                          <td className="px-4 py-2 text-sm text-gray-900">{task.status || 'N/A'}</td>
-                          <td className="px-4 py-2 text-sm text-gray-900">{task.completion || 0}%</td>
-                          <td className="px-4 py-2 text-sm text-gray-900">
-                            {task.actualStartDate ? new Date(task.actualStartDate).toLocaleDateString() : 'N/A'}
-                          </td>
-                          <td className="px-4 py-2 text-sm text-gray-900">
-                            {task.actualEndDate ? new Date(task.actualEndDate).toLocaleDateString() : 'N/A'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      
-      case 'payment':
-        return (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Customer Payment Details</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Customer</p>
-                <p className="text-sm text-gray-900">{data.customer || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Project Name</p>
-                <p className="text-sm text-gray-900">{data.projectName || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Project Cost</p>
-                <p className="text-sm text-gray-900">₹{data.projectCost?.toLocaleString() || '0'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Total Invoice Raised</p>
-                <p className="text-sm text-gray-900">₹{data.totalInvoiceRaised?.toLocaleString() || '0'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Total Payments</p>
-                <p className="text-sm text-gray-900">₹{data.totalPayments?.toLocaleString() || '0'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Balance</p>
-                <p className="text-sm text-gray-900">₹{data.balanceAmount?.toLocaleString() || '0'}</p>
+                <p className="text-sm font-medium text-gray-500">Category</p>
+                <p className="text-sm text-gray-900">{data.category || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Status</p>
                 <p className="text-sm text-gray-900">{data.status || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">Total Invoices</p>
-                <p className="text-sm text-gray-900">{data.invoices ? data.invoices.length : 0}</p>
+                <p className="text-sm font-medium text-gray-500">Responsibility</p>
+                <p className="text-sm text-gray-900">{data.responsibility || 'N/A'}</p>
               </div>
             </div>
-            
-            {data.invoices && data.invoices.length > 0 && (
-              <div className="mt-6">
-                <h4 className="text-md font-semibold text-gray-900 mb-3">Invoices</h4>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice Number</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice Value</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice Date</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payments</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {data.invoices.map((invoice, index) => (
-                        <tr key={index}>
-                          <td className="px-4 py-2 text-sm text-gray-900">{invoice.invoiceNumber || 'N/A'}</td>
-                          <td className="px-4 py-2 text-sm text-gray-900">₹{invoice.invoiceValue?.toLocaleString() || '0'}</td>
-                          <td className="px-4 py-2 text-sm text-gray-900">
-                            {invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString() : 'N/A'}
-                          </td>
-                          <td className="px-4 py-2 text-sm text-gray-900">
-                            {invoice.payments && invoice.payments.length > 0 ? (
-                              <div>
-                                <p>{invoice.payments.length} payment(s)</p>
-                                <div className="mt-1 text-xs">
-                                  {invoice.payments.map((payment, pIndex) => (
-                                    <div key={pIndex}>
-                                      ₹{payment.amount?.toLocaleString() || '0'} on{' '}
-                                      {payment.date ? new Date(payment.date).toLocaleDateString() : 'N/A'}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            ) : (
-                              'No payments'
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
           </div>
         );
       
@@ -428,10 +336,6 @@ const Reports = () => {
                 <p className="text-sm text-gray-900">{data.vendorGstNumber || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">Account Number</p>
-                <p className="text-sm text-gray-900">{data.vendorAccountNumber || 'N/A'}</p>
-              </div>
-              <div>
                 <p className="text-sm font-medium text-gray-500">Total Invoice Raised</p>
                 <p className="text-sm text-gray-900">₹{data.totalInvoiceRaised?.toLocaleString() || '0'}</p>
               </div>
@@ -447,57 +351,7 @@ const Reports = () => {
                 <p className="text-sm font-medium text-gray-500">Status</p>
                 <p className="text-sm text-gray-900">{data.status || 'N/A'}</p>
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Total Invoices</p>
-                <p className="text-sm text-gray-900">{data.invoices ? data.invoices.length : 0}</p>
-              </div>
             </div>
-            
-            {data.invoices && data.invoices.length > 0 && (
-              <div className="mt-6">
-                <h4 className="text-md font-semibold text-gray-900 mb-3">Invoices</h4>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice Number</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice Value</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice Date</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payments</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {data.invoices.map((invoice, index) => (
-                        <tr key={index}>
-                          <td className="px-4 py-2 text-sm text-gray-900">{invoice.invoiceNumber || 'N/A'}</td>
-                          <td className="px-4 py-2 text-sm text-gray-900">₹{invoice.invoiceValue?.toLocaleString() || '0'}</td>
-                          <td className="px-4 py-2 text-sm text-gray-900">
-                            {invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString() : 'N/A'}
-                          </td>
-                          <td className="px-4 py-2 text-sm text-gray-900">
-                            {invoice.payments && invoice.payments.length > 0 ? (
-                              <div>
-                                <p>{invoice.payments.length} payment(s)</p>
-                                <div className="mt-1 text-xs">
-                                  {invoice.payments.map((payment, pIndex) => (
-                                    <div key={pIndex}>
-                                      ₹{payment.amount?.toLocaleString() || '0'} on{' '}
-                                      {payment.date ? new Date(payment.date).toLocaleDateString() : 'N/A'}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            ) : (
-                              'No payments'
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
           </div>
         );
       
@@ -525,34 +379,22 @@ const Reports = () => {
     }
   };
 
-  const handleSend = (item, type) => {
-    // Placeholder for send functionality
-    console.log('Send', item, type);
-    alert(`Sending ${type} report for: ${item._id || item.projectName || item.customer}`);
-  };
-
   const exportToCSV = (data, filename) => {
     if (!data || data.length === 0) return;
 
-    // Get headers from the first object
     const headers = Object.keys(data[0]);
-
-    // Create CSV content
     const csvContent = [
       headers.join(','),
       ...data.map(row =>
         headers.map(header => {
           const value = row[header];
-          // Handle special cases
           if (value === null || value === undefined) return '';
           if (typeof value === 'object') return JSON.stringify(value);
-          // Escape commas and quotes
           return `"${String(value).replace(/"/g, '""')}"`;
         }).join(',')
       )
     ].join('\n');
 
-    // Create and download file
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -568,12 +410,9 @@ const Reports = () => {
     if (!data || data.length === 0) return;
 
     const doc = new jsPDF();
-
-    // Add title
     doc.setFontSize(18);
     doc.text(activeReportConfig.title, 14, 22);
 
-    // Prepare table data
     const headers = activeReportConfig.columns.map(col => col.header);
     const body = data.map(item =>
       activeReportConfig.columns.map(col => {
@@ -615,6 +454,10 @@ const Reports = () => {
     }
   };
 
+  const refreshData = () => {
+    fetchDataForAllReports();
+  };
+
   // Report configurations
   const reportTypes = [
     { id: 'project-comprehensive', name: 'Comprehensive Project Reports', icon: ClipboardDocumentListIcon },
@@ -623,58 +466,18 @@ const Reports = () => {
     { id: 'vendor', name: 'Vendor Payment Reports', icon: BuildingStorefrontIcon }
   ];
 
-  // Project Report Configuration
-  const projectReportConfig = {
-    title: 'Project Reports',
-    data: projectData,
-    columns: [
-      { header: 'Customer Name', accessor: 'customerName' },
-      { header: 'Project Name', accessor: 'projectName' },
-      { header: 'Stage', accessor: row => row.stage?.replace('_', ' ').toUpperCase() || 'N/A' },
-      { header: 'Enquiry Date', accessor: row => new Date(row.enquiryDate).toLocaleDateString() },
-      { header: 'Total Value (₹)', accessor: row => `₹${row.totalProjectValue?.toLocaleString() || '0'}` },
-      {
-        header: 'Actions',
-        accessor: (row) => (
-          <div className="flex space-x-2">
-            <button
-              onClick={() => handleView(row, 'project')}
-              className="text-blue-600 hover:text-blue-900"
-              title="View"
-            >
-              <EyeIcon className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => handleSend(row, 'project')}
-              className="text-green-600 hover:text-green-900"
-              title="Send"
-            >
-              <PaperAirplaneIcon className="h-5 w-5" />
-            </button>
-          </div>
-        )
-      }
-    ],
-    filename: 'project-report.csv'
-  };
-
   // Comprehensive Project Report Configuration
   const comprehensiveProjectReportConfig = {
     title: 'Comprehensive Project Reports',
-    data: comprehensiveProjectData, // Use the actual comprehensive project data
+    data: comprehensiveProjectData,
     columns: [
       { header: 'Customer Name', accessor: 'customerName' },
       { header: 'Project Name', accessor: 'projectName' },
       { header: 'Stage', accessor: row => row.stage?.replace('_', ' ').toUpperCase() || 'N/A' },
       { header: 'Total Value (₹)', accessor: row => `₹${row.totalProjectValue?.toLocaleString() || '0'}` },
-      { header: 'Total Tasks', accessor: row => row.milestoneData?.totalTasks || 0 },
-      { header: 'Completed Tasks', accessor: row => row.milestoneData?.completedTasks || 0 },
-      { header: 'Task Progress', accessor: row => `${row.milestoneData?.completedTasks || 0}/${row.milestoneData?.totalTasks || 0}` },
-      { header: 'Task Completion %', accessor: row => `${row.milestoneData?.taskCompletionRate || 0}%` },
-      { header: 'Invoice (₹)', accessor: row => `₹${row.paymentData?.totalInvoiceValue?.toLocaleString() || '0'}` },
-      { header: 'Received (₹)', accessor: row => `₹${row.paymentData?.totalPaymentReceived?.toLocaleString() || '0'}` },
+      { header: 'Milestone Completion', accessor: row => `${row.milestoneData?.milestoneCompletionRate || 0}%` },
+      { header: 'Payment Received (₹)', accessor: row => `₹${row.paymentData?.totalPaymentReceived?.toLocaleString() || '0'}` },
       { header: 'Balance (₹)', accessor: row => `₹${row.paymentData?.balanceAmount?.toLocaleString() || '0'}` },
-      { header: 'Payment Status', accessor: row => row.paymentData?.paymentStatus || 'N/A' },
       {
         header: 'Actions',
         accessor: (row) => (
@@ -686,69 +489,11 @@ const Reports = () => {
             >
               <EyeIcon className="h-5 w-5" />
             </button>
-            <button
-              onClick={() => handleSend(row, 'project-comprehensive')}
-              className="text-green-600 hover:text-green-900"
-              title="Send Report"
-            >
-              <PaperAirplaneIcon className="h-5 w-5" />
-            </button>
           </div>
         )
       }
     ],
     filename: 'comprehensive-project-report.csv'
-  };
-
-  // Milestone Report Configuration
-  const milestoneReportConfig = {
-    title: 'Milestone Reports',
-    data: milestoneData,
-    columns: [
-      { header: 'Customer', accessor: 'customer' },
-      { header: 'Project Name', accessor: 'projectName' },
-      { header: 'Start Date', accessor: row => row.startDate ? new Date(row.startDate).toLocaleDateString() : 'N/A' },
-      { header: 'End Date', accessor: row => row.endDate ? new Date(row.endDate).toLocaleDateString() : 'N/A' },
-      { header: 'Status', accessor: row => row.projectStatus || 'Not Started' },
-      {
-        header: 'Total Activities',
-        accessor: row => row.tasks ? row.tasks.length : 0
-      },
-      {
-        header: 'Completed Activities',
-        accessor: row => row.tasks ? row.tasks.filter(task => task.status === 'Completed').length : 0
-      },
-      {
-        header: 'Completion %',
-        accessor: row => {
-          if (!row.tasks || row.tasks.length === 0) return '0%';
-          const completed = row.tasks.filter(task => task.status === 'Completed').length;
-          return `${Math.round((completed / row.tasks.length) * 100)}%`;
-        }
-      },
-      {
-        header: 'Actions',
-        accessor: (row) => (
-          <div className="flex space-x-2">
-            <button
-              onClick={() => handleView(row, 'milestone')}
-              className="text-blue-600 hover:text-blue-900"
-              title="View"
-            >
-              <EyeIcon className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => handleSend(row, 'milestone')}
-              className="text-green-600 hover:text-green-900"
-              title="Send"
-            >
-              <PaperAirplaneIcon className="h-5 w-5" />
-            </button>
-          </div>
-        )
-      }
-    ],
-    filename: 'milestone-report.csv'
   };
 
   // Inventory Report Configuration
@@ -759,12 +504,8 @@ const Reports = () => {
       { header: 'Scope of Work', accessor: row => row.scopeOfWork?.replace('_', ' ').toUpperCase() || 'N/A' },
       { header: 'Part Name', accessor: 'partName' },
       { header: 'Part Price (₹)', accessor: row => `₹${row.partPrice?.toLocaleString() || '0'}` },
-      { header: 'Total Receipts', accessor: row => {
-        const total = row.receipts?.reduce((sum, receipt) => sum + (receipt.quantity || 0), 0) || 0;
-        return total;
-      }},
+      { header: 'Cumulative Quantity', accessor: 'cumulativeQuantityAtVoomet' },
       { header: 'Date of Receipt', accessor: row => row.dateOfReceipt ? new Date(row.dateOfReceipt).toLocaleDateString() : 'N/A' },
-      { header: 'Cumulative Qty', accessor: 'cumulativeQuantityAtVoomet' },
       {
         header: 'Actions',
         accessor: (row) => (
@@ -775,13 +516,6 @@ const Reports = () => {
               title="View"
             >
               <EyeIcon className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => handleSend(row, 'inventory')}
-              className="text-green-600 hover:text-green-900"
-              title="Send"
-            >
-              <PaperAirplaneIcon className="h-5 w-5" />
             </button>
           </div>
         )
@@ -812,68 +546,11 @@ const Reports = () => {
             >
               <EyeIcon className="h-5 w-5" />
             </button>
-            <button
-              onClick={() => handleSend(row, 'quality')}
-              className="text-green-600 hover:text-green-900"
-              title="Send"
-            >
-              <PaperAirplaneIcon className="h-5 w-5" />
-            </button>
           </div>
         )
       }
     ],
     filename: 'quality-report.csv'
-  };
-
-  // Payment Report Configuration
-  const paymentReportConfig = {
-    title: 'Customer Payment Reports',
-    data: paymentData,
-    columns: [
-      { header: 'Customer', accessor: 'customer' },
-      { header: 'Project Name', accessor: 'projectName' },
-      { header: 'Project Cost (₹)', accessor: row => `₹${row.projectCost?.toLocaleString() || '0'}` },
-      { header: 'Total Invoice Raised (₹)', accessor: row => `₹${row.totalInvoiceRaised?.toLocaleString() || '0'}` },
-      { header: 'Total Payments (₹)', accessor: row => `₹${row.totalPayments?.toLocaleString() || '0'}` },
-      { header: 'Balance (₹)', accessor: row => `₹${row.balanceAmount?.toLocaleString() || '0'}` },
-      { header: 'Status', accessor: 'status' },
-      {
-        header: 'Total Invoices',
-        accessor: row => row.invoices ? row.invoices.length : 0
-      },
-      {
-        header: 'Total Payments Made',
-        accessor: row => {
-          if (!row.invoices) return 0;
-          return row.invoices.reduce((total, invoice) => {
-            return total + (invoice.payments ? invoice.payments.length : 0);
-          }, 0);
-        }
-      },
-      {
-        header: 'Actions',
-        accessor: (row) => (
-          <div className="flex space-x-2">
-            <button
-              onClick={() => handleView(row, 'payment')}
-              className="text-blue-600 hover:text-blue-900"
-              title="View"
-            >
-              <EyeIcon className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => handleSend(row, 'payment')}
-              className="text-green-600 hover:text-green-900"
-              title="Send"
-            >
-              <PaperAirplaneIcon className="h-5 w-5" />
-            </button>
-          </div>
-        )
-      }
-    ],
-    filename: 'payment-report.csv'
   };
 
   // Vendor Payment Report Configuration
@@ -883,24 +560,10 @@ const Reports = () => {
     columns: [
       { header: 'Vendor', accessor: 'vendor' },
       { header: 'GST Number', accessor: 'vendorGstNumber' },
-      { header: 'Account Number', accessor: 'vendorAccountNumber' },
       { header: 'Total Invoice Raised (₹)', accessor: row => `₹${row.totalInvoiceRaised?.toLocaleString() || '0'}` },
       { header: 'Total Payments (₹)', accessor: row => `₹${row.totalPayments?.toLocaleString() || '0'}` },
       { header: 'Balance (₹)', accessor: row => `₹${row.balanceAmount?.toLocaleString() || '0'}` },
       { header: 'Status', accessor: 'status' },
-      {
-        header: 'Total Invoices',
-        accessor: row => row.invoices ? row.invoices.length : 0
-      },
-      {
-        header: 'Total Payments Made',
-        accessor: row => {
-          if (!row.invoices) return 0;
-          return row.invoices.reduce((total, invoice) => {
-            return total + (invoice.payments ? invoice.payments.length : 0);
-          }, 0);
-        }
-      },
       {
         header: 'Actions',
         accessor: (row) => (
@@ -911,13 +574,6 @@ const Reports = () => {
               title="View"
             >
               <EyeIcon className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => handleSend(row, 'vendor')}
-              className="text-green-600 hover:text-green-900"
-              title="Send"
-            >
-              <PaperAirplaneIcon className="h-5 w-5" />
             </button>
           </div>
         )
@@ -943,6 +599,12 @@ const Reports = () => {
 
   const activeReportConfig = getActiveReportConfig();
 
+  // Get current report name for display
+  const getCurrentReportName = () => {
+    const report = reportTypes.find(r => r.id === activeReport);
+    return report ? report.name : 'Select Report Type';
+  };
+
   // Colors for charts
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -956,38 +618,156 @@ const Reports = () => {
 
   return (
     <div className="p-4 sm:p-6">
-     
-
-      {/* Report Selection */}
+      {/* Report Type Dropdown Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {reportTypes.map((report) => {
-            const Icon = report.icon;
-            return (
-              <button
-                key={report.id}
-                onClick={() => setActiveReport(report.id)}
-                className={`flex flex-col items-center justify-center p-4 rounded-lg border transition-all duration-200 ${
-                  activeReport === report.id
-                    ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                <Icon className="h-6 w-6 mb-2" />
-                <span className="text-sm font-medium text-center">{report.name}</span>
-              </button>
-            );
-          })}
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Report Type Selection</h2>
+        
+        <div className="relative">
+          <button
+            type="button"
+            className="w-full bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-3 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            onClick={() => setShowReportDropdown(!showReportDropdown)}
+            aria-haspopup="listbox"
+            aria-expanded="true"
+          >
+            <span className="flex items-center">
+              <DocumentTextIcon className="h-5 w-5 text-gray-400 mr-3" />
+              <span className="block truncate">{getCurrentReportName()}</span>
+            </span>
+            <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+              <ChevronDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+            </span>
+          </button>
+
+          {showReportDropdown && (
+            <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+              {reportTypes.map((report) => {
+                const Icon = report.icon;
+                return (
+                  <button
+                    key={report.id}
+                    className={`w-full text-left px-4 py-2 flex items-center hover:bg-gray-100 ${
+                      activeReport === report.id ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
+                    }`}
+                    onClick={() => {
+                      setActiveReport(report.id);
+                      setShowReportDropdown(false);
+                    }}
+                  >
+                    <Icon className="h-5 w-5 mr-3 text-gray-400" />
+                    <span className="block truncate">{report.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
+      {/* Export Options Section - Updated to match image */}
+       {/* Export Options Section */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Export & Actions</h2>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Email Section - Takes up 7 columns on large screens */}
+          <div className="lg:col-span-7">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <EnvelopeIcon className="h-4 w-4 inline mr-1" />
+              Send Report via Email
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                id="email"
+                value={emailAddress}
+                onChange={(e) => setEmailAddress(e.target.value)}
+                placeholder="Enter email address (e.g., name@company.com)"
+                className="flex-1 px-4 py-2.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              />
+              <button
+                onClick={sendEmail}
+                disabled={!emailAddress.trim() || loading}
+                className="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+              >
+                <PaperAirplaneIcon className="h-4 w-4 mr-2" />
+                Send Email
+              </button>
+            </div>
+          </div>
+
+          {/* Action Buttons - Takes up 5 columns on large screens */}
+          <div className="lg:col-span-5 flex items-end">
+            <div className="flex flex-wrap gap-2 w-full">
+              <button
+                onClick={() => exportToCSV(activeReportConfig.data, activeReportConfig.filename)}
+                disabled={!activeReportConfig.data || activeReportConfig.data.length === 0}
+                className="flex-1 min-w-[140px] inline-flex items-center justify-center px-4 py-2.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
+                Export CSV
+              </button>
+              
+              <button
+                onClick={() => exportToPDF(activeReportConfig.data, activeReportConfig.filename)}
+                disabled={!activeReportConfig.data || activeReportConfig.data.length === 0}
+                className="flex-1 min-w-[140px] inline-flex items-center justify-center px-4 py-2.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
+                Download PDF
+              </button>
+            
+              <button
+                onClick={refreshData}
+                disabled={loading}
+                className="inline-flex items-center justify-center px-4 py-2.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ArrowPathIcon className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       {/* Visual Analytics Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Visual Analytics</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Comprehensive Project Charts */}
+          {activeReport === 'project-comprehensive' && comprehensiveProjectData.length > 0 && (
+            <>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-md font-medium text-gray-900 mb-3">Milestone Completion by Project</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={comprehensiveProjectData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => [`${value}%`, 'Completion']} />
+                    <Legend />
+                    <Bar dataKey="milestoneCompletion" name="Milestone Completion (%)" fill="#00C49F" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-md font-medium text-gray-900 mb-3">Payment Overview by Project</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={comprehensiveProjectData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => [`₹${value.toLocaleString()}`, 'Amount']} />
+                    <Legend />
+                    <Bar dataKey="paymentReceived" name="Payment Received (₹)" fill="#0088FE" />
+                    <Bar dataKey="balanceAmount" name="Balance Amount (₹)" fill="#FF8042" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </>
+          )}
 
-
-          {/* Inventory by Scope */}
+          {/* Inventory Charts */}
           {activeReport === 'inventory' && inventoryChartData.length > 0 && (
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="text-md font-medium text-gray-900 mb-3">Inventory by Scope of Work</h3>
@@ -1004,7 +784,7 @@ const Reports = () => {
             </div>
           )}
 
-          {/* Quality Issues by Status */}
+          {/* Quality Charts */}
           {activeReport === 'quality' && qualityChartData.length > 0 && (
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="text-md font-medium text-gray-900 mb-3">Quality Issues by Status</h3>
@@ -1031,44 +811,7 @@ const Reports = () => {
             </div>
           )}
 
-
-
-          {/* Comprehensive Project Milestone Completion */}
-          {activeReport === 'project-comprehensive' && comprehensiveProjectData.length > 0 && (
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-md font-medium text-gray-900 mb-3">Milestone Completion by Project</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={comprehensiveProjectData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => [`${value}%`, 'Completion']} />
-                  <Legend />
-                  <Bar dataKey="milestoneCompletion" name="Milestone Completion (%)" fill="#00C49F" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          {/* Comprehensive Project Payment Overview */}
-          {activeReport === 'project-comprehensive' && comprehensiveProjectData.length > 0 && (
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-md font-medium text-gray-900 mb-3">Payment Overview by Project</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={comprehensiveProjectData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => [`₹${value.toLocaleString()}`, 'Amount']} />
-                  <Legend />
-                  <Bar dataKey="paymentReceived" name="Payment Received (₹)" fill="#0088FE" />
-                  <Bar dataKey="balanceAmount" name="Balance Amount (₹)" fill="#FF8042" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          {/* Vendor Payment Overview */}
+          {/* Vendor Payment Charts */}
           {activeReport === 'vendor' && vendorPaymentChartData.length > 0 && (
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="text-md font-medium text-gray-900 mb-3">Top 10 Vendor Payments</h3>
@@ -1088,80 +831,40 @@ const Reports = () => {
       </div>
 
       {/* Report Data Table */}
-<div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 space-y-4 sm:space-y-0">
-    <h2 className="text-lg font-semibold text-gray-900">{activeReportConfig.title}</h2>
-    <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-      <div className="flex-1 sm:flex-none">
-        <input
-          type="email"
-          value={emailAddress}
-          onChange={(e) => setEmailAddress(e.target.value)}
-          placeholder="Enter email address"
-          className="w-full sm:w-64 rounded-md border border-gray-300 bg-white py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm"
-        />
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">{activeReportConfig.title}</h2>
+        
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                {activeReportConfig.columns.map((column, index) => (
+                  <th
+                    key={index}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    {column.header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {activeReportConfig.data.map((item, index) => (
+                <tr key={index}>
+                  {activeReportConfig.columns.map((column, colIndex) => (
+                    <td key={colIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {typeof column.accessor === 'function' 
+                        ? column.accessor(item) 
+                        : item[column.accessor]
+                      }
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div className="flex space-x-2">
-        <button
-          onClick={sendEmail}
-          disabled={!emailAddress.trim()}
-          className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <EnvelopeIcon className="h-4 w-4 mr-2" />
-          Send Email
-        </button>
-        <button
-          onClick={() => exportToCSV(activeReportConfig.data, activeReportConfig.filename)}
-          disabled={!activeReportConfig.data || activeReportConfig.data.length === 0}
-          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
-          Export CSV
-        </button>
-        <button
-          onClick={() => exportToPDF(activeReportConfig.data, activeReportConfig.filename)}
-          disabled={!activeReportConfig.data || activeReportConfig.data.length === 0}
-          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
-          Download PDF
-        </button>
-      </div>
-    </div>
-  </div>
-  
-  {/* Replace the ReportGenerator component with just the table */}
-  <div className="overflow-x-auto">
-    <table className="min-w-full divide-y divide-gray-200">
-      <thead className="bg-gray-50">
-        <tr>
-          {activeReportConfig.columns.map((column, index) => (
-            <th
-              key={index}
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-            >
-              {column.header}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody className="bg-white divide-y divide-gray-200">
-        {activeReportConfig.data.map((item, index) => (
-          <tr key={index}>
-            {activeReportConfig.columns.map((column, colIndex) => (
-              <td key={colIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {typeof column.accessor === 'function' 
-                  ? column.accessor(item) 
-                  : item[column.accessor]
-                }
-              </td>
-            ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-</div>
 
       {/* View Modal */}
       {viewModal.isOpen && (
