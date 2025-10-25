@@ -164,6 +164,47 @@ router.post('/send-email', auth, async (req, res) => {
           data = await Project.find().lean();
           title = 'Project Reports';
           break;
+        case 'project-comprehensive':
+          const projects = await Project.find().lean();
+          const milestones = await Milestone.find().lean();
+          const payments = await Payment.find().lean();
+          
+          data = projects.map(project => {
+            const projectMilestones = milestones.filter(m => m.projectName === project.projectName);
+            const projectPayments = payments.filter(p => p.projectName === project.projectName);
+            
+            const totalMilestones = projectMilestones.length;
+            const completedMilestones = projectMilestones.filter(m => 
+              m.tasks && m.tasks.every(task => task.status === 'Completed')
+            ).length;
+            const milestoneCompletionRate = totalMilestones > 0 ? 
+              Math.round((completedMilestones / totalMilestones) * 100) : 0;
+            
+            const totalInvoiceValue = projectPayments.reduce((sum, payment) => 
+              sum + (payment.totalInvoiceRaised || 0), 0);
+            const totalPaymentReceived = projectPayments.reduce((sum, payment) => 
+              sum + (payment.totalPayments || 0), 0);
+            const balanceAmount = totalInvoiceValue - totalPaymentReceived;
+            const paymentStatus = balanceAmount === 0 ? 'Paid' : 
+                                balanceAmount > 0 ? 'Pending' : 'Overdue';
+            
+            return {
+              ...project,
+              milestoneData: {
+                totalMilestones,
+                completedMilestones,
+                milestoneCompletionRate
+              },
+              paymentData: {
+                totalInvoiceValue,
+                totalPaymentReceived,
+                balanceAmount,
+                paymentStatus
+              }
+            };
+          });
+          title = 'Comprehensive Project Reports';
+          break;
         case 'milestone':
           data = await Milestone.find().lean();
           title = 'Milestone Reports';
@@ -285,6 +326,92 @@ router.post('/send-email', auth, async (req, res) => {
         error: error.message 
       });
     }
+  }
+});
+
+// Enhanced project report with milestone and payment data
+router.get('/project-comprehensive', auth, async (req, res) => {
+  try {
+    const projects = await Project.find().lean();
+    const milestones = await Milestone.find().lean();
+    const payments = await Payment.find().lean();
+
+    // Combine data for comprehensive project report
+    const comprehensiveData = projects.map(project => {
+      // Find related milestones
+      const projectMilestones = milestones.filter(m => m.projectName === project.projectName);
+      
+      // Find related payments
+      const projectPayments = payments.filter(p => p.projectName === project.projectName);
+      
+      // Calculate task metrics
+      let totalTasks = 0;
+      let completedTasks = 0;
+      
+      projectMilestones.forEach(milestone => {
+        if (milestone.tasks && milestone.tasks.length > 0) {
+          totalTasks += milestone.tasks.length;
+          completedTasks += milestone.tasks.filter(task => task.status === 'Completed').length;
+        }
+      });
+      
+      const taskCompletionRate = totalTasks > 0 ? 
+        Math.round((completedTasks / totalTasks) * 100) : 0;
+      
+      // Calculate payment metrics
+      const totalInvoiceValue = projectPayments.reduce((sum, payment) => 
+        sum + (payment.totalInvoiceRaised || 0), 0);
+      const totalPaymentReceived = projectPayments.reduce((sum, payment) => 
+        sum + (payment.totalPayments || 0), 0);
+      const balanceAmount = totalInvoiceValue - totalPaymentReceived;
+      const paymentStatus = balanceAmount === 0 ? 'Paid' : 
+                          balanceAmount > 0 ? 'Pending' : 'Overdue';
+      
+      // Calculate average milestone completion from tasks
+      const avgTaskCompletion = projectMilestones.length > 0 ?
+        Math.round(
+          projectMilestones.reduce((sum, milestone) => {
+            if (milestone.tasks && milestone.tasks.length > 0) {
+              const taskCompletion = milestone.tasks.reduce((taskSum, task) => 
+                taskSum + (task.completion || 0), 0) / milestone.tasks.length;
+              return sum + taskCompletion;
+            }
+            return sum;
+          }, 0) / projectMilestones.length
+        ) : 0;
+
+      return {
+        ...project,
+        milestoneData: {
+          totalTasks,
+          completedTasks,
+          taskCompletionRate,
+          totalMilestones: projectMilestones.length,
+          completedMilestones: projectMilestones.filter(m => 
+            m.tasks && m.tasks.every(task => task.status === 'Completed')
+          ).length,
+          milestoneCompletionRate: projectMilestones.length > 0 ? 
+            Math.round((projectMilestones.filter(m => 
+              m.tasks && m.tasks.every(task => task.status === 'Completed')
+            ).length / projectMilestones.length) * 100) : 0,
+          avgTaskCompletion,
+          milestones: projectMilestones
+        },
+        paymentData: {
+          totalInvoiceValue,
+          totalPaymentReceived,
+          balanceAmount,
+          paymentStatus,
+          paymentCount: projectPayments.length,
+          payments: projectPayments
+        }
+      };
+    });
+
+    res.json(comprehensiveData);
+  } catch (error) {
+    console.error('Comprehensive project report error:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

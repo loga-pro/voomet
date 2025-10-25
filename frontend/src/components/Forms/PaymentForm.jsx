@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { projectsAPI, paymentsAPI } from '../../services/api';
 import FloatingInput from './FloatingInput';
 import NotificationComponent from '../Notifications/Notification';
@@ -78,7 +78,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
             }]
       });
     }
-  }, [payment]);
+  }, [payment, fetchAwardedProjects]);
 
   useEffect(() => {
     if (formData.customer) {
@@ -89,7 +89,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     }
   }, [formData.customer, projects]);
 
-  const fetchAwardedProjects = async () => {
+  const fetchAwardedProjects = useCallback(async () => {
     try {
       const response = await projectsAPI.getAll({ stage: 'awarded' });
       setProjects(response.data);
@@ -98,7 +98,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       console.error('Error fetching awarded projects:', error);
       showNotification('Error fetching projects data', 'error');
     }
-  };
+  }, [showNotification]);
 
   const fetchExistingPayments = async () => {
     try {
@@ -279,7 +279,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     }));
   };
 
-  const showNotification = (message, type = 'success') => {
+  const showNotification = useCallback((message, type = 'success') => {
     setNotification({
       isVisible: true,
       message,
@@ -288,7 +288,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     setTimeout(() => {
       setNotification(prev => ({ ...prev, isVisible: false }));
     }, 3000);
-  };
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};

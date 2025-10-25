@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { partsAPI, inventoryAPI } from '../../services/api';
 import FloatingInput from './FloatingInput';
 
@@ -38,7 +38,9 @@ const InventoryForm = ({ inventory, onSubmit, onCancel, showNotification, showEr
 
   useEffect(() => {
     fetchParts();
-    
+  }, [fetchParts]);
+
+  useEffect(() => {
     if (inventory) {
       // Handle existing inventory data conversion
       const formattedData = {
@@ -192,16 +194,18 @@ const InventoryForm = ({ inventory, onSubmit, onCancel, showNotification, showEr
     
   }, [formData.partPrice, formData.receipts, formData.dispatches, formData.returns]); // Watch the actual arrays, not just lengths
 
-  const fetchParts = async () => {
+  const fetchParts = useCallback(async () => {
     try {
       const response = await partsAPI.getAll();
       setParts(response.data);
       setFilteredParts(response.data);
     } catch (error) {
       console.error('Error fetching parts:', error);
-      showError('Failed to fetch parts');
+      if (showError) {
+        showError('Error fetching parts data');
+      }
     }
-  };
+  }, [showError]);
 
   const calculateCumulativeValues = () => {
     const partPrice = parseFloat(formData.partPrice) || 0;

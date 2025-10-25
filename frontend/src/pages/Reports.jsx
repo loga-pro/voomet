@@ -40,7 +40,7 @@ import {
 import ReportGenerator from '../components/Reports/ReportGenerator';
 
 const Reports = () => {
-  const [activeReport, setActiveReport] = useState('project');
+  const [activeReport, setActiveReport] = useState('project-comprehensive');
   const [loading, setLoading] = useState(false);
   const [viewModal, setViewModal] = useState({ isOpen: false, data: null, type: '' });
   const [emailAddress, setEmailAddress] = useState('');
@@ -58,6 +58,8 @@ const Reports = () => {
   const [paymentChartData, setPaymentChartData] = useState([]);
   const [inventoryChartData, setInventoryChartData] = useState([]);
   const [qualityChartData, setQualityChartData] = useState([]);
+  const [comprehensiveProjectData, setComprehensiveProjectData] = useState([]);
+  const [vendorPaymentChartData, setVendorPaymentChartData] = useState([]);
 
   useEffect(() => {
     fetchDataForAllReports();
@@ -66,35 +68,34 @@ const Reports = () => {
   const fetchDataForAllReports = async () => {
     setLoading(true);
     try {
-      // Fetch all data in parallel
+      // Fetch data for remaining reports in parallel
       const [
         projectsRes,
-        milestonesRes,
         inventoryRes,
         qualityRes,
-        paymentsRes,
-        vendorPaymentsRes
+        vendorPaymentsRes,
+        comprehensiveProjectsRes
       ] = await Promise.all([
         projectsAPI.getAll(),
-        milestonesAPI.getAll(),
         inventoryAPI.getAll(),
         qualityAPI.getAll(),
-        paymentsAPI.getAll({ limit: 10000 }), // Get all payments for reports
-        vendorPaymentsAPI.getAll({ limit: 10000 }) // Get all vendor payments for reports
+        vendorPaymentsAPI.getAll({ limit: 10000 }), // Get all vendor payments for reports
+        reportsAPI.getComprehensiveProjects() // Get comprehensive project data
       ]);
 
+      console.log('Comprehensive projects API response:', comprehensiveProjectsRes);
+      console.log('Comprehensive projects data:', comprehensiveProjectsRes.data);
+
       setProjectData(projectsRes.data || []);
-      setMilestoneData(milestonesRes.data?.milestones || []);
       setInventoryData(inventoryRes.data || []);
       setQualityData(qualityRes.data?.qualityIssues || []);
-      setPaymentData(paymentsRes.payments || []);
       setVendorPaymentData(vendorPaymentsRes.payments || []);
 
-      // Process chart data
-      processProjectChartData(projectsRes.data || []);
-      processPaymentChartData(paymentsRes.data?.payments || [], vendorPaymentsRes.data?.payments || []);
+      // Process chart data for remaining reports
       processInventoryChartData(inventoryRes.data || []);
       processQualityChartData(qualityRes.data?.qualityIssues || []);
+      processComprehensiveProjectChartData(comprehensiveProjectsRes.data || []);
+      processVendorPaymentChartData(vendorPaymentsRes.payments || []);
     } catch (error) {
       console.error('Error fetching report data:', error);
     } finally {
@@ -160,6 +161,49 @@ const Reports = () => {
     }));
 
     setQualityChartData(chartData);
+  };
+
+  const processComprehensiveProjectChartData = (comprehensiveProjects) => {
+    // Process data for comprehensive project charts
+    console.log('Raw comprehensive projects data:', comprehensiveProjects);
+    
+    const completionData = comprehensiveProjects.map(project => {
+      console.log('Individual project data:', project);
+      return {
+        name: project.projectName,
+        milestoneCompletion: project.milestoneData?.milestoneCompletionRate || 0,
+        paymentReceived: project.paymentData?.totalPaymentReceived || 0,
+        balanceAmount: project.paymentData?.balanceAmount || 0,
+        stage: project.stage?.replace('_', ' ').toUpperCase() || 'Unknown',
+        // Add customer name and other fields for the table
+        customerName: project.customerName,
+        projectName: project.projectName,
+        stage: project.stage,
+        totalProjectValue: project.totalProjectValue,
+        milestoneData: project.milestoneData,
+        paymentData: project.paymentData
+      };
+    });
+
+    console.log('Processed completion data:', completionData);
+    setComprehensiveProjectData(completionData);
+  };
+
+  const processVendorPaymentChartData = (vendorPayments) => {
+    // Group vendor payments by vendor name
+    const vendorTotals = vendorPayments.reduce((acc, payment) => {
+      const vendor = payment.vendor || 'Unknown Vendor';
+      acc[vendor] = (acc[vendor] || 0) + (payment.totalPayments || 0);
+      return acc;
+    }, {});
+
+    // Sort by total payment amount and take top 10 vendors
+    const chartData = Object.entries(vendorTotals)
+      .map(([vendor, total]) => ({ name: vendor, value: total }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
+
+    setVendorPaymentChartData(chartData);
   };
 
   const handleView = (item, type) => {
@@ -573,11 +617,9 @@ const Reports = () => {
 
   // Report configurations
   const reportTypes = [
-    { id: 'project', name: 'Project Reports', icon: ClipboardDocumentListIcon },
-    { id: 'milestone', name: 'Milestone Reports', icon: DocumentTextIcon },
+    { id: 'project-comprehensive', name: 'Comprehensive Project Reports', icon: ClipboardDocumentListIcon },
     { id: 'inventory', name: 'Inventory Reports', icon: CubeIcon },
     { id: 'quality', name: 'Quality Reports', icon: ShieldCheckIcon },
-    { id: 'payment', name: 'Payment Reports', icon: CurrencyRupeeIcon },
     { id: 'vendor', name: 'Vendor Payment Reports', icon: BuildingStorefrontIcon }
   ];
 
@@ -614,6 +656,48 @@ const Reports = () => {
       }
     ],
     filename: 'project-report.csv'
+  };
+
+  // Comprehensive Project Report Configuration
+  const comprehensiveProjectReportConfig = {
+    title: 'Comprehensive Project Reports',
+    data: comprehensiveProjectData, // Use the actual comprehensive project data
+    columns: [
+      { header: 'Customer Name', accessor: 'customerName' },
+      { header: 'Project Name', accessor: 'projectName' },
+      { header: 'Stage', accessor: row => row.stage?.replace('_', ' ').toUpperCase() || 'N/A' },
+      { header: 'Total Value (₹)', accessor: row => `₹${row.totalProjectValue?.toLocaleString() || '0'}` },
+      { header: 'Total Tasks', accessor: row => row.milestoneData?.totalTasks || 0 },
+      { header: 'Completed Tasks', accessor: row => row.milestoneData?.completedTasks || 0 },
+      { header: 'Task Progress', accessor: row => `${row.milestoneData?.completedTasks || 0}/${row.milestoneData?.totalTasks || 0}` },
+      { header: 'Task Completion %', accessor: row => `${row.milestoneData?.taskCompletionRate || 0}%` },
+      { header: 'Invoice (₹)', accessor: row => `₹${row.paymentData?.totalInvoiceValue?.toLocaleString() || '0'}` },
+      { header: 'Received (₹)', accessor: row => `₹${row.paymentData?.totalPaymentReceived?.toLocaleString() || '0'}` },
+      { header: 'Balance (₹)', accessor: row => `₹${row.paymentData?.balanceAmount?.toLocaleString() || '0'}` },
+      { header: 'Payment Status', accessor: row => row.paymentData?.paymentStatus || 'N/A' },
+      {
+        header: 'Actions',
+        accessor: (row) => (
+          <div className="flex space-x-2">
+            <button
+              onClick={() => handleView(row, 'project-comprehensive')}
+              className="text-blue-600 hover:text-blue-900"
+              title="View Details"
+            >
+              <EyeIcon className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => handleSend(row, 'project-comprehensive')}
+              className="text-green-600 hover:text-green-900"
+              title="Send Report"
+            >
+              <PaperAirplaneIcon className="h-5 w-5" />
+            </button>
+          </div>
+        )
+      }
+    ],
+    filename: 'comprehensive-project-report.csv'
   };
 
   // Milestone Report Configuration
@@ -844,20 +928,16 @@ const Reports = () => {
 
   const getActiveReportConfig = () => {
     switch (activeReport) {
-      case 'project':
-        return projectReportConfig;
-      case 'milestone':
-        return milestoneReportConfig;
+      case 'project-comprehensive':
+        return comprehensiveProjectReportConfig;
       case 'inventory':
         return inventoryReportConfig;
       case 'quality':
         return qualityReportConfig;
-      case 'payment':
-        return paymentReportConfig;
       case 'vendor':
         return vendorPaymentReportConfig;
       default:
-        return projectReportConfig;
+        return comprehensiveProjectReportConfig;
     }
   };
 
@@ -905,49 +985,7 @@ const Reports = () => {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Visual Analytics</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Project Stage Distribution */}
-          {activeReport === 'project' && projectChartData.length > 0 && (
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-md font-medium text-gray-900 mb-3">Project Stage Distribution</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={projectChartData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={true}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {projectChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => [value, 'Count']} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          )}
 
-          {/* Payment Distribution */}
-          {activeReport === 'payment' && paymentChartData.length > 0 && (
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-md font-medium text-gray-900 mb-3">Payment Distribution</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={paymentChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => [`₹${value.toLocaleString()}`, 'Amount']} />
-                  <Legend />
-                  <Bar dataKey="value" name="Amount (₹)" fill="#8884d8" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
 
           {/* Inventory by Scope */}
           {activeReport === 'inventory' && inventoryChartData.length > 0 && (
@@ -993,30 +1031,56 @@ const Reports = () => {
             </div>
           )}
 
-          {/* Trend Analysis */}
-          {activeReport === 'project' && projectData.length > 0 && (
+
+
+          {/* Comprehensive Project Milestone Completion */}
+          {activeReport === 'project-comprehensive' && comprehensiveProjectData.length > 0 && (
             <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-md font-medium text-gray-900 mb-3">Project Timeline Trend</h3>
+              <h3 className="text-md font-medium text-gray-900 mb-3">Milestone Completion by Project</h3>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart
-                  data={projectData.map(project => ({
-                    date: new Date(project.enquiryDate).toLocaleDateString(),
-                    value: project.totalProjectValue || 0
-                  }))}
-                >
+                <BarChart data={comprehensiveProjectData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
+                  <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip formatter={(value) => [`₹${value.toLocaleString()}`, 'Project Value']} />
+                  <Tooltip formatter={(value) => [`${value}%`, 'Completion']} />
                   <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="value" 
-                    name="Project Value (₹)" 
-                    stroke="#8884d8" 
-                    activeDot={{ r: 8 }} 
-                  />
-                </LineChart>
+                  <Bar dataKey="milestoneCompletion" name="Milestone Completion (%)" fill="#00C49F" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Comprehensive Project Payment Overview */}
+          {activeReport === 'project-comprehensive' && comprehensiveProjectData.length > 0 && (
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-md font-medium text-gray-900 mb-3">Payment Overview by Project</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={comprehensiveProjectData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => [`₹${value.toLocaleString()}`, 'Amount']} />
+                  <Legend />
+                  <Bar dataKey="paymentReceived" name="Payment Received (₹)" fill="#0088FE" />
+                  <Bar dataKey="balanceAmount" name="Balance Amount (₹)" fill="#FF8042" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Vendor Payment Overview */}
+          {activeReport === 'vendor' && vendorPaymentChartData.length > 0 && (
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-md font-medium text-gray-900 mb-3">Top 10 Vendor Payments</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={vendorPaymentChartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                  <YAxis />
+                  <Tooltip formatter={(value) => [`₹${value.toLocaleString()}`, 'Total Payment']} />
+                  <Legend />
+                  <Bar dataKey="value" name="Total Payment (₹)" fill="#8884d8" />
+                </BarChart>
               </ResponsiveContainer>
             </div>
           )}

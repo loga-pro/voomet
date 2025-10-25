@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { vendorPaymentsAPI, vendorsAPI } from '../../services/api';
 import FloatingInput from './FloatingInput';
 import NotificationComponent from '../Notifications/Notification';
@@ -77,9 +77,9 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
             }]
       });
     }
-  }, [payment]);
+  }, [payment, fetchVendors]);
 
-  const fetchVendors = async () => {
+  const fetchVendors = useCallback(async () => {
     try {
       const response = await vendorsAPI.getAll();
       setVendors(response.data || []);
@@ -87,7 +87,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
       console.error('Error fetching vendors:', error);
       showNotification('Error fetching vendors data', 'error');
     }
-  };
+  }, [showNotification]);
 
   const fetchExistingPayments = async () => {
     try {
@@ -271,7 +271,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
     }));
   };
 
-  const showNotification = (message, type = 'success') => {
+  const showNotification = useCallback((message, type = 'success') => {
     setNotification({
       isVisible: true,
       message,
@@ -280,7 +280,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
     setTimeout(() => {
       setNotification(prev => ({ ...prev, isVisible: false }));
     }, 3000);
-  };
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};

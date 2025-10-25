@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { partsAPI, boqAPI, projectsAPI } from '../../services/api';
 import FloatingInput from './FloatingInput';
 import NotificationComponent from '../Notifications/Notification';
@@ -42,7 +42,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError }) => {
   useEffect(() => {
     fetchParts();
     fetchProjects();
-  }, []);
+  }, [fetchParts, fetchProjects]);
 
   useEffect(() => {
     if (boq) {
@@ -174,9 +174,9 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError }) => {
         ...calculatedValues
       }));
     }
-  }, [formData.items.map(item => item.numberOfUnits + item.unitPrice).join(','), formData.transportationCharges, formData.gstPercentage, isInitialLoad]);
+  }, [formData.items, formData.transportationCharges, formData.gstPercentage, isInitialLoad, calculateTotals]);
 
-  const fetchParts = async () => {
+  const fetchParts = useCallback(async () => {
     try {
       const response = await partsAPI.getAll();
       setParts(response.data);
@@ -185,18 +185,18 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError }) => {
       console.error('Error fetching parts:', error);
       showLocalNotification('Error fetching parts data', 'error');
     }
-  };
+  }, [showLocalNotification]);
 
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     try {
       const response = await projectsAPI.getAll();
       setProjects(response.data);
     } catch (error) {
       console.error('Error fetching projects:', error);
     }
-  };
+  }, []);
 
-  const calculateTotals = () => {
+  const calculateTotals = useCallback(() => {
     // Calculate total for each item
     const updatedItems = formData.items.map(item => {
       const numberOfUnits = parseFloat(item.numberOfUnits || 0);
@@ -228,7 +228,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError }) => {
       finalTotalWithoutGST: isNaN(finalTotalWithoutGST) ? '0' : finalTotalWithoutGST.toFixed(2),
       totalWithGST: isNaN(totalWithGST) ? '0' : totalWithGST.toFixed(2)
     };
-  };
+  }, [formData.items, formData.transportationCharges, formData.gstPercentage]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -353,7 +353,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError }) => {
     }
   };
 
-  const showLocalNotification = (message, type = 'success') => {
+  const showLocalNotification = useCallback((message, type = 'success') => {
     setNotification({
       isVisible: true,
       message,
@@ -362,7 +362,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError }) => {
     setTimeout(() => {
       setNotification(prev => ({ ...prev, isVisible: false }));
     }, 3000);
-  };
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};

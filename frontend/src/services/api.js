@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://192.168.1.15:5000/api';
+const API_BASE_URL = 'https://3z1p79h8-5000.inc1.devtunnels.ms/api';
 
 // Create axios instance
 const api = axios.create({
@@ -181,6 +181,7 @@ export const vendorPaymentsAPI = {
 export const reportsAPI = {
   sendEmail: (data) => api.post('/reports/send-email', data),
   exportCSV: (reportType) => api.get(`/reports/export-csv/${reportType}`, { responseType: 'blob' }),
+  getComprehensiveProjects: () => api.get('/reports/project-comprehensive'),
 };
 
 export default api;

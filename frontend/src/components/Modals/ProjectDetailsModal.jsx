@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { dashboardAPI } from '../../services/api';
 
@@ -10,9 +10,9 @@ const ProjectDetailsModal = ({ isOpen, onClose, stage, stageTitle }) => {
     if (isOpen && stage) {
       fetchProjects();
     }
-  }, [isOpen, stage]);
+  }, [isOpen, stage, fetchProjects]);
 
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     try {
       setLoading(true);
       const response = await dashboardAPI.getProjectsByStage(stage);
@@ -22,7 +22,7 @@ const ProjectDetailsModal = ({ isOpen, onClose, stage, stageTitle }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [stage]);
 
   if (!isOpen) return null;
 

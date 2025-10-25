@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { projectsAPI, milestonesAPI } from '../../services/api';
+import { projectsAPI, milestonesAPI, customersAPI } from '../../services/api';
 import { phaseOptions } from '../../data/taskConfig';
 import FloatingInput from './FloatingInput';
 
@@ -19,7 +19,7 @@ const MilestoneForm = ({ milestone, onSuccess, onCancel, viewMode = false }) => 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [availableTasks, setAvailableTasks] = useState([]);
-  const [originalEndDate, setOriginalEndDate] = useState(''); // Store original end date
+  const [originalEndDate, setOriginalEndDate] = useState(''); 
 
   useEffect(() => {
     fetchAwardedProjects();
@@ -57,15 +57,23 @@ const MilestoneForm = ({ milestone, onSuccess, onCancel, viewMode = false }) => 
       const filtered = projects.filter(project => project.customerName === formData.customer);
       setFilteredProjects(filtered);
       
-      // Set email ID if only one project matches
-      if (filtered.length === 1) {
+      // Fetch customer email when customer is selected
+      const fetchEmail = async () => {
+        const email = await fetchCustomerEmail(formData.customer);
         setFormData(prev => ({
           ...prev,
-          emailId: filtered[0].customerEmail || ''
+          emailId: email
         }));
-      }
+      };
+      
+      fetchEmail();
     } else {
       setFilteredProjects(projects);
+      // Clear email when no customer is selected
+      setFormData(prev => ({
+        ...prev,
+        emailId: ''
+      }));
     }
   }, [formData.customer, projects]);
 
@@ -76,6 +84,20 @@ const MilestoneForm = ({ milestone, onSuccess, onCancel, viewMode = false }) => 
       setFilteredProjects(response.data);
     } catch (error) {
       console.error('Error fetching awarded projects:', error);
+    }
+  };
+
+  const fetchCustomerEmail = async (customerName) => {
+    try {
+      const response = await customersAPI.getAll({ customerName });
+      if (response.data && response.data.length > 0) {
+        const customer = response.data[0];
+        return customer.customerEmail || '';
+      }
+      return '';
+    } catch (error) {
+      console.error('Error fetching customer email:', error);
+      return '';
     }
   };
 
