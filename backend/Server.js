@@ -14,12 +14,7 @@ connectDB();
 const app = express();
 
 // Middleware
-app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3004', 'https://3z1p79h8-5000.inc1.devtunnels.ms'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors());
 app.use(express.json());
 
 // Request logging middleware
