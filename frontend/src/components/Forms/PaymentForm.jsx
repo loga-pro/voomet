@@ -30,15 +30,18 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     message: '',
     type: 'success'
   });
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [existingPayments, setExistingPayments] = useState([]);
 
   useEffect(() => {
     fetchAwardedProjects();
+    fetchExistingPayments();
     
     if (payment) {
-      // Fix: Properly handle existing payment data - map backend fields to frontend
+      setIsEditMode(true);
       setFormData({
         customer: payment.customer || '',
-        projectName: payment.project || payment.projectName || '', // Handle both field names
+        projectName: payment.project || payment.projectName || '',
         projectCost: payment.projectCost || '',
         invoices: payment.invoices && payment.invoices.length > 0 
           ? payment.invoices.map(invoice => ({
@@ -50,7 +53,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                     transactionId: pmt.transactionId || '',
                     bankName: pmt.bankName || '',
                     amount: pmt.amount || '',
-                    paymentDate: pmt.date ? new Date(pmt.date).toISOString().split('T')[0] : '', // Map 'date' to 'paymentDate'
+                    paymentDate: pmt.date ? new Date(pmt.date).toISOString().split('T')[0] : '',
                     remarks: pmt.remarks || ''
                   }))
                 : [{
@@ -97,7 +100,28 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     }
   };
 
-  // Fix: Improved handleChange function with better nested data handling
+  const fetchExistingPayments = async () => {
+    try {
+      const response = await paymentsAPI.getAll();
+      setExistingPayments(response.data?.payments || []);
+    } catch (error) {
+      console.error('Error fetching existing payments:', error);
+    }
+  };
+
+  const checkDuplicatePayment = (customer, projectName) => {
+    // If in edit mode and values haven't changed, don't show duplicate error
+    if (isEditMode && payment && payment.customer === customer && payment.project === projectName) {
+      return false;
+    }
+
+    const existing = existingPayments.find(pmt => 
+      pmt.customer === customer && pmt.project === projectName
+    );
+    
+    return !!existing;
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     
@@ -105,7 +129,6 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       const nameParts = name.split('.');
       
       if (nameParts.length === 3) {
-        // Handle invoices.index.field
         const [parent, index, field] = nameParts;
         const arrayIndex = parseInt(index);
         
@@ -116,7 +139,6 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
           )
         }));
       } else if (nameParts.length === 5) {
-        // Handle invoices.index.payments.paymentIndex.field
         const [parent, invoiceIndex, paymentsKey, paymentIndex, field] = nameParts;
         const invIndex = parseInt(invoiceIndex);
         const payIndex = parseInt(paymentIndex);
@@ -138,6 +160,28 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         ...prev,
         [name]: value
       }));
+
+      // Check for duplicates when customer or project name changes
+      if (name === 'customer' || name === 'projectName') {
+        const newCustomer = name === 'customer' ? value : formData.customer;
+        const newProject = name === 'projectName' ? value : formData.projectName;
+        
+        if (newCustomer && newProject) {
+          const isDuplicate = checkDuplicatePayment(newCustomer, newProject);
+          if (isDuplicate) {
+            setErrors(prev => ({
+              ...prev,
+              duplicate: 'Payment for this customer and project already exists'
+            }));
+          } else {
+            setErrors(prev => {
+              const newErrors = { ...prev };
+              delete newErrors.duplicate;
+              return newErrors;
+            });
+          }
+        }
+      }
     }
 
     // Clear errors for the field being edited
@@ -152,12 +196,29 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
   const handleProjectSelect = (projectName) => {
     const selectedProject = projects.find(project => project.projectName === projectName);
     if (selectedProject) {
+      const isDuplicate = checkDuplicatePayment(selectedProject.customerName, projectName);
+      
+      if (isDuplicate) {
+        setErrors(prev => ({
+          ...prev,
+          duplicate: 'Payment for this customer and project already exists'
+        }));
+        return;
+      }
+
       setFormData(prev => ({
         ...prev,
         projectName: selectedProject.projectName,
         projectCost: selectedProject.totalProjectValue,
         customer: selectedProject.customerName
       }));
+
+      // Clear duplicate error if any
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.duplicate;
+        return newErrors;
+      });
     }
   };
 
@@ -236,6 +297,11 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     if (!formData.projectName) newErrors.projectName = 'Project name is required';
     if (!formData.projectCost || formData.projectCost <= 0) newErrors.projectCost = 'Valid project cost is required';
 
+    // Check for duplicate payment
+    if (checkDuplicatePayment(formData.customer, formData.projectName)) {
+      newErrors.duplicate = 'Payment for this customer and project already exists';
+    }
+
     // Validate invoices
     formData.invoices.forEach((invoice, index) => {
       if (!invoice.invoiceNumber) newErrors[`invoices.${index}.invoiceNumber`] = 'Invoice number is required';
@@ -262,7 +328,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     try {
       const submitData = {
         customer: formData.customer,
-        project: formData.projectName, // Map projectName to project for backend
+        project: formData.projectName,
         projectCost: parseFloat(formData.projectCost),
         invoices: formData.invoices.map(invoice => ({
           invoiceNumber: invoice.invoiceNumber,
@@ -272,16 +338,14 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
             transactionId: payment.transactionId,
             bankName: payment.bankName,
             amount: parseFloat(payment.amount),
-            date: payment.paymentDate, // Map paymentDate to date for backend
+            date: payment.paymentDate,
             remarks: payment.remarks
           }))
         }))
       };
 
-      console.log('Submitting data:', submitData); // Debug log
       await onSubmit(submitData);
     } catch (error) {
-      console.error('Submit error:', error.response?.data); // Debug log
       const errorMessage = error.response?.data?.message || 'An error occurred. Please try again.';
       setErrors({ submit: errorMessage });
       showNotification(errorMessage, 'error');
@@ -299,6 +363,12 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
           </div>
         )}
 
+        {errors.duplicate && (
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-600 px-4 py-3 rounded">
+            {errors.duplicate}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FloatingInput
             label="Customer"
@@ -306,9 +376,10 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
             value={formData.customer}
             onChange={handleChange}
             error={errors.customer}
-            type="select"
+            type={isEditMode ? "text" : "select"}
             options={[...new Set(projects.map(p => p.customerName))].map(customer => ({ value: customer, label: customer }))}
             required
+            readOnly={isEditMode}
           />
 
           <FloatingInput
@@ -316,12 +387,13 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
             value={formData.projectName}
             onChange={(e) => handleProjectSelect(e.target.value)}
             error={errors.projectName}
-            type="select"
+            type={isEditMode ? "text" : "select"}
             options={filteredProjects.map(project => ({
               value: project.projectName,
               label: `${project.projectName} - ${project.customerName}`
             }))}
             required
+            readOnly={isEditMode}
           />
 
           <FloatingInput
@@ -350,132 +422,136 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
             </button>
           </div>
 
-          {formData.invoices.map((invoice, invoiceIndex) => (
-            <div key={invoiceIndex} className="bg-gray-50 p-4 rounded-lg mb-4">
-              <div className="flex justify-between items-center mb-3">
-                <h4 className="font-medium">Invoice #{invoiceIndex + 1}</h4>
-                {formData.invoices.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeInvoice(invoiceIndex)}
-                    className="text-red-600 hover:text-red-800 text-sm"
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <FloatingInput
-                  label="Invoice Number"
-                  name={`invoices.${invoiceIndex}.invoiceNumber`}
-                  value={invoice.invoiceNumber}
-                  onChange={handleChange}
-                  error={errors[`invoices.${invoiceIndex}.invoiceNumber`]}
-                  required
-                />
-
-                <FloatingInput
-                  label="Invoice Value (₹)"
-                  name={`invoices.${invoiceIndex}.invoiceValue`}
-                  value={invoice.invoiceValue}
-                  onChange={handleChange}
-                  error={errors[`invoices.${invoiceIndex}.invoiceValue`]}
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  required
-                />
-
-                <FloatingInput
-                  label="Invoice Date"
-                  name={`invoices.${invoiceIndex}.invoiceDate`}
-                  value={invoice.invoiceDate}
-                  onChange={handleChange}
-                  type="date"
-                />
-              </div>
-
-              <div className="border-t pt-4">
+          <div className="max-h-96 overflow-y-auto space-y-4 pr-2">
+            {formData.invoices.map((invoice, invoiceIndex) => (
+              <div key={invoiceIndex} className="bg-gray-50 p-4 rounded-lg border">
                 <div className="flex justify-between items-center mb-3">
-                  <h5 className="font-medium">Payments</h5>
-                  <button
-                    type="button"
-                    onClick={() => addPayment(invoiceIndex)}
-                    className="bg-green-600 text-white px-3 py-1 rounded-md text-sm hover:bg-green-700"
-                  >
-                    + Add Payment
-                  </button>
+                  <h4 className="font-medium">Invoice #{invoiceIndex + 1}</h4>
+                  {formData.invoices.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeInvoice(invoiceIndex)}
+                      className="text-red-600 hover:text-red-800 text-sm"
+                    >
+                      Remove
+                    </button>
+                  )}
                 </div>
 
-                {invoice.payments.map((payment, paymentIndex) => (
-                  <div key={paymentIndex} className="bg-white p-3 rounded border mb-3">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium">Payment #{paymentIndex + 1}</span>
-                      {invoice.payments.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removePayment(invoiceIndex, paymentIndex)}
-                          className="text-red-600 hover:text-red-800 text-sm"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <FloatingInput
+                    label="Invoice Number"
+                    name={`invoices.${invoiceIndex}.invoiceNumber`}
+                    value={invoice.invoiceNumber}
+                    onChange={handleChange}
+                    error={errors[`invoices.${invoiceIndex}.invoiceNumber`]}
+                    required
+                  />
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                      <FloatingInput
-                        label="Transaction ID"
-                        name={`invoices.${invoiceIndex}.payments.${paymentIndex}.transactionId`}
-                        value={payment.transactionId}
-                        onChange={handleChange}
-                        error={errors[`invoices.${invoiceIndex}.payments.${paymentIndex}.transactionId`]}
-                        required
-                      />
+                  <FloatingInput
+                    label="Invoice Value (₹)"
+                    name={`invoices.${invoiceIndex}.invoiceValue`}
+                    value={invoice.invoiceValue}
+                    onChange={handleChange}
+                    error={errors[`invoices.${invoiceIndex}.invoiceValue`]}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                  />
 
-                      <FloatingInput
-                        label="Bank Name"
-                        name={`invoices.${invoiceIndex}.payments.${paymentIndex}.bankName`}
-                        value={payment.bankName}
-                        onChange={handleChange}
-                        error={errors[`invoices.${invoiceIndex}.payments.${paymentIndex}.bankName`]}
-                        required
-                      />
+                  <FloatingInput
+                    label="Invoice Date"
+                    name={`invoices.${invoiceIndex}.invoiceDate`}
+                    value={invoice.invoiceDate}
+                    onChange={handleChange}
+                    type="date"
+                  />
+                </div>
 
-                      <FloatingInput
-                        label="Amount (₹)"
-                        name={`invoices.${invoiceIndex}.payments.${paymentIndex}.amount`}
-                        value={payment.amount}
-                        onChange={handleChange}
-                        error={errors[`invoices.${invoiceIndex}.payments.${paymentIndex}.amount`]}
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        required
-                      />
-
-                      <FloatingInput
-                        label="Payment Date"
-                        name={`invoices.${invoiceIndex}.payments.${paymentIndex}.paymentDate`}
-                        value={payment.paymentDate}
-                        onChange={handleChange}
-                        type="date"
-                      />
-                    </div>
-
-                    <FloatingInput
-                      label="Remarks"
-                      name={`invoices.${invoiceIndex}.payments.${paymentIndex}.remarks`}
-                      value={payment.remarks}
-                      onChange={handleChange}
-                      type="textarea"
-                      rows={2}
-                    />
+                <div className="border-t pt-4">
+                  <div className="flex justify-between items-center mb-3">
+                    <h5 className="font-medium">Payments</h5>
+                    <button
+                      type="button"
+                      onClick={() => addPayment(invoiceIndex)}
+                      className="bg-green-600 text-white px-3 py-1 rounded-md text-sm hover:bg-green-700"
+                    >
+                      + Add Payment
+                    </button>
                   </div>
-                ))}
+
+                  <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                    {invoice.payments.map((payment, paymentIndex) => (
+                      <div key={paymentIndex} className="bg-white p-3 rounded border">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium">Payment #{paymentIndex + 1}</span>
+                          {invoice.payments.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removePayment(invoiceIndex, paymentIndex)}
+                              className="text-red-600 hover:text-red-800 text-sm"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                          <FloatingInput
+                            label="Transaction ID"
+                            name={`invoices.${invoiceIndex}.payments.${paymentIndex}.transactionId`}
+                            value={payment.transactionId}
+                            onChange={handleChange}
+                            error={errors[`invoices.${invoiceIndex}.payments.${paymentIndex}.transactionId`]}
+                            required
+                          />
+
+                          <FloatingInput
+                            label="Bank Name"
+                            name={`invoices.${invoiceIndex}.payments.${paymentIndex}.bankName`}
+                            value={payment.bankName}
+                            onChange={handleChange}
+                            error={errors[`invoices.${invoiceIndex}.payments.${paymentIndex}.bankName`]}
+                            required
+                          />
+
+                          <FloatingInput
+                            label="Amount (₹)"
+                            name={`invoices.${invoiceIndex}.payments.${paymentIndex}.amount`}
+                            value={payment.amount}
+                            onChange={handleChange}
+                            error={errors[`invoices.${invoiceIndex}.payments.${paymentIndex}.amount`]}
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            required
+                          />
+
+                          <FloatingInput
+                            label="Payment Date"
+                            name={`invoices.${invoiceIndex}.payments.${paymentIndex}.paymentDate`}
+                            value={payment.paymentDate}
+                            onChange={handleChange}
+                            type="date"
+                          />
+                        </div>
+
+                        <FloatingInput
+                          label="Remarks"
+                          name={`invoices.${invoiceIndex}.payments.${paymentIndex}.remarks`}
+                          value={payment.remarks}
+                          onChange={handleChange}
+                          type="textarea"
+                          rows={2}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         <div className="flex justify-end space-x-3 pt-4">

@@ -29,11 +29,15 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
     message: '',
     type: 'success'
   });
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [existingPayments, setExistingPayments] = useState([]);
 
   useEffect(() => {
     fetchVendors();
+    fetchExistingPayments();
     
     if (payment) {
+      setIsEditMode(true);
       setFormData({
         vendor: payment.vendor || '',
         vendorGstNumber: payment.vendorGstNumber || '',
@@ -85,6 +89,25 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
     }
   };
 
+  const fetchExistingPayments = async () => {
+    try {
+      const response = await vendorPaymentsAPI.getAll();
+      setExistingPayments(response.data?.payments || []);
+    } catch (error) {
+      console.error('Error fetching existing vendor payments:', error);
+    }
+  };
+
+  const checkDuplicatePayment = (vendor) => {
+    // If in edit mode and vendor hasn't changed, don't show duplicate error
+    if (isEditMode && payment && payment.vendor === vendor) {
+      return false;
+    }
+
+    const existing = existingPayments.find(pmt => pmt.vendor === vendor);
+    return !!existing;
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     
@@ -134,6 +157,23 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
             vendorAccountNumber: selectedVendor.bankAccountNumber || ''
           }));
         }
+
+        // Check for duplicates when vendor changes
+        if (value) {
+          const isDuplicate = checkDuplicatePayment(value);
+          if (isDuplicate) {
+            setErrors(prev => ({
+              ...prev,
+              duplicate: 'Payment for this vendor already exists'
+            }));
+          } else {
+            setErrors(prev => {
+              const newErrors = { ...prev };
+              delete newErrors.duplicate;
+              return newErrors;
+            });
+          }
+        }
       }
 
       if (errors[name]) {
@@ -142,6 +182,35 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
           [name]: ''
         }));
       }
+    }
+  };
+
+  const handleVendorSelect = (vendorName) => {
+    const selectedVendor = vendors.find(v => v.vendorName === vendorName);
+    if (selectedVendor) {
+      const isDuplicate = checkDuplicatePayment(vendorName);
+      
+      if (isDuplicate) {
+        setErrors(prev => ({
+          ...prev,
+          duplicate: 'Payment for this vendor already exists'
+        }));
+        return;
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        vendor: selectedVendor.vendorName,
+        vendorGstNumber: selectedVendor.gstNumber || '',
+        vendorAccountNumber: selectedVendor.bankAccountNumber || ''
+      }));
+
+      // Clear duplicate error if any
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.duplicate;
+        return newErrors;
+      });
     }
   };
 
@@ -220,6 +289,11 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
     if (!formData.vendorGstNumber) newErrors.vendorGstNumber = 'Vendor GST number is required';
     if (!formData.vendorAccountNumber) newErrors.vendorAccountNumber = 'Vendor account number is required';
 
+    // Check for duplicate payment
+    if (checkDuplicatePayment(formData.vendor)) {
+      newErrors.duplicate = 'Payment for this vendor already exists';
+    }
+
     formData.invoices.forEach((invoice, index) => {
       if (!invoice.invoiceNumber) newErrors[`invoices.${index}.invoiceNumber`] = 'Invoice number is required';
       if (!invoice.invoiceValue || invoice.invoiceValue <= 0) newErrors[`invoices.${index}.invoiceValue`] = 'Valid invoice value is required';
@@ -279,20 +353,26 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
           </div>
         )}
 
+        {errors.duplicate && (
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-600 px-4 py-3 rounded">
+            {errors.duplicate}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FloatingInput
             label="Vendor"
             name="vendor"
             value={formData.vendor}
-            onChange={handleChange}
+            onChange={(e) => handleVendorSelect(e.target.value)}
             error={errors.vendor}
-            type="select"
+            type={isEditMode ? "text" : "select"}
             options={vendors.map(vendor => ({ 
               value: vendor.vendorName, 
               label: vendor.vendorName 
             }))}
             required
-          
+            readOnly={isEditMode}
           />
 
           <FloatingInput
@@ -302,6 +382,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
             onChange={handleChange}
             error={errors.vendorGstNumber}
             required
+            readOnly={isEditMode}
           />
 
           <FloatingInput
@@ -311,6 +392,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
             onChange={handleChange}
             error={errors.vendorAccountNumber}
             required
+            readOnly={isEditMode}
           />
         </div>
 
@@ -326,170 +408,162 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
             </button>
           </div>
 
-          {formData.invoices.map((invoice, invoiceIndex) => (
-            <div key={invoiceIndex} className="bg-gray-50 p-4 rounded-lg mb-4">
-              <div className="flex justify-between items-center mb-3">
-                <h4 className="font-medium">Invoice #{invoiceIndex + 1}</h4>
-                {formData.invoices.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeInvoice(invoiceIndex)}
-                    className="text-red-600 hover:text-red-800 text-sm"
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <FloatingInput
-                  label="Invoice Number"
-                  name={`invoices.${invoiceIndex}.invoiceNumber`}
-                  value={invoice.invoiceNumber}
-                  onChange={handleChange}
-                  error={errors[`invoices.${invoiceIndex}.invoiceNumber`]}
-                  required
-                />
-
-                <FloatingInput
-                  label="Invoice Value (₹)"
-                  name={`invoices.${invoiceIndex}.invoiceValue`}
-                  value={invoice.invoiceValue}
-                  onChange={handleChange}
-                  error={errors[`invoices.${invoiceIndex}.invoiceValue`]}
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  required
-                />
-
-                <FloatingInput
-                  label="Invoice Date"
-                  name={`invoices.${invoiceIndex}.invoiceDate`}
-                  value={invoice.invoiceDate}
-                  onChange={handleChange}
-                  type="date"
-                />
-              </div>
-
-              <div className="border-t pt-4">
+          <div className="max-h-96 overflow-y-auto space-y-4 pr-2">
+            {formData.invoices.map((invoice, invoiceIndex) => (
+              <div key={invoiceIndex} className="bg-gray-50 p-4 rounded-lg border">
                 <div className="flex justify-between items-center mb-3">
-                  <h5 className="font-medium">Payments</h5>
-                  <button
-                    type="button"
-                    onClick={() => addPayment(invoiceIndex)}
-                    className="bg-green-600 text-white px-3 py-1 rounded-md text-sm hover:bg-green-700"
-                  >
-                    + Add Payment
-                  </button>
+                  <h4 className="font-medium">Invoice #{invoiceIndex + 1}</h4>
+                  {formData.invoices.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeInvoice(invoiceIndex)}
+                      className="text-red-600 hover:text-red-800 text-sm"
+                    >
+                      Remove
+                    </button>
+                  )}
                 </div>
 
-                {invoice.payments.map((payment, paymentIndex) => (
-                  <div key={paymentIndex} className="bg-white p-3 rounded border mb-3">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium">Payment #{paymentIndex + 1}</span>
-                      {invoice.payments.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removePayment(invoiceIndex, paymentIndex)}
-                          className="text-red-600 hover:text-red-800 text-sm"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <FloatingInput
+                    label="Invoice Number"
+                    name={`invoices.${invoiceIndex}.invoiceNumber`}
+                    value={invoice.invoiceNumber}
+                    onChange={handleChange}
+                    error={errors[`invoices.${invoiceIndex}.invoiceNumber`]}
+                    required
+                  />
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <FloatingInput
-                        label="Transaction ID"
-                        name={`invoices.${invoiceIndex}.payments.${paymentIndex}.transactionId`}
-                        value={payment.transactionId}
-                        onChange={handleChange}
-                        error={errors[`invoices.${invoiceIndex}.payments.${paymentIndex}.transactionId`]}
-                        required
-                      />
+                  <FloatingInput
+                    label="Invoice Value (₹)"
+                    name={`invoices.${invoiceIndex}.invoiceValue`}
+                    value={invoice.invoiceValue}
+                    onChange={handleChange}
+                    error={errors[`invoices.${invoiceIndex}.invoiceValue`]}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                  />
 
-                      <FloatingInput
-                        label="Bank Name"
-                        name={`invoices.${invoiceIndex}.payments.${paymentIndex}.bankName`}
-                        value={payment.bankName}
-                        onChange={handleChange}
-                        error={errors[`invoices.${invoiceIndex}.payments.${paymentIndex}.bankName`]}
-                        required
-                      />
+                  <FloatingInput
+                    label="Invoice Date"
+                    name={`invoices.${invoiceIndex}.invoiceDate`}
+                    value={invoice.invoiceDate}
+                    onChange={handleChange}
+                    type="date"
+                  />
+                </div>
 
-                      <FloatingInput
-                        label="Amount (₹)"
-                        name={`invoices.${invoiceIndex}.payments.${paymentIndex}.amount`}
-                        value={payment.amount}
-                        onChange={handleChange}
-                        error={errors[`invoices.${invoiceIndex}.payments.${paymentIndex}.amount`]}
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        required
-                      />
-
-                      <FloatingInput
-                        label="Payment Date"
-                        name={`invoices.${invoiceIndex}.payments.${paymentIndex}.paymentDate`}
-                        value={payment.paymentDate}
-                        onChange={handleChange}
-                        type="date"
-                      />
-                    </div>
-
-                    <div className="mt-3">
-                      <FloatingInput
-                        label="Remarks"
-                        name={`invoices.${invoiceIndex}.payments.${paymentIndex}.remarks`}
-                        value={payment.remarks}
-                        onChange={handleChange}
-                        type="textarea"
-                      />
-                    </div>
+                <div className="border-t pt-4">
+                  <div className="flex justify-between items-center mb-3">
+                    <h5 className="font-medium">Payments</h5>
+                    <button
+                      type="button"
+                      onClick={() => addPayment(invoiceIndex)}
+                      className="bg-green-600 text-white px-3 py-1 rounded-md text-sm hover:bg-green-700"
+                    >
+                      + Add Payment
+                    </button>
                   </div>
-                ))}
+
+                  <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                    {invoice.payments.map((payment, paymentIndex) => (
+                      <div key={paymentIndex} className="bg-white p-3 rounded border">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium">Payment #{paymentIndex + 1}</span>
+                          {invoice.payments.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removePayment(invoiceIndex, paymentIndex)}
+                              className="text-red-600 hover:text-red-800 text-sm"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                          <FloatingInput
+                            label="Transaction ID"
+                            name={`invoices.${invoiceIndex}.payments.${paymentIndex}.transactionId`}
+                            value={payment.transactionId}
+                            onChange={handleChange}
+                            error={errors[`invoices.${invoiceIndex}.payments.${paymentIndex}.transactionId`]}
+                            required
+                          />
+
+                          <FloatingInput
+                            label="Bank Name"
+                            name={`invoices.${invoiceIndex}.payments.${paymentIndex}.bankName`}
+                            value={payment.bankName}
+                            onChange={handleChange}
+                            error={errors[`invoices.${invoiceIndex}.payments.${paymentIndex}.bankName`]}
+                            required
+                          />
+
+                          <FloatingInput
+                            label="Amount (₹)"
+                            name={`invoices.${invoiceIndex}.payments.${paymentIndex}.amount`}
+                            value={payment.amount}
+                            onChange={handleChange}
+                            error={errors[`invoices.${invoiceIndex}.payments.${paymentIndex}.amount`]}
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            required
+                          />
+
+                          <FloatingInput
+                            label="Payment Date"
+                            name={`invoices.${invoiceIndex}.payments.${paymentIndex}.paymentDate`}
+                            value={payment.paymentDate}
+                            onChange={handleChange}
+                            type="date"
+                          />
+                        </div>
+
+                        <FloatingInput
+                          label="Remarks"
+                          name={`invoices.${invoiceIndex}.payments.${paymentIndex}.remarks`}
+                          value={payment.remarks}
+                          onChange={handleChange}
+                          type="textarea"
+                          rows={2}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        <div className="border-t pt-6 flex justify-end gap-4">
+        <div className="flex justify-end space-x-3 pt-4">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700"
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
           >
-            {loading ? (
-              <span className="flex items-center">
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Processing...
-              </span>
-            ) : (
-              'Save'
-            )}
+            {loading ? 'Saving...' : payment ? 'Update' : 'Create'}
           </button>
         </div>
       </form>
-      
-      {notification.isVisible && (
-        <NotificationComponent 
-          message={notification.message} 
-          type={notification.type} 
-          onClose={() => setNotification(prev => ({ ...prev, isVisible: false }))}
-        />
-      )}
+
+      <NotificationComponent
+        message={notification.message}
+        type={notification.type}
+        isVisible={notification.isVisible}
+        onClose={() => setNotification(prev => ({ ...prev, isVisible: false }))}
+      />
     </>
   );
 };

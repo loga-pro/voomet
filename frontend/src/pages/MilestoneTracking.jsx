@@ -152,6 +152,9 @@ const MilestoneTracking = () => {
       return 'Not Started';
     }
 
+    // Task has started but not completed
+    const actualStart = new Date(task.actualStartDate);
+    
     // Check outlook completion vs planned end date
     if (task.outlookCompletion && task.endDate) {
       const outlookCompletion = new Date(task.outlookCompletion);
@@ -169,6 +172,20 @@ const MilestoneTracking = () => {
       if (today > plannedEnd) {
         return 'Delayed';
       }
+    }
+
+    // Check if task is progressing normally
+    if (task.actualStartDate && !task.actualEndDate) {
+      // If we have current progress information
+      if (task.completion !== undefined) {
+        // If task has started and has some progress but not completed
+        if (task.completion > 0 && task.completion < 100) {
+          return 'On track';
+        }
+      }
+      
+      // Default case for tasks that have started but no specific progress data
+      return 'On track';
     }
 
     // Default to on track if none of the above conditions are met
@@ -250,6 +267,15 @@ const MilestoneTracking = () => {
           task.actualStartDate = '';
           task.actualEndDate = '';
           task.outlookCompletion = '';
+        } else if (value === 'On track') {
+          // When setting to "On track", ensure we have an actual start date
+          if (!task.actualStartDate) {
+            task.actualStartDate = formatDateForInput(new Date());
+          }
+          // Calculate appropriate completion percentage
+          if (task.completion === 0 || task.completion === 100) {
+            task.completion = Math.max(calculateCompletionPercentage(task), 10);
+          }
         }
       }
       
@@ -263,6 +289,14 @@ const MilestoneTracking = () => {
       if (field === 'actualStartDate' && value && task.status === 'Not Started') {
         task.status = 'On track';
         task.completion = Math.max(task.completion, 10); // At least 10% when started
+      }
+      
+      // If completion is set to 100%, mark as completed
+      if (field === 'completion' && value === 100) {
+        task.status = 'Completed';
+        if (!task.actualEndDate) {
+          task.actualEndDate = formatDateForInput(new Date());
+        }
       }
       
       newData[index] = task;
@@ -762,7 +796,9 @@ const MilestoneTracking = () => {
                           min="1"
                           value={task.duration || 0}
                           onChange={(e) => handleTrackingChange(index, 'duration', parseInt(e.target.value) || 0)}
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-gray-100 cursor-not-allowed"
+                          readOnly
+                          disabled
                         />
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -770,7 +806,9 @@ const MilestoneTracking = () => {
                           type="date"
                           value={task.startDate || ''}
                           onChange={(e) => handleTrackingChange(index, 'startDate', e.target.value)}
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-gray-100 cursor-not-allowed"
+                          readOnly
+                          disabled
                         />
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -778,7 +816,9 @@ const MilestoneTracking = () => {
                           type="date"
                           value={task.endDate || ''}
                           onChange={(e) => handleTrackingChange(index, 'endDate', e.target.value)}
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-gray-100 cursor-not-allowed"
+                          readOnly
+                          disabled
                         />
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -786,7 +826,9 @@ const MilestoneTracking = () => {
                           type="text"
                           value={task.responsiblePerson || ''}
                           onChange={(e) => handleTrackingChange(index, 'responsiblePerson', e.target.value)}
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-gray-100 cursor-not-allowed"
+                          readOnly
+                          disabled
                         />
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">

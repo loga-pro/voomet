@@ -9,7 +9,13 @@ import {
   PencilSquareIcon,
   TrashIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  CubeIcon,
+  CurrencyRupeeIcon,
+  CalendarIcon,
+  ArchiveBoxIcon,
+  TruckIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import InventoryForm from '../components/Forms/InventoryForm';
 import Modal from '../components/Modals/Modal';
@@ -27,7 +33,8 @@ const InventoryManagement = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [filters, setFilters] = useState({
     scopeOfWork: '',
-    partName: ''
+    partName: '',
+    status: ''
   });
   const [showFilters, setShowFilters] = useState(false);
   const [parts, setParts] = useState([]);
@@ -35,7 +42,6 @@ const InventoryManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   
-  // Use notification hook
   const { notification, showSuccess, showError, hideNotification } = useNotification();
 
   useEffect(() => {
@@ -51,10 +57,20 @@ const InventoryManagement = () => {
     try {
       setLoading(true);
       const response = await inventoryAPI.getAll();
-      setInventoryItems(response.data);
+      const items = response.data.map(item => ({
+        ...item,
+        // Ensure numeric values
+        partPrice: parseFloat(item.partPrice) || 0,
+        cumulativeQuantityAtVoomet: parseFloat(item.cumulativeQuantityAtVoomet) || 0,
+        cumulativePriceValue: parseFloat(item.cumulativePriceValue) || 0,
+        // Ensure arrays exist
+        receipts: item.receipts || [],
+        dispatches: item.dispatches || [],
+        returns: item.returns || []
+      }));
+      setInventoryItems(items);
       
-      // Extract unique values for dropdowns
-      const scopes = [...new Set(response.data.map(item => item.scopeOfWork))].filter(Boolean);
+      const scopes = [...new Set(items.map(item => item.scopeOfWork))].filter(Boolean);
       setUniqueScopes(scopes);
     } catch (error) {
       console.error('Error fetching inventory items:', error);
@@ -75,18 +91,36 @@ const InventoryManagement = () => {
   };
 
   const filterItems = () => {
-    let filtered = inventoryItems;
+    let filtered = [...inventoryItems];
 
     if (filters.scopeOfWork) {
       filtered = filtered.filter(item => 
-        item.scopeOfWork === filters.scopeOfWork
+        item.scopeOfWork?.toLowerCase().includes(filters.scopeOfWork.toLowerCase())
       );
     }
 
     if (filters.partName) {
       filtered = filtered.filter(item => 
-        item.partName.toLowerCase().includes(filters.partName.toLowerCase())
+        item.partName?.toLowerCase().includes(filters.partName.toLowerCase())
       );
+    }
+
+    if (filters.status) {
+      filtered = filtered.filter(item => {
+        const { totalReceipts, totalDispatches } = calculateTotals(item);
+        const currentStock = totalReceipts - totalDispatches;
+        
+        switch (filters.status) {
+          case 'in-stock':
+            return currentStock > 0;
+          case 'low-stock':
+            return currentStock > 0 && currentStock <= 10;
+          case 'out-of-stock':
+            return currentStock <= 0;
+          default:
+            return true;
+        }
+      });
     }
 
     setFilteredItems(filtered);
@@ -97,23 +131,49 @@ const InventoryManagement = () => {
       ...prev,
       [key]: value
     }));
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
   };
 
   const clearFilters = () => {
     setFilters({
       scopeOfWork: '',
-      partName: ''
+      partName: '',
+      status: ''
     });
   };
 
-  // Helper function to calculate totals from arrays
+  // Enhanced totals calculation with validation
   const calculateTotals = (item) => {
-    const totalReceipts = item.receipts?.reduce((sum, receipt) => sum + (receipt.quantity || 0), 0) || 0;
-    const totalDispatches = item.dispatches?.reduce((sum, dispatch) => sum + (dispatch.quantity || 0), 0) || 0;
-    const totalReturns = item.returns?.reduce((sum, returnItem) => sum + (returnItem.quantity || 0), 0) || 0;
+    const totalReceipts = item.receipts?.reduce((sum, receipt) => 
+      sum + (parseFloat(receipt.quantity) || 0), 0) || 0;
     
-    return { totalReceipts, totalDispatches, totalReturns };
+    const totalDispatches = item.dispatches?.reduce((sum, dispatch) => 
+      sum + (parseFloat(dispatch.quantity) || 0), 0) || 0;
+    
+    const totalReturns = item.returns?.reduce((sum, returnItem) => 
+      sum + (parseFloat(returnItem.quantity) || 0), 0) || 0;
+
+    const currentStock = totalReceipts + totalReturns - totalDispatches;
+    
+    return { 
+      totalReceipts: parseFloat(totalReceipts.toFixed(2)), 
+      totalDispatches: parseFloat(totalDispatches.toFixed(2)), 
+      totalReturns: parseFloat(totalReturns.toFixed(2)),
+      currentStock: parseFloat(currentStock.toFixed(2))
+    };
+  };
+
+  // Get stock status
+  const getStockStatus = (item) => {
+    const { currentStock } = calculateTotals(item);
+    
+    if (currentStock <= 0) {
+      return { status: 'Out of Stock', color: 'red' };
+    } else if (currentStock <= 10) {
+      return { status: 'Low Stock', color: 'yellow' };
+    } else {
+      return { status: 'In Stock', color: 'green' };
+    }
   };
 
   // Pagination logic
@@ -128,12 +188,13 @@ const InventoryManagement = () => {
     try {
       const headers = [
         'Scope of Work', 'Part Name', 'Part Price', 'Date of Receipt', 
-        'Total Receipts', 'Total Dispatches', 'Total Returns',
-        'Cumulative Qty at Voomet', 'Cumulative Price Value', 'Remarks'
+        'Total Receipts', 'Total Dispatches', 'Total Returns', 'Current Stock',
+        'Cumulative Qty at Voomet', 'Cumulative Price Value', 'Stock Status', 'Remarks'
       ];
       
       const csvData = filteredItems.map(item => {
-        const { totalReceipts, totalDispatches, totalReturns } = calculateTotals(item);
+        const { totalReceipts, totalDispatches, totalReturns, currentStock } = calculateTotals(item);
+        const stockStatus = getStockStatus(item);
         
         return [
           item.scopeOfWork,
@@ -143,8 +204,10 @@ const InventoryManagement = () => {
           totalReceipts,
           totalDispatches,
           totalReturns,
+          currentStock,
           item.cumulativeQuantityAtVoomet || 0,
           item.cumulativePriceValue || 0,
+          stockStatus.status,
           item.remarks || ''
         ];
       });
@@ -158,7 +221,7 @@ const InventoryManagement = () => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'inventory_data.csv');
+      link.setAttribute('download', `inventory_export_${new Date().toISOString().split('T')[0]}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -181,12 +244,14 @@ const InventoryManagement = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this inventory item?')) {
+  const handleDelete = async (item) => {
+    const confirmMessage = `Are you sure you want to delete this inventory item?\n\nScope of Work: ${item.scopeOfWork?.replace('_', ' ').toUpperCase()}\nPart Name: ${item.partName}`;
+    
+    if (window.confirm(confirmMessage)) {
       try {
-        await inventoryAPI.delete(id);
+        await inventoryAPI.delete(item._id);
         showSuccess('Inventory item deleted successfully');
-        fetchInventoryItems(); // Refresh the list
+        fetchInventoryItems();
       } catch (error) {
         console.error('Error deleting inventory item:', error);
         showError('Failed to delete inventory item');
@@ -198,7 +263,7 @@ const InventoryManagement = () => {
     setShowModal(false);
     setEditingItem(null);
     showSuccess(isEdit ? 'Inventory item updated successfully' : 'Inventory item added successfully');
-    fetchInventoryItems(); // Refresh the list
+    fetchInventoryItems();
   };
 
   if (loading) {
@@ -210,8 +275,7 @@ const InventoryManagement = () => {
   }
 
   return (
-    <div className="bg-gray-50 p-2 sm:p-4 lg:p-6 xl:p-8">
-      {/* Notification Component */}
+    <div className="bg-gray-50 min-h-screen p-2 sm:p-4 lg:p-5 overflow-x-hidden">
       <Notification
         message={notification.message}
         type={notification.type}
@@ -219,10 +283,70 @@ const InventoryManagement = () => {
         onClose={hideNotification}
       />
       
-      <div className="max-w-none xl:max-w-8xl mx-auto">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+      <div className="w-full max-w-full px-1 sm:px-2 mx-auto">
+        {/* KPI Cards Section - At the Top */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
+          <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm border border-gray-200">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <CubeIcon className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
+              </div>
+              <div className="ml-2 sm:ml-4">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Total Items</p>
+                <p className="text-lg sm:text-2xl font-semibold text-gray-900">{inventoryItems.length}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <ArchiveBoxIcon className="h-8 w-8 text-green-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">In Stock</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {inventoryItems.filter(item => calculateTotals(item).currentStock > 0).length}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <TruckIcon className="h-8 w-8 text-orange-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Low Stock</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {inventoryItems.filter(item => {
+                    const { currentStock } = calculateTotals(item);
+                    return currentStock > 0 && currentStock <= 10;
+                  }).length}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <CurrencyRupeeIcon className="h-8 w-8 text-purple-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Total Value</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  ₹{inventoryItems.reduce((sum, item) => sum + (item.cumulativePriceValue || 0), 0).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
 
-          {/* Header with search and actions */}
+        {/* Main Content Card */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          {/* Toolbar */}
           <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
               <div className="flex items-center space-x-3">
@@ -287,10 +411,10 @@ const InventoryManagement = () => {
             </div>
           </div>
 
-          {/* Filters */}
+          {/* Enhanced Filters */}
           {showFilters && (
-            <div className="px-4 py-5 sm:p-6 bg-gray-50 border-b border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="px-4 py-5 sm:px-6 bg-gray-50 border-b border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Scope of Work</label>
                   <select
@@ -300,56 +424,87 @@ const InventoryManagement = () => {
                   >
                     <option value="">All Scopes</option>
                     {uniqueScopes.map(scope => (
-                      <option key={scope} value={scope}>{scope.replace('_', ' ').toUpperCase()}</option>
+                      <option key={scope} value={scope}>
+                        {scope.replace(/_/g, ' ').toUpperCase()}
+                      </option>
                     ))}
                   </select>
                 </div>
+                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Part Name</label>
-                  <input
-                    type="text"
-                    value={filters.partName}
-                    onChange={(e) => handleFilterChange('partName', e.target.value)}
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Stock Status</label>
+                  <select
+                    value={filters.status}
+                    onChange={(e) => handleFilterChange('status', e.target.value)}
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
-                    placeholder="Search by part name"
-                  />
+                  >
+                    <option value="">All Status</option>
+                    <option value="in-stock">In Stock</option>
+                    <option value="low-stock">Low Stock</option>
+                    <option value="out-of-stock">Out of Stock</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Items Per Page</label>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
+                  >
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                  </select>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Inventory Table */}
-          <div>
-            {/* Results Count */}
-            <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+
+
+          {/* Results Count */}
+          <div className="px-4 py-4 sm:px-6 bg-white border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-gray-700">
                 Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{' '}
                 <span className="font-medium">
-                  {indexOfLastItem > filteredItems.length ? filteredItems.length : indexOfLastItem}
+                  {Math.min(indexOfLastItem, filteredItems.length)}
                 </span> of{' '}
                 <span className="font-medium">{filteredItems.length}</span> results
               </p>
+              
+              {filteredItems.length > 0 && (
+                <div className="mt-2 sm:mt-0 flex items-center space-x-2">
+                  <span className="text-sm text-gray-500">Page</span>
+                  <span className="text-sm font-medium text-gray-900">{currentPage} of {totalPages}</span>
+                </div>
+              )}
             </div>
+          </div>
 
-            {/* Desktop Table View */}
-            <div className="hidden sm:block">
+          {/* Enhanced Table */}
+          <div className="overflow-hidden">
+            {/* Desktop Table */}
+            <div className="hidden lg:block">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Scope of Work
+                      Part Details
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Part Name
+                      Scope
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Price (₹)
+                      Stock Info
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Total Receipts
+                      Financials
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date of Receipt
+                      Date
                     </th>
                     <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -358,48 +513,79 @@ const InventoryManagement = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {currentItems.map((item) => {
-                    const { totalReceipts } = calculateTotals(item);
+                    const { totalReceipts, totalDispatches, currentStock } = calculateTotals(item);
+                    const stockStatus = getStockStatus(item);
+                    
                     return (
                       <tr key={item._id} className="hover:bg-gray-50 transition-colors duration-150">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{item.scopeOfWork.replace('_', ' ').toUpperCase()}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 font-medium">{item.partName}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-semibold text-gray-900">₹{item.partPrice}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{totalReceipts}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {new Date(item.dateOfReceipt).toLocaleDateString()}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                              <CubeIcon className="h-6 w-6 text-blue-600" />
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-semibold text-gray-900">{item.partName}</div>
+                              <div className="text-sm text-gray-500">₹{item.partPrice?.toLocaleString()}</div>
+                            </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <td className="px-6 py-4">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {item.scopeOfWork?.replace(/_/g, ' ').toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900 font-medium">{currentStock.toFixed(2)}</div>
+                          <div className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                            stockStatus.color === 'green' ? 'bg-green-100 text-green-800' :
+                            stockStatus.color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {stockStatus.status}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm">
+                            <div className="flex justify-between space-x-2">
+                              <span className="text-gray-500">Receipts:</span>
+                              <span className="font-medium text-green-600">{totalReceipts.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between space-x-2">
+                              <span className="text-gray-500">Dispatches:</span>
+                              <span className="font-medium text-orange-600">{totalDispatches.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900">
+                            <div className="flex items-center">
+                              <CalendarIcon className="h-4 w-4 mr-1 text-gray-400" />
+                              {new Date(item.dateOfReceipt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
                           <div className="flex justify-end space-x-2">
                             <button
                               onClick={() => handleView(item)}
-                              className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
-                              title="View"
+                              className="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors duration-150"
+                              title="View Details"
                             >
-                              <EyeIcon className="h-5 w-5" />
+                              <EyeIcon className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleEdit(item)}
-                              className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
+                              className="text-indigo-600 hover:text-indigo-900 p-2 rounded-lg hover:bg-indigo-50 transition-colors duration-150"
                               title="Edit"
                             >
-                              <PencilSquareIcon className="h-5 w-5" />
+                              <PencilSquareIcon className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={() => handleDelete(item._id)}
-                              className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
+                              onClick={() => handleDelete(item)}
+                              className="text-red-600 hover:text-red-900 p-2 rounded-lg hover:bg-red-50 transition-colors duration-150"
                               title="Delete"
                             >
-                              <TrashIcon className="h-5 w-5" />
+                              <TrashIcon className="h-4 w-4" />
                             </button>
                           </div>
                         </td>
@@ -409,54 +595,85 @@ const InventoryManagement = () => {
                 </tbody>
               </table>
             </div>
-            
-            {/* Mobile Card View */}
-            <div className="sm:hidden">
+
+            {/* Mobile Cards */}
+            <div className="lg:hidden">
               {currentItems.map((item) => {
-                const { totalReceipts } = calculateTotals(item);
+                const { totalReceipts, totalDispatches, currentStock } = calculateTotals(item);
+                const stockStatus = getStockStatus(item);
+                
                 return (
-                  <div key={item._id} className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors duration-150">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-medium text-gray-900 truncate">{item.partName}</h3>
-                        <p className="text-sm text-gray-500 truncate">{item.scopeOfWork.replace('_', ' ').toUpperCase()}</p>
+                  <div key={item._id} className="border-b border-gray-200 p-2 sm:p-3 hover:bg-gray-50 transition-colors duration-150">
+                    <div className="flex justify-between items-start mb-1 sm:mb-2">
+                      <div className="flex items-center flex-1 min-w-0">
+                        <div className="flex-shrink-0 h-7 w-7 sm:h-8 sm:w-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <CubeIcon className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                        </div>
+                        <div className="ml-2 min-w-0 flex-1">
+                          <h3 className="text-xs sm:text-sm font-semibold text-gray-900 truncate">{item.partName}</h3>
+                          <p className="text-xs text-gray-500 truncate">
+                            {item.scopeOfWork?.replace(/_/g, ' ').toUpperCase()}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex space-x-2 ml-2">
+                      <div className="flex space-x-1">
                         <button
                           onClick={() => handleView(item)}
-                          className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
+                          className="text-blue-600 hover:text-blue-900 p-1 rounded transition-colors duration-150"
                           title="View"
                         >
                           <EyeIcon className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleEdit(item)}
-                          className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
+                          className="text-indigo-600 hover:text-indigo-900 p-1 rounded transition-colors duration-150"
                           title="Edit"
                         >
                           <PencilSquareIcon className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(item._id)}
-                          className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
+                          onClick={() => handleDelete(item)}
+                          className="text-red-600 hover:text-red-900 p-1 rounded transition-colors duration-150"
                           title="Delete"
                         >
                           <TrashIcon className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
+                    
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 sm:gap-2 text-xs sm:text-sm">
+                      <div className="bg-gray-50 rounded-md p-1.5 border border-gray-200">
                         <span className="font-medium text-gray-500">Price:</span>
                         <span className="ml-1 font-semibold text-gray-900">₹{item.partPrice}</span>
                       </div>
-                      <div>
-                        <span className="font-medium text-gray-500">Total Receipts:</span>
-                        <span className="ml-1 text-gray-900">{totalReceipts}</span>
+                      <div className="bg-gray-50 rounded-md p-1.5 border border-gray-200">
+                        <span className="font-medium text-gray-500">Stock:</span>
+                        <span className="ml-1 font-semibold text-gray-900">{currentStock.toFixed(2)}</span>
                       </div>
-                      <div className="col-span-2">
-                        <span className="font-medium text-gray-500">Date of Receipt:</span>
-                        <span className="ml-1 text-gray-900">{new Date(item.dateOfReceipt).toLocaleDateString()}</span>
+                      <div className="bg-gray-50 rounded-md p-1.5 border border-gray-200">
+                        <span className="font-medium text-gray-500">Receipts:</span>
+                        <span className="ml-1 text-green-600 font-medium">{totalReceipts.toFixed(2)}</span>
+                      </div>
+                      <div className="bg-gray-50 rounded-md p-1.5 border border-gray-200">
+                        <span className="font-medium text-gray-500">Dispatches:</span>
+                        <span className="ml-1 text-orange-600 font-medium">{totalDispatches.toFixed(2)}</span>
+                      </div>
+                      <div className="bg-gray-50 rounded-md p-1.5 border border-gray-200">
+                        <span className="font-medium text-gray-500">Status:</span>
+                        <span className={`ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                          stockStatus.color === 'green' ? 'bg-green-100 text-green-800' :
+                          stockStatus.color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {stockStatus.status}
+                        </span>
+                      </div>
+                      <div className="bg-gray-50 rounded-md p-1.5 border border-gray-200">
+                        <span className="font-medium text-gray-500">Date:</span>
+                        <span className="ml-1 text-gray-900 flex items-center text-xs">
+                          <CalendarIcon className="h-3 w-3 mr-1 text-gray-400" />
+                          {new Date(item.dateOfReceipt).toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -465,54 +682,131 @@ const InventoryManagement = () => {
             </div>
           </div>
 
-          {/* Pagination */}
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-                
+          {/* Enhanced Pagination */}
+          {filteredItems.length > 0 && (
+            <div className="bg-white px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between border-t border-gray-200">
+              <div className="flex-1 flex justify-between items-center sm:hidden">
+                <button
+                  onClick={() => paginate(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
+                    currentPage === 1 
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-gray-700">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() => paginate(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
+                    currentPage === totalPages 
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Next
+                </button>
               </div>
-              <div>
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                  <button
-                    onClick={() => paginate(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 ${
-                      currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    <span className="sr-only">Previous</span>
-                    <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
-                  </button>
-                  
-                  {/* Page numbers */}
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              
+              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-700">
+                    Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{' '}
+                    <span className="font-medium">{Math.min(indexOfLastItem, filteredItems.length)}</span> of{' '}
+                    <span className="font-medium">{filteredItems.length}</span> results
+                  </p>
+                </div>
+                <div>
+                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
                     <button
-                      key={page}
-                      onClick={() => paginate(page)}
-                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                        currentPage === page
-                          ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                      onClick={() => paginate(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 text-sm font-medium ${
+                        currentPage === 1 
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                          : 'bg-white text-gray-500 hover:bg-gray-50'
                       }`}
                     >
-                      {page}
+                      <ChevronLeftIcon className="h-5 w-5" />
                     </button>
-                  ))}
-                  
-                  <button
-                    onClick={() => paginate(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 ${
-                      currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    <span className="sr-only">Next</span>
-                    <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
-                  </button>
-                </nav>
+                    
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => paginate(pageNum)}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            currentPage === pageNum
+                              ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                    
+                    <button
+                      onClick={() => paginate(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 text-sm font-medium ${
+                        currentPage === totalPages 
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                          : 'bg-white text-gray-500 hover:bg-gray-50'
+                      }`}
+                    >
+                      <ChevronRightIcon className="h-5 w-5" />
+                    </button>
+                  </nav>
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Empty State */}
+          {filteredItems.length === 0 && (
+            <div className="text-center py-12">
+              <CubeIcon className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No inventory items</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {inventoryItems.length === 0 
+                  ? "Get started by adding your first inventory item."
+                  : "No items match your current filters."
+                }
+              </p>
+              <div className="mt-6">
+                <button
+                  onClick={() => {
+                    if (inventoryItems.length === 0) {
+                      setShowModal(true);
+                    } else {
+                      clearFilters();
+                    }
+                  }}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <PlusIcon className="h-5 w-5 mr-2" />
+                  {inventoryItems.length === 0 ? 'Add Inventory Item' : 'Clear Filters'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -538,7 +832,7 @@ const InventoryManagement = () => {
         />
       </Modal>
 
-      {/* View Modal */}
+      {/* Enhanced View Modal */}
       <Modal
         isOpen={viewModal}
         onClose={() => {
@@ -546,196 +840,257 @@ const InventoryManagement = () => {
           setSelectedItem(null);
         }}
         title="Inventory Item Details"
-        size="lg"
-        className="font-sans"
+        size="xl"
       >
         {selectedItem && (
-          <div className="space-y-6 py-1">
-            {/* Header with part name and scope */}
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-800">{selectedItem.partName}</h2>
-                <div className="mt-1">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                    {selectedItem.scopeOfWork.replace('_', ' ').toUpperCase()}
-                  </span>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-500">Part Price</p>
-                <p className="text-2xl font-bold text-blue-600">₹{selectedItem.partPrice.toLocaleString()}</p>
-              </div>
-            </div>
-
-            {/* Basic Information Card */}
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
-              <h3 className="text-md font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                <i className="fas fa-info-circle mr-2 text-blue-500"></i>
-                Inventory Details
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="space-y-1">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Scope of Work</h4>
-                  <p className="text-sm text-gray-900 font-medium">{selectedItem.scopeOfWork.replace('_', ' ').toUpperCase()}</p>
-                </div>
-                
-                <div className="space-y-1">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Part Name</h4>
-                  <p className="text-sm text-gray-900 font-medium">{selectedItem.partName}</p>
-                </div>
-                
-                <div className="space-y-1">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Part Price</h4>
-                  <p className="text-sm text-gray-900 font-medium">₹{selectedItem.partPrice}</p>
-                </div>
-                
-                <div className="space-y-1">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Date of Receipt</h4>
-                  <p className="text-sm text-gray-900 font-medium">
-                    {new Date(selectedItem.dateOfReceipt).toLocaleDateString()}
-                  </p>
-                </div>
-                
-                {(() => {
-                  const { totalReceipts, totalDispatches, totalReturns } = calculateTotals(selectedItem);
-                  return (
-                    <>
-                      <div className="space-y-1">
-                        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Receipts</h4>
-                        <p className="text-sm text-gray-900 font-medium">{totalReceipts}</p>
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Dispatches</h4>
-                        <p className="text-sm text-gray-900 font-medium">{totalDispatches}</p>
-                      </div>
-                      
-                      <div className="space-y-1">
-                        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Returns</h4>
-                        <p className="text-sm text-gray-900 font-medium">{totalReturns}</p>
-                      </div>
-                    </>
-                  );
-                })()}
-                
-                <div className="space-y-1">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Cumulative Qty at Voomet</h4>
-                  <p className="text-sm text-gray-900 font-medium">{selectedItem.cumulativeQuantityAtVoomet || 0}</p>
-                </div>
-                
-                <div className="space-y-1">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Cumulative Price Value</h4>
-                  <p className="text-sm text-gray-900 font-medium">₹{(selectedItem.cumulativePriceValue || 0).toLocaleString()}</p>
-                </div>
-                
-                {selectedItem.remarks && (
-                  <div className="col-span-2 space-y-1">
-                    <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Remarks</h4>
-                    <p className="text-sm text-gray-900 font-medium">{selectedItem.remarks}</p>
+          <div className="space-y-4">
+            {/* Header Section */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0">
+                    <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <CubeIcon className="h-6 w-6 text-blue-600" />
+                    </div>
                   </div>
-                )}
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">{selectedItem.partName}</h2>
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {selectedItem.scopeOfWork?.replace(/_/g, ' ').toUpperCase()}
+                      </span>
+                      {(() => {
+                        const stockStatus = getStockStatus(selectedItem);
+                        return (
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            stockStatus.color === 'green' ? 'bg-green-100 text-green-800' :
+                            stockStatus.color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {stockStatus.status}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 sm:mt-0 text-right">
+                  <p className="text-sm text-gray-500">Unit Price</p>
+                  <p className="text-2xl font-bold text-blue-600">₹{selectedItem.partPrice?.toLocaleString()}</p>
+                </div>
               </div>
             </div>
 
-            {/* Transactions Tables */}
-          {selectedItem.receipts && selectedItem.receipts.length > 0 && (
-  <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
-    <h3 className="text-md font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100">
-      Receipts
-    </h3>
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {selectedItem.receipts.map((receipt, index) => (
-            <tr key={index}>
-              <td className="px-3 py-2 text-sm text-gray-900">
-                {receipt.date ? new Date(receipt.date).toLocaleDateString() : 'N/A'}
-              </td>
-              <td className="px-3 py-2 text-sm text-gray-900">{receipt.quantity || 0}</td>
-              <td className="px-3 py-2 text-sm text-gray-900">
-                ₹{(receipt.total || 0).toFixed(2)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </div>
-)}
+            {/* Stock Overview */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                <div className="text-sm font-medium text-gray-500 mb-1">Current Stock</div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {calculateTotals(selectedItem).currentStock.toFixed(2)}
+                </div>
+              </div>
+              <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                <div className="text-sm font-medium text-gray-500 mb-1">Total Receipts</div>
+                <div className="text-2xl font-bold text-green-600">
+                  {calculateTotals(selectedItem).totalReceipts.toFixed(2)}
+                </div>
+              </div>
+              <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                <div className="text-sm font-medium text-gray-500 mb-1">Total Dispatches</div>
+                <div className="text-2xl font-bold text-orange-600">
+                  {calculateTotals(selectedItem).totalDispatches.toFixed(2)}
+                </div>
+              </div>
+              <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                <div className="text-sm font-medium text-gray-500 mb-1">Total Returns</div>
+                <div className="text-2xl font-bold text-purple-600">
+                  {calculateTotals(selectedItem).totalReturns.toFixed(2)}
+                </div>
+              </div>
+            </div>
 
-{selectedItem.dispatches && selectedItem.dispatches.some(d => d.quantity > 0) && (
-  <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
-    <h3 className="text-md font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100">
-      Dispatches to Site
-    </h3>
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {selectedItem.dispatches.filter(d => d.quantity > 0).map((dispatch, index) => (
-            <tr key={index}>
-              <td className="px-3 py-2 text-sm text-gray-900">
-                {dispatch.date ? new Date(dispatch.date).toLocaleDateString() : 'N/A'}
-              </td>
-              <td className="px-3 py-2 text-sm text-gray-900">{dispatch.quantity || 0}</td>
-              <td className="px-3 py-2 text-sm text-gray-900">
-                ₹{(dispatch.total || 0).toFixed(2)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </div>
-)}
+            {/* Detailed Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Basic Information */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <CubeIcon className="h-5 w-5 mr-2 text-blue-500" />
+                  Basic Information
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Scope of Work:</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {selectedItem.scopeOfWork?.replace(/_/g, ' ').toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Part Name:</span>
+                    <span className="text-sm font-medium text-gray-900">{selectedItem.partName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Unit Price:</span>
+                    <span className="text-sm font-medium text-gray-900">₹{selectedItem.partPrice}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Date of Receipt:</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {new Date(selectedItem.dateOfReceipt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-{selectedItem.returns && selectedItem.returns.some(r => r.quantity > 0) && (
-  <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
-    <h3 className="text-md font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100">
-      Returns from Site
-    </h3>
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {selectedItem.returns.filter(r => r.quantity > 0).map((returnItem, index) => (
-            <tr key={index}>
-              <td className="px-3 py-2 text-sm text-gray-900">
-                {returnItem.date ? new Date(returnItem.date).toLocaleDateString() : 'N/A'}
-              </td>
-              <td className="px-3 py-2 text-sm text-gray-900">{returnItem.quantity || 0}</td>
-              <td className="px-3 py-2 text-sm text-gray-900">
-                ₹{(returnItem.total || 0).toFixed(2)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </div>
-)}
+              {/* Financial Summary */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <CurrencyRupeeIcon className="h-5 w-5 mr-2 text-green-500" />
+                  Financial Summary
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Cumulative Qty at Voomet:</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {(selectedItem.cumulativeQuantityAtVoomet || 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Cumulative Price Value:</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      ₹{(selectedItem.cumulativePriceValue || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Current Stock Value:</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      ₹{((selectedItem.cumulativePriceValue || 0) * calculateTotals(selectedItem).currentStock).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Transactions */}
+            <div className="space-y-6">
+              {/* Receipts */}
+              {selectedItem.receipts && selectedItem.receipts.length > 0 && (
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <ArrowPathIcon className="h-5 w-5 mr-2 text-green-500" />
+                    Receipts ({selectedItem.receipts.length})
+                  </h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total Value</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {selectedItem.receipts.map((receipt, index) => (
+                          <tr key={index}>
+                            <td className="px-4 py-2 text-sm text-gray-900">
+                              {receipt.date ? new Date(receipt.date).toLocaleDateString() : 'N/A'}
+                            </td>
+                            <td className="px-4 py-2 text-sm text-gray-900">{(receipt.quantity || 0).toFixed(2)}</td>
+                            <td className="px-4 py-2 text-sm text-gray-900">
+                              ₹{((receipt.quantity || 0) * (selectedItem.partPrice || 0)).toFixed(2)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Dispatches */}
+              {selectedItem.dispatches && selectedItem.dispatches.filter(d => d.quantity > 0).length > 0 && (
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <TruckIcon className="h-5 w-5 mr-2 text-orange-500" />
+                    Dispatches to Site ({selectedItem.dispatches.filter(d => d.quantity > 0).length})
+                  </h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total Value</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {selectedItem.dispatches
+                          .filter(dispatch => dispatch.quantity > 0)
+                          .map((dispatch, index) => (
+                            <tr key={index}>
+                              <td className="px-4 py-2 text-sm text-gray-900">
+                                {dispatch.date ? new Date(dispatch.date).toLocaleDateString() : 'N/A'}
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-900">{(dispatch.quantity || 0).toFixed(2)}</td>
+                              <td className="px-4 py-2 text-sm text-gray-900">
+                                ₹{((dispatch.quantity || 0) * (selectedItem.partPrice || 0)).toFixed(2)}
+                              </td>
+                            </tr>
+                          ))
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Returns */}
+              {selectedItem.returns && selectedItem.returns.filter(r => r.quantity > 0).length > 0 && (
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <ArchiveBoxIcon className="h-5 w-5 mr-2 text-purple-500" />
+                    Returns from Site ({selectedItem.returns.filter(r => r.quantity > 0).length})
+                  </h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total Value</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {selectedItem.returns
+                          .filter(returnItem => returnItem.quantity > 0)
+                          .map((returnItem, index) => (
+                            <tr key={index}>
+                              <td className="px-4 py-2 text-sm text-gray-900">
+                                {returnItem.date ? new Date(returnItem.date).toLocaleDateString() : 'N/A'}
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-900">{(returnItem.quantity || 0).toFixed(2)}</td>
+                              <td className="px-4 py-2 text-sm text-gray-900">
+                                ₹{((returnItem.quantity || 0) * (selectedItem.partPrice || 0)).toFixed(2)}
+                              </td>
+                            </tr>
+                          ))
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Remarks */}
+            {selectedItem.remarks && (
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Remarks</h3>
+                <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-md">{selectedItem.remarks}</p>
+              </div>
+            )}
+
             {/* Action Buttons */}
-            <div className="flex justify-end space-x-3 pt-2">
+            <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-4 border-t border-gray-200">
               <button
                 onClick={() => setViewModal(false)}
                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
