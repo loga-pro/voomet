@@ -969,12 +969,6 @@ const InventoryManagement = () => {
                       ₹{(selectedItem.cumulativePriceValue || 0).toLocaleString()}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Current Stock Value:</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      ₹{((selectedItem.cumulativePriceValue || 0) * calculateTotals(selectedItem).currentStock).toLocaleString()}
-                    </span>
-                  </div>
                 </div>
               </div>
             </div>

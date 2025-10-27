@@ -29,6 +29,23 @@ const FloatingInput = ({
     return type;
   };
 
+  // --- NEW: Custom change handler for date inputs ---
+  const handleDateChange = (e) => {
+    const inputValue = e.target.value;
+    
+    // The value string starts with the year (e.g., "YYYY-MM-DD")
+    // We split by '-' to get the year part.
+    const yearPart = inputValue.split('-')[0];
+
+    // If the typed year part is longer than 4 digits, we ignore the input.
+    if (yearPart.length > 4) {
+      return; // This prevents the state from updating
+    }
+
+    // Otherwise, call the original onChange handler from props
+    onChange(e);
+  };
+
   return (
     <div className="relative mb-3">
       {/* --- SELECT --- */}
@@ -44,7 +61,8 @@ const FloatingInput = ({
             className={`block w-full px-2.5 pt-4 pb-1.5 pr-8 text-sm text-gray-900
               bg-white rounded border appearance-none cursor-pointer
               ${error ? 'border-red-500' : isFocused ? 'border-blue-500' : 'border-gray-300'}
-              focus:outline-none focus:border-blue-500 transition-colors duration-200`}
+              focus:outline-none focus:border-blue-500 transition-colors duration-200
+              ${props.disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`}
           >
             <option value="" disabled hidden></option>
             {/* Add current value as option if not in options list */}
@@ -99,7 +117,8 @@ const FloatingInput = ({
             className={`block w-full px-2.5 pt-4 pb-1.5 text-sm text-gray-900 
               bg-white rounded border resize-none
               ${error ? 'border-red-500' : isFocused ? 'border-blue-500' : 'border-gray-300'} 
-              focus:outline-none focus:border-blue-500 transition-colors duration-200`}
+              focus:outline-none focus:border-blue-500 transition-colors duration-200
+              ${props.disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             {...props}
           />
           <label
@@ -120,12 +139,17 @@ const FloatingInput = ({
         <div className="relative">
           <input
             id={name}
+            // MODIFIED: Pass all other props here first
+            {...props} 
             type={getInputType()}
             name={name}
             value={value}
-            onChange={onChange}
+            // MODIFIED: Use the custom handler for 'date', otherwise use the default
+            onChange={type === 'date' ? handleDateChange : onChange}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
+            // MODIFIED: Add a default max for date. Allows override via props.
+            max={type === 'date' && !props.max ? '9999-12-31' : props.max}
             className={`block w-full px-2.5 text-sm text-gray-900 
               bg-white rounded border
               ${type === 'date' ? 'pt-4 pb-1.5 pr-8' : 
@@ -133,8 +157,9 @@ const FloatingInput = ({
                 isActive ? 'pt-4 pb-1.5' : 'py-2.5'}
               ${error ? 'border-red-500' : isFocused ? 'border-blue-500' : 'border-gray-300'} 
               focus:outline-none focus:border-blue-500 transition-all duration-200
+              ${props.disabled ? 'bg-gray-100 cursor-not-allowed' : ''}
               ${type === 'date' ? '[&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-4 [&::-webkit-calendar-picker-indicator]:h-4 [&::-webkit-calendar-picker-indicator]:cursor-pointer' : ''}`}
-            {...props}
+            // MODIFIED: Removed {...props} from here to avoid overwriting our new 'max' and 'onChange'
           />
           <label
             htmlFor={name}
@@ -191,8 +216,8 @@ const FloatingInput = ({
             <path 
               fillRule="evenodd" 
               d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 
-                 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 
-                 0 00-1-1z" 
+                1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 
+                0 00-1-1z" 
               clipRule="evenodd" 
             />
           </svg>

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bars3Icon } from '@heroicons/react/24/outline';
+// Note the new icons added to the import
+import { Bars3Icon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const Header = ({ onMenuClick }) => {
@@ -27,10 +28,15 @@ const Header = ({ onMenuClick }) => {
       '/quality-management': 'Quality Management',
       '/payment-master' : 'Customer Payment',
       '/vendor-payment' : 'Vendor payment',
-      '/milestone-tracking': 'Milestone Tracking',
       '/reports' : 'Report'
+      // Your other routes...
     };
     
+    // Check for milestone-tracking with ID
+    if (location.pathname.startsWith('/milestone-tracking/')) {
+      return 'Milestone Tracking';
+    }
+
     return routeTitles[location.pathname] || 'Dashboard';
   };
 
@@ -117,27 +123,33 @@ const Header = ({ onMenuClick }) => {
               </div>
             </button>
 
-            {/* Profile Dropdown */}
+            {/* Profile Dropdown - REDESIGNED */}
             {isProfileOpen && (
-              <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden z-50 animate-fade-in">
-                <div className="p-4 bg-voometBlue text-white rounded-t-lg">
+              <div 
+                className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden z-50 animate-fade-in transform-origin-top-right"
+              >
+                {/* User Info Section */}
+                <div className="p-4 border-b border-gray-100">
                   <div className="flex items-center space-x-3">
-                    <div className="flex items-center justify-center w-14 h-14 rounded-full bg-white bg-opacity-20 text-white font-medium text-2xl shadow-inner">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-voometBlue text-white font-medium text-xl">
                       {userInitial}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-lg font-semibold truncate">{user.name}</p>
-                      <p className="text-sm text-white text-opacity-90 truncate">{user.email}</p>
+                      <p className="text-base font-semibold text-gray-900 truncate">{user.name}</p>
+                      <p className="text-sm text-gray-500 truncate">{user.email}</p>
                     </div>
                   </div>
                 </div>
-                
+
+               
+
+                {/* Logout Section */}
                 <div className="p-2 border-t border-gray-100">
                   <button
                     onClick={handleLogout}
-                    className="flex items-center justify-center w-full text-center px-4 py-3 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors duration-150"
+                    className="flex items-center w-full px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors duration-150"
                   >
-                    <i className="fas fa-sign-out-alt mr-2"></i>
+                    <ArrowRightOnRectangleIcon className="w-5 h-5 mr-3" />
                     Log out
                   </button>
                 </div>
@@ -147,11 +159,12 @@ const Header = ({ onMenuClick }) => {
         </div>
       </div>
       
+      {/* Updated Animation */}
       <style>
         {`
           @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; transform: translateY(-10px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
           }
           .animate-fade-in {
             animation: fadeIn 0.2s ease-out forwards;

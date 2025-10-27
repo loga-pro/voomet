@@ -16,7 +16,9 @@ const CustomerForm = ({ customer, onSubmit, onCancel }) => {
 
   useEffect(() => {
     fetchAwardedProjects();
-    
+  }, []);
+
+  useEffect(() => {
     if (customer) {
       setFormData({
         customerName: customer.customerName || '',
@@ -24,9 +26,14 @@ const CustomerForm = ({ customer, onSubmit, onCancel }) => {
         invoiceEmail: customer.invoiceEmail || '',
         billingAddress: customer.billingAddress || ''
       });
-      // Check if this customer came from an awarded project by checking if they have any awarded projects
-      const hasAwardedProjects = projects.some(project => project.customerName === customer.customerName);
-      setIsFromAwardedProject(hasAwardedProjects);
+      // Only disable customer name field if we're creating a new customer from an awarded project
+      // When editing, always allow editing the customer name
+      if (!customer._id) {
+        const hasAwardedProjects = projects.some(project => project.customerName === customer.customerName);
+        setIsFromAwardedProject(hasAwardedProjects);
+      } else {
+        setIsFromAwardedProject(false); // Allow editing customer name when in edit mode
+      }
     }
   }, [customer, projects]);
 

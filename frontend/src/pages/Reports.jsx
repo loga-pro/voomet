@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom/client';
 import {
   DocumentTextIcon,
   ClipboardDocumentListIcon,
@@ -11,7 +12,8 @@ import {
   EnvelopeIcon,
   ArrowDownTrayIcon,
   ArrowPathIcon,
-  ChevronDownIcon
+  ChevronDownIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -289,6 +291,43 @@ const Reports = () => {
     return vendorPaymentData.filter(item => item.vendor === selectedVendor);
   };
 
+  // Process chart data from filtered datasets
+  const processFilteredInventoryChartData = () => {
+    const filteredData = getFilteredInventoryData();
+    const scopeData = filteredData.reduce((acc, item) => {
+      const scope = item.scopeOfWork || 'Unknown';
+      acc[scope] = (acc[scope] || 0) + (item.cumulativeQuantityAtVoomet || 0);
+      return acc;
+    }, {});
+    
+    return Object.entries(scopeData).map(([name, value]) => ({ name, value }));
+  };
+
+  const processFilteredQualityChartData = () => {
+    const filteredData = getFilteredQualityData();
+    const statusData = filteredData.reduce((acc, item) => {
+      const status = item.status || 'Unknown';
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {});
+    
+    return Object.entries(statusData).map(([name, value]) => ({ name, value }));
+  };
+
+  const processFilteredVendorPaymentChartData = () => {
+    const filteredData = getFilteredVendorPaymentData();
+    const vendorTotals = filteredData.reduce((acc, item) => {
+      const vendor = item.vendor || 'Unknown';
+      acc[vendor] = (acc[vendor] || 0) + (item.totalPayments || 0);
+      return acc;
+    }, {});
+    
+    return Object.entries(vendorTotals)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
+  };
+
   const renderViewModalContent = () => {
     const { data, type } = viewModal;
     if (!data) return null;
@@ -468,27 +507,139 @@ const Reports = () => {
   const exportToPDF = (data, filename) => {
     if (!data || data.length === 0) return;
 
-    const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text(activeReportConfig.title, 14, 22);
+    try {
+      // Use the new BackgroundReportPDFGenerator component for silent generation
+      const reportData = {
+        reportType: activeReport,
+        title: activeReportConfig.title,
+        data: data,
+        columns: activeReportConfig.columns,
+        generatedAt: new Date().toISOString()
+      };
 
-    const headers = activeReportConfig.columns.map(col => col.header);
-    const body = data.map(item =>
-      activeReportConfig.columns.map(col => {
-        const value = typeof col.accessor === 'function' ? col.accessor(item) : item[col.accessor];
-        return value || '';
-      })
-    );
+      // Create a hidden container div for the React component
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '-9999px';
+      container.style.top = '-9999px';
+      document.body.appendChild(container);
 
-    autoTable(doc, {
-      head: [headers],
-      body: body,
-      startY: 30,
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [41, 128, 185] },
-    });
+      // Import React and ReactDOM for dynamic rendering
+      Promise.all([
+        import('react'),
+        import('react-dom/client'),
+        import('../components/Reports/BackgroundReportPDFGenerator')
+      ]).then(([React, ReactDOM, { default: BackgroundReportPDFGenerator }]) => {
+        const root = ReactDOM.createRoot(container);
+        
+        const handleComplete = (pdfBlob, generatedFilename) => {
+          // Auto-download the PDF
+          const url = URL.createObjectURL(pdfBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = generatedFilename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          
+          // Clean up
+          root.unmount();
+          document.body.removeChild(container);
+        };
 
-    doc.save(filename.replace('.csv', '.pdf'));
+        const handleError = (error) => {
+          console.error('Error generating PDF:', error);
+          root.unmount();
+          document.body.removeChild(container);
+          
+          // Fallback to the old method if the new generator fails
+          const doc = new jsPDF();
+          doc.setFontSize(18);
+          doc.text(activeReportConfig.title, 14, 22);
+
+          const headers = activeReportConfig.columns.map(col => col.header);
+          const body = data.map(item =>
+            activeReportConfig.columns.map(col => {
+              const value = typeof col.accessor === 'function' ? col.accessor(item) : item[col.accessor];
+              return value || '';
+            })
+          );
+
+          autoTable(doc, {
+            head: [headers],
+            body: body,
+            startY: 30,
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [41, 128, 185] },
+          });
+
+          doc.save(filename.replace('.csv', '.pdf'));
+        };
+
+        // Render the BackgroundReportPDFGenerator component
+        root.render(
+          React.createElement(BackgroundReportPDFGenerator, {
+            reportData: reportData.data,
+            reportType: reportData.reportType,
+            reportTitle: reportData.title,
+            onComplete: handleComplete,
+            onError: handleError
+          })
+        );
+      }).catch(error => {
+        console.error('Error loading PDF generator:', error);
+        document.body.removeChild(container);
+        
+        // Fallback to the old method if the new generator fails to load
+        const doc = new jsPDF();
+        doc.setFontSize(18);
+        doc.text(activeReportConfig.title, 14, 22);
+
+        const headers = activeReportConfig.columns.map(col => col.header);
+        const body = data.map(item =>
+          activeReportConfig.columns.map(col => {
+            const value = typeof col.accessor === 'function' ? col.accessor(item) : item[col.accessor];
+            return value || '';
+          })
+        );
+
+        autoTable(doc, {
+          head: [headers],
+          body: body,
+          startY: 30,
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [41, 128, 185] },
+        });
+
+        doc.save(filename.replace('.csv', '.pdf'));
+      });
+    } catch (error) {
+      console.error('Error in exportToPDF:', error);
+      
+      // Fallback to the old method
+      const doc = new jsPDF();
+      doc.setFontSize(18);
+      doc.text(activeReportConfig.title, 14, 22);
+
+      const headers = activeReportConfig.columns.map(col => col.header);
+      const body = data.map(item =>
+        activeReportConfig.columns.map(col => {
+          const value = typeof col.accessor === 'function' ? col.accessor(item) : item[col.accessor];
+          return value || '';
+        })
+      );
+
+      autoTable(doc, {
+        head: [headers],
+        body: body,
+        startY: 30,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [41, 128, 185] },
+      });
+
+      doc.save(filename.replace('.csv', '.pdf'));
+    }
   };
 
   const sendEmail = async () => {
@@ -499,16 +650,108 @@ const Reports = () => {
 
     try {
       setLoading(true);
-      await reportsAPI.sendEmail({
-        email: emailAddress,
-        reportType: activeReport
+      
+      // Get the current report data
+      const currentData = activeReportConfig.data;
+      const currentTitle = activeReportConfig.title;
+      
+      // Create a hidden container div for the React component
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '-9999px';
+      container.style.top = '-9999px';
+      document.body.appendChild(container);
+
+      // Import React and ReactDOM for dynamic rendering
+      const [React, ReactDOM, { default: BackgroundReportPDFGenerator }] = await Promise.all([
+        import('react'),
+        import('react-dom/client'),
+        import('../components/Reports/BackgroundReportPDFGenerator')
+      ]);
+
+      const root = ReactDOM.createRoot(container);
+      
+      return new Promise((resolve, reject) => {
+        const handleComplete = async (pdfBlob, generatedFilename) => {
+          try {
+            // Convert blob to base64 for sending via API
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+              const base64PDF = reader.result.split(',')[1];
+              
+              // Check file size (base64 is ~33% larger than binary)
+              const fileSizeInMB = (base64PDF.length * 0.75) / (1024 * 1024);
+              console.log(`PDF file size: ${fileSizeInMB.toFixed(2)} MB`);
+              
+              let emailData = {
+                email: emailAddress,
+                reportType: activeReport,
+                reportTitle: currentTitle,
+                reportData: currentData,
+                pdfFilename: generatedFilename
+              };
+              
+              // Only include PDF data if file size is reasonable
+              if (fileSizeInMB <= 10) { // 10MB limit
+                emailData.pdfData = base64PDF;
+              } else {
+                console.warn('PDF file too large, will generate on backend');
+                alert('PDF file is large, generating on server for email...');
+              }
+              
+              // Send the email with or without PDF data
+              await reportsAPI.sendEmail(emailData);
+              
+              alert('Report sent successfully via email!');
+              setEmailAddress('');
+              
+              // Clean up
+              root.unmount();
+              document.body.removeChild(container);
+              setLoading(false);
+              resolve();
+            };
+            reader.onerror = () => {
+              throw new Error('Failed to read PDF file');
+            };
+            reader.readAsDataURL(pdfBlob);
+          } catch (error) {
+            console.error('Error sending email:', error);
+            alert(`Failed to send email: ${error.response?.data?.message || error.message}`);
+            
+            // Clean up
+            root.unmount();
+            document.body.removeChild(container);
+            setLoading(false);
+            reject(error);
+          }
+        };
+
+        const handleError = (error) => {
+          console.error('Error generating PDF for email:', error);
+          alert(`Failed to generate PDF for email: ${error.message}`);
+          
+          // Clean up
+          root.unmount();
+          document.body.removeChild(container);
+          setLoading(false);
+          reject(error);
+        };
+
+        // Render the BackgroundReportPDFGenerator component
+        root.render(
+          React.createElement(BackgroundReportPDFGenerator, {
+            reportData: currentData,
+            reportType: activeReport,
+            reportTitle: currentTitle,
+            onComplete: handleComplete,
+            onError: handleError
+          })
+        );
       });
-      alert('Report sent successfully via email!');
-      setEmailAddress('');
     } catch (error) {
-      console.error('Error sending email:', error);
+      console.error('Error in sendEmail:', error);
       alert(`Failed to send email: ${error.response?.data?.message || error.message}`);
-    } finally {
       setLoading(false);
     }
   };
@@ -523,6 +766,38 @@ const Reports = () => {
     setSelectedScopeOfWork('');
     setSelectedCustomer('');
     setSelectedVendor('');
+  };
+
+  // Clear only filters that are incompatible with the new report type
+  const clearIncompatibleFilters = (newReportType) => {
+    switch (newReportType) {
+      case 'project-comprehensive':
+        // Keep project filter, clear others
+        setSelectedScopeOfWork('');
+        setSelectedCustomer('');
+        setSelectedVendor('');
+        break;
+      case 'inventory':
+        // Keep scope of work filter, clear others
+        setSelectedProject('');
+        setSelectedCustomer('');
+        setSelectedVendor('');
+        break;
+      case 'quality':
+        // Keep customer filter, clear others
+        setSelectedProject('');
+        setSelectedScopeOfWork('');
+        setSelectedVendor('');
+        break;
+      case 'vendor':
+        // Keep vendor filter, clear others
+        setSelectedProject('');
+        setSelectedScopeOfWork('');
+        setSelectedCustomer('');
+        break;
+      default:
+        clearAllFilters();
+    }
   };
 
   // Report configurations
@@ -695,6 +970,22 @@ const Reports = () => {
   // Check if any filter is active
   const hasActiveFilters = selectedProject || selectedScopeOfWork || selectedCustomer || selectedVendor;
 
+  // Get unfiltered data count for current report type
+  const getUnfilteredDataCount = () => {
+    switch (activeReport) {
+      case 'project-comprehensive':
+        return comprehensiveProjectData.length;
+      case 'inventory':
+        return inventoryData.length;
+      case 'quality':
+        return qualityData.length;
+      case 'vendor':
+        return vendorPaymentData.length;
+      default:
+        return comprehensiveProjectData.length;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -741,7 +1032,8 @@ const Reports = () => {
                         onClick={() => {
                           setActiveReport(report.id);
                           setShowReportDropdown(false);
-                          clearAllFilters(); // Clear filters when report type changes
+                          // Clear only incompatible filters when report type changes
+                          clearIncompatibleFilters(report.id);
                         }}
                       >
                         <Icon className="h-5 w-5 mr-3 text-gray-400" />
@@ -763,10 +1055,19 @@ const Reports = () => {
                 <div className="relative">
                   <button
                     type="button"
-                    className="w-full bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    className={`w-full border rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                      selectedProject ? 'bg-blue-50 border-blue-300 text-blue-900' : 'bg-white border-gray-300 text-gray-900'
+                    }`}
                     onClick={() => setShowProjectDropdown(!showProjectDropdown)}
                   >
-                    <span className="block truncate">{selectedProject || 'All Projects'}</span>
+                    <div className="flex items-center justify-between">
+                      <span className="block truncate">{selectedProject || 'All Projects'}</span>
+                      {selectedProject && (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Active
+                        </span>
+                      )}
+                    </div>
                     <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                       <ChevronDownIcon className="h-4 w-4 text-gray-400" />
                     </span>
@@ -805,10 +1106,19 @@ const Reports = () => {
                 <div className="relative">
                   <button
                     type="button"
-                    className="w-full bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    className={`w-full border rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                      selectedScopeOfWork ? 'bg-blue-50 border-blue-300 text-blue-900' : 'bg-white border-gray-300 text-gray-900'
+                    }`}
                     onClick={() => setShowScopeDropdown(!showScopeDropdown)}
                   >
-                    <span className="block truncate">{selectedScopeOfWork || 'All Scopes'}</span>
+                    <div className="flex items-center justify-between">
+                      <span className="block truncate">{selectedScopeOfWork || 'All Scopes'}</span>
+                      {selectedScopeOfWork && (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Active
+                        </span>
+                      )}
+                    </div>
                     <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                       <ChevronDownIcon className="h-4 w-4 text-gray-400" />
                     </span>
@@ -848,10 +1158,19 @@ const Reports = () => {
 
                   <button
                     type="button"
-                    className="w-full bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    className={`w-full border rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                      selectedCustomer ? 'bg-blue-50 border-blue-300 text-blue-900' : 'bg-white border-gray-300 text-gray-900'
+                    }`}
                     onClick={() => setShowCustomerDropdown(!showCustomerDropdown)}
                   >
-                    <span className="block truncate">{selectedCustomer || 'All Customers'}</span>
+                    <div className="flex items-center justify-between">
+                      <span className="block truncate">{selectedCustomer || 'All Customers'}</span>
+                      {selectedCustomer && (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Active
+                        </span>
+                      )}
+                    </div>
                     <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                       <ChevronDownIcon className="h-4 w-4 text-gray-400" />
                     </span>
@@ -891,10 +1210,19 @@ const Reports = () => {
 
                   <button
                     type="button"
-                    className="w-full bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    className={`w-full border rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                      selectedVendor ? 'bg-blue-50 border-blue-300 text-blue-900' : 'bg-white border-gray-300 text-gray-900'
+                    }`}
                     onClick={() => setShowVendorDropdown(!showVendorDropdown)}
                   >
-                    <span className="block truncate">{selectedVendor || 'All Vendors'}</span>
+                    <div className="flex items-center justify-between">
+                      <span className="block truncate">{selectedVendor || 'All Vendors'}</span>
+                      {selectedVendor && (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Active
+                        </span>
+                      )}
+                    </div>
                     <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                       <ChevronDownIcon className="h-4 w-4 text-gray-400" />
                     </span>
@@ -933,9 +1261,18 @@ const Reports = () => {
                 <div className="flex items-end">
                   <button
                     onClick={clearAllFilters}
-                    className="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="w-full inline-flex items-center justify-center px-4 py-2 border border-red-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
                   >
+                    <XMarkIcon className="h-4 w-4 mr-2" />
                     Clear All Filters
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                      {[
+                        selectedProject ? 1 : 0,
+                        selectedScopeOfWork ? 1 : 0,
+                        selectedCustomer ? 1 : 0,
+                        selectedVendor ? 1 : 0
+                      ].reduce((a, b) => a + b, 0)}
+                    </span>
                   </button>
                 </div>
               )}
@@ -1011,15 +1348,27 @@ const Reports = () => {
       
       {/* Visual Analytics Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Visual Analytics</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Visual Analytics</h2>
+          {hasActiveFilters && (
+            <div className="flex items-center space-x-2">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                Filtered View
+              </span>
+              <span className="text-sm text-gray-500">
+                Showing {activeReportConfig.data.length} of {getUnfilteredDataCount()} records
+              </span>
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Comprehensive Project Charts */}
-          {activeReport === 'project-comprehensive' && comprehensiveProjectData.length > 0 && (
+          {activeReport === 'project-comprehensive' && getFilteredComprehensiveProjectData().length > 0 && (
             <>
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="text-md font-medium text-gray-900 mb-3">Task Completion by Project</h3>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={comprehensiveProjectData}>
+                  <BarChart data={getFilteredComprehensiveProjectData()}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
@@ -1032,7 +1381,7 @@ const Reports = () => {
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="text-md font-medium text-gray-900 mb-3">Payment Overview by Project</h3>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={comprehensiveProjectData}>
+                  <BarChart data={getFilteredComprehensiveProjectData()}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
@@ -1047,11 +1396,11 @@ const Reports = () => {
           )}
 
           {/* Inventory Charts */}
-          {activeReport === 'inventory' && inventoryChartData.length > 0 && (
+          {activeReport === 'inventory' && processFilteredInventoryChartData().length > 0 && (
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="text-md font-medium text-gray-900 mb-3">Inventory by Scope of Work</h3>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={inventoryChartData}>
+                <BarChart data={processFilteredInventoryChartData()}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
@@ -1064,13 +1413,13 @@ const Reports = () => {
           )}
 
           {/* Quality Charts */}
-          {activeReport === 'quality' && qualityChartData.length > 0 && (
+          {activeReport === 'quality' && processFilteredQualityChartData().length > 0 && (
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="text-md font-medium text-gray-900 mb-3">Quality Issues by Status</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
-                    data={qualityChartData}
+                    data={processFilteredQualityChartData()}
                     cx="50%"
                     cy="50%"
                     labelLine={true}
@@ -1079,7 +1428,7 @@ const Reports = () => {
                     dataKey="value"
                     label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                   >
-                    {qualityChartData.map((entry, index) => (
+                    {processFilteredQualityChartData().map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
@@ -1091,11 +1440,11 @@ const Reports = () => {
           )}
 
           {/* Vendor Payment Charts */}
-          {activeReport === 'vendor' && vendorPaymentChartData.length > 0 && (
+          {activeReport === 'vendor' && processFilteredVendorPaymentChartData().length > 0 && (
             <div className="bg-gray-50 p-4 rounded-lg">
               <h3 className="text-md font-medium text-gray-900 mb-3">Top 10 Vendor Payments</h3>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={vendorPaymentChartData}>
+                <BarChart data={processFilteredVendorPaymentChartData()}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
                   <YAxis />

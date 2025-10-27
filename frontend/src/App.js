@@ -18,7 +18,7 @@ import QualityManagement from './pages/QualityManagement';
 import PaymentMaster from './pages/PaymentMaster';
 import Vendorpayment from './pages/Vendorpayment'
 import Reports from './pages/Reports';
-
+import TestOptimizedPDF from './pages/TestOptimizedPDF';
 function App() {
   return (
     <Router>
@@ -98,6 +98,7 @@ function App() {
                 <Reports />
               </ProtectedRoute>
             } />
+            <Route path="test-pdf" element={<TestOptimizedPDF />} />
           </Route>
         </Routes>
       </div>

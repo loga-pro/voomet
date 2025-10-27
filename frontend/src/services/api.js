@@ -1,10 +1,14 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://192.168.1.15:5000/api';
+const API_BASE_URL = 'http://localhost:5000/api';
 
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 60000, // 60 second timeout for large files
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
 // Add token to requests
@@ -179,7 +183,13 @@ export const vendorPaymentsAPI = {
 
 // Reports API
 export const reportsAPI = {
-  sendEmail: (data) => api.post('/reports/send-email', data),
+  sendEmail: (data) => api.post('/reports/send-email', data, {
+    timeout: 120000, // 2 minute timeout for email with large attachments
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    }
+  }),
   exportCSV: (reportType) => api.get(`/reports/export-csv/${reportType}`, { responseType: 'blob' }),
   getComprehensiveProjects: () => api.get('/reports/project-comprehensive'),
 };

@@ -28,7 +28,6 @@ const EmployeeAccess = () => {
   const [viewingUser, setViewingUser] = useState(null);
   const [filters, setFilters] = useState({
     name: '',
-    email: '',
     role: ''
   });
   const [showFilters, setShowFilters] = useState(false);
@@ -107,12 +106,6 @@ const EmployeeAccess = () => {
       );
     }
 
-    if (filters.email) {
-      filtered = filtered.filter(user => 
-        user.email.toLowerCase().includes(filters.email.toLowerCase())
-      );
-    }
-
     if (filters.role) {
       filtered = filtered.filter(user => 
         user.role === filters.role
@@ -132,7 +125,6 @@ const EmployeeAccess = () => {
   const clearFilters = () => {
     setFilters({
       name: '',
-      email: '',
       role: ''
     });
     setFilteredUsers(users); // Reset to all users
@@ -364,16 +356,7 @@ const EmployeeAccess = () => {
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input
-                    type="text"
-                    value={filters.email}
-                    onChange={(e) => handleFilterChange('email', e.target.value)}
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
-                    placeholder="Search by email"
-                  />
-                </div>
+               
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                   <select
