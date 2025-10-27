@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { customersAPI, vendorsAPI, qualityAPI } from '../../services/api';
+import { customersAPI, vendorsAPI } from '../../services/api';
 import FloatingInput from './FloatingInput';
 
 const QualityForm = ({ quality, onSubmit, onCancel }) => {
@@ -91,20 +91,45 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
     
     if (!validateForm()) return;
 
+    // Clean up form data to remove empty strings and ensure proper data types
+    const cleanedData = {
+      ...formData,
+      customer: formData.customer?.trim() || undefined,
+      scopeOfWork: formData.scopeOfWork?.trim() || undefined,
+      scopeOfWorkText: formData.scopeOfWorkText?.trim() || undefined,
+      openIssues: formData.openIssues?.trim() || undefined,
+      category: formData.category?.trim() || undefined,
+      status: formData.status?.trim() || 'open',
+      responsibility: formData.responsibility?.trim() || undefined,
+      remarks: formData.remarks?.trim() || undefined
+    };
+
+    // Remove any undefined values to prevent validation issues
+    Object.keys(cleanedData).forEach(key => {
+      if (cleanedData[key] === undefined) {
+        delete cleanedData[key];
+      }
+    });
+
+    console.log('Submitting quality form with cleaned data:', cleanedData);
+
     setLoading(true);
     try {
-      if (quality) {
-        await qualityAPI.update(quality._id, formData);
-      } else {
-        await qualityAPI.create(formData);
-      }
-      onSubmit();
+      // Pass the cleaned data to the parent component for API call
+      // The parent component (QualityManagement) will handle the actual API call
+      await onSubmit(cleanedData);
     } catch (error) {
-      if (error.response?.data?.message) {
-        setErrors({ submit: error.response.data.message });
-      } else {
-        setErrors({ submit: 'An error occurred. Please try again.' });
-      }
+      console.error('Error submitting form:', error);
+      console.error('Error response:', error.response);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          error.message || 
+                          'Failed to save quality issue';
+      
+      setErrors({ submit: `Failed to save quality issue: ${errorMessage}` });
     } finally {
       setLoading(false);
     }

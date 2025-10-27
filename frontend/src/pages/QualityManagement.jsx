@@ -200,11 +200,34 @@ const QualityManagement = () => {
   const handleFormSubmit = async (formData) => {
     try {
       setLoading(true);
+      
+      // Clean up form data to ensure proper data types
+      const cleanedData = {
+        ...formData,
+        customer: formData.customer?.trim() || undefined,
+        scopeOfWork: formData.scopeOfWork?.trim() || undefined,
+        scopeOfWorkText: formData.scopeOfWorkText?.trim() || undefined,
+        openIssues: formData.openIssues?.trim() || undefined,
+        category: formData.category?.trim() || undefined,
+        status: formData.status?.trim() || 'open',
+        responsibility: formData.responsibility?.trim() || undefined,
+        remarks: formData.remarks?.trim() || undefined
+      };
+
+      // Remove any undefined values to prevent validation issues
+      Object.keys(cleanedData).forEach(key => {
+        if (cleanedData[key] === undefined) {
+          delete cleanedData[key];
+        }
+      });
+
+      console.log('Submitting quality issue with cleaned data:', cleanedData);
+
       if (editingIssue) {
-        await qualityAPI.update(editingIssue._id, formData);
+        await qualityAPI.update(editingIssue._id, cleanedData);
         showSuccess('Quality issue updated successfully');
       } else {
-        await qualityAPI.create(formData);
+        await qualityAPI.create(cleanedData);
         showSuccess('Quality issue added successfully');
       }
       setShowModal(false);
@@ -213,7 +236,17 @@ const QualityManagement = () => {
       fetchQualityIssues();
     } catch (error) {
       console.error('Error submitting form:', error);
-      showError('Failed to save quality issue');
+      console.error('Error response:', error.response);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      console.error('Error headers:', error.response?.headers);
+      
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          error.message || 
+                          'Failed to save quality issue';
+      
+      showError(`Failed to save quality issue: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

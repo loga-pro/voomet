@@ -77,7 +77,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
             }]
       });
     }
-  }, [payment, fetchVendors]);
+  }, [payment]);
 
   const fetchVendors = useCallback(async () => {
     try {
@@ -87,7 +87,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
       console.error('Error fetching vendors:', error);
       showNotification('Error fetching vendors data', 'error');
     }
-  }, [showNotification]);
+  }, []);
 
   const fetchExistingPayments = async () => {
     try {

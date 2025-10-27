@@ -78,7 +78,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
             }]
       });
     }
-  }, [payment, fetchAwardedProjects]);
+  }, [payment]);
 
   useEffect(() => {
     if (formData.customer) {
@@ -88,6 +88,17 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       setFilteredProjects(projects);
     }
   }, [formData.customer, projects]);
+
+  const showNotification = useCallback((message, type = 'success') => {
+    setNotification({
+      isVisible: true,
+      message,
+      type
+    });
+    setTimeout(() => {
+      setNotification(prev => ({ ...prev, isVisible: false }));
+    }, 3000);
+  }, []);
 
   const fetchAwardedProjects = useCallback(async () => {
     try {
@@ -278,17 +289,6 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       )
     }));
   };
-
-  const showNotification = useCallback((message, type = 'success') => {
-    setNotification({
-      isVisible: true,
-      message,
-      type
-    });
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, isVisible: false }));
-    }, 3000);
-  }, []);
 
   const validateForm = () => {
     const newErrors = {};

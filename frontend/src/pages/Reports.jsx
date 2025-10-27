@@ -47,6 +47,16 @@ const Reports = () => {
   const [emailAddress, setEmailAddress] = useState('');
   const [showReportDropdown, setShowReportDropdown] = useState(false);
   
+  // Filter state variables
+  const [selectedProject, setSelectedProject] = useState('');
+  const [selectedScopeOfWork, setSelectedScopeOfWork] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState('');
+  const [selectedVendor, setSelectedVendor] = useState('');
+  const [showProjectDropdown, setShowProjectDropdown] = useState(false);
+  const [showScopeDropdown, setShowScopeDropdown] = useState(false);
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [showVendorDropdown, setShowVendorDropdown] = useState(false);
+  
   // Data states for all report types
   const [projectData, setProjectData] = useState([]);
   const [inventoryData, setInventoryData] = useState([]);
@@ -62,6 +72,8 @@ const Reports = () => {
 
   // Employee report data
   const [employeeReport, setEmployeeReport] = useState([]);
+  const [jobsStatus, setJobsStatus] = useState({ open: 0, inProgress: 0, completed: 0 });
+  const [employeeOverview, setEmployeeOverview] = useState({ totalProjects: 0, completed: 0, inProgress: 0, open: 0 });
 
   useEffect(() => {
     fetchDataForAllReports();
@@ -169,10 +181,10 @@ const Reports = () => {
         stage: project.stage?.replace('_', ' ').toUpperCase() || 'Unknown',
         customerName: project.customerName,
         projectName: project.projectName,
-        stage: project.stage,
         totalProjectValue: project.totalProjectValue,
         milestoneData: project.milestoneData,
-        paymentData: project.paymentData
+        paymentData: project.paymentData,
+        taskCompletionRate: project.milestoneData?.taskCompletionRate || 0
       };
     });
 
@@ -221,6 +233,11 @@ const Reports = () => {
     setEmployeeOverview(overview);
   };
 
+  const processEmployeeReport = (data) => {
+    // Process employee report data
+    setEmployeeReport(data || []);
+  };
+
   const handleView = (item, type) => {
     console.log('View', item, type);
     setViewModal({ isOpen: true, data: item, type });
@@ -228,6 +245,48 @@ const Reports = () => {
 
   const closeViewModal = () => {
     setViewModal({ isOpen: false, data: null, type: '' });
+  };
+
+  // Helper functions for dropdown data
+  const getUniqueProjects = () => {
+    const projects = comprehensiveProjectData.map(item => item.projectName).filter(Boolean);
+    return [...new Set(projects)].sort();
+  };
+
+  const getUniqueScopeOfWork = () => {
+    const scopes = inventoryData.map(item => item.scopeOfWork).filter(Boolean);
+    return [...new Set(scopes)].sort();
+  };
+
+  const getUniqueCustomers = () => {
+    const customers = qualityData.map(item => item.customer).filter(Boolean);
+    return [...new Set(customers)].sort();
+  };
+
+  const getUniqueVendors = () => {
+    const vendors = vendorPaymentData.map(item => item.vendor).filter(Boolean);
+    return [...new Set(vendors)].sort();
+  };
+
+  // Filter functions for each report type
+  const getFilteredComprehensiveProjectData = () => {
+    if (!selectedProject) return comprehensiveProjectData;
+    return comprehensiveProjectData.filter(item => item.projectName === selectedProject);
+  };
+
+  const getFilteredInventoryData = () => {
+    if (!selectedScopeOfWork) return inventoryData;
+    return inventoryData.filter(item => item.scopeOfWork === selectedScopeOfWork);
+  };
+
+  const getFilteredQualityData = () => {
+    if (!selectedCustomer) return qualityData;
+    return qualityData.filter(item => item.customer === selectedCustomer);
+  };
+
+  const getFilteredVendorPaymentData = () => {
+    if (!selectedVendor) return vendorPaymentData;
+    return vendorPaymentData.filter(item => item.vendor === selectedVendor);
   };
 
   const renderViewModalContent = () => {
@@ -458,6 +517,14 @@ const Reports = () => {
     fetchDataForAllReports();
   };
 
+  // Clear all filters function
+  const clearAllFilters = () => {
+    setSelectedProject('');
+    setSelectedScopeOfWork('');
+    setSelectedCustomer('');
+    setSelectedVendor('');
+  };
+
   // Report configurations
   const reportTypes = [
     { id: 'project-comprehensive', name: 'Comprehensive Project Reports', icon: ClipboardDocumentListIcon },
@@ -587,15 +654,30 @@ const Reports = () => {
   const getActiveReportConfig = () => {
     switch (activeReport) {
       case 'project-comprehensive':
-        return comprehensiveProjectReportConfig;
+        return {
+          ...comprehensiveProjectReportConfig,
+          data: getFilteredComprehensiveProjectData()
+        };
       case 'inventory':
-        return inventoryReportConfig;
+        return {
+          ...inventoryReportConfig,
+          data: getFilteredInventoryData()
+        };
       case 'quality':
-        return qualityReportConfig;
+        return {
+          ...qualityReportConfig,
+          data: getFilteredQualityData()
+        };
       case 'vendor':
-        return vendorPaymentReportConfig;
+        return {
+          ...vendorPaymentReportConfig,
+          data: getFilteredVendorPaymentData()
+        };
       default:
-        return comprehensiveProjectReportConfig;
+        return {
+          ...comprehensiveProjectReportConfig,
+          data: getFilteredComprehensiveProjectData()
+        };
     }
   };
 
@@ -610,6 +692,9 @@ const Reports = () => {
   // Colors for charts
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
+  // Check if any filter is active
+  const hasActiveFilters = selectedProject || selectedScopeOfWork || selectedCustomer || selectedVendor;
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -620,54 +705,246 @@ const Reports = () => {
 
   return (
     <div className="p-4 sm:p-6">
-      {/* Report Type Dropdown Section */}
+      {/* Combined Report Type Selection and Filters Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Report Type Selection</h2>
-        
-        <div className="relative">
-          <button
-            type="button"
-            className="w-full bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-3 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-            onClick={() => setShowReportDropdown(!showReportDropdown)}
-            aria-haspopup="listbox"
-            aria-expanded="true"
-          >
-            <span className="flex items-center">
-              <DocumentTextIcon className="h-5 w-5 text-gray-400 mr-3" />
-              <span className="block truncate">{getCurrentReportName()}</span>
-            </span>
-            <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-              <ChevronDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-            </span>
-          </button>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Report Type Selection - Takes 4 columns */}
+          <div className="lg:col-span-4">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Report Type Selection</h2>
+            <div className="relative">
+              <button
+                type="button"
+                className="w-full bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-3 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                onClick={() => setShowReportDropdown(!showReportDropdown)}
+                aria-haspopup="listbox"
+                aria-expanded="true"
+              >
+                <span className="flex items-center">
+                  <DocumentTextIcon className="h-5 w-5 text-gray-400 mr-3" />
+                  <span className="block truncate">{getCurrentReportName()}</span>
+                </span>
+                <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <ChevronDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                </span>
+              </button>
 
-          {showReportDropdown && (
-            <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
-              {reportTypes.map((report) => {
-                const Icon = report.icon;
-                return (
-                  <button
-                    key={report.id}
-                    className={`w-full text-left px-4 py-2 flex items-center hover:bg-gray-100 ${
-                      activeReport === report.id ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
-                    }`}
-                    onClick={() => {
-                      setActiveReport(report.id);
-                      setShowReportDropdown(false);
-                    }}
-                  >
-                    <Icon className="h-5 w-5 mr-3 text-gray-400" />
-                    <span className="block truncate">{report.name}</span>
-                  </button>
-                );
-              })}
+              {showReportDropdown && (
+                <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+                  {reportTypes.map((report) => {
+                    const Icon = report.icon;
+                    return (
+                      <button
+                        key={report.id}
+                        className={`w-full text-left px-4 py-2 flex items-center hover:bg-gray-100 ${
+                          activeReport === report.id ? 'bg-blue-50 text-blue-700' : 'text-gray-900'
+                        }`}
+                        onClick={() => {
+                          setActiveReport(report.id);
+                          setShowReportDropdown(false);
+                          clearAllFilters(); // Clear filters when report type changes
+                        }}
+                      >
+                        <Icon className="h-5 w-5 mr-3 text-gray-400" />
+                        <span className="block truncate">{report.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          )}
+          </div>
+
+          {/* Report Filters - Takes 8 columns */}
+          <div className="lg:col-span-8">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Report Filters</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Project Filter - for Comprehensive Project Reports */}
+              {activeReport === 'project-comprehensive' && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    className="w-full bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    onClick={() => setShowProjectDropdown(!showProjectDropdown)}
+                  >
+                    <span className="block truncate">{selectedProject || 'All Projects'}</span>
+                    <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <ChevronDownIcon className="h-4 w-4 text-gray-400" />
+                    </span>
+                  </button>
+                  
+                  {showProjectDropdown && (
+                    <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+                      <button
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-900"
+                        onClick={() => {
+                          setSelectedProject('');
+                          setShowProjectDropdown(false);
+                        }}
+                      >
+                        All Projects
+                      </button>
+                      {getUniqueProjects().map((project) => (
+                        <button
+                          key={project}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-900"
+                          onClick={() => {
+                            setSelectedProject(project);
+                            setShowProjectDropdown(false);
+                          }}
+                        >
+                          {project}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Scope of Work Filter - for Inventory Reports */}
+              {activeReport === 'inventory' && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    className="w-full bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    onClick={() => setShowScopeDropdown(!showScopeDropdown)}
+                  >
+                    <span className="block truncate">{selectedScopeOfWork || 'All Scopes'}</span>
+                    <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <ChevronDownIcon className="h-4 w-4 text-gray-400" />
+                    </span>
+                  </button>
+                  
+                  {showScopeDropdown && (
+                    <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+                      <button
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-900"
+                        onClick={() => {
+                          setSelectedScopeOfWork('');
+                          setShowScopeDropdown(false);
+                        }}
+                      >
+                        All Scopes
+                      </button>
+                      {getUniqueScopeOfWork().map((scope) => (
+                        <button
+                          key={scope}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-900"
+                          onClick={() => {
+                            setSelectedScopeOfWork(scope);
+                            setShowScopeDropdown(false);
+                          }}
+                        >
+                          {scope}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Customer Filter - for Quality Reports */}
+              {activeReport === 'quality' && (
+                <div className="relative">
+
+                  <button
+                    type="button"
+                    className="w-full bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    onClick={() => setShowCustomerDropdown(!showCustomerDropdown)}
+                  >
+                    <span className="block truncate">{selectedCustomer || 'All Customers'}</span>
+                    <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <ChevronDownIcon className="h-4 w-4 text-gray-400" />
+                    </span>
+                  </button>
+                  
+                  {showCustomerDropdown && (
+                    <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+                      <button
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-900"
+                        onClick={() => {
+                          setSelectedCustomer('');
+                          setShowCustomerDropdown(false);
+                        }}
+                      >
+                        All Customers
+                      </button>
+                      {getUniqueCustomers().map((customer) => (
+                        <button
+                          key={customer}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-900"
+                          onClick={() => {
+                            setSelectedCustomer(customer);
+                            setShowCustomerDropdown(false);
+                          }}
+                        >
+                          {customer}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Vendor Filter - for Vendor Payment Reports */}
+              {activeReport === 'vendor' && (
+                <div className="relative">
+
+                  <button
+                    type="button"
+                    className="w-full bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    onClick={() => setShowVendorDropdown(!showVendorDropdown)}
+                  >
+                    <span className="block truncate">{selectedVendor || 'All Vendors'}</span>
+                    <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <ChevronDownIcon className="h-4 w-4 text-gray-400" />
+                    </span>
+                  </button>
+                  
+                  {showVendorDropdown && (
+                    <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+                      <button
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-900"
+                        onClick={() => {
+                          setSelectedVendor('');
+                          setShowVendorDropdown(false);
+                        }}
+                      >
+                        All Vendors
+                      </button>
+                      {getUniqueVendors().map((vendor) => (
+                        <button
+                          key={vendor}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-900"
+                          onClick={() => {
+                            setSelectedVendor(vendor);
+                            setShowVendorDropdown(false);
+                          }}
+                        >
+                          {vendor}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Clear Filters Button - Always in the same row */}
+              {hasActiveFilters && (
+                <div className="flex items-end">
+                  <button
+                    onClick={clearAllFilters}
+                    className="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    Clear All Filters
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Export Options Section - Updated to match image */}
-       {/* Export Options Section */}
+      {/* Export Options Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Export & Actions</h2>
         

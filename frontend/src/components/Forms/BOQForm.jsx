@@ -34,6 +34,39 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError }) => {
     type: 'success'
   });
 
+  // Define showLocalNotification before fetch functions
+  const showLocalNotification = useCallback((message, type = 'success') => {
+    setNotification({
+      isVisible: true,
+      message,
+      type
+    });
+    setTimeout(() => {
+      setNotification(prev => ({ ...prev, isVisible: false }));
+    }, 3000);
+  }, []);
+
+  // Define fetch functions before using them in useEffect
+  const fetchParts = useCallback(async () => {
+    try {
+      const response = await partsAPI.getAll();
+      setParts(response.data);
+      setFilteredParts(response.data);
+    } catch (error) {
+      console.error('Error fetching parts:', error);
+      showLocalNotification('Error fetching parts data', 'error');
+    }
+  }, [showLocalNotification]);
+
+  const fetchProjects = useCallback(async () => {
+    try {
+      const response = await projectsAPI.getAll();
+      setProjects(response.data);
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+    }
+  }, []);
+
   // Get unique scope of work values from parts data
   const scopeOfWorkOptions = parts.length > 0 
     ? [...new Set(parts.map(part => part.scopeOfWork))]
@@ -165,37 +198,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError }) => {
     }
   }, [boq]);
 
-  useEffect(() => {
-    // Only calculate totals if we have items and it's not the initial load
-    if (!isInitialLoad && formData.items && formData.items.length > 0 && formData.items[0].partName) {
-      const calculatedValues = calculateTotals();
-      setFormData(prev => ({
-        ...prev,
-        ...calculatedValues
-      }));
-    }
-  }, [formData.items, formData.transportationCharges, formData.gstPercentage, isInitialLoad, calculateTotals]);
-
-  const fetchParts = useCallback(async () => {
-    try {
-      const response = await partsAPI.getAll();
-      setParts(response.data);
-      setFilteredParts(response.data);
-    } catch (error) {
-      console.error('Error fetching parts:', error);
-      showLocalNotification('Error fetching parts data', 'error');
-    }
-  }, [showLocalNotification]);
-
-  const fetchProjects = useCallback(async () => {
-    try {
-      const response = await projectsAPI.getAll();
-      setProjects(response.data);
-    } catch (error) {
-      console.error('Error fetching projects:', error);
-    }
-  }, []);
-
+  // Define calculateTotals before using it in useEffect
   const calculateTotals = useCallback(() => {
     // Calculate total for each item
     const updatedItems = formData.items.map(item => {
@@ -229,6 +232,17 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError }) => {
       totalWithGST: isNaN(totalWithGST) ? '0' : totalWithGST.toFixed(2)
     };
   }, [formData.items, formData.transportationCharges, formData.gstPercentage]);
+
+  useEffect(() => {
+    // Only calculate totals if we have items and it's not the initial load
+    if (!isInitialLoad && formData.items && formData.items.length > 0 && formData.items[0].partName) {
+      const calculatedValues = calculateTotals();
+      setFormData(prev => ({
+        ...prev,
+        ...calculatedValues
+      }));
+    }
+  }, [formData.items, formData.transportationCharges, formData.gstPercentage, isInitialLoad, calculateTotals]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -352,17 +366,6 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError }) => {
       }));
     }
   };
-
-  const showLocalNotification = useCallback((message, type = 'success') => {
-    setNotification({
-      isVisible: true,
-      message,
-      type
-    });
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, isVisible: false }));
-    }, 3000);
-  }, []);
 
   const validateForm = () => {
     const newErrors = {};

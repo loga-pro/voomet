@@ -22,6 +22,15 @@ const Layout = () => {
             <Outlet />
           </div>
         </main>
+
+        {/* Footer */}
+        <footer className="bg-white border-t border-gray-200 py-3 px-6">
+          <div className="flex justify-center items-center">
+            <p className="text-sm text-blue-600">
+              Developed by <span className="font-semibold text-blue-800">CALDIM</span>
+            </p>
+          </div>
+        </footer>
       </div>
     </div>
   );

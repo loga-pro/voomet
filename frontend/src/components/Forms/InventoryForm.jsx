@@ -38,7 +38,7 @@ const InventoryForm = ({ inventory, onSubmit, onCancel, showNotification, showEr
 
   useEffect(() => {
     fetchParts();
-  }, [fetchParts]);
+  }, []);
 
   useEffect(() => {
     if (inventory) {
