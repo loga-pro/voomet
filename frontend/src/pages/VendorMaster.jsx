@@ -490,11 +490,6 @@ const VendorMaster = () => {
             <p className="text-sm text-gray-600">{selectedVendor.email}</p>
           </div>
         </div>
-        <div className="bg-blue-50 px-3 py-1 rounded-full">
-          <span className="text-xs font-medium text-blue-700">
-            Vendor ID: {selectedVendor.id || selectedVendor._id}
-          </span>
-        </div>
       </div>
 
       {/* Vendor Information Card */}

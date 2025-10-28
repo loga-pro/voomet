@@ -4,6 +4,7 @@ const multer = require('multer');
 const dotenv = require('dotenv');
 const path = require('path');
 const connectDB = require('./config/database');
+const dailyEmailScheduler = require('./services/dailyEmailScheduler');
 
 // Load env vars
 dotenv.config();
@@ -27,6 +28,9 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+// Initialize daily email scheduler
+dailyEmailScheduler.initialize();
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));

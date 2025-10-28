@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-// Note the new icons added to the import
 import { Bars3Icon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -26,10 +25,9 @@ const Header = ({ onMenuClick }) => {
       '/milestone-tracking': 'Milestone Tracking',
       '/inventory-management': 'Inventory Management',
       '/quality-management': 'Quality Management',
-      '/payment-master' : 'Customer Payment',
-      '/vendor-payment' : 'Vendor payment',
-      '/reports' : 'Report'
-      // Your other routes...
+      '/payment-master': 'Customer Payment',
+      '/vendor-payment': 'Vendor Payment',
+      '/reports': 'Report'
     };
     
     // Check for milestone-tracking with ID
@@ -43,7 +41,7 @@ const Header = ({ onMenuClick }) => {
   // Get the first letter of the user's name for the avatar
   const userInitial = user.name ? user.name.charAt(0).toUpperCase() : 'U';
 
-  // Update time every second
+  // Update time every second to include seconds
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -72,7 +70,7 @@ const Header = ({ onMenuClick }) => {
     navigate('/login');
   };
 
-  // Format date and time
+  // Format date and time with seconds
   const formattedDate = currentTime.toLocaleDateString('en-US', { 
     weekday: 'long', 
     year: 'numeric', 
@@ -80,6 +78,15 @@ const Header = ({ onMenuClick }) => {
     day: 'numeric' 
   });
   
+  // Time with seconds
+  const formattedTimeWithSeconds = currentTime.toLocaleTimeString('en-US', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+
+  // Time without seconds for mobile
   const formattedTime = currentTime.toLocaleTimeString('en-US', { 
     hour: '2-digit', 
     minute: '2-digit',
@@ -92,7 +99,8 @@ const Header = ({ onMenuClick }) => {
         <div className="flex items-center">
           <button
             onClick={onMenuClick}
-            className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+            className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-voometBlue focus:ring-opacity-50"
+            aria-label="Open menu"
           >
             <Bars3Icon className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
@@ -102,7 +110,7 @@ const Header = ({ onMenuClick }) => {
         <div className="flex items-center space-x-4 sm:space-x-6">
           {/* Time Display - Outside Profile */}
           <div className="hidden sm:flex flex-col items-end">
-            <span className="text-sm font-medium text-gray-600">{formattedTime}</span>
+            <span className="text-sm font-medium text-gray-600">{formattedTimeWithSeconds}</span>
             <span className="text-xs text-gray-500">{formattedDate}</span>
           </div>
           
@@ -115,18 +123,21 @@ const Header = ({ onMenuClick }) => {
           <div className="relative" ref={profileRef}>
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="flex items-center space-x-2 p-1 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+              className="flex items-center space-x-2 p-1 rounded-lg hover:bg-gray-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-voometBlue focus:ring-opacity-50"
+              aria-label="User menu"
+              aria-expanded={isProfileOpen}
             >
-              
               <div className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-voometBlue text-white font-medium text-sm sm:text-lg">
                 {userInitial}
               </div>
             </button>
 
-            {/* Profile Dropdown - REDESIGNED */}
+            {/* Profile Dropdown */}
             {isProfileOpen && (
               <div 
                 className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden z-50 animate-fade-in transform-origin-top-right"
+                role="menu"
+                aria-orientation="vertical"
               >
                 {/* User Info Section */}
                 <div className="p-4 border-b border-gray-100">
@@ -141,13 +152,12 @@ const Header = ({ onMenuClick }) => {
                   </div>
                 </div>
 
-               
-
                 {/* Logout Section */}
                 <div className="p-2 border-t border-gray-100">
                   <button
                     onClick={handleLogout}
-                    className="flex items-center w-full px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors duration-150"
+                    className="flex items-center w-full px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors duration-150 focus:outline-none focus:bg-red-50"
+                    role="menuitem"
                   >
                     <ArrowRightOnRectangleIcon className="w-5 h-5 mr-3" />
                     Log out
@@ -159,12 +169,18 @@ const Header = ({ onMenuClick }) => {
         </div>
       </div>
       
-      {/* Updated Animation */}
+      {/* Animation Styles */}
       <style>
         {`
           @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px) scale(0.95); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+            from { 
+              opacity: 0; 
+              transform: translateY(-10px) scale(0.95); 
+            }
+            to { 
+              opacity: 1; 
+              transform: translateY(0) scale(1); 
+            }
           }
           .animate-fade-in {
             animation: fadeIn 0.2s ease-out forwards;
