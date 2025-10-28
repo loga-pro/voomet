@@ -7,7 +7,7 @@ class DailyEmailScheduler {
   
   constructor() {
     this.scheduledJobs = new Map();
-    this.defaultSchedule = '10 17 * * *'; // 8:00 AM every day
+    this.defaultSchedule = '37 17 * * *'; // 8:00 AM every day
     this.isInitialized = false;
   }
   
@@ -65,17 +65,23 @@ class DailyEmailScheduler {
       // Send email to each recipient
       const results = [];
       for (const email of recipientEmails) {
-        const result = await emailService.sendDailyInventoryReport(
-          email.trim(),
-          reportData,
-          pdfBuffer
-        );
-        results.push({ email: email.trim(), result });
+        try {
+          const sendResult = await emailService.sendDailyInventoryReport(
+            email.trim(),
+            reportData,
+            pdfBuffer
+          );
+          results.push({ email: email.trim(), result: sendResult });
+        } catch (err) {
+          // emailService should return structured result, but guard against thrown errors
+          console.error(`Failed to send to ${email.trim()}:`, err);
+          results.push({ email: email.trim(), result: { success: false, error: err.message || 'Unknown error' } });
+        }
       }
       
-      console.log(`Daily inventory report sent successfully to ${results.length} recipients`);
+      console.log(`Daily inventory report send attempts: ${results.length}`);
       return {
-        success: true,
+        success: results.every(r => r.result && r.result.success),
         reportDate: reportData.date,
         recipients: results,
         summary: {

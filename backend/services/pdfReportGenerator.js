@@ -135,7 +135,7 @@ class PDFReportGenerator {
     doc.setTextColor(149, 165, 166);
     doc.text('This report is generated automatically by Voomet Inventory Management System', 105, pageHeight - 20, { align: 'center' });
     
-    return doc.output('arraybuffer');
+    return Buffer.from(doc.output('arraybuffer'));
   }
   
   generateWeeklyInventoryReport(weeklyData) {
@@ -173,7 +173,7 @@ class PDFReportGenerator {
       }
     });
     
-    return doc.output('arraybuffer');
+    return Buffer.from(doc.output('arraybuffer'));
   }
 }
 
