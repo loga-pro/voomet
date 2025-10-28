@@ -680,7 +680,7 @@ const EmployeeAccess = () => {
       >
         <div className="p-4">
           <p className="mb-4 text-gray-700">
-            Are you sure you want to delete this user? This action cannot be undone.
+            Are you sure you want to delete "{users.find(u => u._id === userToDelete)?.name || 'this user'}"? This action cannot be undone.
           </p>
           <div className="flex justify-end space-x-3">
             <button

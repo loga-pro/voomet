@@ -12,7 +12,7 @@ const CustomerForm = ({ customer, onSubmit, onCancel }) => {
   const [projects, setProjects] = useState([]);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [isFromAwardedProject, setIsFromAwardedProject] = useState(false);
+  const [selectedProject, setSelectedProject] = useState('');
 
   useEffect(() => {
     fetchAwardedProjects();
@@ -26,16 +26,8 @@ const CustomerForm = ({ customer, onSubmit, onCancel }) => {
         invoiceEmail: customer.invoiceEmail || '',
         billingAddress: customer.billingAddress || ''
       });
-      // Only disable customer name field if we're creating a new customer from an awarded project
-      // When editing, always allow editing the customer name
-      if (!customer._id) {
-        const hasAwardedProjects = projects.some(project => project.customerName === customer.customerName);
-        setIsFromAwardedProject(hasAwardedProjects);
-      } else {
-        setIsFromAwardedProject(false); // Allow editing customer name when in edit mode
-      }
     }
-  }, [customer, projects]);
+  }, [customer]);
 
   const fetchAwardedProjects = async () => {
     try {
@@ -47,15 +39,19 @@ const CustomerForm = ({ customer, onSubmit, onCancel }) => {
   };
 
   const handleProjectSelect = (projectName) => {
+    setSelectedProject(projectName);
     const project = projects.find(proj => proj.projectName === projectName);
     if (project) {
       setFormData(prev => ({
         ...prev,
-        customerName: project.customerName
+        customerName: project.customerName || ''
       }));
-      setIsFromAwardedProject(true); // Freeze customer fields when selected from awarded project
     } else {
-      setIsFromAwardedProject(false); // Unfreeze if no project selected
+      // Clear customer name if no project selected
+      setFormData(prev => ({
+        ...prev,
+        customerName: ''
+      }));
     }
   };
 
@@ -129,30 +125,31 @@ const CustomerForm = ({ customer, onSubmit, onCancel }) => {
         </div>
       )}
 
-      {!isFromAwardedProject && (
+      {/* Project Selection Dropdown - Only shown when creating new customer */}
+      {!customer && (
         <div>
           <FloatingInput
             type="select"
             name="projectSelect"
             label="Select from Awarded Projects"
-            value=""
+            value={selectedProject}
             onChange={(e) => handleProjectSelect(e.target.value)}
             options={projectOptions}
           />
         </div>
       )}
-    
-        <FloatingInput
-          type="text"
-          name="customerName"
-          label="Customer Name"
-          value={formData.customerName}
-          onChange={handleChange}
-          error={errors.customerName}
-          required={true}
-          disabled={isFromAwardedProject}
-        />
-      
+
+      {/* Customer Name using FloatingInput in read-only mode */}
+      <FloatingInput
+        type="text"
+        name="customerName"
+        label="Customer Name"
+        value={formData.customerName}
+        readOnly={true}
+        error={errors.customerName}
+        required={true}
+      />
+
       <FloatingInput
         type="email"
         name="customerEmail"

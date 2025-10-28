@@ -457,34 +457,58 @@ const MilestoneForm = ({ milestone, onSuccess, onCancel, viewMode = false }) => 
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FloatingInput
-          label="Customer"
-          name="customer"
-          value={formData.customer}
-          onChange={handleChange}
-          error={errors.customer}
-          type="select"
-          options={[
-            ...new Set(projects.map(p => p.customerName))
-          ].map(customer => ({ value: customer, label: customer }))}
-          required
-          disabled={viewMode}
-        />
+        {/* Customer Field - Read-only when editing, dropdown when creating */}
+        {milestone ? (
+          <FloatingInput
+            label="Customer"
+            name="customer"
+            value={formData.customer}
+            readOnly={true}
+            error={errors.customer}
+            required
+          />
+        ) : (
+          <FloatingInput
+            label="Customer"
+            name="customer"
+            value={formData.customer}
+            onChange={handleChange}
+            error={errors.customer}
+            type="select"
+            options={[
+              ...new Set(projects.map(p => p.customerName))
+            ].map(customer => ({ value: customer, label: customer }))}
+            required
+            disabled={viewMode}
+          />
+        )}
 
-        <FloatingInput
-          label="Project Name"
-          name="projectName"
-          value={formData.projectName}
-          onChange={handleChange}
-          error={errors.projectName}
-          type="select"
-          options={filteredProjects.map(project => ({
-            value: project.projectName,
-            label: project.projectName
-          }))}
-          required
-          disabled={viewMode}
-        />
+        {/* Project Name Field - Read-only when editing, dropdown when creating */}
+        {milestone ? (
+          <FloatingInput
+            label="Project Name"
+            name="projectName"
+            value={formData.projectName}
+            readOnly={true}
+            error={errors.projectName}
+            required
+          />
+        ) : (
+          <FloatingInput
+            label="Project Name"
+            name="projectName"
+            value={formData.projectName}
+            onChange={handleChange}
+            error={errors.projectName}
+            type="select"
+            options={filteredProjects.map(project => ({
+              value: project.projectName,
+              label: project.projectName
+            }))}
+            required
+            disabled={viewMode}
+          />
+        )}
 
         <FloatingInput
           label="Start Date"
@@ -506,14 +530,14 @@ const MilestoneForm = ({ milestone, onSuccess, onCancel, viewMode = false }) => 
           readOnly
         />
 
+        {/* Email Field - Always read-only (auto-populated from customer) */}
         <FloatingInput
           label="Email ID"
           name="emailId"
           value={formData.emailId}
-          onChange={handleChange}
+          readOnly={true}
           error={errors.emailId}
           required
-          disabled={viewMode}
         />
 
         {/* New Flexibility Percentage Field */}

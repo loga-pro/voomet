@@ -733,7 +733,7 @@ const MilestoneManagement = () => {
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">Delete Milestone</h3>
           <p className="text-sm text-gray-500 mb-6">
-            Are you sure you want to delete this milestone? This action cannot be undone.
+            Are you sure you want to delete milestone "{milestones.find(m => m._id === milestoneToDelete)?.projectName || 'this milestone'}"? This action cannot be undone.
           </p>
           <div className="flex justify-center space-x-3">
             <button

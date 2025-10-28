@@ -645,30 +645,52 @@ const InventoryForm = ({ inventory, onSubmit, onCancel, showNotification, showEr
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-full">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Scope of Work */}
-        <FloatingInput
-          label="Scope of Work"
-          name="scopeOfWork"
-          value={formData.scopeOfWork}
-          onChange={handleScopeOfWorkChange}
-          error={errors.scopeOfWork}
-          type="select"
-          required={true}
-          options={scopeOfWorkOptions}
-        />
+        {/* Scope of Work - Read-only when editing, dropdown when creating */}
+        {inventory ? (
+          <FloatingInput
+            label="Scope of Work"
+            name="scopeOfWork"
+            value={formData.scopeOfWork}
+            readOnly={true}
+            error={errors.scopeOfWork}
+            required={true}
+          />
+        ) : (
+          <FloatingInput
+            label="Scope of Work"
+            name="scopeOfWork"
+            value={formData.scopeOfWork}
+            onChange={handleScopeOfWorkChange}
+            error={errors.scopeOfWork}
+            type="select"
+            required={true}
+            options={scopeOfWorkOptions}
+          />
+        )}
 
-        {/* Part Name */}
-        <FloatingInput
-          label="Part Name"
-          name="partName"
-          value={formData.partName}
-          onChange={handlePartSelect}
-          error={errors.partName}
-          type="select"
-          required={true}
-          options={partNameOptions}
-          disabled={!formData.scopeOfWork}
-        />
+        {/* Part Name - Read-only when editing, dropdown when creating */}
+        {inventory ? (
+          <FloatingInput
+            label="Part Name"
+            name="partName"
+            value={formData.partName}
+            readOnly={true}
+            error={errors.partName}
+            required={true}
+          />
+        ) : (
+          <FloatingInput
+            label="Part Name"
+            name="partName"
+            value={formData.partName}
+            onChange={handlePartSelect}
+            error={errors.partName}
+            type="select"
+            required={true}
+            options={partNameOptions}
+            disabled={!formData.scopeOfWork}
+          />
+        )}
 
         {/* Part Price */}
         <FloatingInput

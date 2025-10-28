@@ -32,6 +32,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
   });
   const [isEditMode, setIsEditMode] = useState(false);
   const [existingPayments, setExistingPayments] = useState([]);
+  const [bankNameWarnings, setBankNameWarnings] = useState({});
 
   useEffect(() => {
     fetchAwardedProjects();
@@ -131,6 +132,40 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     );
     
     return !!existing;
+  };
+
+  const handleBankNameChange = (e, invoiceIndex, paymentIndex) => {
+    const { value } = e.target;
+    
+    // Only allow alphabets and spaces
+    const filteredValue = value.replace(/[^a-zA-Z\s]/g, '');
+    
+    // Check if value contains non-alphabet characters and show warning
+    if (/[^a-zA-Z\s]/.test(value)) {
+      setBankNameWarnings(prev => ({
+        ...prev,
+        [`${invoiceIndex}-${paymentIndex}`]: 'Only letters and spaces are allowed in bank name'
+      }));
+    } else {
+      setBankNameWarnings(prev => {
+        const newWarnings = { ...prev };
+        delete newWarnings[`${invoiceIndex}-${paymentIndex}`];
+        return newWarnings;
+      });
+    }
+    
+    // Create a new event with the filtered value
+    const newEvent = {
+      ...e,
+      target: {
+        ...e.target,
+        value: filteredValue,
+        name: e.target.name
+      }
+    };
+    
+    // Call the original handleChange with filtered value
+    handleChange(newEvent);
   };
 
   const handleChange = (e) => {
@@ -511,8 +546,8 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                             label="Bank Name"
                             name={`invoices.${invoiceIndex}.payments.${paymentIndex}.bankName`}
                             value={payment.bankName}
-                            onChange={handleChange}
-                            error={errors[`invoices.${invoiceIndex}.payments.${paymentIndex}.bankName`]}
+                            onChange={(e) => handleBankNameChange(e, invoiceIndex, paymentIndex)}
+                            error={errors[`invoices.${invoiceIndex}.payments.${paymentIndex}.bankName`] || bankNameWarnings[`${invoiceIndex}-${paymentIndex}`]}
                             required
                           />
 

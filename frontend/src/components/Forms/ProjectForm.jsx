@@ -49,6 +49,27 @@ const ProjectForm = ({ project, onSubmit, onCancel }) => {
     }
   };
 
+  // Customer name validation function
+  const handleCustomerNameChange = (e) => {
+    const { value } = e.target;
+    
+    // Only allow alphabets and spaces
+    const filteredValue = value.replace(/[^a-zA-Z\s]/g, '');
+    
+    // Create a new event with the filtered value
+    const newEvent = {
+      ...e,
+      target: {
+        ...e.target,
+        value: filteredValue,
+        name: e.target.name
+      }
+    };
+    
+    // Call the original handleChange with filtered value
+    handleChange(newEvent);
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     
@@ -140,11 +161,12 @@ const ProjectForm = ({ project, onSubmit, onCancel }) => {
         </div>
       )}
 
+      {/* Updated Customer Name input with validation */}
       <FloatingInput
         label="Customer Name"
         name="customerName"
         value={formData.customerName}
-        onChange={handleChange}
+        onChange={handleCustomerNameChange}
         error={errors.customerName}
         required
       />

@@ -14,6 +14,7 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
   const [employees, setEmployees] = useState([]);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState('');
 
   const permissionOptions = [
     'dashboard', 'employee_master', 'employee_access', 'part_master',
@@ -64,12 +65,20 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
   };
 
   const handleEmployeeSelect = (employeeId) => {
+    setSelectedEmployee(employeeId);
     const employee = employees.find(emp => emp._id === employeeId);
     if (employee) {
       setFormData(prev => ({
         ...prev,
         name: employee.name,
         email: employee.email
+      }));
+    } else {
+      // Clear name and email if no employee selected
+      setFormData(prev => ({
+        ...prev,
+        name: '',
+        email: ''
       }));
     }
   };
@@ -151,43 +160,44 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
         </div>
       )}
 
-      {/* Employee Select */}
-      <FloatingInput
-        type="select"
-        label="Select Employee"
-        name="employeeSelect"
-        value=""
-        onChange={(e) => handleEmployeeSelect(e.target.value)}
-        options={[
-          { value: '', label: 'Select an employee' },
-          ...employees.map(emp => ({
-            value: emp._id,
-            label: `${emp.name} - ${emp.email}`
-          }))
-        ]}
-      />
+      {/* Employee Select - Only show when creating new user */}
+      {!user && (
+        <FloatingInput
+          type="select"
+          label="Select Employee"
+          name="employeeSelect"
+          value={selectedEmployee}
+          onChange={(e) => handleEmployeeSelect(e.target.value)}
+          options={[
+            { value: '', label: 'Select an employee' },
+            ...employees.map(emp => ({
+              value: emp._id,
+              label: `${emp.name} - ${emp.email}`
+            }))
+          ]}
+        />
+      )}
 
-      {/* Name */}
+      {/* Name - Read-only in both create and edit modes */}
       <FloatingInput
+        type="text"
         label="Name"
         name="name"
         value={formData.name}
-        onChange={handleChange}
+        readOnly={true}
         error={errors.name}
-        required
-        readOnly
+        required={true}
       />
 
-      {/* Email */}
+      {/* Email - Read-only in both create and edit modes */}
       <FloatingInput
         type="email"
         label="Email"
         name="email"
         value={formData.email}
-        onChange={handleChange}
+        readOnly={true}
         error={errors.email}
-        required
-        readOnly
+        required={true}
       />
 
       {/* Role */}
@@ -199,7 +209,7 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
         onChange={handleChange}
         options={roleOptions}
         error={errors.role}
-        required
+        required={true}
       />
 
       {/* Password */}

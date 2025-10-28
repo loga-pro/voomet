@@ -350,7 +350,7 @@ const ProjectMaster = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">₹{project.totalProjectValue.toLocaleString()}</div>
+                        <div className="text-sm text-gray-900">₹{project.totalProjectValue.toFixed(2).toLocaleString()}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
@@ -613,7 +613,7 @@ const ProjectMaster = () => {
       >
         <div className="p-4">
           <p className="mb-4 text-gray-700">
-            Are you sure you want to delete {projectToDelete?.projectName || 'this project'}? This action cannot be undone.
+            Are you sure you want to delete "{projectToDelete?.projectName || 'this project'}?" This action cannot be undone.
           </p>
           <div className="flex justify-end space-x-3">
             <button

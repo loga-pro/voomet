@@ -675,7 +675,7 @@ const CustomerMaster = () => {
       >
         <div className="p-4">
           <p className="mb-4 text-gray-700">
-            Are you sure you want to delete {customerToDelete?.customerName || 'this customer'}? This action cannot be undone.
+            Are you sure you want to delete "{customerToDelete?.customerName || 'this customer'}?" This action cannot be undone.
           </p>
           <div className="flex justify-end space-x-3">
             <button

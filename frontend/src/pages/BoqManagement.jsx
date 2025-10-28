@@ -176,8 +176,8 @@ const handleAdvancedPDFPreview = (item) => {
       const maxPrice = prices.length > 0 ? Math.max(...prices) : (item.unitPrice || 0);
       
       const displayPrice = prices.length > 1 && minPrice !== maxPrice
-        ? `₹${minPrice} - ₹${maxPrice}`
-        : `₹${minPrice}`;
+        ? `₹${parseFloat(minPrice).toFixed(2)} - ₹${parseFloat(maxPrice).toFixed(2)}`
+        : `₹${parseFloat(minPrice).toFixed(2)}`;
 
       return [
         item.customer,
@@ -185,7 +185,7 @@ const handleAdvancedPDFPreview = (item) => {
         displayDescription,
         totalQuantity > 0 ? `${totalQuantity}${displayUnit ? ` ${displayUnit}` : ''}` : 'N/A',
         displayPrice,
-        item.totalAmount || item.totalWithGST || 0,
+        parseFloat(item.totalAmount || item.totalWithGST || 0).toFixed(2),
         new Date(item.createdAt).toLocaleDateString()
       ];
     });
@@ -233,23 +233,23 @@ const handleAdvancedPDFPreview = (item) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
-  const handleDelete = (id) => {
-    setItemToDelete(id);
-    setShowDeleteModal(true);
-  };
+  const handleDelete = (item) => {
+  setItemToDelete(item);
+  setShowDeleteModal(true);
+};
 
   const confirmDelete = async () => {
-    try {
-      await boqAPI.delete(itemToDelete);
-      showSuccess('BOQ item deleted successfully');
-      fetchBOQItems();
-      setShowDeleteModal(false);
-      setItemToDelete(null);
-    } catch (error) {
-      console.error('Error deleting BOQ item:', error);
-      showError('Failed to delete BOQ item');
-    }
-  };
+  try {
+    await boqAPI.delete(itemToDelete._id);
+    showSuccess('BOQ item deleted successfully');
+    fetchBOQItems();
+    setShowDeleteModal(false);
+    setItemToDelete(null);
+  } catch (error) {
+    console.error('Error deleting BOQ item:', error);
+    showError('Failed to delete BOQ item');
+  }
+};
 
   const handleFormSubmit = (isEdit = false) => {
     setShowModal(false);
@@ -470,8 +470,8 @@ const handleAdvancedPDFPreview = (item) => {
           const maxPrice = prices.length > 0 ? Math.max(...prices) : (item.unitPrice || 0);
           
           const displayPrice = prices.length > 1 && minPrice !== maxPrice
-            ? `₹${minPrice} - ₹${maxPrice}`
-            : `₹${minPrice}`;
+            ? `₹${parseFloat(minPrice).toFixed(2)} - ₹${parseFloat(maxPrice).toFixed(2)}`
+            : `₹${parseFloat(minPrice).toFixed(2)}`;
 
           return (
             <tr key={item._id} className="hover:bg-gray-50 transition-colors duration-150">
@@ -504,7 +504,9 @@ const handleAdvancedPDFPreview = (item) => {
                 <div className="text-sm font-semibold text-gray-900">{displayPrice}</div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-semibold text-gray-900">₹{item.totalAmount || item.totalWithGST || 0}</div>
+                <div className="text-sm font-semibold text-gray-900">
+                  ₹{parseFloat(item.totalAmount || item.totalWithGST || 0).toFixed(2)}
+                </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div className="flex justify-end space-x-2">
@@ -530,12 +532,12 @@ const handleAdvancedPDFPreview = (item) => {
     <PencilSquareIcon className="h-5 w-5" />
   </button>
   <button
-    onClick={() => handleDelete(item._id)}
-    className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
-    title="Delete"
-  >
-    <TrashIcon className="h-5 w-5" />
-  </button>
+  onClick={() => handleDelete(item)}
+  className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
+  title="Delete"
+>
+  <TrashIcon className="h-5 w-5" />
+</button>
 </div>
               </td>
             </tr>
@@ -576,8 +578,8 @@ const handleAdvancedPDFPreview = (item) => {
       const maxPrice = prices.length > 0 ? Math.max(...prices) : (item.unitPrice || 0);
       
       const displayPrice = prices.length > 1 && minPrice !== maxPrice
-        ? `₹${minPrice} - ₹${maxPrice}`
-        : `₹${minPrice}`;
+        ? `₹${parseFloat(minPrice).toFixed(2)} - ₹${parseFloat(maxPrice).toFixed(2)}`
+        : `₹${parseFloat(minPrice).toFixed(2)}`;
 
       return (
         <div key={item._id} className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors duration-150">
@@ -636,7 +638,9 @@ const handleAdvancedPDFPreview = (item) => {
             </div>
             <div className="col-span-2">
               <span className="font-medium text-gray-500">Total Amount:</span>
-              <span className="ml-1 font-semibold text-gray-900">₹{item.totalAmount || item.totalWithGST || 0}</span>
+              <span className="ml-1 font-semibold text-gray-900">
+                ₹{parseFloat(item.totalAmount || item.totalWithGST || 0).toFixed(2)}
+              </span>
             </div>
           </div>
         </div>
@@ -754,7 +758,9 @@ const handleAdvancedPDFPreview = (item) => {
               </div>
               <div className="text-right">
                 <p className="text-sm text-gray-500">Total Amount</p>
-                <p className="text-2xl font-bold text-blue-600">₹{selectedItem.totalAmount.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  ₹{parseFloat(selectedItem.totalAmount).toFixed(2)}
+                </p>
               </div>
             </div>
 
@@ -795,12 +801,16 @@ const handleAdvancedPDFPreview = (item) => {
                 
                 <div className="space-y-1">
                   <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Unit Price</h4>
-                  <p className="text-sm text-gray-900 font-medium">₹{selectedItem.unitPrice}</p>
+                  <p className="text-sm text-gray-900 font-medium">
+                    ₹{parseFloat(selectedItem.unitPrice).toFixed(2)}
+                  </p>
                 </div>
                 
                 <div className="space-y-1">
                   <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Amount</h4>
-                  <p className="text-sm text-gray-900 font-medium">₹{selectedItem.totalAmount}</p>
+                  <p className="text-sm text-gray-900 font-medium">
+                    ₹{parseFloat(selectedItem.totalAmount).toFixed(2)}
+                  </p>
                 </div>
                 
                 <div className="space-y-1">
@@ -935,32 +945,52 @@ const handleAdvancedPDFPreview = (item) => {
       )}
 
       {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        title="Confirm Delete"
-        size="sm"
+      {/* Delete Confirmation Modal */}
+<Modal
+  isOpen={showDeleteModal}
+  onClose={() => setShowDeleteModal(false)}
+  title="Confirm Delete"
+  size="sm"
+>
+  <div className="p-4">
+    <p className="mb-4 text-gray-700">
+      Are you sure you want to delete the BOQ item for{" "}
+      <span className="font-semibold">{itemToDelete?.customer}</span> -{" "}
+      <span className="font-semibold">{itemToDelete?.projectName}</span>?
+      This action cannot be undone.
+    </p>
+    {itemToDelete && (
+      <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+        <p className="text-sm text-red-600">
+          <span className="font-medium">Customer:</span> {itemToDelete.customer}
+        </p>
+        <p className="text-sm text-red-600">
+          <span className="font-medium">Project:</span> {itemToDelete.projectName}
+        </p>
+        <p className="text-sm text-red-600">
+          <span className="font-medium">Scope:</span>{" "}
+          {Array.isArray(itemToDelete.scopeOfWork) 
+            ? itemToDelete.scopeOfWork.join(', ') 
+            : itemToDelete.scopeOfWork}
+        </p>
+      </div>
+    )}
+    <div className="flex justify-end space-x-3">
+      <button
+        onClick={() => setShowDeleteModal(false)}
+        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
       >
-        <div className="p-4">
-          <p className="mb-4 text-gray-700">
-            Are you sure you want to delete this BOQ item? This action cannot be undone.
-          </p>
-          <div className="flex justify-end space-x-3">
-            <button
-              onClick={() => setShowDeleteModal(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={confirmDelete}
-              className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-            >
-              Delete
-            </button>
-          </div>
-        </div>
-      </Modal>
+        Cancel
+      </button>
+      <button
+        onClick={confirmDelete}
+        className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+      >
+        Delete
+      </button>
+    </div>
+  </div>
+</Modal>
     </div>
   );
 };

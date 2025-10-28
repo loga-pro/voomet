@@ -163,6 +163,12 @@ const InventoryManagement = () => {
     };
   };
 
+  // Calculate total value for a specific item
+  const calculateTotalValue = (item) => {
+    const { currentStock } = calculateTotals(item);
+    return (currentStock * (item.partPrice || 0)).toFixed(2);
+  };
+
   // Get stock status
   const getStockStatus = (item) => {
     const { currentStock } = calculateTotals(item);
@@ -346,7 +352,10 @@ const InventoryManagement = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Value</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  ₹{inventoryItems.reduce((sum, item) => sum + (item.cumulativePriceValue || 0), 0).toLocaleString()}
+                  ₹{inventoryItems.reduce((sum, item) => {
+                    const totalValue = parseFloat(calculateTotalValue(item));
+                    return sum + totalValue;
+                  }, 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </div>
             </div>
@@ -471,8 +480,6 @@ const InventoryManagement = () => {
             </div>
           )}
 
-
-
           {/* Results Count */}
           <div className="px-4 py-4 sm:px-6 bg-white border-b border-gray-200">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -513,6 +520,9 @@ const InventoryManagement = () => {
                       Financials
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Total Value
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Date
                     </th>
                     <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -524,6 +534,7 @@ const InventoryManagement = () => {
                   {currentItems.map((item) => {
                     const { totalReceipts, totalDispatches, currentStock } = calculateTotals(item);
                     const stockStatus = getStockStatus(item);
+                    const totalValue = calculateTotalValue(item);
                     
                     return (
                       <tr key={item._id} className="hover:bg-gray-50 transition-colors duration-150">
@@ -544,7 +555,7 @@ const InventoryManagement = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900 font-medium">{currentStock.toFixed(2)}</div>
+                          <div className="text-sm text-gray-900 font-medium">{Math.round(currentStock)}</div>
                           <div className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                             stockStatus.color === 'green' ? 'bg-green-100 text-green-800' :
                             stockStatus.color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
@@ -557,12 +568,17 @@ const InventoryManagement = () => {
                           <div className="text-sm">
                             <div className="flex justify-between space-x-2">
                               <span className="text-gray-500">Receipts:</span>
-                              <span className="font-medium text-green-600">{totalReceipts.toFixed(2)}</span>
+                              <span className="font-medium text-green-600">{Math.round(totalReceipts)}</span>
                             </div>
                             <div className="flex justify-between space-x-2">
                               <span className="text-gray-500">Dispatches:</span>
-                              <span className="font-medium text-orange-600">{totalDispatches.toFixed(2)}</span>
+                              <span className="font-medium text-orange-600">{Math.round(totalDispatches)}</span>
                             </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-semibold text-gray-900">
+                            ₹{parseFloat(totalValue).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -610,6 +626,7 @@ const InventoryManagement = () => {
               {currentItems.map((item) => {
                 const { totalReceipts, totalDispatches, currentStock } = calculateTotals(item);
                 const stockStatus = getStockStatus(item);
+                const totalValue = calculateTotalValue(item);
                 
                 return (
                   <div key={item._id} className="border-b border-gray-200 p-2 sm:p-3 hover:bg-gray-50 transition-colors duration-150">
@@ -657,15 +674,21 @@ const InventoryManagement = () => {
                       </div>
                       <div className="bg-gray-50 rounded-md p-1.5 border border-gray-200">
                         <span className="font-medium text-gray-500">Stock:</span>
-                        <span className="ml-1 font-semibold text-gray-900">{currentStock.toFixed(2)}</span>
+                        <span className="ml-1 font-semibold text-gray-900">{Math.round(currentStock)}</span>
                       </div>
                       <div className="bg-gray-50 rounded-md p-1.5 border border-gray-200">
                         <span className="font-medium text-gray-500">Receipts:</span>
-                        <span className="ml-1 text-green-600 font-medium">{totalReceipts.toFixed(2)}</span>
+                        <span className="ml-1 text-green-600 font-medium">{Math.round(totalReceipts)}</span>
                       </div>
                       <div className="bg-gray-50 rounded-md p-1.5 border border-gray-200">
                         <span className="font-medium text-gray-500">Dispatches:</span>
-                        <span className="ml-1 text-orange-600 font-medium">{totalDispatches.toFixed(2)}</span>
+                        <span className="ml-1 text-orange-600 font-medium">{Math.round(totalDispatches)}</span>
+                      </div>
+                      <div className="bg-gray-50 rounded-md p-1.5 border border-gray-200">
+                        <span className="font-medium text-gray-500">Total Value:</span>
+                        <span className="ml-1 font-semibold text-gray-900">
+                          ₹{parseFloat(totalValue).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
                       </div>
                       <div className="bg-gray-50 rounded-md p-1.5 border border-gray-200">
                         <span className="font-medium text-gray-500">Status:</span>
@@ -895,25 +918,25 @@ const InventoryManagement = () => {
               <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
                 <div className="text-sm font-medium text-gray-500 mb-1">Current Stock</div>
                 <div className="text-2xl font-bold text-gray-900">
-                  {calculateTotals(selectedItem).currentStock.toFixed(2)}
+                  {Math.round(calculateTotals(selectedItem).currentStock)}
                 </div>
               </div>
               <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
                 <div className="text-sm font-medium text-gray-500 mb-1">Total Receipts</div>
                 <div className="text-2xl font-bold text-green-600">
-                  {calculateTotals(selectedItem).totalReceipts.toFixed(2)}
+                  {Math.round(calculateTotals(selectedItem).totalReceipts)}
                 </div>
               </div>
               <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
                 <div className="text-sm font-medium text-gray-500 mb-1">Total Dispatches</div>
                 <div className="text-2xl font-bold text-orange-600">
-                  {calculateTotals(selectedItem).totalDispatches.toFixed(2)}
+                  {Math.round(calculateTotals(selectedItem).totalDispatches)}
                 </div>
               </div>
               <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
-                <div className="text-sm font-medium text-gray-500 mb-1">Total Returns</div>
+                <div className="text-sm font-medium text-gray-500 mb-1">Total Value</div>
                 <div className="text-2xl font-bold text-purple-600">
-                  {calculateTotals(selectedItem).totalReturns.toFixed(2)}
+                  ₹{calculateTotalValue(selectedItem)}
                 </div>
               </div>
             </div>
@@ -960,13 +983,19 @@ const InventoryManagement = () => {
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-500">Cumulative Qty at Voomet:</span>
                     <span className="text-sm font-medium text-gray-900">
-                      {(selectedItem.cumulativeQuantityAtVoomet || 0).toFixed(2)}
+                      {Math.round(selectedItem.cumulativeQuantityAtVoomet || 0)}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-500">Cumulative Price Value:</span>
                     <span className="text-sm font-medium text-gray-900">
                       ₹{(selectedItem.cumulativePriceValue || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">Total Value:</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      ₹{calculateTotalValue(selectedItem)}
                     </span>
                   </div>
                 </div>
@@ -997,7 +1026,7 @@ const InventoryManagement = () => {
                             <td className="px-4 py-2 text-sm text-gray-900">
                               {receipt.date ? new Date(receipt.date).toLocaleDateString() : 'N/A'}
                             </td>
-                            <td className="px-4 py-2 text-sm text-gray-900">{(receipt.quantity || 0).toFixed(2)}</td>
+                            <td className="px-4 py-2 text-sm text-gray-900">{Math.round(receipt.quantity || 0)}</td>
                             <td className="px-4 py-2 text-sm text-gray-900">
                               ₹{((receipt.quantity || 0) * (selectedItem.partPrice || 0)).toFixed(2)}
                             </td>
@@ -1033,7 +1062,7 @@ const InventoryManagement = () => {
                               <td className="px-4 py-2 text-sm text-gray-900">
                                 {dispatch.date ? new Date(dispatch.date).toLocaleDateString() : 'N/A'}
                               </td>
-                              <td className="px-4 py-2 text-sm text-gray-900">{(dispatch.quantity || 0).toFixed(2)}</td>
+                              <td className="px-4 py-2 text-sm text-gray-900">{Math.round(dispatch.quantity || 0)}</td>
                               <td className="px-4 py-2 text-sm text-gray-900">
                                 ₹{((dispatch.quantity || 0) * (selectedItem.partPrice || 0)).toFixed(2)}
                               </td>
@@ -1070,7 +1099,7 @@ const InventoryManagement = () => {
                               <td className="px-4 py-2 text-sm text-gray-900">
                                 {returnItem.date ? new Date(returnItem.date).toLocaleDateString() : 'N/A'}
                               </td>
-                              <td className="px-4 py-2 text-sm text-gray-900">{(returnItem.quantity || 0).toFixed(2)}</td>
+                              <td className="px-4 py-2 text-sm text-gray-900">{Math.round(returnItem.quantity || 0)}</td>
                               <td className="px-4 py-2 text-sm text-gray-900">
                                 ₹{((returnItem.quantity || 0) * (selectedItem.partPrice || 0)).toFixed(2)}
                               </td>
@@ -1149,11 +1178,15 @@ const InventoryManagement = () => {
                 </div>
                 <div>
                   <span className="font-medium text-gray-700">Current Stock:</span>
-                  <p className="text-gray-900">{calculateTotals(itemToDelete).currentStock.toFixed(2)}</p>
+                  <p className="text-gray-900">{Math.round(calculateTotals(itemToDelete).currentStock)}</p>
                 </div>
                 <div>
                   <span className="font-medium text-gray-700">Unit Price:</span>
                   <p className="text-gray-900">₹{itemToDelete.partPrice}</p>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-700">Total Value:</span>
+                  <p className="text-gray-900">₹{calculateTotalValue(itemToDelete)}</p>
                 </div>
               </div>
             </div>

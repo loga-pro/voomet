@@ -389,14 +389,14 @@ const VendorPaymentManagement = () => {
                     </td>
                     
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">₹{payment.totalInvoiceRaised?.toLocaleString()}</div>
+                      <div className="text-sm text-gray-900">₹{payment.totalInvoiceRaised.toFixed(2)?.toLocaleString()}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">₹{payment.totalPayments?.toLocaleString()}</div>
+                      <div className="text-sm text-gray-900">₹{payment.totalPayments.toFixed(2)?.toLocaleString()}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(payment.balanceAmount)}`}>
-                        ₹{payment.balanceAmount?.toLocaleString()}
+                        ₹{payment.balanceAmount.toFixed(2)?.toLocaleString()}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -507,15 +507,15 @@ const VendorPaymentManagement = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Total Invoice Raised</label>
-                  <p className="mt-1 text-sm text-gray-900">₹{viewingPayment.totalInvoiceRaised?.toLocaleString()}</p>
+                  <p className="mt-1 text-sm text-gray-900">₹{viewingPayment.totalInvoiceRaised.toFixed(2)?.toLocaleString()}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Total Payments</label>
-                  <p className="mt-1 text-sm text-gray-900">₹{viewingPayment.totalPayments?.toLocaleString()}</p>
+                  <p className="mt-1 text-sm text-gray-900">₹{viewingPayment.totalPayments.toFixed(2)?.toLocaleString()}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Balance Amount</label>
-                  <p className="mt-1 text-sm text-gray-900">₹{viewingPayment.balanceAmount?.toLocaleString()}</p>
+                  <p className="mt-1 text-sm text-gray-900">₹{viewingPayment.balanceAmount.toFixed(2)?.toLocaleString()}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Status</label>
@@ -562,8 +562,8 @@ const VendorPaymentManagement = () => {
         >
           <div className="space-y-4">
             <p className="text-gray-700">
-              Are you sure you want to delete this payment record? This action cannot be undone.
-            </p>
+            Are you sure you want to delete payment record for vendor "{payments.find(p => p._id === paymentToDelete)?.vendor || 'this vendor'}"? This action cannot be undone.
+          </p>
             <div className="flex justify-end space-x-3 pt-4">
               <button
                 onClick={() => {

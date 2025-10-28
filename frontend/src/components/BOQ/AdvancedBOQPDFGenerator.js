@@ -317,7 +317,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose }) => {
 
             {/* Quote Table */}
             <div className="mb-8">
-              <div className="bg-gray-900 text-white p-3 mb-0">
+              <div className="bg-gray-600 text-white p-3 mb-0">
                 <h3 className="font-bold text-center">DETAILED QUOTATION</h3>
               </div>
               

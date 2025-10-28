@@ -463,16 +463,28 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError }) => {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FloatingInput
-            label="Customer"
-            name="customer"
-            value={formData.customer}
-            onChange={handleChange}
-            error={errors.customer}
-            type="select"
-            options={customerOptions.map(customer => ({ value: customer, label: customer }))}
-            required
-          />
+          {/* Customer Field - Read-only when editing, dropdown when creating */}
+          {boq ? (
+            <FloatingInput
+              label="Customer"
+              name="customer"
+              value={formData.customer}
+              readOnly={true}
+              error={errors.customer}
+              required
+            />
+          ) : (
+            <FloatingInput
+              label="Customer"
+              name="customer"
+              value={formData.customer}
+              onChange={handleChange}
+              error={errors.customer}
+              type="select"
+              options={customerOptions.map(customer => ({ value: customer, label: customer }))}
+              required
+            />
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Scope of Work</label>

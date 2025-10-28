@@ -132,7 +132,7 @@ const PartMaster = () => {
       part.partName,
       part.category,
       part.unitType,
-      part.partPrice
+      parseFloat(part.partPrice).toFixed(2) // Format for CSV too
     ]);
 
     const csvContent = [
@@ -368,7 +368,9 @@ const PartMaster = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-900">₹{part.partPrice}</div>
+                        <div className="text-sm font-semibold text-gray-900">
+                          ₹{parseFloat(part.partPrice).toFixed(2)}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex justify-end space-x-2">
@@ -449,7 +451,9 @@ const PartMaster = () => {
                     </div>
                     <div className="col-span-2">
                       <span className="font-medium text-gray-500">Price:</span>
-                      <span className="ml-1 font-semibold text-gray-900">₹{part.partPrice}</span>
+                      <span className="ml-1 font-semibold text-gray-900">
+                        ₹{parseFloat(part.partPrice).toFixed(2)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -530,96 +534,98 @@ const PartMaster = () => {
 
       {/* View Modal */}
       <Modal
-  isOpen={viewModal}
-  onClose={() => {
-    setViewModal(false);
-    setSelectedPart(null);
-  }}
-  title="Part Details"
-  size="lg"
-  className="font-sans"
->
-  {selectedPart && (
-    <div className="space-y-6 py-1">
-      {/* Header with part name and category */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-800">{selectedPart.partName}</h2>
-          <div className="mt-1 flex items-center space-x-2">
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${categoryColors[selectedPart.category] || 'bg-gray-100 text-gray-800'}`}>
-              {selectedPart.category.replace('_', ' ').toUpperCase()}
-            </span>
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${unitTypeColors[selectedPart.unitType] || 'bg-gray-100 text-gray-800'}`}>
-              {selectedPart.unitType.toUpperCase()}
-            </span>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="text-sm text-gray-500">Part Price</p>
-          <p className="text-2xl font-bold text-blue-600">₹{selectedPart.partPrice.toLocaleString()}</p>
-        </div>
-      </div>
+        isOpen={viewModal}
+        onClose={() => {
+          setViewModal(false);
+          setSelectedPart(null);
+        }}
+        title="Part Details"
+        size="lg"
+        className="font-sans"
+      >
+        {selectedPart && (
+          <div className="space-y-6 py-1">
+            {/* Header with part name and category */}
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">{selectedPart.partName}</h2>
+                <div className="mt-1 flex items-center space-x-2">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${categoryColors[selectedPart.category] || 'bg-gray-100 text-gray-800'}`}>
+                    {selectedPart.category.replace('_', ' ').toUpperCase()}
+                  </span>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${unitTypeColors[selectedPart.unitType] || 'bg-gray-100 text-gray-800'}`}>
+                    {selectedPart.unitType.toUpperCase()}
+                  </span>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-500">Part Price</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  ₹{parseFloat(selectedPart.partPrice).toFixed(2)}
+                </p>
+              </div>
+            </div>
 
-      {/* Basic Information Card */}
-      <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
-        <h3 className="text-md font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100 flex items-center">
-          <i className="fas fa-info-circle mr-2 text-blue-500"></i>
-          Basic Information
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="space-y-1">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Scope of Work</h4>
-            <p className="text-sm text-gray-900 font-medium">{selectedPart.scopeOfWork.replace('_', ' ').toUpperCase()}</p>
-          </div>
-          
-          <div className="space-y-1">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Part Name</h4>
-            <p className="text-sm text-gray-900 font-medium">{selectedPart.partName}</p>
-          </div>
-          
-          <div className="space-y-1">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Category</h4>
-            <div className="mt-1">
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${categoryColors[selectedPart.category] || 'bg-gray-100 text-gray-800'}`}>
-                {selectedPart.category.replace('_', ' ').toUpperCase()}
-              </span>
+            {/* Basic Information Card */}
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
+              <h3 className="text-md font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                <i className="fas fa-info-circle mr-2 text-blue-500"></i>
+                Basic Information
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Scope of Work</h4>
+                  <p className="text-sm text-gray-900 font-medium">{selectedPart.scopeOfWork.replace('_', ' ').toUpperCase()}</p>
+                </div>
+                
+                <div className="space-y-1">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Part Name</h4>
+                  <p className="text-sm text-gray-900 font-medium">{selectedPart.partName}</p>
+                </div>
+                
+                <div className="space-y-1">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Category</h4>
+                  <div className="mt-1">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${categoryColors[selectedPart.category] || 'bg-gray-100 text-gray-800'}`}>
+                      {selectedPart.category.replace('_', ' ').toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="space-y-1">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Unit Type</h4>
+                  <div className="mt-1">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${unitTypeColors[selectedPart.unitType] || 'bg-gray-100 text-gray-800'}`}>
+                      {selectedPart.unitType.toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3 pt-2">
+              <button
+                onClick={() => setViewModal(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setViewModal(false);
+                  setEditingPart(selectedPart);
+                  setShowModal(true);
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Edit Part
+              </button>
             </div>
           </div>
-          
-          <div className="space-y-1">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Unit Type</h4>
-            <div className="mt-1">
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${unitTypeColors[selectedPart.unitType] || 'bg-gray-100 text-gray-800'}`}>
-                {selectedPart.unitType.toUpperCase()}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex justify-end space-x-3 pt-2">
-        <button
-          onClick={() => setViewModal(false)}
-          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-        >
-          Close
-        </button>
-        <button
-          onClick={() => {
-            setViewModal(false);
-            setEditingPart(selectedPart);
-            setShowModal(true);
-          }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          Edit Part
-        </button>
-      </div>
-    </div>
-  )}
-</Modal>
+        )}
+      </Modal>
 
       {/* Notification */}
       <Notification
