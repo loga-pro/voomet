@@ -30,7 +30,14 @@ import {
   Tooltip, 
   Legend, 
   ResponsiveContainer,
-  Cell
+  Cell,
+  Area,
+  AreaChart,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar
 } from 'recharts';
 import {
   projectsAPI,
@@ -326,6 +333,86 @@ const Reports = () => {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 10);
+  };
+
+  // Get project stage distribution for radar chart
+  const getProjectStageRadarData = () => {
+    const filteredData = getFilteredComprehensiveProjectData();
+    const stageGroups = filteredData.reduce((acc, project) => {
+      const stage = project.stage || 'Unknown';
+      if (!acc[stage]) {
+        acc[stage] = {
+          stage: stage,
+          count: 0,
+          avgCompletion: 0,
+          totalValue: 0
+        };
+      }
+      acc[stage].count++;
+      acc[stage].avgCompletion += project.taskCompletionRate || 0;
+      acc[stage].totalValue += project.totalProjectValue || 0;
+      return acc;
+    }, {});
+
+    return Object.values(stageGroups).map(group => ({
+      stage: group.stage.substring(0, 15),
+      projects: group.count,
+      completion: Math.round(group.avgCompletion / group.count),
+      value: Math.round(group.totalValue / 1000000) // in millions
+    }));
+  };
+
+  // Get inventory value distribution
+  const getInventoryValueData = () => {
+    const filteredData = getFilteredInventoryData();
+    return filteredData
+      .map(item => ({
+        name: item.partName?.substring(0, 20) || 'Unknown',
+        value: (item.partPrice || 0) * (item.cumulativeQuantityAtVoomet || 0),
+        quantity: item.cumulativeQuantityAtVoomet || 0
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
+  };
+
+  // Get quality issues trend by category
+  const getQualityTrendData = () => {
+    const filteredData = getFilteredQualityData();
+    const categoryData = filteredData.reduce((acc, item) => {
+      const category = item.category || 'Unknown';
+      if (!acc[category]) {
+        acc[category] = { category, open: 0, resolved: 0, total: 0 };
+      }
+      acc[category].total++;
+      if (item.status === 'open') {
+        acc[category].open++;
+      } else {
+        acc[category].resolved++;
+      }
+      return acc;
+    }, {});
+
+    return Object.values(categoryData);
+  };
+
+  // Get vendor payment status distribution
+  const getVendorPaymentStatusData = () => {
+    const filteredData = getFilteredVendorPaymentData();
+    return filteredData.map(item => ({
+      name: item.vendor?.substring(0, 15) || 'Unknown',
+      paid: item.totalPayments || 0,
+      pending: item.balanceAmount || 0,
+      total: item.totalInvoiceRaised || 0,
+      paymentRate: item.totalInvoiceRaised > 0 
+        ? Math.round((item.totalPayments / item.totalInvoiceRaised) * 100) 
+        : 0
+    })).slice(0, 10);
+  };
+
+  // Email validation function
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
 
   const renderViewModalContent = () => {
@@ -648,6 +735,11 @@ const Reports = () => {
       return;
     }
 
+    if (!isValidEmail(emailAddress)) {
+      alert('Please enter a valid email address (e.g., name@company.com)');
+      return;
+    }
+
     try {
       setLoading(true);
       
@@ -965,7 +1057,7 @@ const Reports = () => {
   };
 
   // Colors for charts
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#FF6B9D'];
 
   // Check if any filter is active
   const hasActiveFilters = selectedProject || selectedScopeOfWork || selectedCustomer || selectedVendor;
@@ -1155,7 +1247,6 @@ const Reports = () => {
               {/* Customer Filter - for Quality Reports */}
               {activeReport === 'quality' && (
                 <div className="relative">
-
                   <button
                     type="button"
                     className={`w-full border rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
@@ -1207,7 +1298,6 @@ const Reports = () => {
               {/* Vendor Filter - for Vendor Payment Reports */}
               {activeReport === 'vendor' && (
                 <div className="relative">
-
                   <button
                     type="button"
                     className={`w-full border rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
@@ -1293,17 +1383,26 @@ const Reports = () => {
               Send Report via Email
             </label>
             <div className="flex gap-2">
-              <input
-                type="email"
-                id="email"
-                value={emailAddress}
-                onChange={(e) => setEmailAddress(e.target.value)}
-                placeholder="Enter email address (e.g., name@company.com)"
-                className="flex-1 px-4 py-2.5 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              />
+              <div className="flex-1">
+                <input
+                  type="email"
+                  id="email"
+                  value={emailAddress}
+                  onChange={(e) => setEmailAddress(e.target.value)}
+                  placeholder="Enter email address (e.g., name@company.com)"
+                  className={`w-full px-4 py-2.5 rounded-md border focus:outline-none focus:ring-2 focus:border-transparent text-sm ${
+                    emailAddress && !isValidEmail(emailAddress)
+                      ? 'border-red-300 focus:ring-red-500'
+                      : 'border-gray-300 focus:ring-blue-500'
+                  }`}
+                />
+                {emailAddress && !isValidEmail(emailAddress) && (
+                  <p className="mt-1 text-sm text-red-600">Please enter a valid email address</p>
+                )}
+              </div>
               <button
                 onClick={sendEmail}
-                disabled={!emailAddress.trim() || loading}
+                disabled={!emailAddress.trim() || !isValidEmail(emailAddress) || loading}
                 className="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
               >
                 <PaperAirplaneIcon className="h-4 w-4 mr-2" />
@@ -1361,101 +1460,268 @@ const Reports = () => {
             </div>
           )}
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Comprehensive Project Charts */}
-          {activeReport === 'project-comprehensive' && getFilteredComprehensiveProjectData().length > 0 && (
-            <>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-md font-medium text-gray-900 mb-3">Task Completion by Project</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={getFilteredComprehensiveProjectData()}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [`${value}%`, 'Completion']} />
-                    <Legend />
-                    <Bar dataKey="taskCompletionRate" name="Task Completion (%)" fill="#00C49F" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-md font-medium text-gray-900 mb-3">Payment Overview by Project</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={getFilteredComprehensiveProjectData()}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [`₹${value.toLocaleString()}`, 'Amount']} />
-                    <Legend />
-                    <Bar dataKey="paymentReceived" name="Payment Received (₹)" fill="#0088FE" />
-                    <Bar dataKey="balanceAmount" name="Balance Amount (₹)" fill="#FF8042" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </>
-          )}
-
-          {/* Inventory Charts */}
-          {activeReport === 'inventory' && processFilteredInventoryChartData().length > 0 && (
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-md font-medium text-gray-900 mb-3">Inventory by Scope of Work</h3>
+        
+        {/* Comprehensive Project Charts */}
+        {activeReport === 'project-comprehensive' && getFilteredComprehensiveProjectData().length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Task Completion Bar Chart */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg shadow-sm">
+              <h3 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
+                <span className="w-2 h-2 bg-blue-600 rounded-full mr-2"></span>
+                Task Completion by Project
+              </h3>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={processFilteredInventoryChartData()}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => [value, 'Quantity']} />
-                  <Legend />
-                  <Bar dataKey="value" name="Quantity" fill="#82ca9d" />
+                <BarChart data={getFilteredComprehensiveProjectData()}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip 
+                    formatter={(value) => [`${value}%`, 'Completion']} 
+                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }}
+                  />
+                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                  <Bar dataKey="taskCompletionRate" name="Task Completion (%)" fill="#00C49F" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          )}
 
-          {/* Quality Charts */}
-          {activeReport === 'quality' && processFilteredQualityChartData().length > 0 && (
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-md font-medium text-gray-900 mb-3">Quality Issues by Status</h3>
+            {/* Payment Overview Stacked Bar Chart */}
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-lg shadow-sm">
+              <h3 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
+                <span className="w-2 h-2 bg-green-600 rounded-full mr-2"></span>
+                Payment Overview by Project
+              </h3>
               <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={processFilteredQualityChartData()}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={true}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {processFilteredQualityChartData().map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => [value, 'Count']} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          {/* Vendor Payment Charts */}
-          {activeReport === 'vendor' && processFilteredVendorPaymentChartData().length > 0 && (
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-md font-medium text-gray-900 mb-3">Top 10 Vendor Payments</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={processFilteredVendorPaymentChartData()}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                  <YAxis />
-                  <Tooltip formatter={(value) => [`₹${value.toLocaleString()}`, 'Total Payment']} />
-                  <Legend />
-                  <Bar dataKey="value" name="Total Payment (₹)" fill="#8884d8" />
+                <BarChart data={getFilteredComprehensiveProjectData()}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip 
+                    formatter={(value) => [`₹${value.toLocaleString()}`, 'Amount']} 
+                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }}
+                  />
+                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                  <Bar dataKey="paymentReceived" name="Payment Received (₹)" fill="#0088FE" stackId="a" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="balanceAmount" name="Balance Amount (₹)" fill="#FF8042" stackId="a" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          )}
-        </div>
+
+            {/* Project Stage Distribution - Radar Chart */}
+            {getProjectStageRadarData().length > 0 && (
+              <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-6 rounded-lg shadow-sm">
+                <h3 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
+                  <span className="w-2 h-2 bg-purple-600 rounded-full mr-2"></span>
+                  Project Stage Analysis
+                </h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <RadarChart data={getProjectStageRadarData()}>
+                    <PolarGrid stroke="#e0e0e0" />
+                    <PolarAngleAxis dataKey="stage" tick={{ fontSize: 11 }} />
+                    <PolarRadiusAxis tick={{ fontSize: 11 }} />
+                    <Radar name="Projects Count" dataKey="projects" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
+                    <Radar name="Avg Completion %" dataKey="completion" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.6} />
+                    <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }} />
+                    <Legend />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Project Value Distribution - Area Chart */}
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-6 rounded-lg shadow-sm">
+              <h3 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
+                <span className="w-2 h-2 bg-amber-600 rounded-full mr-2"></span>
+                Project Value Trend
+              </h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={getFilteredComprehensiveProjectData()}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip 
+                    formatter={(value) => [`₹${value.toLocaleString()}`, 'Value']} 
+                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }}
+                  />
+                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                  <Area type="monotone" dataKey="totalProjectValue" name="Total Value (₹)" stroke="#FFBB28" fill="#FFBB28" fillOpacity={0.6} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* Inventory Charts */}
+        {activeReport === 'inventory' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Inventory by Scope - Bar Chart */}
+            {processFilteredInventoryChartData().length > 0 && (
+              <div className="bg-gradient-to-br from-cyan-50 to-blue-50 p-6 rounded-lg shadow-sm">
+                <h3 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
+                  <span className="w-2 h-2 bg-cyan-600 rounded-full mr-2"></span>
+                  Inventory Quantity by Scope
+                </h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={processFilteredInventoryChartData()}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip 
+                      formatter={(value) => [value, 'Quantity']} 
+                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }}
+                    />
+                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                    <Bar dataKey="value" name="Quantity" fill="#82ca9d" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Inventory Value Distribution - Pie Chart */}
+            {getInventoryValueData().length > 0 && (
+              <div className="bg-gradient-to-br from-teal-50 to-green-50 p-6 rounded-lg shadow-sm">
+                <h3 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
+                  <span className="w-2 h-2 bg-teal-600 rounded-full mr-2"></span>
+                  Top 10 Inventory Value Distribution
+                </h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={getInventoryValueData()}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={true}
+                      outerRadius={90}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {getInventoryValueData().map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value) => [`₹${value.toLocaleString()}`, 'Value']} 
+                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Quality Charts */}
+        {activeReport === 'quality' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Quality Issues Status - Pie Chart */}
+            {processFilteredQualityChartData().length > 0 && (
+              <div className="bg-gradient-to-br from-rose-50 to-red-50 p-6 rounded-lg shadow-sm">
+                <h3 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
+                  <span className="w-2 h-2 bg-rose-600 rounded-full mr-2"></span>
+                  Quality Issues by Status
+                </h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={processFilteredQualityChartData()}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={true}
+                      outerRadius={90}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {processFilteredQualityChartData().map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value) => [value, 'Count']} 
+                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Quality Issues Trend by Category */}
+            {getQualityTrendData().length > 0 && (
+              <div className="bg-gradient-to-br from-violet-50 to-purple-50 p-6 rounded-lg shadow-sm">
+                <h3 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
+                  <span className="w-2 h-2 bg-violet-600 rounded-full mr-2"></span>
+                  Quality Issues by Category
+                </h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={getQualityTrendData()}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                    <XAxis dataKey="category" angle={-45} textAnchor="end" height={100} tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }} />
+                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                    <Bar dataKey="open" name="Open Issues" fill="#FF8042" stackId="a" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="resolved" name="Resolved Issues" fill="#00C49F" stackId="a" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Vendor Payment Charts */}
+        {activeReport === 'vendor' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Top Vendor Payments - Bar Chart */}
+            {processFilteredVendorPaymentChartData().length > 0 && (
+              <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-6 rounded-lg shadow-sm">
+                <h3 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
+                  <span className="w-2 h-2 bg-indigo-600 rounded-full mr-2"></span>
+                  Top 10 Vendor Payments
+                </h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={processFilteredVendorPaymentChartData()}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip 
+                      formatter={(value) => [`₹${value.toLocaleString()}`, 'Total Payment']} 
+                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }}
+                    />
+                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                    <Bar dataKey="value" name="Total Payment (₹)" fill="#8884d8" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
+            {/* Vendor Payment Status - Stacked Bar */}
+            {getVendorPaymentStatusData().length > 0 && (
+              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-6 rounded-lg shadow-sm">
+                <h3 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
+                  <span className="w-2 h-2 bg-emerald-600 rounded-full mr-2"></span>
+                  Vendor Payment Status
+                </h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={getVendorPaymentStatusData()}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip 
+                      formatter={(value) => [`₹${value.toLocaleString()}`, 'Amount']} 
+                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }}
+                    />
+                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                    <Bar dataKey="paid" name="Paid (₹)" fill="#00C49F" stackId="a" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="pending" name="Pending (₹)" fill="#FFBB28" stackId="a" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Report Data Table */}
@@ -1478,7 +1744,7 @@ const Reports = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {activeReportConfig.data.map((item, index) => (
-                <tr key={index}>
+                <tr key={index} className="hover:bg-gray-50 transition-colors">
                   {activeReportConfig.columns.map((column, colIndex) => (
                     <td key={colIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {typeof column.accessor === 'function' 
@@ -1491,6 +1757,11 @@ const Reports = () => {
               ))}
             </tbody>
           </table>
+          {activeReportConfig.data.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500 text-sm">No data available for the selected filters</p>
+            </div>
+          )}
         </div>
       </div>
 
