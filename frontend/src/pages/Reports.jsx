@@ -182,6 +182,11 @@ const Reports = () => {
 
   const processComprehensiveProjectChartData = (comprehensiveProjects) => {
     const completionData = comprehensiveProjects.map(project => {
+      // Calculate task completion ratio (completed/total)
+      const totalTasks = project.milestoneData?.totalTasks || project.tasks?.length || 0;
+      const completedTasks = project.milestoneData?.completedTasks || 0;
+      const taskCompleted = totalTasks > 0 ? `${completedTasks}/${totalTasks}` : '0/0';
+      
       return {
         name: project.projectName,
         milestoneCompletion: project.milestoneData?.milestoneCompletionRate || 0,
@@ -193,7 +198,12 @@ const Reports = () => {
         totalProjectValue: project.totalProjectValue,
         milestoneData: project.milestoneData,
         paymentData: project.paymentData,
-        taskCompletionRate: project.milestoneData?.taskCompletionRate || 0
+        taskCompletionRate: project.milestoneData?.taskCompletionRate || 0,
+        // New fields for PDF
+        invoiceRaised: project.paymentData?.totalInvoiceRaised || 0,
+        taskCompleted: taskCompleted,
+        totalTasks: totalTasks,
+        completedTasks: completedTasks
       };
     });
 

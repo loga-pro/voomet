@@ -19,6 +19,7 @@ import PaymentMaster from './pages/PaymentMaster';
 import Vendorpayment from './pages/Vendorpayment'
 import Reports from './pages/Reports';
 import TestOptimizedPDF from './pages/TestOptimizedPDF';
+import PDFTestPage from './components/Reports/PDFTestPage';
 function App() {
   return (
     <Router>
@@ -99,6 +100,7 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="test-pdf" element={<TestOptimizedPDF />} />
+            <Route path="test-comprehensive-pdf" element={<PDFTestPage />} />
           </Route>
         </Routes>
       </div>

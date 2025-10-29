@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Generation Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; color: #0c5460; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; border: none; border-radius: 4px; }
+        .test-btn { background-color: #007bff; color: white; }
+        .test-btn:hover { background-color: #0056b3; }
+        .result { margin-top: 10px; padding: 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>PDF Generation Test</h1>
+    <p>This page tests the PDF generation functionality for different report types.</p>
+    
+    <div class="test-section">
+        <h2>Test Report Types</h2>
+        <button class="test-btn" onclick="testReport('inventory')">Test Inventory Report</button>
+        <button class="test-btn" onclick="testReport('quality')">Test Quality Report</button>
+        <button class="test-btn" onclick="testReport('vendor')">Test Vendor Payment Report</button>
+        <button class="test-btn" onclick="testReport('project-comprehensive')">Test Project Report</button>
+        
+        <div id="test-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Expected Results</h2>
+        <ul>
+            <li><strong>Inventory Report:</strong> Should show Scope of Work, Part Name, Part Price, Cumulative Quantity, Date of Receipt</li>
+            <li><strong>Quality Report:</strong> Should show Customer, Scope of Work, Category, Status, Responsibility, Created Date</li>
+            <li><strong>Vendor Payment Report:</strong> Should show Vendor, GST Number, Total Invoice Raised, Total Payments, Balance, Status</li>
+            <li><strong>Project Report:</strong> Should show Customer Name, Project Name, Stage, Total Value, Enquiry Date</li>
+        </ul>
+    </div>
+
+    <script>
+        // Test data for different report types
+        const testData = {
+            inventory: [
+                {
+                    scopeOfWork: 'ELECTRICAL_WORKS',
+                    partName: 'Electrical Cable',
+                    partPrice: 1500,
+                    cumulativeQuantityAtVoomet: 100,
+                    dateOfReceipt: '2024-01-15'
+                },
+                {
+                    scopeOfWork: 'PLUMBING_WORKS',
+                    partName: 'PVC Pipe',
+                    partPrice: 800,
+                    cumulativeQuantityAtVoomet: 50,
+                    dateOfReceipt: '2024-01-16'
+                }
+            ],
+            quality: [
+                {
+                    customer: 'ABC Corporation',
+                    scopeOfWork: 'CIVIL_WORKS',
+                    category: 'Material Quality',
+                    status: 'Open',
+                    responsibility: 'Site Manager',
+                    createdAt: '2024-01-10T10:00:00Z'
+                },
+                {
+                    customer: 'XYZ Industries',
+                    scopeOfWork: 'ELECTRICAL_WORKS',
+                    category: 'Installation Quality',
+                    status: 'Resolved',
+                    responsibility: 'Electrical Team',
+                    createdAt: '2024-01-12T14:30:00Z'
+                }
+            ],
+            vendor: [
+                {
+                    vendor: 'Supplier A',
+                    vendorGstNumber: 'GST123456789',
+                    totalInvoiceRaised: 50000,
+                    totalPayments: 30000,
+                    balanceAmount: 20000,
+                    status: 'Partially Paid'
+                },
+                {
+                    vendor: 'Supplier B',
+                    vendorGstNumber: 'GST987654321',
+                    totalInvoiceRaised: 75000,
+                    totalPayments: 75000,
+                    balanceAmount: 0,
+                    status: 'Paid'
+                }
+            ],
+            'project-comprehensive': [
+                {
+                    customerName: 'Client A',
+                    projectName: 'Building Project A',
+                    stage: 'DESIGN_STAGE',
+                    totalProjectValue: 500000,
+                    enquiryDate: '2024-01-01'
+                },
+                {
+                    customerName: 'Client B',
+                    projectName: 'Infrastructure Project B',
+                    stage: 'EXECUTION_STAGE',
+                    totalProjectValue: 750000,
+                    enquiryDate: '2024-01-05'
+                }
+            ]
+        };
+
+        function testReport(reportType) {
+            const resultsDiv = document.getElementById('test-results');
+            
+            try {
+                // Test the getTableData function logic
+                const data = testData[reportType];
+                const result = simulateGetTableData(data, reportType);
+                
+                let resultHtml = `<div class="result info">
+                    <strong>Report Type:</strong> ${reportType}<br>
+                    <strong>Input Records:</strong> ${data.length}<br>
+                    <strong>Headers:</strong> ${result.headers.map(h => h.displayName).join(', ')}<br>
+                    <strong>Sample Row:</strong> ${JSON.stringify(result.rows[0], null, 2)}
+                </div>`;
+                
+                // Validate that the correct fields are shown
+                const expectedHeaders = getExpectedHeaders(reportType);
+                const actualHeaders = result.headers.map(h => h.displayName);
+                const missingHeaders = expectedHeaders.filter(h => !actualHeaders.includes(h));
+                
+                if (missingHeaders.length === 0) {
+                    resultHtml += `<div class="result success">
+                        ✓ All expected headers are present for ${reportType} report
+                    </div>`;
+                } else {
+                    resultHtml += `<div class="result error">
+                        ✗ Missing headers for ${reportType} report: ${missingHeaders.join(', ')}
+                    </div>`;
+                }
+                
+                resultsDiv.innerHTML = resultHtml;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="result error">
+                    Error testing ${reportType}: ${error.message}
+                </div>`;
+            }
+        }
+
+        function simulateGetTableData(reportData, reportType) {
+            if (!reportData || reportData.length === 0) return { headers: [], rows: [] };
+
+            // Define report-specific configurations (same as in BackgroundReportPDFGenerator)
+            const reportConfigs = {
+                inventory: {
+                    headers: [
+                        { key: 'scopeOfWork', displayName: 'Scope of Work' },
+                        { key: 'partName', displayName: 'Part Name' },
+                        { key: 'partPrice', displayName: 'Part Price (₹)' },
+                        { key: 'cumulativeQuantityAtVoomet', displayName: 'Cumulative Quantity' },
+                        { key: 'dateOfReceipt', displayName: 'Date of Receipt' }
+                    ]
+                },
+                quality: {
+                    headers: [
+                        { key: 'customer', displayName: 'Customer' },
+                        { key: 'scopeOfWork', displayName: 'Scope of Work' },
+                        { key: 'category', displayName: 'Category' },
+                        { key: 'status', displayName: 'Status' },
+                        { key: 'responsibility', displayName: 'Responsibility' },
+                        { key: 'createdAt', displayName: 'Created Date' }
+                    ]
+                },
+                vendor: {
+                    headers: [
+                        { key: 'vendor', displayName: 'Vendor' },
+                        { key: 'vendorGstNumber', displayName: 'GST Number' },
+                        { key: 'totalInvoiceRaised', displayName: 'Total Invoice Raised (₹)' },
+                        { key: 'totalPayments', displayName: 'Total Payments (₹)' },
+                        { key: 'balanceAmount', displayName: 'Balance (₹)' },
+                        { key: 'status', displayName: 'Status' }
+                    ]
+                },
+                'project-comprehensive': {
+                    headers: [
+                        { key: 'customerName', displayName: 'Customer Name' },
+                        { key: 'projectName', displayName: 'Project Name' },
+                        { key: 'stage', displayName: 'Stage' },
+                        { key: 'totalProjectValue', displayName: 'Total Value (₹)' },
+                        { key: 'enquiryDate', displayName: 'Enquiry Date' }
+                    ]
+                }
+            };
+
+            const config = reportConfigs[reportType] || reportConfigs['project-comprehensive'];
+            const headers = config.headers;
+
+            const rows = reportData.map(item => {
+                const row = {};
+                
+                headers.forEach(({ key }) => {
+                    let value = item[key];
+                    
+                    // Handle alternative field names
+                    if (!value && value !== 0) {
+                        const altKeys = {
+                            scopeOfWork: ['scopeOfWork', 'scope_of_work'],
+                            partName: ['partName', 'part_name'],
+                            partPrice: ['partPrice', 'part_price', 'price'],
+                            cumulativeQuantityAtVoomet: ['cumulativeQuantityAtVoomet', 'cumulative_quantity', 'quantity'],
+                            dateOfReceipt: ['dateOfReceipt', 'date_of_receipt', 'receiptDate'],
+                            customer: ['customer', 'customerName', 'clientName'],
+                            category: ['category', 'type'],
+                            status: ['status', 'state'],
+                            responsibility: ['responsibility', 'assignedTo'],
+                            createdAt: ['createdAt', 'created_at', 'dateCreated'],
+                            vendor: ['vendor', 'vendorName', 'supplier'],
+                            vendorGstNumber: ['vendorGstNumber', 'gstNumber', 'gst'],
+                            totalInvoiceRaised: ['totalInvoiceRaised', 'totalInvoice', 'invoiceAmount'],
+                            totalPayments: ['totalPayments', 'payments', 'paidAmount'],
+                            balanceAmount: ['balanceAmount', 'balance', 'remainingAmount'],
+                            projectName: ['projectName', 'project_name', 'name'],
+                            customerName: ['customerName', 'customer_name', 'clientName'],
+                            stage: ['stage', 'projectStage', 'currentStage'],
+                            totalProjectValue: ['totalProjectValue', 'totalValue', 'projectValue'],
+                            enquiryDate: ['enquiryDate', 'enquiry_date', 'startDate']
+                        };
+                        
+                        const alternatives = altKeys[key] || [key];
+                        for (let altKey of alternatives) {
+                            if (item[altKey] !== undefined && item[altKey] !== null) {
+                                value = item[altKey];
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Format specific fields
+                    if (key.toLowerCase().includes('price') || key.toLowerCase().includes('amount') || key.toLowerCase().includes('value')) {
+                        value = '₹' + (value || 0).toLocaleString();
+                    } else if (key.toLowerCase().includes('date')) {
+                        if (value) {
+                            const date = new Date(value);
+                            value = date.toLocaleDateString('en-IN');
+                        } else {
+                            value = '-';
+                        }
+                    } else if (key === 'scopeOfWork' && value) {
+                        value = value.replace(/_/g, ' ').toUpperCase();
+                    } else {
+                        value = value || '-';
+                    }
+                    
+                    row[key] = value;
+                });
+                return row;
+            });
+
+            return { headers, rows };
+        }
+
+        function getExpectedHeaders(reportType) {
+            const expected = {
+                inventory: ['Scope of Work', 'Part Name', 'Part Price (₹)', 'Cumulative Quantity', 'Date of Receipt'],
+                quality: ['Customer', 'Scope of Work', 'Category', 'Status', 'Responsibility', 'Created Date'],
+                vendor: ['Vendor', 'GST Number', 'Total Invoice Raised (₹)', 'Total Payments (₹)', 'Balance (₹)', 'Status'],
+                'project-comprehensive': ['Customer Name', 'Project Name', 'Stage', 'Total Value (₹)', 'Enquiry Date']
+            };
+            return expected[reportType] || [];
+        }
+    </script>
+</body>
+</html>

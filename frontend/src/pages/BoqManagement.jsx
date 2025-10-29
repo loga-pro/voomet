@@ -259,7 +259,7 @@ const handleAdvancedPDFPreview = (item) => {
   };
 
   const handleFileAccess = (filePath, fileName) => {
-    const fullUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${filePath}`;
+    const fullUrl = `${process.env.REACT_APP_API_URL || 'https://3z1p79h8-5000.inc1.devtunnels.ms'}${filePath}`;
     console.log('Attempting to access file:', fullUrl);
     
     // Try to open the file in a new tab
@@ -860,7 +860,7 @@ const handleAdvancedPDFPreview = (item) => {
                     </div>
                     
                     <a 
-                      href={`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${selectedItem.image.path}`}
+                      href={`${process.env.REACT_APP_API_URL || 'https://3z1p79h8-5000.inc1.devtunnels.ms'}${selectedItem.image.path}`}
                       download={selectedItem.image.originalName || 'document'}
                       className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors duration-200 flex items-center"
                       onClick={(e) => {
@@ -890,7 +890,7 @@ const handleAdvancedPDFPreview = (item) => {
                     ) : selectedItem.image.path.match(/\.(jpe?g|png|gif|webp|bmp)$/i) ? (
                       <div className="border border-gray-200 rounded-lg overflow-hidden">
                         <img 
-                          src={`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${selectedItem.image.path}`}
+                          src={`${process.env.REACT_APP_API_URL || 'https://3z1p79h8-5000.inc1.devtunnels.ms'}${selectedItem.image.path}`}
                           alt={selectedItem.image.originalName || "Document preview"} 
                           className="w-full h-auto max-h-64 object-contain"
                           onError={(e) => {

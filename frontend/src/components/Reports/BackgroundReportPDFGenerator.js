@@ -41,8 +41,21 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
     let totalRecords = reportData.length;
     
     reportData.forEach(item => {
-      // Handle different possible field names in your data
-      const value = item.totalValue || item.totalProjectValue || item.roleValue || item.totalAmount || 0;
+      let value = 0;
+      
+      // Calculate total value based on report type
+      if (reportType === 'inventory') {
+        const price = item.partPrice || item.part_price || item.price || 0;
+        const quantity = item.cumulativeQuantityAtVoomet || item.cumulative_quantity || item.quantity || 1;
+        value = price * quantity;
+      } else if (reportType === 'vendor') {
+        value = item.totalInvoiceRaised || item.totalInvoice || item.invoiceAmount || 0;
+      } else if (reportType === 'payment') {
+        value = item.projectCost || item.totalInvoiceRaised || 0;
+      } else {
+        // Default for project, milestone, quality reports
+        value = item.totalValue || item.totalProjectValue || item.roleValue || item.totalAmount || 0;
+      }
       
       // Clean and convert currency string to number
       if (typeof value === 'string') {
@@ -90,60 +103,119 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
     return `${numValue}%`;
   };
 
-  // UPDATED: Custom table headers and data mapping for your specific data structure
+  // Custom table headers and data mapping based on report type
   const getTableData = () => {
     if (!reportData || reportData.length === 0) return { headers: [], rows: [] };
 
-    // Define column mapping based on your actual data structure from the image
-    const columnMapping = {
-      projectName: 'Project Name',
-      milestoneCompletion: 'Milestone Completion',
-      paymentReceived: 'Payment Received',
-      balanceAmount: 'Balance Amount',
-      stage: 'Stage',
-      customerName: 'Customer Name',
-      totalValue: 'Total Value',
-      completionRate: 'Completion Rate',
-      
-      // Alternative field names that might exist in your data
-      name: 'Project Name',
-      totalProjectValue: 'Total Value',
-      roleValue: 'Total Value',
-      taskCompletionRate: 'Completion Rate',
-      paymentAmount: 'Payment Received'
+    // Define report-specific configurations
+    const reportConfigs = {
+      inventory: {
+        headers: [
+          { key: 'scopeOfWork', displayName: 'Scope of Work' },
+          { key: 'partName', displayName: 'Part Name' },
+          { key: 'partPrice', displayName: 'Part Price (₹)' },
+          { key: 'cumulativeQuantityAtVoomet', displayName: 'Cumulative Quantity' },
+          { key: 'dateOfReceipt', displayName: 'Date of Receipt' }
+        ]
+      },
+      quality: {
+        headers: [
+          { key: 'customer', displayName: 'Customer' },
+          { key: 'scopeOfWork', displayName: 'Scope of Work' },
+          { key: 'category', displayName: 'Category' },
+          { key: 'status', displayName: 'Status' },
+          { key: 'responsibility', displayName: 'Responsibility' },
+          { key: 'createdAt', displayName: 'Created Date' }
+        ]
+      },
+      vendor: {
+        headers: [
+          { key: 'vendor', displayName: 'Vendor' },
+          { key: 'vendorGstNumber', displayName: 'GST Number' },
+          { key: 'totalInvoiceRaised', displayName: 'Total Invoice Raised (₹)' },
+          { key: 'totalPayments', displayName: 'Total Payments (₹)' },
+          { key: 'balanceAmount', displayName: 'Balance (₹)' },
+          { key: 'status', displayName: 'Status' }
+        ]
+      },
+      'project-comprehensive': {
+        headers: [
+          { key: 'customerName', displayName: 'Customer Name' },
+          { key: 'projectName', displayName: 'Project Name' },
+          { key: 'stage', displayName: 'Stage' },
+          { key: 'totalProjectValue', displayName: 'Total Value (₹)' },
+          { key: 'invoiceRaised', displayName: 'Invoice Raised (₹)' },
+          { key: 'paymentReceived', displayName: 'Payment Received (₹)' },
+          { key: 'balanceAmount', displayName: 'Balance Amount (₹)' },
+          { key: 'taskCompleted', displayName: 'Task Completed' },
+          { key: 'milestoneCompletion', displayName: 'Milestone Completion' },
+          { key: 'enquiryDate', displayName: 'Enquiry Date' }
+        ]
+      },
+      milestone: {
+        headers: [
+          { key: 'customer', displayName: 'Customer' },
+          { key: 'projectName', displayName: 'Project Name' },
+          { key: 'startDate', displayName: 'Start Date' },
+          { key: 'endDate', displayName: 'End Date' },
+          { key: 'projectStatus', displayName: 'Status' }
+        ]
+      },
+      payment: {
+        headers: [
+          { key: 'customer', displayName: 'Customer' },
+          { key: 'projectName', displayName: 'Project Name' },
+          { key: 'projectCost', displayName: 'Project Cost (₹)' },
+          { key: 'totalInvoiceRaised', displayName: 'Total Invoice Raised (₹)' },
+          { key: 'totalPayments', displayName: 'Total Payments (₹)' },
+          { key: 'balanceAmount', displayName: 'Balance (₹)' },
+          { key: 'status', displayName: 'Status' }
+        ]
+      }
     };
 
-    // Sample data structure based on your image - use this to create headers
-    const sampleHeaders = [
-      'projectName', 'milestoneCompletion', 'paymentReceived', 'balanceAmount', 
-      'stage', 'customerName', 'totalValue', 'completionRate'
-    ];
+    // Get the configuration for the current report type
+    const config = reportConfigs[reportType] || reportConfigs['project-comprehensive'];
+    const headers = config.headers;
 
-    // Create headers based on sample structure or actual data
-    const headers = sampleHeaders.map(key => ({
-      key,
-      displayName: columnMapping[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
-    }));
-
-    // Format row data - handle your actual data structure
+    // Format row data based on report type
     const rows = reportData.map(item => {
       const row = {};
       
       headers.forEach(({ key }) => {
         let value = item[key];
         
-        // If value doesn't exist, try alternative field names
+        // Handle alternative field names for different report types
         if (!value && value !== 0) {
-          // Map alternative field names
           const altKeys = {
-            projectName: ['name', 'projectName'],
-            milestoneCompletion: ['milestoneCompletion', 'completionDate'],
-            paymentReceived: ['paymentReceived', 'paymentAmount', 'receivedAmount'],
-            balanceAmount: ['balanceAmount', 'remainingAmount'],
-            stage: ['stage', 'status', 'projectStage'],
-            customerName: ['customerName', 'clientName', 'customer'],
-            totalValue: ['totalValue', 'totalProjectValue', 'roleValue', 'totalAmount'],
-            completionRate: ['completionRate', 'taskCompletionRate', 'progress']
+            scopeOfWork: ['scopeOfWork', 'scope_of_work'],
+            partName: ['partName', 'part_name'],
+            partPrice: ['partPrice', 'part_price', 'price'],
+            cumulativeQuantityAtVoomet: ['cumulativeQuantityAtVoomet', 'cumulative_quantity', 'quantity'],
+            dateOfReceipt: ['dateOfReceipt', 'date_of_receipt', 'receiptDate'],
+            customer: ['customer', 'customerName', 'clientName'],
+            category: ['category', 'type'],
+            status: ['status', 'state'],
+            responsibility: ['responsibility', 'assignedTo'],
+            createdAt: ['createdAt', 'created_at', 'dateCreated'],
+            vendor: ['vendor', 'vendorName', 'supplier'],
+            vendorGstNumber: ['vendorGstNumber', 'gstNumber', 'gst'],
+            totalInvoiceRaised: ['totalInvoiceRaised', 'totalInvoice', 'invoiceAmount'],
+            totalPayments: ['totalPayments', 'payments', 'paidAmount'],
+            balanceAmount: ['balanceAmount', 'balance', 'remainingAmount'],
+            projectName: ['projectName', 'project_name', 'name'],
+            customerName: ['customerName', 'customer_name', 'clientName'],
+            stage: ['stage', 'projectStage', 'currentStage'],
+            totalProjectValue: ['totalProjectValue', 'totalValue', 'projectValue'],
+            invoiceRaised: ['invoiceRaised', 'totalInvoiceRaised', 'totalInvoice', 'invoiceAmount'],
+            paymentReceived: ['paymentReceived', 'totalPaymentReceived', 'payments', 'paidAmount'],
+            balanceAmount: ['balanceAmount', 'balance', 'remainingAmount'],
+            taskCompleted: ['taskCompleted', 'taskCompletion', 'completedTasks'],
+            milestoneCompletion: ['milestoneCompletion', 'milestoneCompletionRate', 'completionRate'],
+            enquiryDate: ['enquiryDate', 'enquiry_date', 'startDate'],
+            startDate: ['startDate', 'start_date'],
+            endDate: ['endDate', 'end_date'],
+            projectStatus: ['projectStatus', 'status', 'project_status']
           };
           
           const alternatives = altKeys[key] || [key];
@@ -155,11 +227,34 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
           }
         }
         
-        // Format specific fields
-        if (key.includes('Value') || key.includes('Amount') || key.includes('Payment')) {
+        // Format specific fields based on key patterns
+        if (key.toLowerCase().includes('price') || key.toLowerCase().includes('amount') || key.toLowerCase().includes('value') || key.toLowerCase().includes('payment') || key.toLowerCase().includes('invoice')) {
           value = formatCurrency(value);
-        } else if (key.includes('Rate') || key.includes('CompletionRate')) {
-          value = formatPercentage(value);
+        } else if (key.toLowerCase().includes('date')) {
+          if (value) {
+            const date = new Date(value);
+            value = date.toLocaleDateString('en-IN');
+          } else {
+            value = '-';
+          }
+        } else if (key === 'scopeOfWork' && value) {
+          value = value.replace(/_/g, ' ').toUpperCase();
+        } else if (key === 'taskCompleted') {
+          // Format task completion as "completed/total"
+          if (value && typeof value === 'string' && value.includes('/')) {
+            value = value; // Already formatted
+          } else if (value && typeof value === 'object' && value.completed !== undefined && value.total !== undefined) {
+            value = `${value.completed}/${value.total}`;
+          } else {
+            // Try to extract from milestone data or other sources
+            const completedTasks = item.completedTasks || item.completed_tasks || 0;
+            const totalTasks = item.totalTasks || item.total_tasks || item.tasks?.length || 0;
+            if (completedTasks || totalTasks) {
+              value = `${completedTasks}/${totalTasks}`;
+            } else {
+              value = value || '-';
+            }
+          }
         } else if (typeof value === 'boolean') {
           value = value ? 'Yes' : 'No';
         } else {
@@ -378,17 +473,24 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
               <div style={{ fontWeight: '600', color: '#4b5563', fontSize: '11px' }}>Total Records</div>
               <div style={{ fontWeight: 'bold', color: '#111827', fontSize: '12px' }}>{stats.totalRecords}</div>
             </div>
-            <div style={{ 
-              backgroundColor: '#f3f4f6', 
-              padding: '12px', 
-              borderRadius: '4px', 
-              border: '1px solid #d1d5db'
-            }}>
-              <div style={{ fontWeight: '600', color: '#4b5563', fontSize: '11px' }}>Total Project Value</div>
-              <div style={{ fontWeight: 'bold', color: '#111827', fontSize: '12px' }}>
-                {formatCurrency(stats.totalValue)}
+            {stats.totalValue > 0 && (
+              <div style={{ 
+                backgroundColor: '#f3f4f6', 
+                padding: '12px', 
+                borderRadius: '4px', 
+                border: '1px solid #d1d5db'
+              }}>
+                <div style={{ fontWeight: '600', color: '#4b5563', fontSize: '11px' }}>
+                  {reportType === 'inventory' ? 'Total Inventory Value' :
+                   reportType === 'vendor' ? 'Total Invoice Amount' :
+                   reportType === 'payment' ? 'Total Project Cost' :
+                   'Total Project Value'}
+                </div>
+                <div style={{ fontWeight: 'bold', color: '#111827', fontSize: '12px' }}>
+                  {formatCurrency(stats.totalValue)}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -401,7 +503,12 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
               color: '#1f2937', 
               marginBottom: '12px' 
             }}>
-              Project Details
+              {reportType === 'inventory' ? 'Inventory Details' :
+               reportType === 'quality' ? 'Quality Details' :
+               reportType === 'vendor' ? 'Vendor Details' :
+               reportType === 'payment' ? 'Payment Details' :
+               reportType === 'milestone' ? 'Milestone Details' :
+               'Project Details'}
             </h3>
             <div style={{ width: '100%', overflow: 'auto' }}>
               <table style={{ 

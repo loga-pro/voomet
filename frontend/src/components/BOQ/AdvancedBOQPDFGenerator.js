@@ -130,13 +130,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose }) => {
         <div className="flex justify-between items-center p-4 border-b print:hidden">
           <h2 className="text-xl font-semibold">BOQ PDF Generator - {boqData.customer}</h2>
           <div className="flex space-x-3">
-            <button
-              onClick={handlePrint}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm flex items-center"
-            >
-              <PrinterIcon className="h-4 w-4 mr-2" />
-              Print
-            </button>
+           
             <button
               onClick={generatePDF}
               disabled={isGeneratingPDF}
