@@ -37,18 +37,23 @@ const PartMaster = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const { notification, showSuccess, hideNotification } = useNotification();
 
+  // Helper function to format scope of work
+  const formatScopeOfWork = (scope) => {
+    return scope.replace(/_/g, ' ').toLowerCase();
+  };
+
   // Category color mapping
   const categoryColors = {
     inhouse: 'bg-blue-100 text-blue-800',
-    outsourced: 'bg-purple-100 text-purple-800',
-    bought: 'bg-green-100 text-green-800'
+    out_sourced: 'bg-purple-100 text-purple-800',
+    bought_out: 'bg-green-100 text-green-800'
   };
 
   // Unit type color mapping
   const unitTypeColors = {
-    'sq-feet': 'bg-orange-100 text-orange-800',
-    'number': 'bg-indigo-100 text-indigo-800',
-    'meter': 'bg-pink-100 text-pink-800'
+    sq_feet: 'bg-orange-100 text-orange-800',
+    number: 'bg-indigo-100 text-indigo-800',
+    meter: 'bg-pink-100 text-pink-800'
   };
 
   useEffect(() => {
@@ -128,11 +133,11 @@ const PartMaster = () => {
   const exportToCSV = () => {
     const headers = ['Scope of Work', 'Part Name', 'Category', 'Unit Type', 'Part Price'];
     const csvData = filteredParts.map(part => [
-      part.scopeOfWork,
+      formatScopeOfWork(part.scopeOfWork),
       part.partName,
-      part.category,
-      part.unitType,
-      parseFloat(part.partPrice).toFixed(2) // Format for CSV too
+      part.category.replace('_', ' ').toUpperCase(),
+      part.unitType.toUpperCase(),
+      parseFloat(part.partPrice).toFixed(2)
     ]);
 
     const csvContent = [
@@ -279,7 +284,7 @@ const PartMaster = () => {
                   >
                     <option value="">All Scopes</option>
                     {uniqueScopes.map(scope => (
-                      <option key={scope} value={scope}>{scope.replace('_', ' ').toUpperCase()}</option>
+                      <option key={scope} value={scope}>{formatScopeOfWork(scope)}</option>
                     ))}
                   </select>
                 </div>
@@ -325,9 +330,9 @@ const PartMaster = () => {
 
             {/* Desktop Table View */}
             <div className="hidden sm:block">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Scope of Work
                     </th>
@@ -352,7 +357,9 @@ const PartMaster = () => {
                   {currentItems.map((part) => (
                     <tr key={part._id} className="hover:bg-gray-50 transition-colors duration-150">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{part.scopeOfWork.replace('_', ' ').toUpperCase()}</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {formatScopeOfWork(part.scopeOfWork)}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900 font-medium">{part.partName}</div>
@@ -410,7 +417,9 @@ const PartMaster = () => {
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-medium text-gray-900 truncate">{part.partName}</h3>
-                      <p className="text-sm text-gray-500 truncate">{part.scopeOfWork.replace('_', ' ').toUpperCase()}</p>
+                      <p className="text-sm text-gray-500 truncate">
+                        {formatScopeOfWork(part.scopeOfWork)}
+                      </p>
                     </div>
                     <div className="flex space-x-2 ml-2">
                       <button
@@ -576,7 +585,9 @@ const PartMaster = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-1">
                   <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Scope of Work</h4>
-                  <p className="text-sm text-gray-900 font-medium">{selectedPart.scopeOfWork.replace('_', ' ').toUpperCase()}</p>
+                  <p className="text-sm text-gray-900 font-medium">
+                    {formatScopeOfWork(selectedPart.scopeOfWork)}
+                  </p>
                 </div>
                 
                 <div className="space-y-1">

@@ -190,69 +190,69 @@ const CustomerMaster = () => {
       <div className="max-w-none xl:max-w-8xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
 
-<div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
-    <div className="flex items-center space-x-3">
-      <div className="relative flex-1 max-w-md">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-        </div>
-        <input
-          type="text"
-          value={filters.customerName}
-          onChange={(e) => handleFilterChange('customerName', e.target.value)}
-          className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-          placeholder="Search customers..."
-        />
-      </div>
-    </div>
-    
-    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-      <button
-        onClick={() => setShowFilters(!showFilters)}
-        className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-          showFilters || Object.values(filters).some(Boolean) 
-            ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100' 
-            : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
-        }`}
-      >
-        <FunnelIcon className="h-5 w-5 mr-2" />
-        Filters
-        {Object.values(filters).some(Boolean) && (
-          <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-600 rounded-full">
-            {Object.values(filters).filter(Boolean).length}
-          </span>
-        )}
-      </button>
-      
-      {Object.values(filters).some(Boolean) && (
-        <button
-          onClick={clearFilters}
-          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <XMarkIcon className="h-5 w-5 mr-2" />
-          Clear
-        </button>
-      )}
-      
-      <button
-        onClick={exportToCSV}
-        className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-      >
-        <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
-        Export CSV
-      </button>
-      
-      <button
-        onClick={() => setShowModal(true)}
-        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-      >
-        <PlusIcon className="h-5 w-5 mr-2" />
-        Add Customer
-      </button>
-    </div>
-  </div>
-</div>
+          <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
+              <div className="flex items-center space-x-3">
+                <div className="relative flex-1 max-w-md">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    value={filters.customerName}
+                    onChange={(e) => handleFilterChange('customerName', e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    placeholder="Search customers..."
+                  />
+                </div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                    showFilters || Object.values(filters).some(Boolean) 
+                      ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100' 
+                      : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                  }`}
+                >
+                  <FunnelIcon className="h-5 w-5 mr-2" />
+                  Filters
+                  {Object.values(filters).some(Boolean) && (
+                    <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-600 rounded-full">
+                      {Object.values(filters).filter(Boolean).length}
+                    </span>
+                  )}
+                </button>
+                
+                {Object.values(filters).some(Boolean) && (
+                  <button
+                    onClick={clearFilters}
+                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <XMarkIcon className="h-5 w-5 mr-2" />
+                    Clear
+                  </button>
+                )}
+                
+                <button
+                  onClick={exportToCSV}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
+                  Export CSV
+                </button>
+                
+                <button
+                  onClick={() => setShowModal(true)}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <PlusIcon className="h-5 w-5 mr-2" />
+                  Add Customer
+                </button>
+              </div>
+            </div>
+          </div>
 
           {/* Filters */}
           {showFilters && (
@@ -315,6 +315,9 @@ const CustomerMaster = () => {
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Projects Tracking
                     </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Project Budget
+                    </th>
                     <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
@@ -323,6 +326,8 @@ const CustomerMaster = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {currentItems.map((customer) => {
                     const customerAwardedProjects = getAwardedProjectsForCustomer(customer.customerName);
+                    const totalProjectBudget = customerAwardedProjects.reduce((sum, project) => sum + (project.totalProjectValue || 0), 0);
+                    
                     return (
                       <tr key={customer._id} className="hover:bg-gray-50 transition-colors duration-150">
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -363,13 +368,34 @@ const CustomerMaster = () => {
                                         <span className="font-medium">{project.projectName}</span>
                                         <span className="text-xs opacity-75">({project.stage.replace('_', ' ').toUpperCase()})</span>
                                       </div>
-                                      <span>₹{project.totalProjectValue.toLocaleString()}</span>
                                     </div>
                                   );
                                 })}
                               </div>
                             ) : (
                               <span className="text-gray-500">No projects (excluding RFQ)</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {customerAwardedProjects.length > 0 ? (
+                              <div className="space-y-1">
+                                {customerAwardedProjects.map((project) => (
+                                  <div key={project._id} className="flex justify-between items-center px-2 py-1 text-xs font-medium">
+                                    <span>₹{project.totalProjectValue?.toLocaleString() || '0'}</span>
+                                  </div>
+                                ))}
+                                {/* Total Budget */}
+                                <div className="border-t border-gray-200 mt-2 pt-1">
+                                  <div className="flex justify-between items-center px-2 py-1 text-xs font-bold bg-gray-50 rounded">
+                                    <span>Total:</span>
+                                    <span>₹{totalProjectBudget.toLocaleString()}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-gray-500">-</span>
                             )}
                           </div>
                         </td>
@@ -409,6 +435,8 @@ const CustomerMaster = () => {
             <div className="sm:hidden">
               {currentItems.map((customer) => {
                 const customerAwardedProjects = getAwardedProjectsForCustomer(customer.customerName);
+                const totalProjectBudget = customerAwardedProjects.reduce((sum, project) => sum + (project.totalProjectValue || 0), 0);
+                
                 return (
                   <div key={customer._id} className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors duration-150">
                     <div className="flex justify-between items-start mb-2">
@@ -464,7 +492,7 @@ const CustomerMaster = () => {
                                 <div key={project._id} className={`${colorClass} px-2 py-1 rounded text-xs border`}>
                                   <div className="flex items-center justify-between">
                                     <span className="font-medium">{project.projectName}</span>
-                                    <span>₹{project.totalProjectValue.toLocaleString()}</span>
+                                    <span className="font-bold">₹{project.totalProjectValue?.toLocaleString() || '0'}</span>
                                   </div>
                                   <div className="text-xs opacity-75 mt-1">{project.stage.replace('_', ' ').toUpperCase()}</div>
                                 </div>
@@ -473,6 +501,13 @@ const CustomerMaster = () => {
                             {customerAwardedProjects.length > 2 && (
                               <div className="text-xs text-gray-500">+{customerAwardedProjects.length - 2} more</div>
                             )}
+                            {/* Total Budget for Mobile */}
+                            <div className="bg-gray-100 px-2 py-1 rounded text-xs font-bold mt-1">
+                              <div className="flex justify-between">
+                                <span>Total Budget:</span>
+                                <span>₹{totalProjectBudget.toLocaleString()}</span>
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -486,9 +521,7 @@ const CustomerMaster = () => {
           {/* Pagination */}
           <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-    
-              </div>
+              <div></div>
               <div>
                 <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                   <button
@@ -556,107 +589,119 @@ const CustomerMaster = () => {
 
       {/* View Customer Modal */}
       {selectedCustomer && (
-  <Modal
-    isOpen={!!selectedCustomer}
-    onClose={() => setSelectedCustomer(null)}
-    title="Customer Details"
-    size="lg"
-    className="font-sans"
-  >
-    <div className="space-y-6 py-1">
-      {/* Header Section */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-800">{selectedCustomer.customerName}</h2>
-          <div className="flex items-center mt-1">
-            <i className="fas fa-envelope text-gray-400 mr-2 text-sm"></i>
-            <p className="text-sm text-gray-600">{selectedCustomer.customerEmail}</p>
-          </div>
-        </div>
-        <div className="bg-blue-50 px-3 py-1 rounded-full">
-          <span className="text-xs font-medium text-blue-700">
-            {getAwardedProjectsForCustomer(selectedCustomer.customerName).length} Projects (Non-RFQ)
-          </span>
-        </div>
-      </div>
-
-      {/* Contact Information Card */}
-      <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
-        <h3 className="text-md font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100 flex items-center">
-          <i className="fas fa-address-card mr-2 text-blue-500"></i>
-          Contact Information
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="space-y-1">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center">
-              <i className="fas fa-envelope mr-1 text-gray-400"></i>
-              Customer Email
-            </h4>
-            <p className="text-sm text-gray-900 font-medium">{selectedCustomer.customerEmail}</p>
-          </div>
-          
-          <div className="space-y-1">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center">
-              <i className="fas fa-file-invoice mr-1 text-gray-400"></i>
-              Invoice Email
-            </h4>
-            <p className="text-sm text-gray-900 font-medium">{selectedCustomer.invoiceEmail}</p>
-          </div>
-          
-          <div className="md:col-span-2 space-y-1">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center">
-              <i className="fas fa-map-marker-alt mr-1 text-gray-400"></i>
-              Billing Address
-            </h4>
-            <p className="text-sm text-gray-900 font-medium">{selectedCustomer.billingAddress}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Awarded Projects Card */}
-      <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
-        <h3 className="text-md font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100 flex items-center">
-          <i className="fas fa-trophy mr-2 text-amber-500"></i>
-          Awarded Projects
-        </h3>
-        
-        {getAwardedProjectsForCustomer(selectedCustomer.customerName).length > 0 ? (
-          <div className="space-y-3">
-            {getAwardedProjectsForCustomer(selectedCustomer.customerName).map((project) => (
-              <div key={project._id} className="bg-green-50 border border-green-100 px-4 py-3 rounded-lg flex justify-between items-center hover:bg-green-100 transition-colors duration-150">
-                <div>
-                  <span className="font-medium text-green-800 block">{project.projectName}</span>
-                  <span className="text-xs text-green-600 mt-1 block">
-                    Awarded on {new Date(project.awardDate || project.createdAt).toLocaleDateString()}
-                  </span>
+        <Modal
+          isOpen={!!selectedCustomer}
+          onClose={() => setSelectedCustomer(null)}
+          title="Customer Details"
+          size="lg"
+          className="font-sans"
+        >
+          <div className="space-y-6 py-1">
+            {/* Header Section */}
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">{selectedCustomer.customerName}</h2>
+                <div className="flex items-center mt-1">
+                  <i className="fas fa-envelope text-gray-400 mr-2 text-sm"></i>
+                  <p className="text-sm text-gray-600">{selectedCustomer.customerEmail}</p>
                 </div>
-                <span className="text-green-700 font-semibold bg-white px-2 py-1 rounded-md text-sm">
-                  ₹{project.totalProjectValue.toLocaleString()}
+              </div>
+              <div className="bg-blue-50 px-3 py-1 rounded-full">
+                <span className="text-xs font-medium text-blue-700">
+                  {getAwardedProjectsForCustomer(selectedCustomer.customerName).length} Projects (Non-RFQ)
                 </span>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-6 bg-gray-50 rounded-lg">
-            <i className="fas fa-folder-open text-gray-300 text-3xl mb-2"></i>
-            <p className="text-sm text-gray-500">No awarded projects for this customer</p>
-          </div>
-        )}
-      </div>
+            </div>
 
-      {/* Action Buttons */}
-      <div className="flex justify-end space-x-3 pt-2">
-        <button
-          onClick={() => setSelectedCustomer(null)}
-          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-        >
-          Close
-        </button>
-      </div>
-    </div>
-  </Modal>
-)}
+            {/* Contact Information Card */}
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
+              <h3 className="text-md font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                <i className="fas fa-address-card mr-2 text-blue-500"></i>
+                Contact Information
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center">
+                    <i className="fas fa-envelope mr-1 text-gray-400"></i>
+                    Customer Email
+                  </h4>
+                  <p className="text-sm text-gray-900 font-medium">{selectedCustomer.customerEmail}</p>
+                </div>
+                
+                <div className="space-y-1">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center">
+                    <i className="fas fa-file-invoice mr-1 text-gray-400"></i>
+                    Invoice Email
+                  </h4>
+                  <p className="text-sm text-gray-900 font-medium">{selectedCustomer.invoiceEmail}</p>
+                </div>
+                
+                <div className="md:col-span-2 space-y-1">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center">
+                    <i className="fas fa-map-marker-alt mr-1 text-gray-400"></i>
+                    Billing Address
+                  </h4>
+                  <p className="text-sm text-gray-900 font-medium">{selectedCustomer.billingAddress}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Awarded Projects Card */}
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
+              <h3 className="text-md font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                <i className="fas fa-trophy mr-2 text-amber-500"></i>
+                Awarded Projects & Budget
+              </h3>
+              
+              {getAwardedProjectsForCustomer(selectedCustomer.customerName).length > 0 ? (
+                <div className="space-y-3">
+                  {getAwardedProjectsForCustomer(selectedCustomer.customerName).map((project) => (
+                    <div key={project._id} className="bg-green-50 border border-green-100 px-4 py-3 rounded-lg hover:bg-green-100 transition-colors duration-150">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="font-medium text-green-800">{project.projectName}</span>
+                        <span className="text-green-700 font-semibold bg-white px-2 py-1 rounded-md text-sm">
+                          ₹{project.totalProjectValue?.toLocaleString() || '0'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs text-green-600">
+                        <span>Awarded on {new Date(project.awardDate || project.createdAt).toLocaleDateString()}</span>
+                        <span className="font-medium">{project.stage.replace('_', ' ').toUpperCase()}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {/* Total Budget */}
+                  <div className="bg-blue-50 border border-blue-200 px-4 py-3 rounded-lg mt-4">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-blue-800">Total Project Budget:</span>
+                      <span className="text-blue-700 font-bold text-lg">
+                        ₹{getAwardedProjectsForCustomer(selectedCustomer.customerName)
+                          .reduce((sum, project) => sum + (project.totalProjectValue.toFixed(2)  || 0), 0)
+                          .toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-6 bg-gray-50 rounded-lg">
+                  <i className="fas fa-folder-open text-gray-300 text-3xl mb-2"></i>
+                  <p className="text-sm text-gray-500">No awarded projects for this customer</p>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3 pt-2">
+              <button
+                onClick={() => setSelectedCustomer(null)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* Notification */}
       <Notification

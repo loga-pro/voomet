@@ -372,7 +372,8 @@ const MilestoneTracking = () => {
         outlookCompletion: task.outlookCompletion ? new Date(task.outlookCompletion) : null,
         duration: task.duration || 0,
         status: task.status,
-        completion: task.completion
+        completion: task.completion,
+        remark: task.remark || ''
       }));
 
       await milestonesAPI.updateTracking(selectedMilestone._id, trackingDataForSave);
@@ -779,6 +780,9 @@ const MilestoneTracking = () => {
                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Outlook Completion
                     </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Remarks
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -878,6 +882,17 @@ const MilestoneTracking = () => {
                           className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                           readOnly
                         />
+                      </td>
+                      <td className="px-4 py-4 text-sm text-gray-900">
+                        {(task.status === 'Delayed' || task.status === 'Likely Delay') && (
+                          <textarea
+                            value={task.remark || ''}
+                            onChange={(e) => handleTrackingChange(index, 'remark', e.target.value)}
+                            placeholder="Enter remarks for delay..."
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                            rows="2"
+                          />
+                        )}
                       </td>
                     </tr>
                   ))}

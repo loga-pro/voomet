@@ -13,7 +13,8 @@ import {
   ArrowDownTrayIcon,
   ArrowPathIcon,
   ChevronDownIcon,
-  XMarkIcon
+  XMarkIcon,
+  ArrowTrendingUpIcon  
 } from '@heroicons/react/24/outline';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -61,6 +62,7 @@ const Reports = () => {
   const [selectedScopeOfWork, setSelectedScopeOfWork] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [selectedVendor, setSelectedVendor] = useState('');
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState('thisYear');
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
   const [showScopeDropdown, setShowScopeDropdown] = useState(false);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
@@ -425,6 +427,114 @@ const Reports = () => {
     return emailRegex.test(email);
   };
 
+  // Time period helper functions
+  const getDateRangeForPeriod = (period) => {
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const startOfLastYear = new Date(now.getFullYear() - 1, 0, 1);
+    const endOfLastYear = new Date(now.getFullYear() - 1, 11, 31);
+    
+    switch (period) {
+      case 'thisYear':
+        return { start: startOfYear, end: now };
+      case 'lastYear':
+        return { start: startOfLastYear, end: endOfLastYear };
+      case 'last3Months':
+        return { start: new Date(now.getFullYear(), now.getMonth() - 3, 1), end: now };
+      case 'last6Months':
+        return { start: new Date(now.getFullYear(), now.getMonth() - 6, 1), end: now };
+      default:
+        return { start: startOfYear, end: now };
+    }
+  };
+
+  const calculatePercentageChange = (currentValue, previousValue) => {
+    if (previousValue === 0) return currentValue > 0 ? 100 : 0;
+    return Math.round(((currentValue - previousValue) / previousValue) * 100 * 100) / 100;
+  };
+
+  const getInventoryValueChange = () => {
+    const currentPeriod = getDateRangeForPeriod(selectedTimePeriod);
+    const previousPeriod = getDateRangeForPeriod(selectedTimePeriod === 'thisYear' ? 'lastYear' : 'last3Months');
+    
+    const currentValue = getFilteredInventoryData()
+      .filter(item => {
+        const itemDate = new Date(item.createdAt || item.updatedAt || Date.now());
+        return itemDate >= currentPeriod.start && itemDate <= currentPeriod.end;
+      })
+      .reduce((sum, item) => sum + ((item.partPrice || 0) * (item.cumulativeQuantityAtVoomet || 0)), 0);
+    
+    const previousValue = getFilteredInventoryData()
+      .filter(item => {
+        const itemDate = new Date(item.createdAt || item.updatedAt || Date.now());
+        return itemDate >= previousPeriod.start && itemDate <= previousPeriod.end;
+      })
+      .reduce((sum, item) => sum + ((item.partPrice || 0) * (item.cumulativeQuantityAtVoomet || 0)), 0);
+    
+    return calculatePercentageChange(currentValue, previousValue);
+  };
+
+  const getProjectValueChange = () => {
+    const currentPeriod = getDateRangeForPeriod(selectedTimePeriod);
+    const previousPeriod = getDateRangeForPeriod(selectedTimePeriod === 'thisYear' ? 'lastYear' : 'last3Months');
+    
+    const currentValue = getFilteredComprehensiveProjectData()
+      .filter(project => {
+        const projectDate = new Date(project.createdAt || project.updatedAt || Date.now());
+        return projectDate >= currentPeriod.start && projectDate <= currentPeriod.end;
+      })
+      .reduce((sum, project) => sum + (project.totalProjectValue || 0), 0);
+    
+    const previousValue = getFilteredComprehensiveProjectData()
+      .filter(project => {
+        const projectDate = new Date(project.createdAt || project.updatedAt || Date.now());
+        return projectDate >= previousPeriod.start && projectDate <= previousPeriod.end;
+      })
+      .reduce((sum, project) => sum + (project.totalProjectValue || 0), 0);
+    
+    return calculatePercentageChange(currentValue, previousValue);
+  };
+
+  const getQualityIssuesChange = () => {
+    const currentPeriod = getDateRangeForPeriod(selectedTimePeriod);
+    const previousPeriod = getDateRangeForPeriod(selectedTimePeriod === 'thisYear' ? 'lastYear' : 'last3Months');
+    
+    const currentCount = getFilteredQualityData()
+      .filter(issue => {
+        const issueDate = new Date(issue.createdAt || issue.updatedAt || Date.now());
+        return issueDate >= currentPeriod.start && issueDate <= currentPeriod.end;
+      }).length;
+    
+    const previousCount = getFilteredQualityData()
+      .filter(issue => {
+        const issueDate = new Date(issue.createdAt || issue.updatedAt || Date.now());
+        return issueDate >= previousPeriod.start && issueDate <= previousPeriod.end;
+      }).length;
+    
+    return calculatePercentageChange(currentCount, previousCount);
+  };
+
+  const getVendorPaymentChange = () => {
+    const currentPeriod = getDateRangeForPeriod(selectedTimePeriod);
+    const previousPeriod = getDateRangeForPeriod(selectedTimePeriod === 'thisYear' ? 'lastYear' : 'last3Months');
+    
+    const currentValue = getFilteredVendorPaymentData()
+      .filter(payment => {
+        const paymentDate = new Date(payment.createdAt || payment.updatedAt || Date.now());
+        return paymentDate >= currentPeriod.start && paymentDate <= currentPeriod.end;
+      })
+      .reduce((sum, payment) => sum + (payment.totalPayments || 0), 0);
+    
+    const previousValue = getFilteredVendorPaymentData()
+      .filter(payment => {
+        const paymentDate = new Date(payment.createdAt || payment.updatedAt || Date.now());
+        return paymentDate >= previousPeriod.start && paymentDate <= previousPeriod.end;
+      })
+      .reduce((sum, payment) => sum + (payment.totalPayments || 0), 0);
+    
+    return calculatePercentageChange(currentValue, previousValue);
+  };
+
   const renderViewModalContent = () => {
     const { data, type } = viewModal;
     if (!data) return null;
@@ -625,7 +735,7 @@ const Reports = () => {
       Promise.all([
         import('react'),
         import('react-dom/client'),
-        import('../components/Reports/BackgroundReportPDFGenerator')
+        import('../components/Reports/BackgroundReportPDFGenerator.js')
       ]).then(([React, ReactDOM, { default: BackgroundReportPDFGenerator }]) => {
         const root = ReactDOM.createRoot(container);
         
@@ -768,7 +878,7 @@ const Reports = () => {
       const [React, ReactDOM, { default: BackgroundReportPDFGenerator }] = await Promise.all([
         import('react'),
         import('react-dom/client'),
-        import('../components/Reports/BackgroundReportPDFGenerator')
+        import('../components/Reports/BackgroundReportPDFGenerator.js')
       ]);
 
       const root = ReactDOM.createRoot(container);
@@ -1454,17 +1564,17 @@ const Reports = () => {
           </div>
         </div>
       </div>
-      
-      {/* Visual Analytics Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Visual Analytics</h2>
+
+      {/* Enhanced Visual Analytics Section */}
+      <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-gray-900">Visual Analytics</h2>
           {hasActiveFilters && (
-            <div className="flex items-center space-x-2">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            <div className="flex items-center space-x-3">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
                 Filtered View
               </span>
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-gray-600">
                 Showing {activeReportConfig.data.length} of {getUnfilteredDataCount()} records
               </span>
             </div>
@@ -1473,263 +1583,900 @@ const Reports = () => {
         
         {/* Comprehensive Project Charts */}
         {activeReport === 'project-comprehensive' && getFilteredComprehensiveProjectData().length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Task Completion Bar Chart */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg shadow-sm">
-              <h3 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
-                <span className="w-2 h-2 bg-blue-600 rounded-full mr-2"></span>
-                Task Completion by Project
-              </h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={getFilteredComprehensiveProjectData()}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip 
-                    formatter={(value) => [`${value}%`, 'Completion']} 
-                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }}
-                  />
-                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                  <Bar dataKey="taskCompletionRate" name="Task Completion (%)" fill="#00C49F" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+          <div className="space-y-6">
+            {/* Summary Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-gray-500">Total Projects</p>
+                  <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                    <ArrowTrendingUpIcon className="h-3 w-3 mr-1" />
+                    {Math.abs(getProjectValueChange())}%
+                  </span>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {getFilteredComprehensiveProjectData().length}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">{selectedTimePeriod === 'thisYear' ? 'Year on Year' : selectedTimePeriod === 'lastYear' ? 'Compared to Previous Year' : selectedTimePeriod === 'last3Months' ? 'Compared to Previous 3 Months' : 'Compared to Previous 6 Months'}</p>
+              </div>
+
+              <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-gray-500">Total Value</p>
+                  <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                    <ArrowTrendingUpIcon className="h-3 w-3 mr-1" />
+                    {Math.abs(getProjectValueChange())}%
+                  </span>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">
+                  ₹{getFilteredComprehensiveProjectData().reduce((sum, p) => sum + (p.totalProjectValue || 0), 0).toLocaleString()}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">{selectedTimePeriod === 'thisYear' ? 'Year on Year' : selectedTimePeriod === 'lastYear' ? 'Compared to Previous Year' : selectedTimePeriod === 'last3Months' ? 'Compared to Previous 3 Months' : 'Compared to Previous 6 Months'}</p>
+              </div>
+
+              <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-gray-500">Avg Completion</p>
+                  <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                    <ArrowTrendingUpIcon className="h-3 w-3 mr-1" />
+                    {Math.abs(getProjectValueChange())}%
+                  </span>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {Math.round(getFilteredComprehensiveProjectData().reduce((sum, p) => sum + (p.taskCompletionRate || 0), 0) / getFilteredComprehensiveProjectData().length)}%
+                </p>
+                <p className="text-xs text-gray-500 mt-1">{selectedTimePeriod === 'thisYear' ? 'Year on Year' : selectedTimePeriod === 'lastYear' ? 'Compared to Previous Year' : selectedTimePeriod === 'last3Months' ? 'Compared to Previous 3 Months' : 'Compared to Previous 6 Months'}</p>
+              </div>
+
+              <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-gray-500">Payment Received</p>
+                  <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                    <ArrowTrendingUpIcon className="h-3 w-3 mr-1" />
+                    {Math.abs(getVendorPaymentChange())}%
+                  </span>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">
+                  ₹{getFilteredComprehensiveProjectData().reduce((sum, p) => sum + (p.paymentReceived || 0), 0).toLocaleString()}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">{selectedTimePeriod === 'thisYear' ? 'Year on Year' : selectedTimePeriod === 'lastYear' ? 'Compared to Previous Year' : selectedTimePeriod === 'last3Months' ? 'Compared to Previous 3 Months' : 'Compared to Previous 6 Months'}</p>
+              </div>
             </div>
 
-            {/* Payment Overview Stacked Bar Chart */}
-            <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-lg shadow-sm">
-              <h3 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
-                <span className="w-2 h-2 bg-green-600 rounded-full mr-2"></span>
-                Payment Overview by Project
-              </h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={getFilteredComprehensiveProjectData()}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip 
-                    formatter={(value) => [`₹${value.toLocaleString()}`, 'Amount']} 
-                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }}
-                  />
-                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                  <Bar dataKey="paymentReceived" name="Payment Received (₹)" fill="#0088FE" stackId="a" radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="balanceAmount" name="Balance Amount (₹)" fill="#FF8042" stackId="a" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Project Stage Distribution - Radar Chart */}
-            {getProjectStageRadarData().length > 0 && (
-              <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-6 rounded-lg shadow-sm">
-                <h3 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
-                  <span className="w-2 h-2 bg-purple-600 rounded-full mr-2"></span>
-                  Project Stage Analysis
-                </h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <RadarChart data={getProjectStageRadarData()}>
-                    <PolarGrid stroke="#e0e0e0" />
-                    <PolarAngleAxis dataKey="stage" tick={{ fontSize: 11 }} />
-                    <PolarRadiusAxis tick={{ fontSize: 11 }} />
-                    <Radar name="Projects Count" dataKey="projects" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
-                    <Radar name="Avg Completion %" dataKey="completion" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.6} />
-                    <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }} />
-                    <Legend />
-                  </RadarChart>
+            {/* Charts Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Task Completion Trend - Smooth Line Chart */}
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">Task Completion Rate</h3>
+                    <p className="text-xs text-gray-500 mt-1">{selectedTimePeriod === 'thisYear' ? 'This Year' : selectedTimePeriod === 'lastYear' ? 'Last Year' : selectedTimePeriod === 'last3Months' ? 'Last 3 Months' : 'Last 6 Months'}</p>
+                  </div>
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <ArrowTrendingUpIcon className="h-3 w-3 mr-1" />
+                    {Math.abs(getProjectValueChange())}%
+                  </span>
+                </div>
+                <ResponsiveContainer width="100%" height={280}>
+                  <AreaChart data={getFilteredComprehensiveProjectData().slice(0, 11)}>
+                    <defs>
+                      <linearGradient id="colorCompletion" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                    <XAxis 
+                      dataKey="projectName" 
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                      tickLine={false}
+                      interval="preserveStartEnd"
+                      tickFormatter={(value) => value?.substring(0, 3)?.toUpperCase() || ''}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(value) => `${value}%`}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#fff', 
+                        border: '1px solid #e5e7eb', 
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }}
+                      formatter={(value) => [`${value}%`, 'Completion']}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="taskCompletionRate" 
+                      stroke="#10b981" 
+                      strokeWidth={2.5}
+                      fill="url(#colorCompletion)" 
+                      dot={false}
+                    />
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
-            )}
 
-            {/* Project Value Distribution - Area Chart */}
-            <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-6 rounded-lg shadow-sm">
-              <h3 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
-                <span className="w-2 h-2 bg-amber-600 rounded-full mr-2"></span>
-                Project Value Trend
-              </h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={getFilteredComprehensiveProjectData()}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip 
-                    formatter={(value) => [`₹${value.toLocaleString()}`, 'Value']} 
-                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }}
-                  />
-                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                  <Area type="monotone" dataKey="totalProjectValue" name="Total Value (₹)" stroke="#FFBB28" fill="#FFBB28" fillOpacity={0.6} />
-                </AreaChart>
-              </ResponsiveContainer>
+              {/* Payment Overview - Modern Bar Chart */}
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">Payment Overview</h3>
+                    
+                  </div>
+                  <select 
+                    className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={selectedTimePeriod}
+                    onChange={(e) => setSelectedTimePeriod(e.target.value)}
+                  >
+                    <option value="thisYear">This Year</option>
+                    <option value="lastYear">Last Year</option>
+                    <option value="last3Months">Last 3 Months</option>
+                    <option value="last6Months">Last 6 Months</option>
+                  </select>
+                </div>
+                
+                {/* Summary Stats */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <p className="text-xs text-gray-500">Current</p>
+                    <p className="text-lg font-bold text-green-600">
+                      ₹{getFilteredComprehensiveProjectData().reduce((sum, p) => sum + (p.paymentReceived || 0), 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Overdue</p>
+                    <p className="text-lg font-bold text-orange-600">
+                      ₹{getFilteredComprehensiveProjectData().reduce((sum, p) => sum + (p.balanceAmount || 0), 0).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={[
+                    { name: 'Current', value: getFilteredComprehensiveProjectData().reduce((sum, p) => sum + (p.paymentReceived || 0), 0) / 100 },
+                    { name: '1-25', value: getFilteredComprehensiveProjectData().reduce((sum, p) => sum + (p.balanceAmount || 0), 0) / 150 },
+                    { name: '16-30', value: getFilteredComprehensiveProjectData().reduce((sum, p) => sum + (p.balanceAmount || 0), 0) / 200 },
+                    { name: '31-45', value: getFilteredComprehensiveProjectData().reduce((sum, p) => sum + (p.balanceAmount || 0), 0) / 250 },
+                    { name: '>45', value: getFilteredComprehensiveProjectData().reduce((sum, p) => sum + (p.balanceAmount || 0), 0) / 300 }
+                  ]}>
+                    <XAxis 
+                      dataKey="name" 
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis hide />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#fff', 
+                        border: '1px solid #e5e7eb', 
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }}
+                      formatter={(value) => [`₹${(value * 100).toLocaleString()}`, 'Amount']}
+                      cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }}
+                    />
+                    <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={50}>
+                      {[0, 1, 2, 3, 4].map((index) => (
+                        <Cell key={`cell-${index}`} fill={index === 0 ? '#fbbf24' : '#fb923c'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Project Value Trend - Smooth Line */}
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">Total Project Value</h3>
+                    <p className="text-2xl font-bold text-gray-900 mt-2">
+                      ₹{(getFilteredComprehensiveProjectData().reduce((sum, p) => sum + (p.totalProjectValue || 0), 0) / 100000).toFixed(2)}L
+                    </p>
+                    <div className="flex items-center mt-1">
+                      <span className="inline-flex items-center text-xs font-medium text-green-600">
+                        <ArrowTrendingUpIcon className="h-3 w-3 mr-1" />
+                        {Math.abs(getProjectValueChange())}%
+                      </span>
+                      <span className="text-xs text-gray-500 ml-2">
+                        {selectedTimePeriod === 'thisYear' ? 'Year on Year' : 
+                         selectedTimePeriod === 'lastYear' ? 'vs previous year' :
+                         selectedTimePeriod === 'last3Months' ? 'vs previous 3 months' : 'vs previous 6 months'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={240}>
+                  <AreaChart data={getFilteredComprehensiveProjectData().slice(0, 11)}>
+                    <defs>
+                      <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                    <XAxis 
+                      dataKey="projectName"
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                      tickLine={false}
+                      tickFormatter={(value) => value?.substring(0, 3)?.toUpperCase() || ''}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#fff', 
+                        border: '1px solid #e5e7eb', 
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }}
+                      formatter={(value) => [`₹${value?.toLocaleString()}`, 'Value']}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="totalProjectValue" 
+                      stroke="#f59e0b" 
+                      strokeWidth={2.5}
+                      fill="url(#colorValue)"
+                      dot={false}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Milestone Progress - Line Chart */}
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">Milestone Progress</h3>
+                    <p className="text-2xl font-bold text-gray-900 mt-2">
+                      {Math.round(getFilteredComprehensiveProjectData().reduce((sum, p) => sum + (p.milestoneCompletion || 0), 0) / getFilteredComprehensiveProjectData().length)}%
+                    </p>
+                    <div className="flex items-center mt-1">
+                      <span className="inline-flex items-center text-xs font-medium text-green-600">
+                        <ArrowTrendingUpIcon className="h-3 w-3 mr-1" />
+                        {Math.abs(getProjectValueChange())}%
+                      </span>
+                      <span className="text-xs text-gray-500 ml-2">{selectedTimePeriod === 'thisYear' ? 'Year on Year' : selectedTimePeriod === 'lastYear' ? 'Compared to Previous Year' : selectedTimePeriod === 'last3Months' ? 'Compared to Previous 3 Months' : 'Compared to Previous 6 Months'}</span>
+                    </div>
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={240}>
+                  <AreaChart data={getFilteredComprehensiveProjectData().slice(0, 11)}>
+                    <defs>
+                      <linearGradient id="colorMilestone" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                    <XAxis 
+                      dataKey="projectName"
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                      tickLine={false}
+                      tickFormatter={(value) => value?.substring(0, 3)?.toUpperCase() || ''}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(value) => `${value}%`}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#fff', 
+                        border: '1px solid #e5e7eb', 
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }}
+                      formatter={(value) => [`${value}%`, 'Progress']}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="milestoneCompletion" 
+                      stroke="#3b82f6" 
+                      strokeWidth={2.5}
+                      fill="url(#colorMilestone)"
+                      dot={false}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Vendor Payment Charts */}
+        {activeReport === 'vendor' && (
+          <div className="space-y-6">
+            {/* Vendor Payment Header with Dropdown */}
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Vendor Payment Analytics</h2>
+              <select 
+                className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={selectedTimePeriod}
+                onChange={(e) => setSelectedTimePeriod(e.target.value)}
+              >
+                <option value="thisYear">This Year</option>
+                <option value="lastYear">Last Year</option>
+                <option value="last3Months">Last 3 Months</option>
+                <option value="last6Months">Last 6 Months</option>
+              </select>
+            </div>
+            
+            {/* Summary Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-gray-500">Total Vendors</p>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {getUniqueVendors().length}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Active vendors</p>
+              </div>
+
+              <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-gray-500">Total Invoiced</p>
+                  <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                    <ArrowTrendingUpIcon className="h-3 w-3 mr-1" />
+                    {Math.abs(getVendorPaymentChange())}%
+                  </span>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">
+                  ₹{getFilteredVendorPaymentData().reduce((sum, v) => sum + (v.totalInvoiceRaised || 0), 0).toLocaleString()}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">{selectedTimePeriod === 'thisYear' ? 'Year on Year' : selectedTimePeriod === 'lastYear' ? 'Compared to Previous Year' : selectedTimePeriod === 'last3Months' ? 'Compared to Previous 3 Months' : 'Compared to Previous 6 Months'}</p>
+              </div>
+
+              <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-gray-500">Total Paid</p>
+                  <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                    <ArrowTrendingUpIcon className="h-3 w-3 mr-1" />
+                    {Math.abs(getVendorPaymentChange())}%
+                  </span>
+                </div>
+                <p className="text-2xl font-bold text-green-600">
+                  ₹{getFilteredVendorPaymentData().reduce((sum, v) => sum + (v.totalPayments || 0), 0).toLocaleString()}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">{selectedTimePeriod === 'thisYear' ? 'Year on Year' : selectedTimePeriod === 'lastYear' ? 'Compared to Previous Year' : selectedTimePeriod === 'last3Months' ? 'Compared to Previous 3 Months' : 'Compared to Previous 6 Months'}</p>
+              </div>
+
+              <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-gray-500">Outstanding</p>
+                </div>
+                <p className="text-2xl font-bold text-orange-600">
+                  ₹{getFilteredVendorPaymentData().reduce((sum, v) => sum + (v.balanceAmount || 0), 0).toLocaleString()}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Pending payment</p>
+              </div>
+            </div>
+
+            {/* Charts Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Vendor Payment Trend */}
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">Top Vendor Payments</h3>
+                    <p className="text-xs text-gray-500 mt-1">{selectedTimePeriod === 'thisYear' ? 'This Year' : selectedTimePeriod === 'lastYear' ? 'Last Year' : selectedTimePeriod === 'last3Months' ? 'Last 3 Months' : 'Last 6 Months'}</p>
+                  </div>
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                    <ArrowTrendingUpIcon className="h-3 w-3 mr-1" />
+                    {Math.abs(getVendorPaymentChange())}%
+                  </span>
+                </div>
+                <ResponsiveContainer width="100%" height={280}>
+                  <AreaChart data={processFilteredVendorPaymentChartData()}>
+                    <defs>
+                      <linearGradient id="colorVendor" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                    <XAxis 
+                      dataKey="name" 
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                      tickLine={false}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#fff', 
+                        border: '1px solid #e5e7eb', 
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }}
+                      formatter={(value) => [`₹${value?.toLocaleString()}`, 'Payment']}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="value" 
+                      stroke="#6366f1" 
+                      strokeWidth={2.5}
+                      fill="url(#colorVendor)"
+                      dot={false}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Payment Status Distribution */}
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">Payment Status</h3>
+                    <p className="text-xs text-gray-500 mt-1">Paid vs Pending</p>
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={getVendorPaymentStatusData().slice(0, 8)}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                    <XAxis 
+                      dataKey="name" 
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                      tickLine={false}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#fff', 
+                        border: '1px solid #e5e7eb', 
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }}
+                      formatter={(value) => [`₹${value?.toLocaleString()}`, 'Amount']}
+                      cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }}
+                    />
+                    <Bar dataKey="paid" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="pending" stackId="a" fill="#fbbf24" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Payment Rate Overview */}
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 lg:col-span-2">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">Payment Rate by Vendor</h3>
+                    <p className="text-xs text-gray-500 mt-1">Percentage of invoices paid</p>
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={getVendorPaymentStatusData()}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                    <XAxis 
+                      dataKey="name" 
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                      tickLine={false}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(value) => `${value}%`}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#fff', 
+                        border: '1px solid #e5e7eb', 
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }}
+                      formatter={(value) => [`${value}%`, 'Payment Rate']}
+                      cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }}
+                    />
+                    <Bar dataKey="paymentRate" radius={[8, 8, 0, 0]} barSize={40}>
+                      {getVendorPaymentStatusData().map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={entry.paymentRate >= 80 ? '#10b981' : entry.paymentRate >= 50 ? '#fbbf24' : '#f97316'} 
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         )}
 
         {/* Inventory Charts */}
         {activeReport === 'inventory' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Inventory by Scope - Bar Chart */}
-            {processFilteredInventoryChartData().length > 0 && (
-              <div className="bg-gradient-to-br from-cyan-50 to-blue-50 p-6 rounded-lg shadow-sm">
-                <h3 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
-                  <span className="w-2 h-2 bg-cyan-600 rounded-full mr-2"></span>
-                  Inventory Quantity by Scope
-                </h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={processFilteredInventoryChartData()}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip 
-                      formatter={(value) => [value, 'Quantity']} 
-                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }}
+          <div className="space-y-6">
+            {/* Summary Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-gray-500">Total Items</p>
+                  <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                    <ArrowTrendingUpIcon className="h-3 w-3 mr-1" />
+                    {Math.abs(getInventoryValueChange())}%
+                  </span>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {getFilteredInventoryData().reduce((sum, item) => sum + (item.cumulativeQuantityAtVoomet || 0), 0)}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {selectedTimePeriod === 'thisYear' ? 'vs last year' : 
+                   selectedTimePeriod === 'lastYear' ? 'vs this year' :
+                   selectedTimePeriod === 'last3Months' ? 'vs previous 3 months' : 'vs previous 6 months'}
+                </p>
+              </div>
+
+              <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-gray-500">Total Value</p>
+                  <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                    <ArrowTrendingUpIcon className="h-3 w-3 mr-1" />
+                    {Math.abs(getInventoryValueChange())}%
+                  </span>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">
+                  ₹{getFilteredInventoryData().reduce((sum, item) => sum + ((item.partPrice || 0) * (item.cumulativeQuantityAtVoomet || 0)), 0).toLocaleString()}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {selectedTimePeriod === 'thisYear' ? 'Year on Year' : 
+                   selectedTimePeriod === 'lastYear' ? 'vs previous year' :
+                   selectedTimePeriod === 'last3Months' ? 'vs previous 3 months' : 'vs previous 6 months'}
+                </p>
+              </div>
+
+              <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-gray-500">Categories</p>
+                  <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                    Active
+                  </span>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {getUniqueScopeOfWork().length}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Scope of Work</p>
+              </div>
+            </div>
+
+            {/* Charts Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Inventory Trend */}
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">Inventory by Scope</h3>
+                    <p className="text-xs text-gray-500 mt-1">{selectedTimePeriod === 'thisYear' ? 'This Year' : selectedTimePeriod === 'lastYear' ? 'Last Year' : selectedTimePeriod === 'last3Months' ? 'Last 3 Months' : 'Last 6 Months'}</p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <select 
+                      className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={selectedTimePeriod}
+                      onChange={(e) => setSelectedTimePeriod(e.target.value)}
+                    >
+                      <option value="thisYear">This Year</option>
+                      <option value="lastYear">Last Year</option>
+                      <option value="last3Months">Last 3 Months</option>
+                      <option value="last6Months">Last 6 Months</option>
+                    </select>
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800">
+                      <ArrowTrendingUpIcon className="h-3 w-3 mr-1" />
+                      {Math.abs(getInventoryValueChange())}%
+                    </span>
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={280}>
+                  <AreaChart data={processFilteredInventoryChartData()}>
+                    <defs>
+                      <linearGradient id="colorInventory" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                    <XAxis 
+                      dataKey="name" 
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                      tickLine={false}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
                     />
-                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                    <Bar dataKey="value" name="Quantity" fill="#82ca9d" radius={[8, 8, 0, 0]} />
+                    <YAxis 
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#fff', 
+                        border: '1px solid #e5e7eb', 
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }}
+                      formatter={(value) => [value, 'Quantity']}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="value" 
+                      stroke="#06b6d4" 
+                      strokeWidth={2.5}
+                      fill="url(#colorInventory)"
+                      dot={false}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Top Inventory Items */}
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">Top Inventory by Value</h3>
+                  
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={getInventoryValueData()} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+                    <XAxis 
+                      type="number"
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
+                    />
+                    <YAxis 
+                      type="category"
+                      dataKey="name" 
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={100}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#fff', 
+                        border: '1px solid #e5e7eb', 
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }}
+                      formatter={(value) => [`₹${value?.toLocaleString()}`, 'Value']}
+                      cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }}
+                    />
+                    <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={20}>
+                      {getInventoryValueData().map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill="#14b8a6" />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            )}
-
-            {/* Inventory Value Distribution - Pie Chart */}
-            {getInventoryValueData().length > 0 && (
-              <div className="bg-gradient-to-br from-teal-50 to-green-50 p-6 rounded-lg shadow-sm">
-                <h3 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
-                  <span className="w-2 h-2 bg-teal-600 rounded-full mr-2"></span>
-                  Top 10 Inventory Value Distribution
-                </h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={getInventoryValueData()}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={true}
-                      outerRadius={90}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {getInventoryValueData().map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value) => [`₹${value.toLocaleString()}`, 'Value']} 
-                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            )}
+            </div>
           </div>
         )}
 
         {/* Quality Charts */}
         {activeReport === 'quality' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Quality Issues Status - Pie Chart */}
-            {processFilteredQualityChartData().length > 0 && (
-              <div className="bg-gradient-to-br from-rose-50 to-red-50 p-6 rounded-lg shadow-sm">
-                <h3 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
-                  <span className="w-2 h-2 bg-rose-600 rounded-full mr-2"></span>
-                  Quality Issues by Status
-                </h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={processFilteredQualityChartData()}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={true}
-                      outerRadius={90}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {processFilteredQualityChartData().map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value) => [value, 'Count']} 
-                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }}
+          <div className="space-y-6">
+            {/* Summary Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-gray-500">Total Issues</p>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {getFilteredQualityData().length}
+                </p>
+                <div className="flex items-center mt-1">
+                  <span className="inline-flex items-center text-xs font-medium text-red-600">
+                    <ArrowTrendingUpIcon className="h-3 w-3 mr-1" />
+                    {Math.abs(getQualityIssuesChange())}%
+                  </span>
+                  <span className="text-xs text-gray-500 ml-2">
+                    {selectedTimePeriod === 'thisYear' ? 'vs last year' : 
+                     selectedTimePeriod === 'lastYear' ? 'vs this year' :
+                     selectedTimePeriod === 'last3Months' ? 'vs previous 3 months' : 'vs previous 6 months'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-gray-500">Open Issues</p>
+                </div>
+                <p className="text-2xl font-bold text-orange-600">
+                  {getFilteredQualityData().filter(q => q.status === 'open').length}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Needs attention</p>
+              </div>
+
+              <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-gray-500">Resolved</p>
+                </div>
+                <p className="text-2xl font-bold text-green-600">
+                  {getFilteredQualityData().filter(q => q.status !== 'open').length}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Completed</p>
+              </div>
+
+              <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-gray-500">Resolution Rate</p>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {getFilteredQualityData().length > 0 
+                    ? Math.round((getFilteredQualityData().filter(q => q.status !== 'open').length / getFilteredQualityData().length) * 100)
+                    : 0}%
+                </p>
+                <div className="flex items-center mt-1">
+                  <span className="inline-flex items-center text-xs font-medium text-green-600">
+                    <ArrowTrendingUpIcon className="h-3 w-3 mr-1" />
+                    {Math.abs(getQualityIssuesChange())}%
+                  </span>
+                  <span className="text-xs text-gray-500 ml-2">
+                    {selectedTimePeriod === 'thisYear' ? 'Year on Year' : 
+                     selectedTimePeriod === 'lastYear' ? 'vs previous year' :
+                     selectedTimePeriod === 'last3Months' ? 'vs previous 3 months' : 'vs previous 6 months'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Charts Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Quality Trend */}
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">Quality Issues Trend</h3>
+                    <p className="text-xs text-gray-500 mt-1">{selectedTimePeriod === 'thisYear' ? 'This Year' : selectedTimePeriod === 'lastYear' ? 'Last Year' : selectedTimePeriod === 'last3Months' ? 'Last 3 Months' : 'Last 6 Months'}</p>
+                  </div>
+                  <select 
+                    className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={selectedTimePeriod}
+                    onChange={(e) => setSelectedTimePeriod(e.target.value)}
+                  >
+                    <option value="thisYear">This Year</option>
+                    <option value="lastYear">Last Year</option>
+                    <option value="last3Months">Last 3 Months</option>
+                    <option value="last6Months">Last 6 Months</option>
+                  </select>
+                </div>
+                <ResponsiveContainer width="100%" height={280}>
+                  <AreaChart data={getQualityTrendData()}>
+                    <defs>
+                      <linearGradient id="colorOpen" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorResolved" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                    <XAxis 
+                      dataKey="category" 
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                      tickLine={false}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
                     />
-                    <Legend />
-                  </PieChart>
+                    <YAxis 
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#fff', 
+                        border: '1px solid #e5e7eb', 
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="open" 
+                      stroke="#f97316" 
+                      strokeWidth={2}
+                      fill="url(#colorOpen)"
+                      dot={false}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="resolved" 
+                      stroke="#10b981" 
+                      strokeWidth={2}
+                      fill="url(#colorResolved)"
+                      dot={false}
+                    />
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
-            )}
 
-            {/* Quality Issues Trend by Category */}
-            {getQualityTrendData().length > 0 && (
-              <div className="bg-gradient-to-br from-violet-50 to-purple-50 p-6 rounded-lg shadow-sm">
-                <h3 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
-                  <span className="w-2 h-2 bg-violet-600 rounded-full mr-2"></span>
-                  Quality Issues by Category
-                </h3>
-                <ResponsiveContainer width="100%" height={300}>
+              {/* Quality by Category */}
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">Issues by Category</h3>
+                    <p className="text-xs text-gray-500 mt-1">Distribution</p>
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={getQualityTrendData()}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                    <XAxis dataKey="category" angle={-45} textAnchor="end" height={100} tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }} />
-                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                    <Bar dataKey="open" name="Open Issues" fill="#FF8042" stackId="a" radius={[0, 0, 0, 0]} />
-                    <Bar dataKey="resolved" name="Resolved Issues" fill="#00C49F" stackId="a" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Vendor Payment Charts */}
-        {activeReport === 'vendor' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Top Vendor Payments - Bar Chart */}
-            {processFilteredVendorPaymentChartData().length > 0 && (
-              <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-6 rounded-lg shadow-sm">
-                <h3 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
-                  <span className="w-2 h-2 bg-indigo-600 rounded-full mr-2"></span>
-                  Top 10 Vendor Payments
-                </h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={processFilteredVendorPaymentChartData()}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip 
-                      formatter={(value) => [`₹${value.toLocaleString()}`, 'Total Payment']} 
-                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }}
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                    <XAxis 
+                      dataKey="category" 
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      axisLine={{ stroke: '#e5e7eb' }}
+                      tickLine={false}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
                     />
-                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                    <Bar dataKey="value" name="Total Payment (₹)" fill="#8884d8" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
-            {/* Vendor Payment Status - Stacked Bar */}
-            {getVendorPaymentStatusData().length > 0 && (
-              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-6 rounded-lg shadow-sm">
-                <h3 className="text-md font-semibold text-gray-900 mb-4 flex items-center">
-                  <span className="w-2 h-2 bg-emerald-600 rounded-full mr-2"></span>
-                  Vendor Payment Status
-                </h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={getVendorPaymentStatusData()}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip 
-                      formatter={(value) => [`₹${value.toLocaleString()}`, 'Amount']} 
-                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }}
+                    <YAxis 
+                      tick={{ fontSize: 11, fill: '#9ca3af' }}
+                      axisLine={false}
+                      tickLine={false}
                     />
-                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                    <Bar dataKey="paid" name="Paid (₹)" fill="#00C49F" stackId="a" radius={[0, 0, 0, 0]} />
-                    <Bar dataKey="pending" name="Pending (₹)" fill="#FFBB28" stackId="a" radius={[8, 8, 0, 0]} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#fff', 
+                        border: '1px solid #e5e7eb', 
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }}
+                      cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }}
+                    />
+                    <Bar dataKey="total" radius={[8, 8, 0, 0]} barSize={40}>
+                      {getQualityTrendData().map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill="#8b5cf6" />
+                      ))}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            )}
+            </div>
           </div>
         )}
       </div>

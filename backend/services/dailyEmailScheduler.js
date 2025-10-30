@@ -7,7 +7,7 @@ class DailyEmailScheduler {
   
   constructor() {
     this.scheduledJobs = new Map();
-    this.defaultSchedule = '01 11 * * *'; // 8:00 AM every day
+    this.defaultSchedule = '24 10 * * *'; // 8:00 AM every day
     this.isInitialized = false;
   }
   

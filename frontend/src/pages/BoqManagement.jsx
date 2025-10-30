@@ -21,7 +21,7 @@ import { DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 
 const BOQManagement = () => {
   const [showAdvancedPDF, setShowAdvancedPDF] = useState(false);
-const [pdfBOQData, setPdfBOQData] = useState(null);
+  const [pdfBOQData, setPdfBOQData] = useState(null);
   const [boqItems, setBoqItems] = useState([]);
   const [filteredItems, setFilteredItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +40,9 @@ const [pdfBOQData, setPdfBOQData] = useState(null);
   const [uniqueStatuses, setUniqueStatuses] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [showItemsModal, setShowItemsModal] = useState(false);
+  const [selectedItemsList, setSelectedItemsList] = useState([]);
+  const [expandedItems, setExpandedItems] = useState({});
   
   const { notification, showSuccess, showError, hideNotification } = useNotification();
 
@@ -70,10 +73,12 @@ const [pdfBOQData, setPdfBOQData] = useState(null);
       setLoading(false);
     }
   };
-const handleAdvancedPDFPreview = (item) => {
-  setPdfBOQData(item);
-  setShowAdvancedPDF(true);
-};
+
+  const handleAdvancedPDFPreview = (item) => {
+    setPdfBOQData(item);
+    setShowAdvancedPDF(true);
+  };
+
   const fetchProjects = async () => {
     try {
       const response = await projectsAPI.getAll();
@@ -135,6 +140,80 @@ const handleAdvancedPDFPreview = (item) => {
     });
   };
 
+  // Toggle expanded state for individual items
+  const toggleItemExpansion = (itemId) => {
+    setExpandedItems(prev => ({
+      ...prev,
+      [itemId]: !prev[itemId]
+    }));
+  };
+
+  // Show all items in modal
+  const showAllItems = (items) => {
+    setSelectedItemsList(items);
+    setShowItemsModal(true);
+  };
+
+  // Format items for display
+  const formatItemsDisplay = (items, itemId, maxVisible = 2) => {
+    const itemArray = items || [];
+    const visibleItems = itemArray.slice(0, maxVisible);
+    const remainingCount = itemArray.length - maxVisible;
+    const isExpanded = expandedItems[itemId];
+
+    if (itemArray.length === 0) {
+      return <span className="text-gray-500">No items</span>;
+    }
+
+    if (isExpanded || itemArray.length <= maxVisible) {
+      return (
+        <div className="space-y-1">
+          {itemArray.map((subItem, index) => (
+            <div key={index} className="text-sm text-gray-700">
+              • {subItem.partName || subItem.itemDescription || 'Unnamed item'}
+              {subItem.numberOfUnits && (
+                <span className="text-xs text-gray-500 ml-1">
+                  ({subItem.numberOfUnits} {subItem.unitType || subItem.unit || ''})
+                </span>
+              )}
+            </div>
+          ))}
+          {itemArray.length > maxVisible && (
+            <button
+              onClick={() => toggleItemExpansion(itemId)}
+              className="text-xs text-blue-600 hover:text-blue-800 hover:underline mt-1"
+            >
+              Show less
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-1">
+        {visibleItems.map((subItem, index) => (
+          <div key={index} className="text-sm text-gray-700">
+            • {subItem.partName || subItem.itemDescription || 'Unnamed item'}
+            {subItem.numberOfUnits && (
+              <span className="text-xs text-gray-500 ml-1">
+                ({subItem.numberOfUnits} {subItem.unitType || subItem.unit || ''})
+              </span>
+            )}
+          </div>
+        ))}
+        {remainingCount > 0 && (
+          <button
+            onClick={() => toggleItemExpansion(itemId)}
+            className="text-xs text-blue-600 hover:text-blue-800 hover:underline mt-1"
+          >
+            +{remainingCount} more items
+          </button>
+        )}
+      </div>
+    );
+  };
+
   // Pagination logic
   const safeFilteredItems = Array.isArray(filteredItems) ? filteredItems : [];
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -144,73 +223,74 @@ const handleAdvancedPDFPreview = (item) => {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
- const exportToCSV = () => {
-  try {
-    const headers = [
-      'Customer', 'Scope of Work', 'Items Description', 
-      'Total Quantity', 'Price Range', 'Total Amount', 'Created Date'
-    ];
-    
-    const csvData = safeFilteredItems.map(item => {
-      const items = item.items || [];
-      
-      // Get all item descriptions
-      const itemDescriptions = items.map(subItem => subItem.partName || subItem.itemDescription).filter(Boolean);
-      const displayDescription = itemDescriptions.length > 0 
-        ? itemDescriptions.join(' | ') 
-        : item.itemDescription || 'No items';
-      
-      // Calculate total quantities
-      const totalQuantity = items.reduce((sum, subItem) => {
-        const qty = parseFloat(subItem.numberOfUnits || subItem.quantity || 0);
-        return sum + qty;
-      }, 0);
-      
-      // Get unit types
-      const unitTypes = [...new Set(items.map(subItem => subItem.unitType || subItem.unit).filter(Boolean))];
-      const displayUnit = unitTypes.length > 0 ? unitTypes.join(', ') : item.unit || '';
-      
-      // Get price range
-      const prices = items.map(subItem => parseFloat(subItem.unitPrice || 0)).filter(price => price > 0);
-      const minPrice = prices.length > 0 ? Math.min(...prices) : (item.unitPrice || 0);
-      const maxPrice = prices.length > 0 ? Math.max(...prices) : (item.unitPrice || 0);
-      
-      const displayPrice = prices.length > 1 && minPrice !== maxPrice
-        ? `₹${parseFloat(minPrice).toFixed(2)} - ₹${parseFloat(maxPrice).toFixed(2)}`
-        : `₹${parseFloat(minPrice).toFixed(2)}`;
-
-      return [
-        item.customer,
-        Array.isArray(item.scopeOfWork) ? item.scopeOfWork.join(', ') : item.scopeOfWork,
-        displayDescription,
-        totalQuantity > 0 ? `${totalQuantity}${displayUnit ? ` ${displayUnit}` : ''}` : 'N/A',
-        displayPrice,
-        parseFloat(item.totalAmount || item.totalWithGST || 0).toFixed(2),
-        new Date(item.createdAt).toLocaleDateString()
+  const exportToCSV = () => {
+    try {
+      const headers = [
+        'Customer', 'Scope of Work', 'Items Description', 
+        'Total Quantity', 'Price Range', 'Total Amount', 'Created Date'
       ];
-    });
+      
+      const csvData = safeFilteredItems.map(item => {
+        const items = item.items || [];
+        
+        // Get all item descriptions
+        const itemDescriptions = items.map(subItem => subItem.partName || subItem.itemDescription).filter(Boolean);
+        const displayDescription = itemDescriptions.length > 0 
+          ? itemDescriptions.join(' | ') 
+          : item.itemDescription || 'No items';
+        
+        // Calculate total quantities
+        const totalQuantity = items.reduce((sum, subItem) => {
+          const qty = parseFloat(subItem.numberOfUnits || subItem.quantity || 0);
+          return sum + qty;
+        }, 0);
+        
+        // Get unit types
+        const unitTypes = [...new Set(items.map(subItem => subItem.unitType || subItem.unit).filter(Boolean))];
+        const displayUnit = unitTypes.length > 0 ? unitTypes.join(', ') : item.unit || '';
+        
+        // Get price range
+        const prices = items.map(subItem => parseFloat(subItem.unitPrice || 0)).filter(price => price > 0);
+        const minPrice = prices.length > 0 ? Math.min(...prices) : (item.unitPrice || 0);
+        const maxPrice = prices.length > 0 ? Math.max(...prices) : (item.unitPrice || 0);
+        
+        const displayPrice = prices.length > 1 && minPrice !== maxPrice
+          ? `₹${parseFloat(minPrice).toFixed(2)} - ₹${parseFloat(maxPrice).toFixed(2)}`
+          : `₹${parseFloat(minPrice).toFixed(2)}`;
 
-    const csvContent = [
-      headers.join(','),
-      ...csvData.map(row => row.map(field => `"${field}"`).join(','))
-    ].join('\n');
+        return [
+          item.customer,
+          Array.isArray(item.scopeOfWork) ? item.scopeOfWork.join(', ') : item.scopeOfWork,
+          displayDescription,
+          totalQuantity > 0 ? `${totalQuantity}${displayUnit ? ` ${displayUnit}` : ''}` : 'N/A',
+          displayPrice,
+          parseFloat(item.totalAmount || item.totalWithGST || 0).toFixed(2),
+          new Date(item.createdAt).toLocaleDateString()
+        ];
+      });
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', 'boq_data.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    showSuccess('BOQ data exported successfully');
-  } catch (error) {
-    console.error('Error exporting CSV:', error);
-    showError('Failed to export BOQ data');
-  }
-};
+      const csvContent = [
+        headers.join(','),
+        ...csvData.map(row => row.map(field => `"${field}"`).join(','))
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'boq_data.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      showSuccess('BOQ data exported successfully');
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      showError('Failed to export BOQ data');
+    }
+  };
+
   const handleView = (item) => {
     setSelectedItem(item);
     setViewModal(true);
@@ -234,22 +314,22 @@ const handleAdvancedPDFPreview = (item) => {
   const [itemToDelete, setItemToDelete] = useState(null);
 
   const handleDelete = (item) => {
-  setItemToDelete(item);
-  setShowDeleteModal(true);
-};
+    setItemToDelete(item);
+    setShowDeleteModal(true);
+  };
 
   const confirmDelete = async () => {
-  try {
-    await boqAPI.delete(itemToDelete._id);
-    showSuccess('BOQ item deleted successfully');
-    fetchBOQItems();
-    setShowDeleteModal(false);
-    setItemToDelete(null);
-  } catch (error) {
-    console.error('Error deleting BOQ item:', error);
-    showError('Failed to delete BOQ item');
-  }
-};
+    try {
+      await boqAPI.delete(itemToDelete._id);
+      showSuccess('BOQ item deleted successfully');
+      fetchBOQItems();
+      setShowDeleteModal(false);
+      setItemToDelete(null);
+    } catch (error) {
+      console.error('Error deleting BOQ item:', error);
+      showError('Failed to delete BOQ item');
+    }
+  };
 
   const handleFormSubmit = (isEdit = false) => {
     setShowModal(false);
@@ -259,7 +339,7 @@ const handleAdvancedPDFPreview = (item) => {
   };
 
   const handleFileAccess = (filePath, fileName) => {
-    const fullUrl = `${process.env.REACT_APP_API_URL || 'https://3z1p79h8-5000.inc1.devtunnels.ms'}${filePath}`;
+    const fullUrl = `${process.env.REACT_APP_API_URL || 'http://192.168.1.15:5000'}${filePath}`;
     console.log('Attempting to access file:', fullUrl);
     
     // Try to open the file in a new tab
@@ -416,241 +496,217 @@ const handleAdvancedPDFPreview = (item) => {
 
             {/* Desktop Table View */}
             <div className="hidden sm:block">
-  <table className="min-w-full divide-y divide-gray-200">
-    <thead className="bg-gray-50">
-      <tr>
-        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          Customer
-        </th>
-        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          Scope of Work
-        </th>
-        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          Items Description
-        </th>
-        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          Total Quantity
-        </th>
-        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          Price Range
-        </th>
-        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-          Total Amount
-        </th>
-        <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-          Actions
-        </th>
-      </tr>
-    </thead>
-    <tbody className="bg-white divide-y divide-gray-200">
-      {currentItems.length > 0 ? (
-        currentItems.map((item) => {
-          // Process items data for display
-          const items = item.items || [];
-          
-          // Get all item descriptions
-          const itemDescriptions = items.map(subItem => subItem.partName || subItem.itemDescription).filter(Boolean);
-          const displayDescription = itemDescriptions.length > 0 
-            ? itemDescriptions.join(', ') 
-            : item.itemDescription || 'No items';
-          
-          // Calculate total quantities
-          const totalQuantity = items.reduce((sum, subItem) => {
-            const qty = parseFloat(subItem.numberOfUnits || subItem.quantity || 0);
-            return sum + qty;
-          }, 0);
-          
-          // Get unit types (for display)
-          const unitTypes = [...new Set(items.map(subItem => subItem.unitType || subItem.unit).filter(Boolean))];
-          const displayUnit = unitTypes.length > 0 ? unitTypes.join(', ') : item.unit || '';
-          
-          // Get price range
-          const prices = items.map(subItem => parseFloat(subItem.unitPrice || 0)).filter(price => price > 0);
-          const minPrice = prices.length > 0 ? Math.min(...prices) : (item.unitPrice || 0);
-          const maxPrice = prices.length > 0 ? Math.max(...prices) : (item.unitPrice || 0);
-          
-          const displayPrice = prices.length > 1 && minPrice !== maxPrice
-            ? `₹${parseFloat(minPrice).toFixed(2)} - ₹${parseFloat(maxPrice).toFixed(2)}`
-            : `₹${parseFloat(minPrice).toFixed(2)}`;
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Customer
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Scope of Work
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Items Description
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Total Quantity
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Price Range
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Total Amount
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {currentItems.length > 0 ? (
+                    currentItems.map((item) => {
+                      const items = item.items || [];
+                      
+                      // Calculate total quantities
+                      const totalQuantity = items.reduce((sum, subItem) => {
+                        const qty = parseFloat(subItem.numberOfUnits || subItem.quantity || 0);
+                        return sum + qty;
+                      }, 0);
+                      
+                      // Get unit types (for display)
+                      const unitTypes = [...new Set(items.map(subItem => subItem.unitType || subItem.unit).filter(Boolean))];
+                      const displayUnit = unitTypes.length > 0 ? unitTypes.join(', ') : item.unit || '';
+                      
+                      // Get price range
+                      const prices = items.map(subItem => parseFloat(subItem.unitPrice || 0)).filter(price => price > 0);
+                      const minPrice = prices.length > 0 ? Math.min(...prices) : (item.unitPrice || 0);
+                      const maxPrice = prices.length > 0 ? Math.max(...prices) : (item.unitPrice || 0);
+                      
+                      const displayPrice = prices.length > 1 && minPrice !== maxPrice
+                        ? `₹${parseFloat(minPrice).toFixed(2)} - ₹${parseFloat(maxPrice).toFixed(2)}`
+                        : `₹${parseFloat(minPrice).toFixed(2)}`;
 
-          return (
-            <tr key={item._id} className="hover:bg-gray-50 transition-colors duration-150">
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">{item.customer}</div>
-              </td>
-              <td className="px-6 py-4">
-                <div className="text-sm text-gray-900 max-w-xs">
-                  {Array.isArray(item.scopeOfWork) ? item.scopeOfWork.join(', ') : item.scopeOfWork}
-                </div>
-              </td>
-              <td className="px-6 py-4">
-                <div className="text-sm text-gray-900 max-w-xs">
-                  <div className="truncate" title={displayDescription}>
-                    {displayDescription}
-                  </div>
-                  {itemDescriptions.length > 1 && (
-                    <span className="text-xs text-gray-500">
-                      +{itemDescriptions.length - 1} more items
-                    </span>
+                      return (
+                        <tr key={item._id} className="hover:bg-gray-50 transition-colors duration-150">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{item.customer}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900 max-w-xs">
+                              {Array.isArray(item.scopeOfWork) ? item.scopeOfWork.join(', ') : item.scopeOfWork}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900 max-w-xs">
+                              {formatItemsDisplay(items, item._id)}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {totalQuantity > 0 ? `${totalQuantity}${displayUnit ? ` ${displayUnit}` : ''}` : 'N/A'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-semibold text-gray-900">{displayPrice}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-semibold text-gray-900">
+                              ₹{parseFloat(item.totalAmount || item.totalWithGST || 0).toFixed(2)}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex justify-end space-x-2">
+                              <button
+                                onClick={() => handleView(item)}
+                                className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
+                                title="View Details"
+                              >
+                                <EyeIcon className="h-5 w-5" />
+                              </button>
+                              <button
+                                onClick={() => handleAdvancedPDFPreview(item)}
+                                className="text-purple-600 hover:text-purple-900 p-1 transition-colors duration-150"
+                                title="Generate PDF"
+                              >
+                                <DocumentArrowDownIcon className="h-5 w-5" />
+                              </button>
+                              <button
+                                onClick={() => handleEdit(item)}
+                                className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
+                                title="Edit"
+                              >
+                                <PencilSquareIcon className="h-5 w-5" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(item)}
+                                className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
+                                title="Delete"
+                              >
+                                <TrashIcon className="h-5 w-5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan="7" className="px-6 py-4 text-center text-sm text-gray-500">
+                        No BOQ items found
+                      </td>
+                    </tr>
                   )}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">
-                  {totalQuantity > 0 ? `${totalQuantity}${displayUnit ? ` ${displayUnit}` : ''}` : 'N/A'}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-semibold text-gray-900">{displayPrice}</div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-semibold text-gray-900">
-                  ₹{parseFloat(item.totalAmount || item.totalWithGST || 0).toFixed(2)}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <div className="flex justify-end space-x-2">
-  <button
-    onClick={() => handleView(item)}
-    className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
-    title="View Details"
-  >
-    <EyeIcon className="h-5 w-5" />
-  </button>
-  <button
-    onClick={() => handleAdvancedPDFPreview(item)}
-    className="text-purple-600 hover:text-purple-900 p-1 transition-colors duration-150"
-    title="Generate PDF"
-  >
-    <DocumentArrowDownIcon className="h-5 w-5" />
-  </button>
-  <button
-    onClick={() => handleEdit(item)}
-    className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
-    title="Edit"
-  >
-    <PencilSquareIcon className="h-5 w-5" />
-  </button>
-  <button
-  onClick={() => handleDelete(item)}
-  className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
-  title="Delete"
->
-  <TrashIcon className="h-5 w-5" />
-</button>
-</div>
-              </td>
-            </tr>
-          );
-        })
-      ) : (
-        <tr>
-          <td colSpan="7" className="px-6 py-4 text-center text-sm text-gray-500">
-            No BOQ items found
-          </td>
-        </tr>
-      )}
-    </tbody>
-  </table>
-</div>
+                </tbody>
+              </table>
+            </div>
             
             {/* Mobile Card View */}
             <div className="sm:hidden">
-  {currentItems.length > 0 ? (
-    currentItems.map((item) => {
-      // Process items data for mobile display
-      const items = item.items || [];
-      const itemDescriptions = items.map(subItem => subItem.partName || subItem.itemDescription).filter(Boolean);
-      const displayDescription = itemDescriptions.length > 0 
-        ? itemDescriptions.join(', ') 
-        : item.itemDescription || 'No items';
-      
-      const totalQuantity = items.reduce((sum, subItem) => {
-        const qty = parseFloat(subItem.numberOfUnits || subItem.quantity || 0);
-        return sum + qty;
-      }, 0);
-      
-      const unitTypes = [...new Set(items.map(subItem => subItem.unitType || subItem.unit).filter(Boolean))];
-      const displayUnit = unitTypes.length > 0 ? unitTypes.join(', ') : item.unit || '';
-      
-      const prices = items.map(subItem => parseFloat(subItem.unitPrice || 0)).filter(price => price > 0);
-      const minPrice = prices.length > 0 ? Math.min(...prices) : (item.unitPrice || 0);
-      const maxPrice = prices.length > 0 ? Math.max(...prices) : (item.unitPrice || 0);
-      
-      const displayPrice = prices.length > 1 && minPrice !== maxPrice
-        ? `₹${parseFloat(minPrice).toFixed(2)} - ₹${parseFloat(maxPrice).toFixed(2)}`
-        : `₹${parseFloat(minPrice).toFixed(2)}`;
+              {currentItems.length > 0 ? (
+                currentItems.map((item) => {
+                  const items = item.items || [];
+                  
+                  const totalQuantity = items.reduce((sum, subItem) => {
+                    const qty = parseFloat(subItem.numberOfUnits || subItem.quantity || 0);
+                    return sum + qty;
+                  }, 0);
+                  
+                  const unitTypes = [...new Set(items.map(subItem => subItem.unitType || subItem.unit).filter(Boolean))];
+                  const displayUnit = unitTypes.length > 0 ? unitTypes.join(', ') : item.unit || '';
+                  
+                  const prices = items.map(subItem => parseFloat(subItem.unitPrice || 0)).filter(price => price > 0);
+                  const minPrice = prices.length > 0 ? Math.min(...prices) : (item.unitPrice || 0);
+                  const maxPrice = prices.length > 0 ? Math.max(...prices) : (item.unitPrice || 0);
+                  
+                  const displayPrice = prices.length > 1 && minPrice !== maxPrice
+                    ? `₹${parseFloat(minPrice).toFixed(2)} - ₹${parseFloat(maxPrice).toFixed(2)}`
+                    : `₹${parseFloat(minPrice).toFixed(2)}`;
 
-      return (
-        <div key={item._id} className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors duration-150">
-          <div className="flex justify-between items-start mb-2">
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-medium text-gray-900 truncate">{item.customer}</h3>
-              <p className="text-sm text-gray-500 truncate">
-                {Array.isArray(item.scopeOfWork) ? item.scopeOfWork.join(', ') : item.scopeOfWork}
-              </p>
-            </div>
-            <div className="flex space-x-2 ml-2">
-              <button
-                onClick={() => handleView(item)}
-                className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
-                title="View"
-              >
-                <EyeIcon className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => handleEdit(item)}
-                className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
-                title="Edit"
-              >
-                <PencilSquareIcon className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => handleDelete(item._id)}
-                className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
-                title="Delete"
-              >
-                <TrashIcon className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="col-span-2">
-              <span className="font-medium text-gray-500">Items:</span>
-              <span className="ml-1 text-gray-900">
-                {displayDescription}
-              </span>
-              {itemDescriptions.length > 1 && (
-                <span className="ml-1 text-gray-500">
-                  (+{itemDescriptions.length - 1} more)
-                </span>
+                  return (
+                    <div key={item._id} className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors duration-150">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm font-medium text-gray-900 truncate">{item.customer}</h3>
+                          <p className="text-sm text-gray-500 truncate">
+                            {Array.isArray(item.scopeOfWork) ? item.scopeOfWork.join(', ') : item.scopeOfWork}
+                          </p>
+                        </div>
+                        <div className="flex space-x-2 ml-2">
+                          <button
+                            onClick={() => handleView(item)}
+                            className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
+                            title="View"
+                          >
+                            <EyeIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(item)}
+                            className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
+                            title="Edit"
+                          >
+                            <PencilSquareIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item)}
+                            className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
+                            title="Delete"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="col-span-2">
+                          <span className="font-medium text-gray-500">Items:</span>
+                          <div className="mt-1">
+                            {formatItemsDisplay(items, item._id, 1)}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-500">Total Qty:</span>
+                          <span className="ml-1 text-gray-900">
+                            {totalQuantity > 0 ? `${totalQuantity}${displayUnit ? ` ${displayUnit}` : ''}` : 'N/A'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-500">Price Range:</span>
+                          <span className="ml-1 font-semibold text-gray-900">{displayPrice}</span>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="font-medium text-gray-500">Total Amount:</span>
+                          <span className="ml-1 font-semibold text-gray-900">
+                            ₹{parseFloat(item.totalAmount || item.totalWithGST || 0).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="p-4 text-center text-sm text-gray-500">
+                  No BOQ items found
+                </div>
               )}
-            </div>
-            <div>
-              <span className="font-medium text-gray-500">Total Qty:</span>
-              <span className="ml-1 text-gray-900">
-                {totalQuantity > 0 ? `${totalQuantity}${displayUnit ? ` ${displayUnit}` : ''}` : 'N/A'}
-              </span>
-            </div>
-            <div>
-              <span className="font-medium text-gray-500">Price Range:</span>
-              <span className="ml-1 font-semibold text-gray-900">{displayPrice}</span>
-            </div>
-            <div className="col-span-2">
-              <span className="font-medium text-gray-500">Total Amount:</span>
-              <span className="ml-1 font-semibold text-gray-900">
-                ₹{parseFloat(item.totalAmount || item.totalWithGST || 0).toFixed(2)}
-              </span>
-            </div>
-          </div>
-        </div>
-      );
-    })
-  ) : (
-    <div className="p-4 text-center text-sm text-gray-500">
-      No BOQ items found
-    </div>
-  )}
             </div>
           </div>
 
@@ -860,7 +916,7 @@ const handleAdvancedPDFPreview = (item) => {
                     </div>
                     
                     <a 
-                      href={`${process.env.REACT_APP_API_URL || 'https://3z1p79h8-5000.inc1.devtunnels.ms'}${selectedItem.image.path}`}
+                      href={`${process.env.REACT_APP_API_URL || 'http://192.168.1.15:5000'}${selectedItem.image.path}`}
                       download={selectedItem.image.originalName || 'document'}
                       className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors duration-200 flex items-center"
                       onClick={(e) => {
@@ -890,7 +946,7 @@ const handleAdvancedPDFPreview = (item) => {
                     ) : selectedItem.image.path.match(/\.(jpe?g|png|gif|webp|bmp)$/i) ? (
                       <div className="border border-gray-200 rounded-lg overflow-hidden">
                         <img 
-                          src={`${process.env.REACT_APP_API_URL || 'https://3z1p79h8-5000.inc1.devtunnels.ms'}${selectedItem.image.path}`}
+                          src={`${process.env.REACT_APP_API_URL || 'http://192.168.1.15:5000'}${selectedItem.image.path}`}
                           alt={selectedItem.image.originalName || "Document preview"} 
                           className="w-full h-auto max-h-64 object-contain"
                           onError={(e) => {
@@ -932,8 +988,69 @@ const handleAdvancedPDFPreview = (item) => {
               >
                 Edit Item
               </button>
-            </div>          </div>
+            </div>
+          </div>
         )}
+      </Modal>
+
+      {/* Items List Modal */}
+      <Modal
+        isOpen={showItemsModal}
+        onClose={() => setShowItemsModal(false)}
+        title="All Items"
+        size="md"
+      >
+        <div className="max-h-96 overflow-y-auto">
+          <div className="space-y-3">
+            {selectedItemsList.map((item, index) => (
+              <div key={index} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">
+                      {item.partName || item.itemDescription || `Item ${index + 1}`}
+                    </h4>
+                    {item.partNumber && (
+                      <p className="text-sm text-gray-600 mt-1">
+                        Part No: {item.partNumber}
+                      </p>
+                    )}
+                    <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
+                      {item.numberOfUnits && (
+                        <div>
+                          <span className="text-gray-500">Quantity:</span>
+                          <span className="ml-1 font-medium">
+                            {item.numberOfUnits} {item.unitType || item.unit || ''}
+                          </span>
+                        </div>
+                      )}
+                      {item.unitPrice && (
+                        <div>
+                          <span className="text-gray-500">Unit Price:</span>
+                          <span className="ml-1 font-medium">
+                            ₹{parseFloat(item.unitPrice).toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    {item.remarks && (
+                      <p className="text-sm text-gray-600 mt-2">
+                        <span className="text-gray-500">Remarks:</span> {item.remarks}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="mt-4 flex justify-end">
+          <button
+            onClick={() => setShowItemsModal(false)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
+          >
+            Close
+          </button>
+        </div>
       </Modal>
 
       {/* Advanced PDF Generator Modal */}
@@ -945,52 +1062,51 @@ const handleAdvancedPDFPreview = (item) => {
       )}
 
       {/* Delete Confirmation Modal */}
-      {/* Delete Confirmation Modal */}
-<Modal
-  isOpen={showDeleteModal}
-  onClose={() => setShowDeleteModal(false)}
-  title="Confirm Delete"
-  size="sm"
->
-  <div className="p-4">
-    <p className="mb-4 text-gray-700">
-      Are you sure you want to delete the BOQ item for{" "}
-      <span className="font-semibold">{itemToDelete?.customer}</span> -{" "}
-      <span className="font-semibold">{itemToDelete?.projectName}</span>?
-      This action cannot be undone.
-    </p>
-    {itemToDelete && (
-      <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
-        <p className="text-sm text-red-600">
-          <span className="font-medium">Customer:</span> {itemToDelete.customer}
-        </p>
-        <p className="text-sm text-red-600">
-          <span className="font-medium">Project:</span> {itemToDelete.projectName}
-        </p>
-        <p className="text-sm text-red-600">
-          <span className="font-medium">Scope:</span>{" "}
-          {Array.isArray(itemToDelete.scopeOfWork) 
-            ? itemToDelete.scopeOfWork.join(', ') 
-            : itemToDelete.scopeOfWork}
-        </p>
-      </div>
-    )}
-    <div className="flex justify-end space-x-3">
-      <button
-        onClick={() => setShowDeleteModal(false)}
-        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title="Confirm Delete"
+        size="sm"
       >
-        Cancel
-      </button>
-      <button
-        onClick={confirmDelete}
-        className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-      >
-        Delete
-      </button>
-    </div>
-  </div>
-</Modal>
+        <div className="p-4">
+          <p className="mb-4 text-gray-700">
+            Are you sure you want to delete the BOQ item for{" "}
+            <span className="font-semibold">{itemToDelete?.customer}</span> -{" "}
+            <span className="font-semibold">{itemToDelete?.projectName}</span>?
+            This action cannot be undone.
+          </p>
+          {itemToDelete && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+              <p className="text-sm text-red-600">
+                <span className="font-medium">Customer:</span> {itemToDelete.customer}
+              </p>
+              <p className="text-sm text-red-600">
+                <span className="font-medium">Project:</span> {itemToDelete.projectName}
+              </p>
+              <p className="text-sm text-red-600">
+                <span className="font-medium">Scope:</span>{" "}
+                {Array.isArray(itemToDelete.scopeOfWork) 
+                  ? itemToDelete.scopeOfWork.join(', ') 
+                  : itemToDelete.scopeOfWork}
+              </p>
+            </div>
+          )}
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmDelete}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

@@ -443,7 +443,7 @@ const InventoryManagement = () => {
                     <option value="">All Scopes</option>
                     {uniqueScopes.map(scope => (
                       <option key={scope} value={scope}>
-                        {scope.replace(/_/g, ' ').toUpperCase()}
+                        {scope.replace(/_/g, ' ').toLowerCase()}
                       </option>
                     ))}
                   </select>
@@ -551,7 +551,7 @@ const InventoryManagement = () => {
                         </td>
                         <td className="px-6 py-4">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {item.scopeOfWork?.replace(/_/g, ' ').toUpperCase()}
+                            {item.scopeOfWork?.replace(/_/g, ' ').toLowerCase()}
                           </span>
                         </td>
                         <td className="px-6 py-4">

@@ -499,7 +499,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError }) => {
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
                   <label htmlFor={`scope-${scope}`} className="ml-2 block text-sm text-gray-700">
-                    {scope}
+                    {scope.replace(/_/g, ' ').toLowerCase()}
                   </label>
                 </div>
               ))}
@@ -614,7 +614,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError }) => {
                           {item.image && typeof item.image === 'string' && (
                           <div className="mt-2">
                             <a 
-                              href={item.image.startsWith('http') ? item.image : `${process.env.REACT_APP_API_URL || 'https://3z1p79h8-5000.inc1.devtunnels.ms'}${item.image}`} 
+                              href={item.image.startsWith('http') ? item.image : `${process.env.REACT_APP_API_URL || 'http://192.168.1.15:5000'}${item.image}`} 
                               target="_blank" 
                               rel="noopener noreferrer"
                               className="text-xs text-blue-600 hover:underline flex items-center"

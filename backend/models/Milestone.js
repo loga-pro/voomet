@@ -46,6 +46,10 @@ const taskSchema = new mongoose.Schema({
   },
   outlookCompletion: {
     type: Date
+  },
+  remark: {
+    type: String,
+    default: ''
   }
 });
 
