@@ -32,6 +32,8 @@ const CustomerMaster = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
   const [uniqueCustomerNames, setUniqueCustomerNames] = useState([]);
+  const [uniqueCustomerEmails, setUniqueCustomerEmails] = useState([]);
+  const [searchTerm, setSearchTerm] = useState(''); // New state for overall search
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const { notification, showSuccess, hideNotification } = useNotification();
@@ -43,7 +45,7 @@ const CustomerMaster = () => {
 
   useEffect(() => {
     filterCustomers();
-  }, [customers, filters, currentPage, itemsPerPage]);
+  }, [customers, filters, searchTerm, currentPage, itemsPerPage]);
 
   const fetchCustomers = async () => {
     try {
@@ -52,8 +54,10 @@ const CustomerMaster = () => {
       
       // Extract unique values for dropdowns
       const customerNames = [...new Set(response.data.map(customer => customer.customerName))].filter(Boolean);
+      const customerEmails = [...new Set(response.data.map(customer => customer.customerEmail))].filter(Boolean);
       
       setUniqueCustomerNames(customerNames);
+      setUniqueCustomerEmails(customerEmails);
     } catch (error) {
       console.error('Error fetching customers:', error);
     } finally {
@@ -75,15 +79,27 @@ const CustomerMaster = () => {
   const filterCustomers = () => {
     let filtered = customers;
 
+    // Apply dropdown filters
     if (filters.customerName) {
       filtered = filtered.filter(customer => 
-        customer.customerName.toLowerCase().includes(filters.customerName.toLowerCase())
+        customer.customerName === filters.customerName
       );
     }
 
     if (filters.customerEmail) {
       filtered = filtered.filter(customer => 
-        customer.customerEmail.toLowerCase().includes(filters.customerEmail.toLowerCase())
+        customer.customerEmail === filters.customerEmail
+      );
+    }
+
+    // Apply overall search across multiple fields
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(customer => 
+        customer.customerName.toLowerCase().includes(searchLower) ||
+        customer.customerEmail.toLowerCase().includes(searchLower) ||
+        customer.invoiceEmail.toLowerCase().includes(searchLower) ||
+        customer.billingAddress.toLowerCase().includes(searchLower)
       );
     }
 
@@ -98,11 +114,17 @@ const CustomerMaster = () => {
     setCurrentPage(1); // Reset to first page when filters change
   };
 
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page when search changes
+  };
+
   const clearFilters = () => {
     setFilters({
       customerName: '',
       customerEmail: ''
     });
+    setSearchTerm('');
   };
 
   // Pagination logic
@@ -199,10 +221,10 @@ const CustomerMaster = () => {
                   </div>
                   <input
                     type="text"
-                    value={filters.customerName}
-                    onChange={(e) => handleFilterChange('customerName', e.target.value)}
+                    value={searchTerm}
+                    onChange={(e) => handleSearchChange(e.target.value)}
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="Search customers..."
+                    placeholder="Search customers, emails, addresses..."
                   />
                 </div>
               </div>
@@ -211,21 +233,21 @@ const CustomerMaster = () => {
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                    showFilters || Object.values(filters).some(Boolean) 
+                    showFilters || Object.values(filters).some(Boolean) || searchTerm
                       ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100' 
                       : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
                   }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
                   Filters
-                  {Object.values(filters).some(Boolean) && (
+                  {(Object.values(filters).some(Boolean) || searchTerm) && (
                     <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-600 rounded-full">
-                      {Object.values(filters).filter(Boolean).length}
+                      {Object.values(filters).filter(Boolean).length + (searchTerm ? 1 : 0)}
                     </span>
                   )}
                 </button>
                 
-                {Object.values(filters).some(Boolean) && (
+                {(Object.values(filters).some(Boolean) || searchTerm) && (
                   <button
                     onClick={clearFilters}
                     className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -273,13 +295,16 @@ const CustomerMaster = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Customer Email</label>
-                  <input
-                    type="text"
+                  <select
                     value={filters.customerEmail}
                     onChange={(e) => handleFilterChange('customerEmail', e.target.value)}
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
-                    placeholder="Search by customer email"
-                  />
+                  >
+                    <option value="">All Emails</option>
+                    {uniqueCustomerEmails.map(email => (
+                      <option key={email} value={email}>{email}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>

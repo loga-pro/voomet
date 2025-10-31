@@ -38,6 +38,8 @@ const BOQManagement = () => {
   const [projects, setProjects] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [uniqueStatuses, setUniqueStatuses] = useState([]);
+  const [uniqueProjectNames, setUniqueProjectNames] = useState([]);
+  const [searchTerm, setSearchTerm] = useState(''); // New state for overall search
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [showItemsModal, setShowItemsModal] = useState(false);
@@ -54,7 +56,7 @@ const BOQManagement = () => {
 
   useEffect(() => {
     filterItems();
-  }, [boqItems, filters, currentPage, itemsPerPage]);
+  }, [boqItems, filters, searchTerm, currentPage, itemsPerPage]);
 
   const fetchBOQItems = async () => {
     try {
@@ -65,6 +67,10 @@ const BOQManagement = () => {
       
       const statuses = [...new Set(items.map(item => item.status))].filter(Boolean);
       setUniqueStatuses(statuses);
+
+      // Extract unique project names from BOQ items
+      const projectNames = [...new Set(items.map(item => item.projectName))].filter(Boolean);
+      setUniqueProjectNames(projectNames);
     } catch (error) {
       console.error('Error fetching BOQ items:', error);
       setBoqItems([]);
@@ -103,21 +109,44 @@ const BOQManagement = () => {
     const itemsArray = Array.isArray(boqItems) ? boqItems : [];
     let filtered = itemsArray;
 
+    // Apply dropdown filters
     if (filters.projectName) {
       filtered = filtered.filter(item => 
-        item.projectName && item.projectName.toLowerCase().includes(filters.projectName.toLowerCase())
+        item.projectName === filters.projectName
       );
     }
 
     if (filters.customer) {
       filtered = filtered.filter(item => 
-        item.customer && item.customer.toLowerCase().includes(filters.customer.toLowerCase())
+        item.customer === filters.customer
       );
     }
 
     if (filters.status) {
       filtered = filtered.filter(item => 
         item.status === filters.status
+      );
+    }
+
+    // Apply overall search across multiple fields
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(item => 
+        item.projectName?.toLowerCase().includes(searchLower) ||
+        item.customer?.toLowerCase().includes(searchLower) ||
+        item.status?.toLowerCase().includes(searchLower) ||
+        (Array.isArray(item.scopeOfWork) && item.scopeOfWork.some(scope => 
+          scope.toLowerCase().includes(searchLower)
+        )) ||
+        item.itemDescription?.toLowerCase().includes(searchLower) ||
+        (item.items && item.items.some(subItem => 
+          subItem.partName?.toLowerCase().includes(searchLower) ||
+          subItem.itemDescription?.toLowerCase().includes(searchLower) ||
+          subItem.partNumber?.toLowerCase().includes(searchLower) ||
+          subItem.remarks?.toLowerCase().includes(searchLower)
+        )) ||
+        item.totalAmount?.toString().includes(searchTerm) ||
+        item.unitPrice?.toString().includes(searchTerm)
       );
     }
 
@@ -132,12 +161,18 @@ const BOQManagement = () => {
     setCurrentPage(1);
   };
 
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page when search changes
+  };
+
   const clearFilters = () => {
     setFilters({
       projectName: '',
       customer: '',
       status: ''
     });
+    setSearchTerm('');
   };
 
   // Toggle expanded state for individual items
@@ -380,10 +415,10 @@ const BOQManagement = () => {
                   </div>
                   <input
                     type="text"
-                    value={filters.projectName}
-                    onChange={(e) => handleFilterChange('projectName', e.target.value)}
+                    value={searchTerm}
+                    onChange={(e) => handleSearchChange(e.target.value)}
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="Search projects..."
+                    placeholder="Search projects, customers, items, amounts..."
                   />
                 </div>
               </div>
@@ -392,21 +427,21 @@ const BOQManagement = () => {
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                    showFilters || Object.values(filters).some(Boolean) 
+                    showFilters || Object.values(filters).some(Boolean) || searchTerm
                       ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100' 
                       : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
                   }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
                   Filters
-                  {Object.values(filters).some(Boolean) && (
+                  {(Object.values(filters).some(Boolean) || searchTerm) && (
                     <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-600 rounded-full">
-                      {Object.values(filters).filter(Boolean).length}
+                      {Object.values(filters).filter(Boolean).length + (searchTerm ? 1 : 0)}
                     </span>
                   )}
                 </button>
                 
-                {Object.values(filters).some(Boolean) && (
+                {(Object.values(filters).some(Boolean) || searchTerm) && (
                   <button
                     onClick={clearFilters}
                     className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -441,13 +476,16 @@ const BOQManagement = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
-                  <input
-                    type="text"
+                  <select
                     value={filters.projectName}
                     onChange={(e) => handleFilterChange('projectName', e.target.value)}
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
-                    placeholder="Search by project name"
-                  />
+                  >
+                    <option value="">All Projects</option>
+                    {uniqueProjectNames.map(projectName => (
+                      <option key={projectName} value={projectName}>{projectName}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
@@ -1106,7 +1144,7 @@ const BOQManagement = () => {
             </button>
           </div>
         </div>
-      </Modal>
+      </Modal> 
     </div>
   );
 };

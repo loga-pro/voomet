@@ -142,7 +142,8 @@ const MilestoneTracking = () => {
       
       // Check if completed on time or delayed
       if (plannedEnd && actualEnd > plannedEnd) {
-        return 'Delayed';
+        const delayDays = Math.ceil((actualEnd - plannedEnd) / (1000 * 60 * 60 * 24));
+        return delayDays <= 15 ? 'Likely Delay' : 'Delayed';
       }
       return 'Completed';
     }
@@ -162,7 +163,8 @@ const MilestoneTracking = () => {
       
       // If outlook completion is after planned end, likely to be delayed
       if (outlookCompletion > plannedEnd) {
-        return 'Likely Delay';
+        const delayDays = Math.ceil((outlookCompletion - plannedEnd) / (1000 * 60 * 60 * 24));
+        return delayDays <= 15 ? 'Likely Delay' : 'Delayed';
       }
     }
 
@@ -170,7 +172,8 @@ const MilestoneTracking = () => {
     if (task.endDate) {
       const plannedEnd = new Date(task.endDate);
       if (today > plannedEnd) {
-        return 'Delayed';
+        const delayDays = Math.ceil((today - plannedEnd) / (1000 * 60 * 60 * 24));
+        return delayDays <= 15 ? 'Likely Delay' : 'Delayed';
       }
     }
 

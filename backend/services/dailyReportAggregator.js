@@ -99,9 +99,12 @@ class DailyReportAggregator {
       const start = moment(end).subtract(6, 'days'); // Last 7 days
       
       const dailyReports = [];
+      const scopeBreakdown = {};
       
       for (let date = moment(start); date <= end; date.add(1, 'day')) {
         const dailyReport = await this.generateDailyReport(date.format('YYYY-MM-DD'));
+        
+        // Add daily totals
         dailyReports.push({
           date: date.format('DD/MM/YYYY'),
           receipts: dailyReport.totalReceipts,
@@ -109,15 +112,51 @@ class DailyReportAggregator {
           returns: dailyReport.totalReturns,
           netChange: dailyReport.netChange
         });
+        
+        // Aggregate by scope of work
+        if (dailyReport.items && dailyReport.items.length > 0) {
+          dailyReport.items.forEach(item => {
+            if (!scopeBreakdown[item.scopeOfWork]) {
+              scopeBreakdown[item.scopeOfWork] = {
+                scopeOfWork: item.scopeOfWork,
+                totalReceipts: 0,
+                totalDispatches: 0,
+                totalReturns: 0,
+                totalValue: 0,
+                dailyBreakdown: []
+              };
+            }
+            
+            scopeBreakdown[item.scopeOfWork].totalReceipts += item.dailyReceipts;
+            scopeBreakdown[item.scopeOfWork].totalDispatches += item.dailyDispatches;
+            scopeBreakdown[item.scopeOfWork].totalReturns += item.dailyReturns;
+            scopeBreakdown[item.scopeOfWork].totalValue += item.cumulativePriceValue;
+            
+            scopeBreakdown[item.scopeOfWork].dailyBreakdown.push({
+              date: date.format('DD/MM/YYYY'),
+              receipts: item.dailyReceipts,
+              dispatches: item.dailyDispatches,
+              returns: item.dailyReturns,
+              value: item.cumulativePriceValue
+            });
+          });
+        }
       }
+      
+      // Convert scope breakdown to array
+      const weeklyData = Object.values(scopeBreakdown);
       
       return {
         weekStart: start.format('DD/MM/YYYY'),
         weekEnd: end.format('DD/MM/YYYY'),
         dailyReports,
-        totalReceipts: dailyReports.reduce((sum, day) => sum + day.receipts, 0),
-        totalDispatches: dailyReports.reduce((sum, day) => sum + day.dispatches, 0),
-        totalReturns: dailyReports.reduce((sum, day) => sum + day.returns, 0),
+        weeklyData,
+        summary: {
+          totalReceipts: dailyReports.reduce((sum, day) => sum + day.receipts, 0),
+          totalDispatches: dailyReports.reduce((sum, day) => sum + day.dispatches, 0),
+          totalReturns: dailyReports.reduce((sum, day) => sum + day.returns, 0),
+          totalValue: weeklyData.reduce((sum, scope) => sum + scope.totalValue, 0)
+        },
         generatedAt: new Date()
       };
       

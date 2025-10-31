@@ -1723,13 +1723,13 @@ const Reports = () => {
                 {/* Summary Stats */}
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div>
-                    <p className="text-xs text-gray-500">Current</p>
+                    <p className="text-xs text-gray-500">Payment Done</p>
                     <p className="text-lg font-bold text-green-600">
                       ₹{getFilteredComprehensiveProjectData().reduce((sum, p) => sum + (p.paymentReceived || 0), 0).toLocaleString()}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Overdue</p>
+                    <p className="text-xs text-gray-500">Balance</p>
                     <p className="text-lg font-bold text-orange-600">
                       ₹{getFilteredComprehensiveProjectData().reduce((sum, p) => sum + (p.balanceAmount || 0), 0).toLocaleString()}
                     </p>
@@ -1738,11 +1738,8 @@ const Reports = () => {
 
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={[
-                    { name: 'Current', value: getFilteredComprehensiveProjectData().reduce((sum, p) => sum + (p.paymentReceived || 0), 0) / 100 },
-                    { name: '1-25', value: getFilteredComprehensiveProjectData().reduce((sum, p) => sum + (p.balanceAmount || 0), 0) / 150 },
-                    { name: '16-30', value: getFilteredComprehensiveProjectData().reduce((sum, p) => sum + (p.balanceAmount || 0), 0) / 200 },
-                    { name: '31-45', value: getFilteredComprehensiveProjectData().reduce((sum, p) => sum + (p.balanceAmount || 0), 0) / 250 },
-                    { name: '>45', value: getFilteredComprehensiveProjectData().reduce((sum, p) => sum + (p.balanceAmount || 0), 0) / 300 }
+                    { name: 'Payment Done', value: getFilteredComprehensiveProjectData().reduce((sum, p) => sum + (p.paymentReceived || 0), 0) },
+                    { name: 'Balance', value: getFilteredComprehensiveProjectData().reduce((sum, p) => sum + (p.balanceAmount || 0), 0) }
                   ]}>
                     <XAxis 
                       dataKey="name" 
@@ -1758,12 +1755,12 @@ const Reports = () => {
                         borderRadius: '8px',
                         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                       }}
-                      formatter={(value) => [`₹${(value * 100).toLocaleString()}`, 'Amount']}
+                      formatter={(value) => [`₹${value?.toLocaleString()}`, 'Amount']}
                       cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }}
                     />
                     <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={50}>
-                      {[0, 1, 2, 3, 4].map((index) => (
-                        <Cell key={`cell-${index}`} fill={index === 0 ? '#fbbf24' : '#fb923c'} />
+                      {[0, 1].map((index) => (
+                        <Cell key={`cell-${index}`} fill={index === 0 ? '#10b981' : '#f97316'} />
                       ))}
                     </Bar>
                   </BarChart>

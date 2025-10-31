@@ -33,6 +33,8 @@ const ProjectMaster = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [uniqueCustomers, setUniqueCustomers] = useState([]);
   const [uniqueStages, setUniqueStages] = useState([]);
+  const [uniqueProjectNames, setUniqueProjectNames] = useState([]);
+  const [searchTerm, setSearchTerm] = useState(''); // New state for overall search
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const { notification, showSuccess, hideNotification } = useNotification();
@@ -43,7 +45,7 @@ const ProjectMaster = () => {
 
   useEffect(() => {
     filterProjects();
-  }, [projects, filters, currentPage, itemsPerPage]);
+  }, [projects, filters, searchTerm, currentPage, itemsPerPage]);
 
   const fetchProjects = async () => {
     try {
@@ -53,9 +55,11 @@ const ProjectMaster = () => {
       // Extract unique values for dropdowns
       const customers = [...new Set(response.data.map(project => project.customerName))].filter(Boolean);
       const stages = [...new Set(response.data.map(project => project.stage))].filter(Boolean);
+      const projectNames = [...new Set(response.data.map(project => project.projectName))].filter(Boolean);
       
       setUniqueCustomers(customers);
       setUniqueStages(stages);
+      setUniqueProjectNames(projectNames);
     } catch (error) {
       console.error('Error fetching projects:', error);
     } finally {
@@ -66,9 +70,10 @@ const ProjectMaster = () => {
   const filterProjects = () => {
     let filtered = projects;
 
+    // Apply dropdown filters
     if (filters.customerName) {
       filtered = filtered.filter(project => 
-        project.customerName.toLowerCase().includes(filters.customerName.toLowerCase())
+        project.customerName === filters.customerName
       );
     }
 
@@ -80,7 +85,21 @@ const ProjectMaster = () => {
 
     if (filters.projectName) {
       filtered = filtered.filter(project => 
-        project.projectName.toLowerCase().includes(filters.projectName.toLowerCase())
+        project.projectName === filters.projectName
+      );
+    }
+
+    // Apply overall search across multiple fields
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(project => 
+        project.projectName.toLowerCase().includes(searchLower) ||
+        project.customerName.toLowerCase().includes(searchLower) ||
+        project.stage.toLowerCase().includes(searchLower) ||
+        project.totalProjectValue.toString().includes(searchTerm) ||
+        (project.scopeOfWork && project.scopeOfWork.some(scope => 
+          scope.toLowerCase().includes(searchLower)
+        ))
       );
     }
 
@@ -95,12 +114,18 @@ const ProjectMaster = () => {
     setCurrentPage(1); // Reset to first page when filters change
   };
 
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page when search changes
+  };
+
   const clearFilters = () => {
     setFilters({
       customerName: '',
       stage: '',
       projectName: ''
     });
+    setSearchTerm('');
   };
 
   // Pagination logic
@@ -186,69 +211,70 @@ const ProjectMaster = () => {
       <div className="max-w-none xl:max-w-8xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
 
-<div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
-    <div className="flex items-center space-x-3">
-      <div className="relative flex-1 max-w-md">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-        </div>
-        <input
-          type="text"
-          value={filters.projectName}
-          onChange={(e) => handleFilterChange('projectName', e.target.value)}
-          className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-          placeholder="Search projects..."
-        />
-      </div>
-    </div>
-    
-    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-      <button
-        onClick={() => setShowFilters(!showFilters)}
-        className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-          showFilters || Object.values(filters).some(Boolean) 
-            ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100' 
-            : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
-        }`}
-      >
-        <FunnelIcon className="h-5 w-5 mr-2" />
-        Filters
-        {Object.values(filters).some(Boolean) && (
-          <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-600 rounded-full">
-            {Object.values(filters).filter(Boolean).length}
-          </span>
-        )}
-      </button>
-      
-      {Object.values(filters).some(Boolean) && (
-        <button
-          onClick={clearFilters}
-          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <XMarkIcon className="h-5 w-5 mr-2" />
-          Clear
-        </button>
-      )}
-      
-      <button
-        onClick={exportToCSV}
-        className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-      >
-        <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
-        Export CSV
-      </button>
-      
-      <button
-        onClick={() => setShowModal(true)}
-        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-      >
-        <PlusIcon className="h-5 w-5 mr-2" />
-        Add Project
-      </button>
-    </div>
-  </div>
-</div>
+          {/* Header with search and actions */}
+          <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
+              <div className="flex items-center space-x-3">
+                <div className="relative flex-1 max-w-md">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    placeholder="Search projects, customers, stages, values..."
+                  />
+                </div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                    showFilters || Object.values(filters).some(Boolean) || searchTerm
+                      ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100' 
+                      : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                  }`}
+                >
+                  <FunnelIcon className="h-5 w-5 mr-2" />
+                  Filters
+                  {(Object.values(filters).some(Boolean) || searchTerm) && (
+                    <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-600 rounded-full">
+                      {Object.values(filters).filter(Boolean).length + (searchTerm ? 1 : 0)}
+                    </span>
+                  )}
+                </button>
+                
+                {(Object.values(filters).some(Boolean) || searchTerm) && (
+                  <button
+                    onClick={clearFilters}
+                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <XMarkIcon className="h-5 w-5 mr-2" />
+                    Clear
+                  </button>
+                )}
+                
+                <button
+                  onClick={exportToCSV}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
+                  Export CSV
+                </button>
+                
+                <button
+                  onClick={() => setShowModal(true)}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <PlusIcon className="h-5 w-5 mr-2" />
+                  Add Project
+                </button>
+              </div>
+            </div>
+          </div>
 
           {/* Filters */}
           {showFilters && (
@@ -282,13 +308,16 @@ const ProjectMaster = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
-                  <input
-                    type="text"
+                  <select
                     value={filters.projectName}
                     onChange={(e) => handleFilterChange('projectName', e.target.value)}
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
-                    placeholder="Search by project name"
-                  />
+                  >
+                    <option value="">All Projects</option>
+                    {uniqueProjectNames.map(projectName => (
+                      <option key={projectName} value={projectName}>{projectName}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
@@ -505,96 +534,96 @@ const ProjectMaster = () => {
 
       {/* View Modal */}
       <Modal
-  isOpen={viewModal}
-  onClose={() => {
-    setViewModal(false);
-    setSelectedProject(null);
-  }}
-  title="Project Details"
-  size="lg"
-  className="font-sans"
->
-  {selectedProject && (
-    <div className="space-y-6 py-1">
-      {/* Header with project name and stage */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-800">{selectedProject.projectName}</h2>
-          <p className="text-sm text-gray-600 mt-1">Customer: {selectedProject.customerName}</p>
-        </div>
-        <div className="text-right">
-          <p className="text-sm text-gray-500">Project Value</p>
-          <p className="text-2xl font-bold text-blue-600">₹{selectedProject.totalProjectValue.toLocaleString()}</p>
-        </div>
-      </div>
+        isOpen={viewModal}
+        onClose={() => {
+          setViewModal(false);
+          setSelectedProject(null);
+        }}
+        title="Project Details"
+        size="lg"
+        className="font-sans"
+      >
+        {selectedProject && (
+          <div className="space-y-6 py-1">
+            {/* Header with project name and stage */}
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">{selectedProject.projectName}</h2>
+                <p className="text-sm text-gray-600 mt-1">Customer: {selectedProject.customerName}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-500">Project Value</p>
+                <p className="text-2xl font-bold text-blue-600">₹{selectedProject.totalProjectValue.toLocaleString()}</p>
+              </div>
+            </div>
 
-      {/* Basic Information Card */}
-      <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
-        <h3 className="text-md font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100 flex items-center">
-          <i className="fas fa-info-circle mr-2 text-blue-500"></i>
-          Project Information
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="space-y-1">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Customer Name</h4>
-            <p className="text-sm text-gray-900 font-medium">{selectedProject.customerName}</p>
-          </div>
-          
-          <div className="space-y-1">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Name</h4>
-            <p className="text-sm text-gray-900 font-medium">{selectedProject.projectName}</p>
-          </div>
-          
-          <div className="space-y-1">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Enquiry Date</h4>
-            <p className="text-sm text-gray-900 font-medium">{new Date(selectedProject.enquiryDate).toLocaleDateString()}</p>
-          </div>
-          
-          <div className="space-y-1">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Stage</h4>
-            <div className="mt-1">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                {selectedProject.stage.replace('_', ' ').toUpperCase()}
-              </span>
+            {/* Basic Information Card */}
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
+              <h3 className="text-md font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                <i className="fas fa-info-circle mr-2 text-blue-500"></i>
+                Project Information
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Customer Name</h4>
+                  <p className="text-sm text-gray-900 font-medium">{selectedProject.customerName}</p>
+                </div>
+                
+                <div className="space-y-1">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Name</h4>
+                  <p className="text-sm text-gray-900 font-medium">{selectedProject.projectName}</p>
+                </div>
+                
+                <div className="space-y-1">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Enquiry Date</h4>
+                  <p className="text-sm text-gray-900 font-medium">{new Date(selectedProject.enquiryDate).toLocaleDateString()}</p>
+                </div>
+                
+                <div className="space-y-1">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Stage</h4>
+                  <div className="mt-1">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {selectedProject.stage.replace('_', ' ').toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="space-y-1 md:col-span-2">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Scope of Work</h4>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {selectedProject.scopeOfWork.map((scope, index) => (
+                      <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-800">
+                        {scope}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3 pt-2">
+              <button
+                onClick={() => setViewModal(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setViewModal(false);
+                  setEditingProject(selectedProject);
+                  setShowModal(true);
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Edit Project
+              </button>
             </div>
           </div>
-          
-          <div className="space-y-1 md:col-span-2">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Scope of Work</h4>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {selectedProject.scopeOfWork.map((scope, index) => (
-                <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-800">
-                  {scope}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex justify-end space-x-3 pt-2">
-        <button
-          onClick={() => setViewModal(false)}
-          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-        >
-          Close
-        </button>
-        <button
-          onClick={() => {
-            setViewModal(false);
-            setEditingProject(selectedProject);
-            setShowModal(true);
-          }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          Edit Project
-        </button>
-      </div>
-    </div>
-  )}
-</Modal>
+        )}
+      </Modal>
 
       {/* Notification */}
       <Notification

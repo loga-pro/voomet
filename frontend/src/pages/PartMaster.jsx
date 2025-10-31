@@ -33,6 +33,8 @@ const PartMaster = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [uniqueScopes, setUniqueScopes] = useState([]);
   const [uniqueCategories, setUniqueCategories] = useState([]);
+  const [uniquePartNames, setUniquePartNames] = useState([]);
+  const [searchTerm, setSearchTerm] = useState(''); // New state for overall search
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const { notification, showSuccess, hideNotification } = useNotification();
@@ -62,7 +64,7 @@ const PartMaster = () => {
 
   useEffect(() => {
     filterParts();
-  }, [parts, filters, currentPage, itemsPerPage]);
+  }, [parts, filters, searchTerm, currentPage, itemsPerPage]);
 
   const fetchParts = async () => {
     try {
@@ -72,9 +74,11 @@ const PartMaster = () => {
       // Extract unique values for dropdowns
       const scopes = [...new Set(response.data.map(part => part.scopeOfWork))].filter(Boolean);
       const categories = [...new Set(response.data.map(part => part.category))].filter(Boolean);
+      const partNames = [...new Set(response.data.map(part => part.partName))].filter(Boolean);
       
       setUniqueScopes(scopes);
       setUniqueCategories(categories);
+      setUniquePartNames(partNames);
     } catch (error) {
       console.error('Error fetching parts:', error);
     } finally {
@@ -85,6 +89,7 @@ const PartMaster = () => {
   const filterParts = () => {
     let filtered = parts;
 
+    // Apply dropdown filters
     if (filters.scopeOfWork) {
       filtered = filtered.filter(part => 
         part.scopeOfWork === filters.scopeOfWork
@@ -99,7 +104,19 @@ const PartMaster = () => {
 
     if (filters.partName) {
       filtered = filtered.filter(part => 
-        part.partName.toLowerCase().includes(filters.partName.toLowerCase())
+        part.partName === filters.partName
+      );
+    }
+
+    // Apply overall search across multiple fields
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(part => 
+        part.partName.toLowerCase().includes(searchLower) ||
+        part.scopeOfWork.toLowerCase().includes(searchLower) ||
+        part.category.toLowerCase().includes(searchLower) ||
+        part.unitType.toLowerCase().includes(searchLower) ||
+        part.partPrice.toString().includes(searchTerm)
       );
     }
 
@@ -114,12 +131,18 @@ const PartMaster = () => {
     setCurrentPage(1); // Reset to first page when filters change
   };
 
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page when search changes
+  };
+
   const clearFilters = () => {
     setFilters({
       scopeOfWork: '',
       category: '',
       partName: ''
     });
+    setSearchTerm('');
   };
 
   // Pagination logic
@@ -216,10 +239,10 @@ const PartMaster = () => {
                   </div>
                   <input
                     type="text"
-                    value={filters.partName}
-                    onChange={(e) => handleFilterChange('partName', e.target.value)}
+                    value={searchTerm}
+                    onChange={(e) => handleSearchChange(e.target.value)}
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="Search parts..."
+                    placeholder="Search parts, scope, category, unit type, price..."
                   />
                 </div>
               </div>
@@ -228,21 +251,21 @@ const PartMaster = () => {
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                    showFilters || Object.values(filters).some(Boolean) 
+                    showFilters || Object.values(filters).some(Boolean) || searchTerm
                       ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100' 
                       : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
                   }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
                   Filters
-                  {Object.values(filters).some(Boolean) && (
+                  {(Object.values(filters).some(Boolean) || searchTerm) && (
                     <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-600 rounded-full">
-                      {Object.values(filters).filter(Boolean).length}
+                      {Object.values(filters).filter(Boolean).length + (searchTerm ? 1 : 0)}
                     </span>
                   )}
                 </button>
                 
-                {Object.values(filters).some(Boolean) && (
+                {(Object.values(filters).some(Boolean) || searchTerm) && (
                   <button
                     onClick={clearFilters}
                     className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -303,13 +326,16 @@ const PartMaster = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Part Name</label>
-                  <input
-                    type="text"
+                  <select
                     value={filters.partName}
                     onChange={(e) => handleFilterChange('partName', e.target.value)}
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
-                    placeholder="Search by part name"
-                  />
+                  >
+                    <option value="">All Part Names</option>
+                    {uniquePartNames.map(partName => (
+                      <option key={partName} value={partName}>{partName}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>

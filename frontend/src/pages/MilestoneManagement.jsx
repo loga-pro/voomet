@@ -29,11 +29,13 @@ const MilestoneManagement = () => {
   const [filters, setFilters] = useState({
     customer: '',
     projectName: '',
-    emailId: '',
-    phase: '',
-    projectStatus: ''
+    emailId: ''
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [uniqueCustomers, setUniqueCustomers] = useState([]);
+  const [uniqueProjectNames, setUniqueProjectNames] = useState([]);
+  const [uniqueEmailIds, setUniqueEmailIds] = useState([]);
+  const [searchTerm, setSearchTerm] = useState(''); // New state for overall search
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -47,13 +49,23 @@ const MilestoneManagement = () => {
 
   useEffect(() => {
     filterMilestones();
-  }, [milestones, filters, currentPage, itemsPerPage]);
+  }, [milestones, filters, searchTerm, currentPage, itemsPerPage]);
 
   const fetchMilestones = async () => {
     try {
       setLoading(true);
       const response = await milestonesAPI.getAll();
-      setMilestones(response.data.milestones || response.data);
+      const milestonesData = response.data.milestones || response.data;
+      setMilestones(milestonesData);
+
+      // Extract unique values for dropdowns
+      const customers = [...new Set(milestonesData.map(milestone => milestone.customer))].filter(Boolean);
+      const projectNames = [...new Set(milestonesData.map(milestone => milestone.projectName))].filter(Boolean);
+      const emailIds = [...new Set(milestonesData.map(milestone => milestone.emailId))].filter(Boolean);
+      
+      setUniqueCustomers(customers);
+      setUniqueProjectNames(projectNames);
+      setUniqueEmailIds(emailIds);
     } catch (error) {
       console.error('Error fetching milestones:', error);
       showError('Failed to fetch milestones');
@@ -65,33 +77,40 @@ const MilestoneManagement = () => {
   const filterMilestones = () => {
     let filtered = milestones;
 
+    // Apply dropdown filters
     if (filters.customer) {
       filtered = filtered.filter(milestone => 
-        milestone.customer && milestone.customer.toLowerCase().includes(filters.customer.toLowerCase())
+        milestone.customer === filters.customer
       );
     }
 
     if (filters.projectName) {
       filtered = filtered.filter(milestone => 
-        milestone.projectName && milestone.projectName.toLowerCase().includes(filters.projectName.toLowerCase())
+        milestone.projectName === filters.projectName
       );
     }
 
     if (filters.emailId) {
       filtered = filtered.filter(milestone => 
-        milestone.emailId && milestone.emailId.toLowerCase().includes(filters.emailId.toLowerCase())
+        milestone.emailId === filters.emailId
       );
     }
 
-    if (filters.phase) {
+    // Apply overall search across multiple fields
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(milestone => 
-        milestone.phase === filters.phase
-      );
-    }
-
-    if (filters.projectStatus) {
-      filtered = filtered.filter(milestone => 
-        milestone.projectStatus === filters.projectStatus
+        milestone.customer?.toLowerCase().includes(searchLower) ||
+        milestone.projectName?.toLowerCase().includes(searchLower) ||
+        milestone.emailId?.toLowerCase().includes(searchLower) ||
+        milestone.phase?.toLowerCase().includes(searchLower) ||
+        milestone.projectStatus?.toLowerCase().includes(searchLower) ||
+        milestone.responsiblePerson?.toLowerCase().includes(searchLower) ||
+        (milestone.task?.name && milestone.task.name.toLowerCase().includes(searchLower)) ||
+        (milestone.tasks && milestone.tasks.some(task => 
+          task.name?.toLowerCase().includes(searchLower) ||
+          task.status?.toLowerCase().includes(searchLower)
+        ))
       );
     }
 
@@ -106,14 +125,18 @@ const MilestoneManagement = () => {
     setCurrentPage(1);
   };
 
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page when search changes
+  };
+
   const clearFilters = () => {
     setFilters({
       customer: '',
       projectName: '',
-      emailId: '',
-      phase: '',
-      projectStatus: ''
+      emailId: ''
     });
+    setSearchTerm('');
   };
 
   // Pagination logic
@@ -225,6 +248,12 @@ const MilestoneManagement = () => {
     return safeStatus.charAt(0).toUpperCase() + safeStatus.slice(1);
   };
 
+  const computeMilestoneStatus = (milestone) => {
+    if (!milestone.tasks || milestone.tasks.length === 0) return milestone.projectStatus || 'Not Started';
+    const allCompleted = milestone.tasks.every(task => task.status === 'Completed');
+    return allCompleted ? 'Completed' : 'On track';
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -256,10 +285,10 @@ const MilestoneManagement = () => {
                   </div>
                   <input
                     type="text"
-                    value={filters.projectName}
-                    onChange={(e) => handleFilterChange('projectName', e.target.value)}
+                    value={searchTerm}
+                    onChange={(e) => handleSearchChange(e.target.value)}
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="Search projects..."
+                    placeholder="Search customers, projects, emails, phases..."
                   />
                 </div>
               </div>
@@ -268,21 +297,21 @@ const MilestoneManagement = () => {
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                    showFilters || Object.values(filters).some(Boolean) 
+                    showFilters || Object.values(filters).some(Boolean) || searchTerm
                       ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100' 
                       : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
                   }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
                   Filters
-                  {Object.values(filters).some(Boolean) && (
+                  {(Object.values(filters).some(Boolean) || searchTerm) && (
                     <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-600 rounded-full">
-                      {Object.values(filters).filter(Boolean).length}
+                      {Object.values(filters).filter(Boolean).length + (searchTerm ? 1 : 0)}
                     </span>
                   )}
                 </button>
                 
-                {Object.values(filters).some(Boolean) && (
+                {(Object.values(filters).some(Boolean) || searchTerm) && (
                   <button
                     onClick={clearFilters}
                     className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -314,66 +343,45 @@ const MilestoneManagement = () => {
           {/* Filters */}
           {showFilters && (
             <div className="px-4 py-5 sm:p-6 bg-gray-50 border-b border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
-                  <input
-                    type="text"
+                  <select
                     value={filters.customer}
                     onChange={(e) => handleFilterChange('customer', e.target.value)}
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
-                    placeholder="Search by customer"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
-                  <input
-                    type="text"
-                    value={filters.projectName}
-                    onChange={(e) => handleFilterChange('projectName', e.target.value)}
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
-                    placeholder="Search by project name"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email ID</label>
-                  <input
-                    type="text"
-                    value={filters.emailId}
-                    onChange={(e) => handleFilterChange('emailId', e.target.value)}
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
-                    placeholder="Search by email"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phase</label>
-                  <select
-                    value={filters.phase}
-                    onChange={(e) => handleFilterChange('phase', e.target.value)}
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
                   >
-                    <option value="">All Phases</option>
-                    {phaseOptions.map(phase => (
-                      <option key={phase} value={phase}>{phase}</option>
+                    <option value="">All Customers</option>
+                    {uniqueCustomers.map(customer => (
+                      <option key={customer} value={customer}>{customer}</option>
                     ))}
                   </select>
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
                   <select
-                    value={filters.projectStatus}
-                    onChange={(e) => handleFilterChange('projectStatus', e.target.value)}
+                    value={filters.projectName}
+                    onChange={(e) => handleFilterChange('projectName', e.target.value)}
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
                   >
-                    <option value="">All Status</option>
-                    {statusOptions.map(status => (
-                      <option key={status} value={status}>
-                        {formatStatus(status)}
-                      </option>
+                    <option value="">All Projects</option>
+                    {uniqueProjectNames.map(projectName => (
+                      <option key={projectName} value={projectName}>{projectName}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email ID</label>
+                  <select
+                    value={filters.emailId}
+                    onChange={(e) => handleFilterChange('emailId', e.target.value)}
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
+                  >
+                    <option value="">All Emails</option>
+                    {uniqueEmailIds.map(emailId => (
+                      <option key={emailId} value={emailId}>{emailId}</option>
                     ))}
                   </select>
                 </div>
@@ -445,8 +453,8 @@ const MilestoneManagement = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(milestone.projectStatus)}`}>
-                          {formatStatus(milestone.projectStatus)}
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(computeMilestoneStatus(milestone))}`}>
+                          {formatStatus(computeMilestoneStatus(milestone))}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -532,8 +540,8 @@ const MilestoneManagement = () => {
                     </div>
                     <div>
                       <span className="font-medium text-gray-500">Status:</span>
-                      <span className={`ml-1 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusColor(milestone.projectStatus)}`}>
-                        {formatStatus(milestone.projectStatus)}
+                      <span className={`ml-1 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusColor(computeMilestoneStatus(milestone))}`}>
+                        {formatStatus(computeMilestoneStatus(milestone))}
                       </span>
                     </div>
                   </div>
@@ -545,9 +553,7 @@ const MilestoneManagement = () => {
           {/* Pagination */}
           <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-                
-              </div>
+              <div></div>
               <div>
                 <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                   <button
@@ -638,8 +644,8 @@ const MilestoneManagement = () => {
               </div>
               <div className="text-right">
                 <p className="text-sm text-gray-500">Status</p>
-                <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(selectedMilestone.projectStatus)}`}>
-                  {formatStatus(selectedMilestone.projectStatus)}
+                <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(computeMilestoneStatus(selectedMilestone))}`}>
+                  {formatStatus(computeMilestoneStatus(selectedMilestone))}
                 </span>
               </div>
             </div>
@@ -688,8 +694,8 @@ const MilestoneManagement = () => {
                 
                 <div className="space-y-1">
                   <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Status</h4>
-                  <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusColor(selectedMilestone.projectStatus)}`}>
-                    {formatStatus(selectedMilestone.projectStatus)}
+                  <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusColor(computeMilestoneStatus(selectedMilestone))}`}>
+                    {formatStatus(computeMilestoneStatus(selectedMilestone))}
                   </span>
                 </div>
               </div>

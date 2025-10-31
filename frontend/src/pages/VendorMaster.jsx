@@ -31,6 +31,8 @@ const VendorMaster = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
   const [uniqueVendorNames, setUniqueVendorNames] = useState([]);
+  const [uniqueEmails, setUniqueEmails] = useState([]);
+  const [searchTerm, setSearchTerm] = useState(''); // New state for overall search
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const { notification, showSuccess, hideNotification } = useNotification();
@@ -41,7 +43,7 @@ const VendorMaster = () => {
 
   useEffect(() => {
     filterVendors();
-  }, [vendors, filters, currentPage, itemsPerPage]);
+  }, [vendors, filters, searchTerm, currentPage, itemsPerPage]);
 
   const fetchVendors = async () => {
     try {
@@ -50,8 +52,10 @@ const VendorMaster = () => {
       
       // Extract unique values for dropdowns
       const vendorNames = [...new Set(response.data.map(vendor => vendor.vendorName))].filter(Boolean);
+      const emails = [...new Set(response.data.map(vendor => vendor.email))].filter(Boolean);
       
       setUniqueVendorNames(vendorNames);
+      setUniqueEmails(emails);
     } catch (error) {
       console.error('Error fetching vendors:', error);
     } finally {
@@ -62,15 +66,30 @@ const VendorMaster = () => {
   const filterVendors = () => {
     let filtered = vendors;
 
+    // Apply dropdown filters
     if (filters.vendorName) {
       filtered = filtered.filter(vendor => 
-        vendor.vendorName.toLowerCase().includes(filters.vendorName.toLowerCase())
+        vendor.vendorName === filters.vendorName
       );
     }
 
     if (filters.email) {
       filtered = filtered.filter(vendor => 
-        vendor.email.toLowerCase().includes(filters.email.toLowerCase())
+        vendor.email === filters.email
+      );
+    }
+
+    // Apply overall search across multiple fields
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(vendor => 
+        vendor.vendorName.toLowerCase().includes(searchLower) ||
+        vendor.email.toLowerCase().includes(searchLower) ||
+        vendor.gstNumber.toLowerCase().includes(searchLower) ||
+        vendor.bankAccountNumber.toLowerCase().includes(searchLower) ||
+        (vendor.address && vendor.address.toLowerCase().includes(searchLower)) ||
+        (vendor.phone && vendor.phone.toLowerCase().includes(searchLower)) ||
+        (vendor.contactPerson && vendor.contactPerson.toLowerCase().includes(searchLower))
       );
     }
 
@@ -85,11 +104,17 @@ const VendorMaster = () => {
     setCurrentPage(1); // Reset to first page when filters change
   };
 
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page when search changes
+  };
+
   const clearFilters = () => {
     setFilters({
       vendorName: '',
       email: ''
     });
+    setSearchTerm('');
   };
 
   // Pagination logic
@@ -101,29 +126,29 @@ const VendorMaster = () => {
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   const exportToCSV = () => {
-  const headers = ['Vendor Name', 'Email', 'GST Number', 'Bank Account Number'];
-  const csvData = filteredVendors.map(vendor => [
-    vendor.vendorName,
-    vendor.email,
-    vendor.gstNumber,
-    vendor.bankAccountNumber
-  ]);
+    const headers = ['Vendor Name', 'Email', 'GST Number', 'Bank Account Number'];
+    const csvData = filteredVendors.map(vendor => [
+      vendor.vendorName,
+      vendor.email,
+      vendor.gstNumber,
+      vendor.bankAccountNumber
+    ]);
 
-  const csvContent = [
-    headers.join(','),
-    ...csvData.map(row => row.map(field => `"${field}"`).join(','))
-  ].join('\n');
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => row.map(field => `"${field}"`).join(','))
+    ].join('\n');
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.setAttribute('download', 'vendors_full_data.csv');
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  window.URL.revokeObjectURL(url);
-};
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'vendors_full_data.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
 
   const handleView = (vendor) => {
     setSelectedVendor(vendor);
@@ -175,69 +200,69 @@ const VendorMaster = () => {
       <div className="max-w-none xl:max-w-8xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
 
-<div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
-    <div className="flex items-center space-x-3">
-      <div className="relative flex-1 max-w-md">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-        </div>
-        <input
-          type="text"
-          value={filters.vendorName}
-          onChange={(e) => handleFilterChange('vendorName', e.target.value)}
-          className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-          placeholder="Search vendors..."
-        />
-      </div>
-    </div>
-    
-    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-      <button
-        onClick={() => setShowFilters(!showFilters)}
-        className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-          showFilters || Object.values(filters).some(Boolean) 
-            ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100' 
-            : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
-        }`}
-      >
-        <FunnelIcon className="h-5 w-5 mr-2" />
-        Filters
-        {Object.values(filters).some(Boolean) && (
-          <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-600 rounded-full">
-            {Object.values(filters).filter(Boolean).length}
-          </span>
-        )}
-      </button>
-      
-      {Object.values(filters).some(Boolean) && (
-        <button
-          onClick={clearFilters}
-          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <XMarkIcon className="h-5 w-5 mr-2" />
-          Clear
-        </button>
-      )}
-      
-      <button
-        onClick={exportToCSV}
-        className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-      >
-        <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
-        Export CSV
-      </button>
-      
-      <button
-        onClick={() => setShowModal(true)}
-        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-      >
-        <PlusIcon className="h-5 w-5 mr-2" />
-        Add Vendor
-      </button>
-    </div>
-  </div>
-</div>
+          <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
+              <div className="flex items-center space-x-3">
+                <div className="relative flex-1 max-w-md">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    placeholder="Search vendors, emails, GST numbers, bank accounts..."
+                  />
+                </div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                    showFilters || Object.values(filters).some(Boolean) || searchTerm
+                      ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100' 
+                      : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                  }`}
+                >
+                  <FunnelIcon className="h-5 w-5 mr-2" />
+                  Filters
+                  {(Object.values(filters).some(Boolean) || searchTerm) && (
+                    <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-600 rounded-full">
+                      {Object.values(filters).filter(Boolean).length + (searchTerm ? 1 : 0)}
+                    </span>
+                  )}
+                </button>
+                
+                {(Object.values(filters).some(Boolean) || searchTerm) && (
+                  <button
+                    onClick={clearFilters}
+                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <XMarkIcon className="h-5 w-5 mr-2" />
+                    Clear
+                  </button>
+                )}
+                
+                <button
+                  onClick={exportToCSV}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
+                  Export CSV
+                </button>
+                
+                <button
+                  onClick={() => setShowModal(true)}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <PlusIcon className="h-5 w-5 mr-2" />
+                  Add Vendor
+                </button>
+              </div>
+            </div>
+          </div>
 
           {/* Filters */}
           {showFilters && (
@@ -258,13 +283,16 @@ const VendorMaster = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input
-                    type="text"
+                  <select
                     value={filters.email}
                     onChange={(e) => handleFilterChange('email', e.target.value)}
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
-                    placeholder="Search by email"
-                  />
+                  >
+                    <option value="">All Emails</option>
+                    {uniqueEmails.map(email => (
+                      <option key={email} value={email}>{email}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
@@ -287,24 +315,24 @@ const VendorMaster = () => {
             <div className="hidden sm:block">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
-                    <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Vendor Name
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Email
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        GST Number
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Bank Account Number
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Vendor Name
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Email
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      GST Number
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Bank Account Number
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {currentItems.map((vendor) => (
                     <tr key={vendor._id} className="hover:bg-gray-50 transition-colors duration-150">
@@ -385,7 +413,7 @@ const VendorMaster = () => {
                     </div>
                   </div>
                   <div className="grid grid-cols-1 gap-2 text-xs text-gray-500">
-                     <div>
+                    <div>
                       <span className="font-medium">GST Number:</span> {vendor.gstNumber}
                     </div>
                     <div>
@@ -400,9 +428,7 @@ const VendorMaster = () => {
           {/* Pagination */}
           <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-                
-              </div>
+              <div></div>
               <div>
                 <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                   <button
@@ -470,115 +496,123 @@ const VendorMaster = () => {
 
       {/* View Modal */}
       <Modal
-  isOpen={viewModal}
-  onClose={() => {
-    setViewModal(false);
-    setSelectedVendor(null);
-  }}
-  title="Vendor Details"
-  size="lg"
-  className="font-sans"
->
-  {selectedVendor && (
-    <div className="space-y-6 py-1">
-      {/* Header Section */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-800">{selectedVendor.vendorName}</h2>
-          <div className="flex items-center mt-1">
-            <i className="fas fa-envelope text-gray-400 mr-2 text-sm"></i>
-            <p className="text-sm text-gray-600">{selectedVendor.email}</p>
-          </div>
-        </div>
-      </div>
+        isOpen={viewModal}
+        onClose={() => {
+          setViewModal(false);
+          setSelectedVendor(null);
+        }}
+        title="Vendor Details"
+        size="lg"
+        className="font-sans"
+      >
+        {selectedVendor && (
+          <div className="space-y-6 py-1">
+            {/* Header Section */}
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-800">{selectedVendor.vendorName}</h2>
+                <div className="flex items-center mt-1">
+                  <i className="fas fa-envelope text-gray-400 mr-2 text-sm"></i>
+                  <p className="text-sm text-gray-600">{selectedVendor.email}</p>
+                </div>
+              </div>
+            </div>
 
-      {/* Vendor Information Card */}
-      <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="space-y-1">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center">
-              <i className="fas fa-signature mr-1 text-gray-400"></i>
-              Vendor Name
-            </h4>
-            <p className="text-sm text-gray-900 font-medium">{selectedVendor.vendorName}</p>
-          </div>
-          
-          <div className="space-y-1">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center">
-              <i className="fas fa-envelope mr-1 text-gray-400"></i>
-              Email Address
-            </h4>
-            <p className="text-sm text-gray-900 font-medium">{selectedVendor.email}</p>
-          </div>
-          
-          <div className="space-y-1">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center">
-              <i className="fas fa-university mr-1 text-gray-400"></i>
-              Bank Account Number
-            </h4>
-            <p className="text-sm text-gray-900 font-mono bg-gray-50 p-2 rounded-md">
-              {selectedVendor.bankAccountNumber}
-            </p>
-          </div>
-          
-          <div className="space-y-1 md:col-span-2">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center">
-              <i className="fas fa-map-marker-alt mr-1 text-gray-400"></i>
-              Address
-            </h4>
-            <p className="text-sm text-gray-900 font-medium bg-gray-50 p-2 rounded-md">
-              {selectedVendor.address}
-            </p>
-          </div>
-        </div>
-      </div>
+            {/* Vendor Information Card */}
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center">
+                    <i className="fas fa-signature mr-1 text-gray-400"></i>
+                    Vendor Name
+                  </h4>
+                  <p className="text-sm text-gray-900 font-medium">{selectedVendor.vendorName}</p>
+                </div>
+                
+                <div className="space-y-1">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center">
+                    <i className="fas fa-envelope mr-1 text-gray-400"></i>
+                    Email Address
+                  </h4>
+                  <p className="text-sm text-gray-900 font-medium">{selectedVendor.email}</p>
+                </div>
+                
+                <div className="space-y-1">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center">
+                    <i className="fas fa-university mr-1 text-gray-400"></i>
+                    Bank Account Number
+                  </h4>
+                  <p className="text-sm text-gray-900 font-mono bg-gray-50 p-2 rounded-md">
+                    {selectedVendor.bankAccountNumber}
+                  </p>
+                </div>
+                
+                <div className="space-y-1">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center">
+                    <i className="fas fa-id-card mr-1 text-gray-400"></i>
+                    GST Number
+                  </h4>
+                  <p className="text-sm text-gray-900 font-medium bg-gray-50 p-2 rounded-md">
+                    {selectedVendor.gstNumber}
+                  </p>
+                </div>
+                
+                <div className="space-y-1 md:col-span-2">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center">
+                    <i className="fas fa-map-marker-alt mr-1 text-gray-400"></i>
+                    Address
+                  </h4>
+                  <p className="text-sm text-gray-900 font-medium bg-gray-50 p-2 rounded-md">
+                    {selectedVendor.address}
+                  </p>
+                </div>
+              </div>
+            </div>
 
-      {/* Additional Information Section (if available) */}
-      {(selectedVendor.phone || selectedVendor.contactPerson) && (
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
-          <h3 className="text-md font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100 flex items-center">
-            <i className="fas fa-phone-alt mr-2 text-green-500"></i>
-            Contact Information
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {selectedVendor.phone && (
-              <div className="space-y-1">
-                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center">
-                  <i className="fas fa-phone mr-1 text-gray-400"></i>
-                  Phone Number
-                </h4>
-                <p className="text-sm text-gray-900 font-medium">{selectedVendor.phone}</p>
+            {/* Additional Information Section (if available) */}
+            {(selectedVendor.phone || selectedVendor.contactPerson) && (
+              <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
+                <h3 className="text-md font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                  <i className="fas fa-phone-alt mr-2 text-green-500"></i>
+                  Contact Information
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {selectedVendor.phone && (
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center">
+                        <i className="fas fa-phone mr-1 text-gray-400"></i>
+                        Phone Number
+                      </h4>
+                      <p className="text-sm text-gray-900 font-medium">{selectedVendor.phone}</p>
+                    </div>
+                  )}
+                  
+                  {selectedVendor.contactPerson && (
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center">
+                        <i className="fas fa-user mr-1 text-gray-400"></i>
+                        Contact Person
+                      </h4>
+                      <p className="text-sm text-gray-900 font-medium">{selectedVendor.contactPerson}</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
-            
-            {selectedVendor.contactPerson && (
-              <div className="space-y-1">
-                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide flex items-center">
-                  <i className="fas fa-user mr-1 text-gray-400"></i>
-                  Contact Person
-                </h4>
-                <p className="text-sm text-gray-900 font-medium">{selectedVendor.contactPerson}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
-      {/* Action Buttons */}
-      <div className="flex justify-end space-x-3 pt-2">
-        <button
-          onClick={() => setViewModal(false)}
-          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-        >
-          Close
-        </button>
-        
-      </div>
-    </div>
-  )}
-</Modal>
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3 pt-2">
+              <button
+                onClick={() => setViewModal(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Notification */}
       <Notification
