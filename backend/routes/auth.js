@@ -189,9 +189,10 @@ router.post('/users', auth, async (req, res) => {
     // Define valid permissions based on the User model schema
     const validPermissions = [
       'dashboard', 'employee_master', 'employee_access', 'part_master', 
-      'customer_master', 'project_master', 'vendor_master', 'customer_boq','inoffice_boq',
-      'milestone_management','inhouse_milestone',  'inventory_management', 'quality_management', 
-      'payment_master',  'project_budget','logistic_expenditure','project_expenditure','purchase_request', 'production_management', 'reports'
+      'customer_master', 'project_master', 'vendor_master', 'customer_boq', 'inoffice_boq',
+      'milestone_management', 'inhouse_milestone', 'inventory_management', 'quality_management', 
+      'payment_master', 'project_budget', 'logistic_expenditure', 'project_expenditure', 'purchase_request', 
+      'production_management', 'reports', 'inhouse_partmaster', 'boq_management'
     ];
     
     // Filter permissions to only include valid ones
@@ -267,9 +268,10 @@ router.put('/users/:id', auth, async (req, res) => {
       // Define valid permissions based on the User model schema
       const validPermissions = [
         'dashboard', 'employee_master', 'employee_access', 'part_master', 
-        'customer_master', 'project_master', 'vendor_master', 'boq_management',
-        'milestone_management','inhouse_milestone', 'inventory_management', 'quality_management', 
-        'payment_master', 'project_budget','logistic_expenditure','project_expenditure', 'production_management','purchase_request','reports'
+        'customer_master', 'project_master', 'vendor_master', 'customer_boq', 'inoffice_boq',
+        'milestone_management', 'inhouse_milestone', 'inventory_management', 'quality_management', 
+        'payment_master', 'project_budget', 'logistic_expenditure', 'project_expenditure', 'purchase_request',
+        'production_management', 'reports', 'inhouse_partmaster', 'boq_management'
       ];
       
       // Filter out invalid permissions and ensure it's an array

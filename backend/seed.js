@@ -34,7 +34,7 @@ const seedData = async () => {
         'customer_master', 'project_master', 'vendor_master', 'customer_boq', 'inoffice_boq',
         'milestone_management', 'inhouse_milestone', 'inventory_management', 'quality_management',
         'payment_master', 'project_budget', 'project_expenditure', 'logistic_expenditure',
-        'purchase_request', 'production_management', 'inhouse_partmaster', 'reports'
+        'purchase_request', 'production_management', 'inhouse_partmaster', 'reports', 'boq_management'
       ];
       existingAdmin.role = 'admin';
 
@@ -52,7 +52,7 @@ const seedData = async () => {
           'customer_master', 'project_master', 'vendor_master', 'customer_boq', 'inoffice_boq',
           'milestone_management', 'inhouse_milestone', 'inventory_management', 'quality_management',
           'payment_master', 'project_budget', 'project_expenditure', 'logistic_expenditure',
-          'purchase_request', 'production_management', 'inhouse_partmaster', 'reports'
+          'purchase_request', 'production_management', 'inhouse_partmaster', 'reports', 'boq_management'
         ]
       });
 
