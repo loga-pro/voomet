@@ -1,0 +1,365 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Main content base padding */
+.main-content {
+  @apply p-1 sm:p-2 lg:p-3;
+}
+
+/* Tighter page wrapper spacing under the header */
+.main-content > div > .bg-gray-50 {
+  padding: 8px !important;
+}
+
+/* Main content responsive styles */
+@media (max-width: 1024px) {
+  .main-content {
+    /* Ensure full width on tablet/mobile; sidebar is off-canvas here */
+    max-width: 100vw !important;
+  }
+  
+  .main-content > div {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+}
+
+/* Explicit mobile adjustments */
+@media (max-width: 768px) {
+  .main-content {
+    max-width: 100vw !important;
+  }
+}
+
+/* Custom component styles */
+@layer components {
+  .btn-primary {
+    @apply bg-primary-600 text-white px-4 py-2 rounded-md font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors duration-200;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary-200 text-secondary-800 px-4 py-2 rounded-md font-medium hover:bg-secondary-300 focus:outline-none focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2 transition-colors duration-200;
+  }
+  
+  .btn-danger {
+    @apply bg-red-600 text-white px-4 py-2 rounded-md font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors duration-200;
+  }
+  
+  .input-field {
+    @apply mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm;
+  }
+  
+  .input-error {
+    @apply border-red-300 focus:border-red-500 focus:ring-red-500;
+  }
+  
+  .card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200;
+  }
+  
+  .table-header {
+    @apply bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
+  }
+  
+  .table-cell {
+    @apply px-6 py-4 whitespace-nowrap text-sm text-gray-900;
+  }
+}
+
+/* Responsive improvements for 1024px screens */
+@media (max-width: 1024px) {
+  .table-cell {
+    @apply px-4 py-3 text-sm;
+  }
+  
+  .table-header {
+    @apply px-4 py-2 text-xs;
+  }
+  
+  .card {
+    @apply rounded-md;
+  }
+  
+  .btn-primary, .btn-secondary, .btn-danger {
+    @apply px-3 py-1.5 text-sm;
+  }
+  
+  .input-field {
+    @apply text-sm;
+  }
+  
+  /* Reduce sidebar width on 1024px screens */
+  .sidebar {
+    @apply w-56;
+  }
+  
+  /* Adjust main content padding */
+  .main-content {
+    @apply p-3;
+  }
+  
+  /* Smaller modal sizes */
+  .modal-content {
+    @apply max-w-2xl mx-4;
+  }
+  
+  /* Reduce grid gaps */
+  .grid {
+    gap: 0.75rem;
+  }
+  
+  /* Smaller pagination */
+  .pagination button {
+    @apply px-2 py-1 text-sm;
+  }
+  
+  /* Reduce form spacing */
+  .form-group {
+    @apply mb-3;
+  }
+  
+  /* Smaller badges and labels */
+  .badge, .label {
+    @apply text-xs px-2 py-0.5;
+  }
+  
+  /* Reduce table header font size */
+  .table-header {
+    @apply text-xs font-medium;
+  }
+  
+  /* Smaller search inputs */
+  .search-input {
+    @apply text-sm py-1.5;
+  }
+  
+  /* Reduce dropdown menu sizes */
+  .dropdown-menu {
+    @apply text-sm;
+  }
+  
+  /* Smaller icon sizes */
+  .icon {
+    @apply w-4 h-4;
+  }
+  
+  /* Reduce spacing in cards */
+  .card-body {
+    @apply p-3;
+  }
+  
+  .card-header {
+    @apply px-4 py-3;
+  }
+  
+  /* Smaller chart containers */
+  .chart-container {
+    @apply h-48;
+  }
+  
+  /* Reduce spacing in lists */
+  .list-item {
+    @apply px-3 py-2;
+  }
+  
+  /* Smaller button groups */
+  .btn-group {
+    @apply space-x-1;
+  }
+  
+  /* Reduce notification sizes */
+  .notification {
+    @apply text-sm;
+  }
+  
+  /* Smaller avatar sizes */
+  .avatar {
+    @apply w-8 h-8;
+  }
+  
+  /* Reduce breadcrumb spacing */
+  .breadcrumb {
+    @apply text-sm;
+  }
+  
+  /* Smaller tab sizes */
+  .tab {
+    @apply px-3 py-2 text-sm;
+  }
+  
+  /* Reduce tooltip sizes */
+  .tooltip {
+    @apply text-xs;
+  }
+  
+  /* Smaller loading spinners */
+  .loading-spinner {
+    @apply w-4 h-4;
+  }
+  
+  /* Reduce alert padding */
+  .alert {
+    @apply px-3 py-2;
+  }
+  
+  /* Smaller progress bars */
+  .progress-bar {
+    @apply h-1;
+  }
+  
+  /* Reduce spacing in navigation */
+  .nav-item {
+    @apply px-3 py-2;
+  }
+  
+  /* Smaller dropdown items */
+  .dropdown-item {
+    @apply px-3 py-2 text-sm;
+  }
+  
+  /* Reduce modal header padding */
+  .modal-header {
+    @apply px-4 py-3;
+  }
+  
+  /* Smaller close buttons */
+  .close-button {
+    @apply w-6 h-6;
+  }
+  
+  /* Reduce form label sizes */
+  .form-label {
+    @apply text-sm;
+  }
+  
+  /* Smaller help text */
+  .help-text {
+    @apply text-xs;
+  }
+  
+  /* Reduce spacing in data tables */
+  .data-table td, .data-table th {
+    @apply px-3 py-2;
+  }
+  
+  /* Smaller status indicators */
+  .status-indicator {
+    @apply w-2 h-2;
+  }
+  
+  /* Reduce spacing in action buttons */
+  .action-button {
+    @apply p-1;
+  }
+  
+  /* Smaller filter components */
+  .filter-component {
+    @apply text-sm;
+  }
+  
+  /* Reduce spacing in sidebar */
+  .sidebar-item {
+    @apply px-3 py-2;
+  }
+  
+  /* Smaller header elements */
+  .header-element {
+    @apply text-sm;
+  }
+  
+  /* Reduce spacing in content areas */
+  .content-area {
+    @apply p-3;
+  }
+  
+  /* Smaller footer elements */
+  .footer-element {
+    @apply text-xs;
+  }
+}
+
+/* Responsive improvements for larger screens */
+@media (min-width: 1280px) {
+  .table-cell {
+    @apply px-8 py-5 text-base;
+  }
+  
+  .table-header {
+    @apply px-8 py-4 text-sm;
+  }
+}
+
+@media (min-width: 1536px) {
+  .table-cell {
+    @apply px-10 py-6 text-lg;
+  }
+  
+  .table-header {
+    @apply px-10 py-5 text-base;
+  }
+}
+
+/* Animation classes */
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Loading spinner */
+.loading-spinner {
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+/* Custom styles for floating inputs */
+.peer:focus ~ label,
+.peer:not(:placeholder-shown) ~ label {
+  transform: translateY(-1rem) scale(0.75);
+}
