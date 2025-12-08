@@ -1,5 +1,6 @@
 const express = require('express');
 const Milestone = require('../models/Milestone');
+const InhouseMilestone = require('../models/InhouseMilestone');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
@@ -232,11 +233,31 @@ router.put('/:id', auth, async (req, res) => {
 // Delete milestone
 router.delete('/:id', auth, async (req, res) => {
   try {
-    const milestone = await Milestone.findByIdAndDelete(req.params.id);
+    const milestone = await Milestone.findById(req.params.id);
     if (!milestone) {
       return res.status(404).json({ message: 'Milestone not found' });
     }
-    res.json({ message: 'Milestone deleted successfully' });
+
+    // Store customer and projectName before deleting
+    const { customer, projectName } = milestone;
+
+    // Delete the milestone
+    await Milestone.findByIdAndDelete(req.params.id);
+
+    // Also delete the corresponding inhouse milestone with the same customer and projectName
+    const deletedInhouseMilestone = await InhouseMilestone.findOneAndDelete({
+      customer: customer,
+      projectName: projectName
+    });
+
+    if (deletedInhouseMilestone) {
+      console.log(`Also deleted corresponding inhouse milestone for ${customer} - ${projectName}`);
+    }
+
+    res.json({ 
+      message: 'Milestone deleted successfully',
+      deletedInhouseMilestone: deletedInhouseMilestone ? true : false
+    });
   } catch (error) {
     console.error('Error deleting milestone:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
