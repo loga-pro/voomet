@@ -33,6 +33,8 @@ const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
   const user = JSON.parse(sessionStorage.getItem("user") || "{}");
   const permissions = user.permissions || [];
+  const isAdmin = user.role === 'admin';
+  const hasPermission = (perm) => isAdmin || permissions.includes(perm);
   const [openDropdown, setOpenDropdown] = useState(null);
 
   const MOBILE_SIDEBAR_MODE = "toggle";
@@ -254,12 +256,12 @@ const Sidebar = ({ isOpen, onClose }) => {
     .map(item => {
       if (!item.hasDropdown) {
         // Normal menu — check direct permission
-        return permissions.includes(item.permission) ? item : null;
+        return hasPermission(item.permission) ? item : null;
       }
 
       // Dropdown menu — filter its children based on permission
       const allowedChildren = (item.children || []).filter(child =>
-        permissions.includes(child.permission)
+        hasPermission(child.permission)
       );
 
       if (allowedChildren.length === 0) {

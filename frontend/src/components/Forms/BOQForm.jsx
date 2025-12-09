@@ -10,6 +10,18 @@ const TrashIcon = () => (
   </svg>
 );
 
+const PlusIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+    <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+  </svg>
+);
+
+const MinusIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+    <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+  </svg>
+);
+
 const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItems }) => {
   const [formData, setFormData] = useState({
     customer: '',
@@ -32,6 +44,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     gstPercentage: '18',
     totalWithGST: '0',
     overallRemarks: '',
+    paymentTerms: [{ discount: '', Installment: 1 }],
   });
   const [selectedProject, setSelectedProject] = useState('');
   const [parts, setParts] = useState([]);
@@ -133,16 +146,16 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     }));
 
     if (formattedItems.length === 0) {
-        formattedItems = [{
-          partName: '',
-          numberOfUnits: '',
-          unitType: '',
-          unitPrice: '',
-          totalPrice: '',
-          remarks: '',
-          image: null
-        }];
-      }
+      formattedItems = [{
+        partName: '',
+        numberOfUnits: '',
+        unitType: '',
+        unitPrice: '',
+        totalPrice: '',
+        remarks: '',
+        image: null
+      }];
+    }
 
     // Build final form state
     const finalFormData = {
@@ -155,15 +168,16 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       discountPercentage: String(boq.discountPercentage || '0'),
       discountAmount: String(boq.discountAmount || '0'),
 
-        finalTotalWithoutGST: String(boq.finalTotalWithoutGST || '0'),
-        transportationCharges: String(boq.transportationCharges || '0'),
-        gstPercentage: String(boq.gstPercentage || '18'),
-        totalWithGST: String(boq.totalWithGST || '0'),
-      overallRemarks: boq.overallRemarks || ''
-      };
+      finalTotalWithoutGST: String(boq.finalTotalWithoutGST || '0'),
+      transportationCharges: String(boq.transportationCharges || '0'),
+      gstPercentage: String(boq.gstPercentage || '18'),
+      totalWithGST: String(boq.totalWithGST || '0'),
+      overallRemarks: boq.overallRemarks || '',
+      paymentTerms: boq.paymentTerms && boq.paymentTerms.length > 0 ? boq.paymentTerms : [{ discount: '', Installment: 1 }]
+    };
 
-      setFormData(finalFormData);
-      setIsInitialLoad(false);
+    setFormData(finalFormData);
+    setIsInitialLoad(false);
   }, [boq]);
 
 
@@ -195,7 +209,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
           const response = await projectsAPI.getAll({ customerName: formData.customer });
           const projectsData = response.data || response;
           setProjects(projectsData || []);
-          
+
           // If there's only one project, auto-populate the project name
           if (projectsData && projectsData.length === 1 && !formData.projectName) {
             setFormData(prev => ({
@@ -223,9 +237,9 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     fetchProjects();
   }, [formData.customer, showLocalNotification]);
 
-  // Calculate totals
-  const calculateTotals = useCallback(() => {
-    const updatedItems = formData.items.map(item => {
+  // Calculate totals helper
+  const calculateBoqMetrics = (data) => {
+    const updatedItems = data.items.map(item => {
       const numberOfUnits = parseFloat(item.numberOfUnits || 0);
       const unitPrice = parseFloat(item.unitPrice || 0);
       const totalPrice = numberOfUnits * unitPrice;
@@ -239,51 +253,43 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       return sum + (parseFloat(item.totalPrice || 0));
     }, 0);
 
-    const transportationCharges = parseFloat(formData.transportationCharges || 0);
+    const transportationCharges = parseFloat(data.transportationCharges || 0);
     const finalTotalBeforeDiscount = itemsTotal + transportationCharges;
 
-    let discountPercentage = parseFloat(formData.discountPercentage || 0);
-    discountPercentage = Math.max(0, Math.min(100, discountPercentage));
+    let discountPercentage = parseFloat(data.discountPercentage || 0);
+    if (isNaN(discountPercentage) || discountPercentage < 0) discountPercentage = 0;
+    if (discountPercentage > 100) discountPercentage = 100;
+
     const discountAmount = finalTotalBeforeDiscount * (discountPercentage / 100);
     const finalTotalWithoutGST = Math.max(0, finalTotalBeforeDiscount - discountAmount);
 
-    const gstPercentage = parseFloat(formData.gstPercentage || 0);
+    const gstPercentage = parseFloat(data.gstPercentage || 0);
     const gstAmount = finalTotalWithoutGST * (gstPercentage / 100);
     const totalWithGST = finalTotalWithoutGST + gstAmount;
 
     return {
       items: updatedItems,
-      discountPercentage: discountPercentage.toFixed(2),
       discountAmount: isNaN(discountAmount) ? '0.00' : discountAmount.toFixed(2),
       finalTotalWithoutGST: isNaN(finalTotalBeforeDiscount) ? '0.00' : finalTotalBeforeDiscount.toFixed(2),
       totalWithGST: isNaN(totalWithGST) ? '0.00' : totalWithGST.toFixed(2)
     };
-  }, [formData.items, formData.transportationCharges, formData.gstPercentage, formData.discountPercentage]);
+  };
 
-  // Update totals - separate effect for items calculation
+  // Initial calculation
   useEffect(() => {
     if (!isInitialLoad && formData.items && formData.items.length > 0) {
-      const calculatedValues = calculateTotals();
-      // Only update if the calculated values are different
       setFormData(prev => {
-        const itemsChanged = JSON.stringify(prev.items) !== JSON.stringify(calculatedValues.items);
-        const totalsChanged = prev.finalTotalWithoutGST !== calculatedValues.finalTotalWithoutGST || 
-                             prev.totalWithGST !== calculatedValues.totalWithGST;
-        
-        if (itemsChanged || totalsChanged) {
-          return {
-            ...prev,
-            discountAmount: calculatedValues.discountAmount,
-            discountPercentage: calculatedValues.discountPercentage,
-            finalTotalWithoutGST: calculatedValues.finalTotalWithoutGST,
-            totalWithGST: calculatedValues.totalWithGST,
-            items: calculatedValues.items
-          };
-        }
-        return prev;
+        const calculated = calculateBoqMetrics(prev);
+        return {
+          ...prev,
+          items: calculated.items,
+          discountAmount: calculated.discountAmount,
+          finalTotalWithoutGST: calculated.finalTotalWithoutGST,
+          totalWithGST: calculated.totalWithGST
+        };
       });
     }
-  }, [formData.items, formData.transportationCharges, formData.gstPercentage, isInitialLoad, calculateTotals, formData.discountPercentage]);
+  }, [isInitialLoad]);
 
   const validateDiscount = (value) => {
     if (value === '') return '';
@@ -298,10 +304,12 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
   // Basic field change handler
   const handleChange = (e) => {
     const { name, value } = e.target;
+    let newData = { ...formData, [name]: value };
 
     if (name === 'discountPercentage') {
       if (value === '' || /^\d{0,3}(\.\d{0,2})?$/.test(value)) {
-        setFormData(prev => ({ ...prev, [name]: value }));
+        const calculated = calculateBoqMetrics(newData);
+        setFormData({ ...newData, ...calculated });
 
         // Validate in real-time
         const error = validateDiscount(value);
@@ -312,7 +320,8 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
 
     if (name === 'transportationCharges') {
       if (value === '' || /^\d{0,8}(\.\d{0,2})?$/.test(value)) {
-        setFormData(prev => ({ ...prev, [name]: value }));
+        const calculated = calculateBoqMetrics(newData);
+        setFormData({ ...newData, ...calculated });
         if (errors[name]) {
           setErrors(prev => ({ ...prev, [name]: '' }));
         }
@@ -320,10 +329,16 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       return;
     }
 
+    if (name === 'gstPercentage') {
+      const calculated = calculateBoqMetrics(newData);
+      setFormData({ ...newData, ...calculated });
+      return;
+    }
+
     // When customer changes, clear project name
     if (name === 'customer') {
-      setFormData(prev => ({ 
-        ...prev, 
+      setFormData(prev => ({
+        ...prev,
         [name]: value,
         projectName: '' // Clear project when customer changes
       }));
@@ -378,26 +393,32 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
 
     const updatedItems = [...formData.items];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
-    setFormData(prev => ({ ...prev, items: updatedItems }));
+
+    const newData = { ...formData, items: updatedItems };
+    const calculated = calculateBoqMetrics(newData);
+
+    setFormData({ ...newData, ...calculated });
   };
 
   // When a part is selected
   const handlePartSelect = (index, partName) => {
     const selectedPart = filteredParts.find(part => part.partName === partName);
+    let updatedItems = [...formData.items];
+
     if (selectedPart) {
-      const updatedItems = [...formData.items];
       updatedItems[index] = {
         ...updatedItems[index],
         partName: selectedPart.partName,
         unitType: selectedPart.unitType || '',
         unitPrice: String(selectedPart.partPrice ?? '')
       };
-      setFormData(prev => ({ ...prev, items: updatedItems }));
     } else {
-      const updatedItems = [...formData.items];
       updatedItems[index] = { ...updatedItems[index], partName };
-      setFormData(prev => ({ ...prev, items: updatedItems }));
     }
+
+    const newData = { ...formData, items: updatedItems };
+    const calculated = calculateBoqMetrics(newData);
+    setFormData({ ...newData, ...calculated });
   };
 
   // File input handler
@@ -415,6 +436,28 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     const updatedItems = [...formData.items];
     updatedItems[index] = { ...updatedItems[index], image: file };
     setFormData(prev => ({ ...prev, items: updatedItems }));
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    if (name === 'discountPercentage' && value === '') {
+      const newData = { ...formData, [name]: '0' };
+      const calculated = calculateBoqMetrics(newData);
+      setFormData({ ...newData, ...calculated });
+      if (errors[name]) {
+        setErrors(prev => ({ ...prev, [name]: '' }));
+      }
+    }
+  };
+
+  const handlePaymentTermBlur = (index, value) => {
+    if (value === '') {
+      setFormData(prev => {
+        const newTerms = [...prev.paymentTerms];
+        newTerms[index] = { ...newTerms[index], discount: '0' };
+        return { ...prev, paymentTerms: newTerms };
+      });
+    }
   };
 
 
@@ -515,7 +558,44 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     }
   };
 
-  // Form validation
+
+
+  const addPaymentTerm = () => {
+    if (formData.paymentTerms.length < 5) {
+      setFormData(prev => ({
+        ...prev,
+        paymentTerms: [...prev.paymentTerms, { discount: '', Installment: prev.paymentTerms.length + 1 }]
+      }));
+    }
+  };
+
+  const removePaymentTerm = (index) => {
+    if (formData.paymentTerms.length > 1) {
+      setFormData(prev => {
+        const newTerms = [...prev.paymentTerms];
+        newTerms.splice(index, 1);
+        // Re-index Installments
+        const reindexedTerms = newTerms.map((term, idx) => ({ ...term, Installment: idx + 1 }));
+        return { ...prev, paymentTerms: reindexedTerms };
+      });
+    }
+  };
+
+  const handlePaymentTermChange = (index, value) => {
+    // Allows empty string, or positive numbers with up to 2 decimal places
+    if (value !== '' && !/^\d{0,3}(\.\d{0,2})?$/.test(value)) return;
+
+    if (value !== '') {
+      const numValue = parseFloat(value);
+      if (isNaN(numValue) || numValue < 0 || numValue > 100) return;
+    }
+
+    setFormData(prev => {
+      const newTerms = [...prev.paymentTerms];
+      newTerms[index] = { ...newTerms[index], discount: value };
+      return { ...prev, paymentTerms: newTerms };
+    });
+  };
   const validateForm = () => {
     const newErrors = {};
 
@@ -600,6 +680,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       submitData.append('gstPercentage', formData.gstPercentage);
       submitData.append('totalWithGST', formData.totalWithGST);
       submitData.append('overallRemarks', formData.overallRemarks);
+      submitData.append('paymentTerms', JSON.stringify(formData.paymentTerms));
       submitData.append('discountPercentage', formData.discountPercentage);
       submitData.append('discountAmount', formData.discountAmount);
 
@@ -682,7 +763,8 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       transportationCharges: String(project.transportationCharges || '0'),
       gstPercentage: String(project.gstPercentage || '18'),
       totalWithGST: String(project.totalWithGST || '0'),
-      overallRemarks: project.overallRemarks || ''
+      overallRemarks: project.overallRemarks || '',
+      paymentTerms: project.paymentTerms && project.paymentTerms.length > 0 ? project.paymentTerms : [{ discount: '', Installment: 1 }]
     };
 
     setFormData(finalFormData);
@@ -714,6 +796,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       gstPercentage: '18',
       totalWithGST: '0',
       overallRemarks: '',
+      paymentTerms: [{ discount: '', Installment: 1 }],
       selectedProject: '',
     });
   };
@@ -728,7 +811,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
               {errors.submit}
             </div>
           )}
-          
+
           {/* Basic Information Section */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">
@@ -738,7 +821,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
             {!boq && (
               <div className="grid grid-cols-1 md:grid-cols-2 relative">
                 <FloatingInput
-                label="Selected Project"
+                  label="Selected Project"
                   name="selectedProject"
                   type="select"
                   onChange={handleProjectSelect}
@@ -769,7 +852,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
             )}
 
 
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Customer */}
               {boq ? (
@@ -804,9 +887,9 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                 type="select"
                 options={[
                   { value: '', label: 'Select Project' },
-                  ...projects.map(project => ({ 
-                    value: project.projectName, 
-                    label: project.projectName 
+                  ...projects.map(project => ({
+                    value: project.projectName,
+                    label: project.projectName
                   }))
                 ]}
                 required
@@ -833,19 +916,19 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                     ))}
                   </div>
                 </div>
-                
+
                 {/* Floating Label for Scope of Work */}
                 <label className="absolute -top-2 left-2 text-xs text-blue-600 font-medium bg-white px-1 transition-all duration-200">
                   Scope of Work <span className="text-red-500">*</span>
                 </label>
-                
+
                 {errors.scopeOfWork && (
                   <div className="mt-1 flex items-start">
                     <svg className="w-4 h-4 mt-0.5 mr-1 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path 
-                        fillRule="evenodd" 
-                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" 
-                        clipRule="evenodd" 
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
                       />
                     </svg>
                     <p className="text-xs text-red-600">{errors.scopeOfWork}</p>
@@ -977,7 +1060,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
             <h3 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">
               Financial Summary
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
               <FloatingInput
                 label="Final Total without GST (₹)"
@@ -1001,6 +1084,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                 max="100"
                 placeholder="0-100%"
                 error={errors.discountPercentage}
+                onBlur={handleBlur}
               />
 
               <FloatingInput
@@ -1058,6 +1142,65 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
               type="textarea"
               rows={3}
             />
+          </div>
+
+          {/* Payment Terms Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">
+              Payment Terms
+            </h3>
+
+            <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+              {formData.paymentTerms.map((term, index) => (
+                <div key={index} className="flex items-center gap-4">
+                  <span className="text-sm font-medium text-gray-700 min-w-[100px]">
+                    Increment {index + 1}
+                  </span>
+
+                  <div className="relative">
+                    <input
+                      name="discount"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={term.discount}
+                      onChange={(e) => handlePaymentTermChange(index, e.target.value)}
+                      onBlur={(e) => handlePaymentTermBlur(index, e.target.value)}
+                      className="block w-32 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2 border"
+                      placeholder="Discount"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={addPaymentTerm}
+                      disabled={formData.paymentTerms.length >= 5}
+                      className={`p-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${formData.paymentTerms.length >= 5
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-primary-600 text-white hover:bg-primary-700'
+                        }`}
+                      title="Add term"
+                    >
+                      <PlusIcon />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => removePaymentTerm(index)}
+                      disabled={formData.paymentTerms.length <= 1}
+                      className={`p-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${formData.paymentTerms.length <= 1
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-red-600 text-white hover:bg-red-700'
+                        }`}
+                      title="Remove term"
+                    >
+                      <MinusIcon />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </form>
       </div>

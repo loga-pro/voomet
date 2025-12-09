@@ -80,12 +80,35 @@ const boqSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  discountPercentage: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 100
+  },
+  discountAmount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   image: {
     filename: String,
     originalName: String,
     path: String,
     size: Number
-  }
+  },
+  paymentTerms: [{
+    discount: {
+      type: Number,
+      trim: true,
+      min: 0,
+      max: 100
+    },
+    Installment: {
+      type: Number,
+      min: 1
+    }
+  }]
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
@@ -94,27 +117,27 @@ const boqSchema = new mongoose.Schema({
 
 
 // Virtual for item description (compatibility)
-boqSchema.virtual('itemDescription').get(function() {
+boqSchema.virtual('itemDescription').get(function () {
   return this.items.length > 0 ? this.items[0].partName : '';
 });
 
 // Virtual for quantity (compatibility)
-boqSchema.virtual('quantity').get(function() {
+boqSchema.virtual('quantity').get(function () {
   return this.items.length > 0 ? this.items[0].numberOfUnits : 0;
 });
 
 // Virtual for unit (compatibility)
-boqSchema.virtual('unit').get(function() {
+boqSchema.virtual('unit').get(function () {
   return this.items.length > 0 ? this.items[0].unitType : '';
 });
 
 // Virtual for unit price (compatibility)
-boqSchema.virtual('unitPrice').get(function() {
+boqSchema.virtual('unitPrice').get(function () {
   return this.items.length > 0 ? this.items[0].unitPrice : 0;
 });
 
 // Virtual for total amount (compatibility)
-boqSchema.virtual('totalAmount').get(function() {
+boqSchema.virtual('totalAmount').get(function () {
   return this.totalWithGST;
 });
 

@@ -23,7 +23,7 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (req, file, cb) => {
@@ -41,7 +41,7 @@ const { sendBOQReport } = require('../services/emailService');
 // Helper function to transform BOQ data for frontend compatibility
 const transformBOQData = (boqItem) => {
   const transformed = boqItem.toObject();
-  
+
   // Map backend fields to frontend expected fields
   transformed.projectName = transformed.projectName || transformed.customer;
   transformed.itemDescription = transformed.items.length > 0 ? transformed.items[0].partName : '';
@@ -49,7 +49,7 @@ const transformBOQData = (boqItem) => {
   transformed.unit = transformed.items.length > 0 ? transformed.items[0].unitType : '';
   transformed.unitPrice = transformed.items.length > 0 ? transformed.items[0].unitPrice : 0;
   transformed.totalAmount = transformed.totalWithGST;
-  
+
   // Ensure numeric fields are numbers
   transformed.quantity = Number(transformed.quantity) || 0;
   transformed.unitPrice = Number(transformed.unitPrice) || 0;
@@ -57,7 +57,7 @@ const transformBOQData = (boqItem) => {
 
   transformed.discountPercentage = Number(transformed.discountPercentage) || 0;
   transformed.discountAmount = Number(transformed.discountAmount) || 0;
-  
+
   return transformed;
 };
 
@@ -72,10 +72,10 @@ router.get('/', auth, async (req, res) => {
     if (status) filter.status = status;
 
     const boqItems = await BOQ.find(filter).sort({ createdAt: -1 });
-    
+
     // Transform data for frontend compatibility
     const transformedItems = boqItems.map(transformBOQData);
-    
+
     console.log('Fetched BOQ items:', transformedItems.length);
     res.json({ data: transformedItems });
   } catch (error) {
@@ -91,7 +91,7 @@ router.get('/:id', auth, async (req, res) => {
     if (!boqItem) {
       return res.status(404).json({ message: 'BOQ item not found' });
     }
-    
+
     const transformedItem = transformBOQData(boqItem);
     res.json(transformedItem);
   } catch (error) {
@@ -106,19 +106,24 @@ router.post('/', auth, upload.any(), async (req, res) => {
     console.log('Creating BOQ item with data:', req.body);
     console.log('ProjectName received:', req.body.projectName);
     console.log('Customer received:', req.body.customer);
-    
+
     const boqData = { ...req.body };
-    
+
     // Parse scopeOfWork if it's a string
     if (typeof boqData.scopeOfWork === 'string') {
       boqData.scopeOfWork = boqData.scopeOfWork.split(',');
     }
-    
+
     // Parse items if it's a string
     if (typeof boqData.items === 'string') {
       boqData.items = JSON.parse(boqData.items);
     }
-    
+
+    // Parse paymentTerms if it's a string
+    if (typeof boqData.paymentTerms === 'string') {
+      boqData.paymentTerms = JSON.parse(boqData.paymentTerms);
+    }
+
     const numericFields = [
       'discountPercentage',
       'discountAmount',
@@ -128,12 +133,12 @@ router.post('/', auth, upload.any(), async (req, res) => {
       'totalWithGST'
     ];
 
-numericFields.forEach(field => {
-  boqData[field] = boqData[field] ? parseFloat(boqData[field]) : 0;
-});
+    numericFields.forEach(field => {
+      boqData[field] = boqData[field] ? parseFloat(boqData[field]) : 0;
+    });
 
 
-    
+
     // Process items
     if (boqData.items && Array.isArray(boqData.items)) {
       boqData.items = boqData.items.map(item => ({
@@ -143,7 +148,7 @@ numericFields.forEach(field => {
         totalPrice: parseFloat(item.totalPrice || 0)
       }));
     }
-    
+
     if (req.files && req.files.length > 0) {
       req.files.forEach(file => {
         if (file.fieldname.startsWith('itemImage_')) {
@@ -154,25 +159,25 @@ numericFields.forEach(field => {
               originalName: file.originalname,
               path: `/uploads/boq/${file.filename}`,
               size: file.size
-      };
-    }
+            };
+          }
         }
       });
     }
 
     const boqItem = new BOQ(boqData);
     const savedItem = await boqItem.save();
-    
+
     console.log('BOQ item created successfully:', savedItem._id);
     console.log('Saved BOQ projectName:', savedItem.projectName);
     console.log('Saved BOQ customer:', savedItem.customer);
-    
+
     const transformedItem = transformBOQData(savedItem);
     res.status(201).json(transformedItem);
   } catch (error) {
     console.error('Error creating BOQ item:', error);
-    res.status(500).json({ 
-      message: 'Server error', 
+    res.status(500).json({
+      message: 'Server error',
       error: error.message,
       details: error.errors ? Object.keys(error.errors).map(key => ({
         field: key,
@@ -186,25 +191,30 @@ numericFields.forEach(field => {
 router.put('/:id', auth, upload.any(), async (req, res) => {
   try {
     console.log('Updating BOQ item:', req.params.id, 'with data:', req.body);
-    
+
     const updateData = { ...req.body };
-    
+
     // Parse scopeOfWork if it's a string
     if (typeof updateData.scopeOfWork === 'string') {
       updateData.scopeOfWork = updateData.scopeOfWork.split(',');
     }
-    
+
     // Parse items if it's a string
     if (typeof updateData.items === 'string') {
       updateData.items = JSON.parse(updateData.items);
     }
-    
+
+    // Parse paymentTerms if it's a string
+    if (typeof updateData.paymentTerms === 'string') {
+      updateData.paymentTerms = JSON.parse(updateData.paymentTerms);
+    }
+
     // Ensure numeric fields are properly converted
     if (updateData.finalTotalWithoutGST) updateData.finalTotalWithoutGST = parseFloat(updateData.finalTotalWithoutGST);
     if (updateData.transportationCharges) updateData.transportationCharges = parseFloat(updateData.transportationCharges);
     if (updateData.gstPercentage) updateData.gstPercentage = parseFloat(updateData.gstPercentage);
     if (updateData.totalWithGST) updateData.totalWithGST = parseFloat(updateData.totalWithGST);
-    
+
     // Process items
     if (updateData.items && Array.isArray(updateData.items)) {
       updateData.items = updateData.items.map(item => ({
@@ -214,7 +224,7 @@ router.put('/:id', auth, upload.any(), async (req, res) => {
         totalPrice: parseFloat(item.totalPrice || 0)
       }));
     }
-    
+
     if (req.files && req.files.length > 0) {
       req.files.forEach(file => {
         if (file.fieldname.startsWith('itemImage_')) {
@@ -225,8 +235,8 @@ router.put('/:id', auth, upload.any(), async (req, res) => {
               originalName: file.originalname,
               path: `/uploads/boq/${file.filename}`,
               size: file.size
-      };
-    }
+            };
+          }
         }
       });
     }
@@ -236,19 +246,19 @@ router.put('/:id', auth, upload.any(), async (req, res) => {
       updateData,
       { new: true, runValidators: true }
     );
-    
+
     if (!boqItem) {
       return res.status(404).json({ message: 'BOQ item not found' });
     }
-    
+
     console.log('BOQ item updated successfully:', boqItem._id);
-    
+
     const transformedItem = transformBOQData(boqItem);
     res.json(transformedItem);
   } catch (error) {
     console.error('Error updating BOQ item:', error);
-    res.status(500).json({ 
-      message: 'Server error', 
+    res.status(500).json({
+      message: 'Server error',
       error: error.message,
       details: error.errors ? Object.keys(error.errors).map(key => ({
         field: key,
@@ -277,52 +287,52 @@ router.delete('/:id', auth, async (req, res) => {
 router.post('/:id/email', auth, async (req, res) => {
   try {
     const { email } = req.body;
-    
+
     if (!email) {
       return res.status(400).json({ message: 'Email address is required' });
     }
-    
+
     const boqItem = await BOQ.findById(req.params.id);
     if (!boqItem) {
       return res.status(404).json({ message: 'BOQ item not found' });
     }
-    
+
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ message: 'Invalid email address format' });
     }
-    
+
     // Get the PDF buffer from the request body
     const { pdfBuffer } = req.body;
-    
+
     if (!pdfBuffer) {
       return res.status(400).json({ message: 'PDF buffer is required' });
     }
-    
+
     // Convert base64 to buffer if needed
     const buffer = Buffer.isBuffer(pdfBuffer) ? pdfBuffer : Buffer.from(pdfBuffer, 'base64');
-    
+
     // Send the BOQ report via email
     const result = await sendBOQReport(email, boqItem, buffer);
-    
+
     if (result.success) {
       console.log(`BOQ report sent successfully to ${email} for BOQ ID: ${req.params.id}`);
-      res.json({ 
+      res.json({
         message: 'BOQ report sent successfully via email',
         emailId: result.messageId,
         recipient: email
       });
     } else {
       console.error('Failed to send BOQ report email:', result.error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: 'Failed to send BOQ report email',
         error: result.error
       });
     }
   } catch (error) {
     console.error('Error sending BOQ report email:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Server error while sending BOQ report email',
       error: error.message
     });

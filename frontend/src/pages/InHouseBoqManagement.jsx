@@ -1016,7 +1016,7 @@ const InHouseBoqManagement = () => {
 
               {/* Action Buttons */}
               <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 pb-2">
-                <button
+                {/* <button
                   onClick={() => {
                     setSelectedItem(null);
                     handleEdit(selectedItem);
@@ -1025,7 +1025,7 @@ const InHouseBoqManagement = () => {
                 >
                   <PencilSquareIcon className="h-4 w-4 mr-2" />
                   Edit BOQ
-                </button>
+                </button> */}
                 <button
                   onClick={() => setSelectedItem(null)}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"

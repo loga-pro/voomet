@@ -77,59 +77,59 @@ const CustomerBoqManagement = () => {
   }, [filters.customer]);
 
   const fetchBOQItems = async () => {
-  try {
-    setLoading(true);
-    const response = await boqAPI.getAll();
-    const items = Array.isArray(response.data.data) ? response.data.data : [];
-    setBoqItems(items);
+    try {
+      setLoading(true);
+      const response = await boqAPI.getAll();
+      const items = Array.isArray(response.data.data) ? response.data.data : [];
+      setBoqItems(items);
 
-    // Extract unique customers
-    const customers = [...new Set(items.map((item) => item.customer))].filter(Boolean);
-    setUniqueProjectNames(customers); // This should be renamed to setUniqueCustomers for clarity
+      // Extract unique customers
+      const customers = [...new Set(items.map((item) => item.customer))].filter(Boolean);
+      setUniqueProjectNames(customers); // This should be renamed to setUniqueCustomers for clarity
 
-    // Extract unique project names
-    const projectNames = [...new Set(items.map((item) => item.projectName))].filter(Boolean);
-    setUniqueProjectNamesList(projectNames);
+      // Extract unique project names
+      const projectNames = [...new Set(items.map((item) => item.projectName))].filter(Boolean);
+      setUniqueProjectNamesList(projectNames);
 
-    const allScopes = items
-      .flatMap((item) =>
-        Array.isArray(item.scopeOfWork)
-          ? item.scopeOfWork
-          : [item.scopeOfWork]
-      )
-      .filter(Boolean);
-    const uniqueScopes = [...new Set(allScopes)].sort();
-    setUniqueScopeOfWork(uniqueScopes);
+      const allScopes = items
+        .flatMap((item) =>
+          Array.isArray(item.scopeOfWork)
+            ? item.scopeOfWork
+            : [item.scopeOfWork]
+        )
+        .filter(Boolean);
+      const uniqueScopes = [...new Set(allScopes)].sort();
+      setUniqueScopeOfWork(uniqueScopes);
 
-    // Extract unique item descriptions from all items
-    const itemDescriptions = [];
-    items.forEach(item => {
-      if (item.items && Array.isArray(item.items)) {
-        item.items.forEach(subItem => {
-          if (subItem.partName) {
-            itemDescriptions.push(subItem.partName);
-          }
-          if (subItem.itemDescription) {
-            itemDescriptions.push(subItem.itemDescription);
-          }
-        });
-      }
-      // Also check main item description if exists
-      if (item.itemDescription) {
-        itemDescriptions.push(item.itemDescription);
-      }
-    });
-    
-    const uniqueDescriptions = [...new Set(itemDescriptions)].filter(Boolean).sort();
-    setUniqueItemDescriptions(uniqueDescriptions);
-  } catch (error) {
-    console.error("Error fetching BOQ items:", error);
-    setBoqItems([]);
-    showError("Failed to fetch BOQ items");
-  } finally {
-    setLoading(false);
-  }
-};
+      // Extract unique item descriptions from all items
+      const itemDescriptions = [];
+      items.forEach(item => {
+        if (item.items && Array.isArray(item.items)) {
+          item.items.forEach(subItem => {
+            if (subItem.partName) {
+              itemDescriptions.push(subItem.partName);
+            }
+            if (subItem.itemDescription) {
+              itemDescriptions.push(subItem.itemDescription);
+            }
+          });
+        }
+        // Also check main item description if exists
+        if (item.itemDescription) {
+          itemDescriptions.push(item.itemDescription);
+        }
+      });
+
+      const uniqueDescriptions = [...new Set(itemDescriptions)].filter(Boolean).sort();
+      setUniqueItemDescriptions(uniqueDescriptions);
+    } catch (error) {
+      console.error("Error fetching BOQ items:", error);
+      setBoqItems([]);
+      showError("Failed to fetch BOQ items");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Fetch projects when customer filter is selected
   const fetchProjectsByCustomer = async (customerName) => {
@@ -153,69 +153,69 @@ const CustomerBoqManagement = () => {
   };
 
   const filterItems = () => {
-  const itemsArray = Array.isArray(boqItems) ? boqItems : [];
-  let filtered = itemsArray;
+    const itemsArray = Array.isArray(boqItems) ? boqItems : [];
+    let filtered = itemsArray;
 
-  if (filters.customer) {
-    filtered = filtered.filter((item) => item.customer === filters.customer);
-  }
+    if (filters.customer) {
+      filtered = filtered.filter((item) => item.customer === filters.customer);
+    }
 
-  if (filters.projectName) {
-    filtered = filtered.filter((item) => item.projectName === filters.projectName);
-  }
+    if (filters.projectName) {
+      filtered = filtered.filter((item) => item.projectName === filters.projectName);
+    }
 
-  if (filters.scopeOfWork) {
-    filtered = filtered.filter(
-      (item) =>
-        Array.isArray(item.scopeOfWork) &&
-        item.scopeOfWork.includes(filters.scopeOfWork)
-    );
-  }
+    if (filters.scopeOfWork) {
+      filtered = filtered.filter(
+        (item) =>
+          Array.isArray(item.scopeOfWork) &&
+          item.scopeOfWork.includes(filters.scopeOfWork)
+      );
+    }
 
-  // FIXED: Item Description Filter - Search in nested items
-  if (filters.itemDescription) {
-    filtered = filtered.filter((item) => {
-      // Check in main item description
-      if (item.itemDescription === filters.itemDescription) return true;
-      
-      // Check in nested items
-      if (item.items && Array.isArray(item.items)) {
-        return item.items.some(
-          (subItem) => 
-            subItem.partName === filters.itemDescription ||
-            subItem.itemDescription === filters.itemDescription
-        );
-      }
-      return false;
-    });
-  }
+    // FIXED: Item Description Filter - Search in nested items
+    if (filters.itemDescription) {
+      filtered = filtered.filter((item) => {
+        // Check in main item description
+        if (item.itemDescription === filters.itemDescription) return true;
 
-  // Apply overall search across multiple fields
-  if (searchTerm) {
-    const searchLower = searchTerm.toLowerCase();
-    filtered = filtered.filter(
-      (item) =>
-        item.customer?.toLowerCase().includes(searchLower) ||
-        item.projectName?.toLowerCase().includes(searchLower) ||
-        (Array.isArray(item.scopeOfWork) &&
-          item.scopeOfWork.some((scope) =>
-            scope.toLowerCase().includes(searchLower)
-          )) ||
-        item.itemDescription?.toLowerCase().includes(searchLower) ||
-        // Search in nested items
-        (item.items &&
-          item.items.some(
+        // Check in nested items
+        if (item.items && Array.isArray(item.items)) {
+          return item.items.some(
             (subItem) =>
-              subItem.partName?.toLowerCase().includes(searchLower) ||
-              subItem.itemDescription?.toLowerCase().includes(searchLower) ||
-              subItem.partNumber?.toLowerCase().includes(searchLower)
-          )) ||
-        item.totalAmount?.toString().includes(searchTerm)
-    );
-  }
+              subItem.partName === filters.itemDescription ||
+              subItem.itemDescription === filters.itemDescription
+          );
+        }
+        return false;
+      });
+    }
 
-  setFilteredItems(filtered);
-};
+    // Apply overall search across multiple fields
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (item) =>
+          item.customer?.toLowerCase().includes(searchLower) ||
+          item.projectName?.toLowerCase().includes(searchLower) ||
+          (Array.isArray(item.scopeOfWork) &&
+            item.scopeOfWork.some((scope) =>
+              scope.toLowerCase().includes(searchLower)
+            )) ||
+          item.itemDescription?.toLowerCase().includes(searchLower) ||
+          // Search in nested items
+          (item.items &&
+            item.items.some(
+              (subItem) =>
+                subItem.partName?.toLowerCase().includes(searchLower) ||
+                subItem.itemDescription?.toLowerCase().includes(searchLower) ||
+                subItem.partNumber?.toLowerCase().includes(searchLower)
+            )) ||
+          item.totalAmount?.toString().includes(searchTerm)
+      );
+    }
+
+    setFilteredItems(filtered);
+  };
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({
@@ -294,7 +294,7 @@ const CustomerBoqManagement = () => {
     try {
       // Use boqItems instead of safeFilteredItems to export ALL data
       const allItems = Array.isArray(boqItems) ? boqItems : [];
-      
+
       // Enhanced headers to include detailed item information
       const headers = [
         "Customer",
@@ -469,9 +469,9 @@ const CustomerBoqManagement = () => {
                   className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters ||
                     Object.values(filters).some(Boolean) ||
                     searchTerm
-                      ? "border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100"
-                      : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
-                  }`}
+                    ? "border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100"
+                    : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+                    }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
                   Filters
@@ -696,23 +696,23 @@ const CustomerBoqManagement = () => {
 
                             <td className="px-6 py-4">
                               <div className="text-sm text-gray-900">
-                                    {formatScopeDisplay(boq.scopeOfWork)}
-                                  </div>
+                                {formatScopeDisplay(boq.scopeOfWork)}
+                              </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-left">
                               <EyeIcon className="h-5 w-5 mr-2" onClick={() => handleShowItems(boq._id)} />
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right">
-                                  <div className="space-y-2">
+                              <div className="space-y-2">
                                 <div className="text-green-700 font-bold text-lg">
                                   ₹{boq.finalTotalWithoutGST?.toLocaleString('en-IN')}
-                                        </div>
+                                </div>
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right">
                               <div className="text-sm text-gray-900 font-semibold">
                                 {boq.discountPercentage}%
-                              </div> 
+                              </div>
                             </td>
 
                             <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -722,16 +722,16 @@ const CustomerBoqManagement = () => {
                             </td>
 
                             <td className="px-6 py-4 whitespace-nowrap text-right">
-  <div className="space-y-2">
+                              <div className="space-y-2">
                                 <div className="text-green-700 font-bold text-lg">
-                                  ₹{((boq.totalWithGST - boq.finalTotalWithoutGST) || 0).toLocaleString('en-IN')}
-    </div>
-  </div>
-</td>
+                                  ₹{((boq.totalWithGST - (boq.finalTotalWithoutGST - (boq.discountAmount || 0))) || 0).toLocaleString('en-IN')}
+                                </div>
+                              </div>
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right">
                               <div className="space-y-2">
                                 <div className="text-green-700 font-bold text-lg">
-                                  ₹{((boq.finalTotalWithoutGST - boq.discountAmount) + (boq.totalWithGST - boq.finalTotalWithoutGST) || 0 )?.toLocaleString('en-IN')}
+                                  ₹{(boq.totalWithGST || 0)?.toLocaleString('en-IN')}
                                 </div>
                               </div>
                             </td>
@@ -779,7 +779,7 @@ const CustomerBoqManagement = () => {
                           className="px-6 py-8 text-center text-gray-500"
                         >
                           {Object.values(filters).some((val) => val !== "") ||
-                          searchTerm
+                            searchTerm
                             ? "No BOQ items found matching your filters."
                             : "No BOQ items found."}
                         </td>
@@ -907,8 +907,8 @@ const CustomerBoqManagement = () => {
                             {stats.minPrice === stats.maxPrice
                               ? `₹${stats.minPrice.toFixed(2)}`
                               : `₹${stats.minPrice.toFixed(
-                                  2
-                                )}-₹${stats.maxPrice.toFixed(2)}`}
+                                2
+                              )}-₹${stats.maxPrice.toFixed(2)}`}
                           </div>
                         </div>
                       </div>
@@ -931,7 +931,7 @@ const CustomerBoqManagement = () => {
               ) : (
                 <div className="p-8 text-center text-gray-500">
                   {Object.values(filters).some((val) => val !== "") ||
-                  searchTerm
+                    searchTerm
                     ? "No BOQ items found matching your filters."
                     : "No BOQ items found."}
                 </div>
@@ -997,9 +997,9 @@ const CustomerBoqManagement = () => {
                           <button
                             onClick={() => paginate(page)}
                             className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
-                                ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
-                                : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
-                            }`}
+                              ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
+                              : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                              }`}
                           >
                             {page}
                           </button>
@@ -1070,7 +1070,7 @@ const CustomerBoqManagement = () => {
                     <h2 className="text-xl font-bold text-gray-900">
                       {selectedItem.customer}
                     </h2>
-                    
+
                   </div>
                 </div>
                 <div className="text-right">
@@ -1121,7 +1121,7 @@ const CustomerBoqManagement = () => {
                       </div>
                     </div>
 
-                   
+
 
                     <div>
                       <label className="block text-sm font-medium text-gray-500 mb-1">
@@ -1351,7 +1351,7 @@ const CustomerBoqManagement = () => {
                   </tr>
                 )}
 
-                 <tr className="border-t border-gray-300">
+                <tr className="border-t border-gray-300">
                   <td colSpan="3" className="px-4 py-3 text-sm font-medium text-gray-900 text-right">
                   </td>
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">
@@ -1367,7 +1367,7 @@ const CustomerBoqManagement = () => {
                     ₹{((selectedQuote.totalWithGST - selectedQuote.finalTotalWithoutGST) || 0).toLocaleString('en-IN')}
                   </td>
                 </tr>
-               
+
                 <tr className="border-t border-gray-300">
                   <td colSpan="3" className="px-4 py-3 text-sm font-bold text-gray-900 text-right">
                     Grand Total (After Discount):
