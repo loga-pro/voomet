@@ -486,7 +486,7 @@ const ProductionManagement = () => {
             {/* Search help text */}
             {filters.searchTerm && (
               <div className="mt-2 text-xs text-gray-500">
-                Searching in: Customer, Project, Part Name, Status, Remarks, Dates
+                Searching in: Client, Project, Part Name, Status, Remarks, Dates
               </div>
             )}
           </div>
@@ -497,7 +497,7 @@ const ProductionManagement = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Customer Name
+                    Client Name
                   </label>
                   <select
                     value={filters.customerName}
@@ -506,7 +506,7 @@ const ProductionManagement = () => {
                     }
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
                   >
-                    <option value="">All Customers</option>
+                    <option value="">All Client</option>
                     {uniqueCustomers.map((customer) => (
                       <option key={customer} value={customer}>
                         {customer}
@@ -594,7 +594,7 @@ const ProductionManagement = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Customer Name
+                      Client Name
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Project Name

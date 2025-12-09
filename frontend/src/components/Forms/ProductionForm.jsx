@@ -509,7 +509,7 @@ const ProductionForm = ({ production, onSubmit, onCancel }) => {
       {/* Customer and Project Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <FloatingInput
-          label="Customer Name"
+          label="Client Name"
           name="customerName"
           value={formData.customerName}
           onChange={handleChange}
@@ -849,7 +849,7 @@ const ProductionForm = ({ production, onSubmit, onCancel }) => {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Project Summary</h3>
           <div className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-sm text-gray-500">Customer:</span>
+              <span className="text-sm text-gray-500">Client Name:</span>
               <span className="text-sm font-medium text-gray-900">{formData.customerName}</span>
             </div>
             <div className="flex justify-between">

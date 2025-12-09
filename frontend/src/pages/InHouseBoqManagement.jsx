@@ -541,7 +541,7 @@ const InHouseBoqManagement = () => {
                         scope="col"
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
-                        Customer
+                        Client Name
                       </th>
                       <th
                         scope="col"
@@ -911,7 +911,7 @@ const InHouseBoqManagement = () => {
                   <div className="space-y-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-500 mb-1">
-                        Customer
+                        Client Name
                       </label>
                       <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md border border-gray-200">
                         {selectedItem.customer}

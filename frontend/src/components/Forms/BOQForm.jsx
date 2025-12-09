@@ -886,7 +886,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
               {/* Customer */}
               {boq ? (
                 <FloatingInput
-                  label="Customer"
+                  label="Client Name"
                   name="customer"
                   value={formData.customer}
                   readOnly

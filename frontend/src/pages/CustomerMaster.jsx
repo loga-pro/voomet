@@ -387,10 +387,10 @@ const CustomerMaster = () => {
         <thead className="bg-gray-50 sticky top-0 z-10">
           <tr>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Customer Name
+              Client Name
             </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Customer Email
+              Client Email
             </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               City
@@ -666,14 +666,14 @@ const CustomerMaster = () => {
             
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Customer Name</label>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Client Name</label>
                 <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md border border-gray-200">
                   {selectedCustomer.customerName}
                 </div>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Customer Email</label>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Client Email</label>
                 <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md border border-gray-200 flex items-center">
                   <EnvelopeIcon className="h-4 w-4 mr-2 text-gray-400" />
                   {selectedCustomer.customerEmail}

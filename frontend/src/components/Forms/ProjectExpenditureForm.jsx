@@ -771,7 +771,7 @@ const ProjectExpenditureForm = ({
           />
 
           <FloatingInput
-            label="Customer"
+            label="Client Name"
             value={selectedCustomer}
             onChange={handleCustomerChange}
             error={errors.customer}

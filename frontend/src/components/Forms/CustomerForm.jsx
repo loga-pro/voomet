@@ -55,23 +55,23 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
     switch (name) {
       case 'customerName':
         if (!value.trim()) {
-          error = 'Customer name is required';
+          error = 'Client name is required';
         } else if (value.length > 50) {
-          error = 'Customer name must be 50 characters or less';
+          error = 'Client name must be 50 characters or less';
         } else if (!customer) {
           // Check for duplicate customer names only when creating new customer
           const isDuplicate = existingCustomers.some(existingCustomer => 
             existingCustomer.customerName.toLowerCase() === value.toLowerCase()
           );
           if (isDuplicate) {
-            error = 'Customer name already exists';
+            error = 'Client name already exists';
           }
         }
         break;
         
       case 'customerEmail':
         if (!value.trim()) {
-          error = 'Customer email is required';
+          error = 'Client email is required';
         } else if (!/^\S+@\S+\.\S+$/.test(value)) {
           error = 'Please enter a valid email address';
         }
@@ -251,7 +251,7 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
   const validateForm = () => {
     const newErrors = {};
     const fieldsToValidate = [
-      'customerName',
+      'clientName',
       'customerEmail',
       'invoiceEmail',
       'address',
@@ -348,14 +348,13 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
               <FloatingInput
                 type="text"
                 name="customerName"
-                label="Customer Name *"
+                label="Client Name "
                 value={formData.customerName}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 error={errors.customerName}
                 required={true}
                 maxLength={50}
-                helperText="Max 50 characters, letters and spaces only"
               />
             </div>
 
@@ -363,25 +362,23 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
               <FloatingInput
                 type="email"
                 name="customerEmail"
-                label="Customer Email *"
+                label="Client Email "
                 value={formData.customerEmail}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 error={errors.customerEmail}
                 required={true}
-                helperText="Enter a valid email address"
               />
 
               <FloatingInput
                 type="email"
                 name="invoiceEmail"
-                label="Invoice Email *"
+                label="Invoice Email "
                 value={formData.invoiceEmail}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 error={errors.invoiceEmail}
                 required={true}
-                helperText="Enter a valid email address"
               />
             </div>
           </div>
@@ -395,7 +392,7 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
             <FloatingInput
               type="text"
               name="address"
-              label="Street Address *"
+              label="Street Address "
               value={formData.address}
               onChange={handleChange}
               onBlur={handleBlur}
@@ -403,34 +400,31 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
               required={true}
               rows={3}
               maxLength={200}
-              helperText="At least 5 characters, max 200 characters"
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FloatingInput
                 type="text"
                 name="city"
-                label="City *"
+                label="City "
                 value={formData.city}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 error={errors.city}
                 required={true}
                 maxLength={50}
-                helperText="Letters, spaces, hyphens, apostrophes only"
               />
 
               <FloatingInput
                 type="text"
                 name="state"
-                label="State/Province *"
+                label="State/Province "
                 value={formData.state}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 error={errors.state}
                 required={true}
                 maxLength={50}
-                helperText="Letters, spaces, hyphens, apostrophes only"
               />
             </div>
 
@@ -438,27 +432,25 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
               <FloatingInput
                 type="text"
                 name="zipCode"
-                label="ZIP/Postal Code *"
+                label="ZIP/Postal Code "
                 value={formData.zipCode}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 error={errors.zipCode}
                 required={true}
                 maxLength={20}
-                helperText="Letters, numbers, spaces, hyphens allowed"
               />
 
               <FloatingInput
                 type="text"
                 name="country"
-                label="Country *"
+                label="Country "
                 value={formData.country}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 error={errors.country}
                 required={true}
                 maxLength={50}
-                helperText="Letters, spaces, hyphens, apostrophes only"
               />
             </div>
           </div>

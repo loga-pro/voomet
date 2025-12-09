@@ -675,7 +675,7 @@ const ProjectBudgetForm = ({ budget, onSubmit, onCancel, showNotification, showE
               />
 
               <FloatingInput
-                label="Customer Name"
+                label="Client Name"
                 name="customerName"
                 value={formData.customerName}
                 onChange={handleChange}

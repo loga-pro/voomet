@@ -249,7 +249,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FloatingInput
-          label="Customer"
+          label="Client Name"
           name="customer"
           value={formData.customer}
           onChange={handleChange}

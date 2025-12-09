@@ -1472,7 +1472,7 @@ const InventoryManagement = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Customer/Vendor
+                    Client/Vendor
                   </label>
                   <select
                     value={filters.customerVendorName}
@@ -1520,7 +1520,7 @@ const InventoryManagement = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Customer/Vendor
+                      Client/Vendor
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Re-order Level
@@ -2083,7 +2083,7 @@ const InventoryManagement = () => {
                         Part Name
                       </th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                        Customer/Vendor
+                        Client/Vendor
                       </th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                         Quantity
@@ -2146,7 +2146,7 @@ const InventoryManagement = () => {
                         Part Name
                       </th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                        Customer/Vendor
+                        Client/Vendor
                       </th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                         Quantity
@@ -2278,7 +2278,7 @@ const InventoryManagement = () => {
                 </div>
                 <div>
                   <span className="font-medium text-gray-700">
-                    Customer/Vendor:
+                    Client/Vendor:
                   </span>
                   <p className="text-gray-900">
                     {itemToDelete.customerVendorName || "N/A"}

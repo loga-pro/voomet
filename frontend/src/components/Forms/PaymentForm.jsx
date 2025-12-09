@@ -399,7 +399,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FloatingInput
-                    label="Customer"
+                    label="Client Name"
                     name="customer"
                     type="select"
                     value={formData.customer}

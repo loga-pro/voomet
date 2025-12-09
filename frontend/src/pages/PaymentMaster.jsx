@@ -322,13 +322,13 @@ const PaymentManagement = () => {
               <div className="px-4 py-5 sm:p-6 bg-gray-50 border-b border-gray-200 mt-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Client Name</label>
                     <select
                       value={filters.customer}
                       onChange={(e) => handleFilterChange('customer', e.target.value)}
                       className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
                     >
-                      <option value="">All Customers</option>
+                      <option value="">All Client</option>
                       {customers.map(customer => (
                         <option key={customer._id} value={customer.customerName}>
                           {customer.customerName}
@@ -337,7 +337,7 @@ const PaymentManagement = () => {
                     </select>
                   </div>
 
-                  <div>
+                  {/* <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
                     <input
                       type="text"
@@ -346,7 +346,7 @@ const PaymentManagement = () => {
                       className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
                       placeholder="Search by project name"
                     />
-                  </div>
+                  </div> */}
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
@@ -377,7 +377,7 @@ const PaymentManagement = () => {
         <thead className="bg-gray-50 sticky top-0 z-10">
           <tr>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Customer
+              Client Name
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Project Name
@@ -661,7 +661,7 @@ const PaymentManagement = () => {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Customer</label>
+                  <label className="block text-sm font-medium text-gray-700">Client Name</label>
                   <p className="mt-1 text-sm text-gray-900">{viewingPayment.customer}</p>
                 </div>
                 <div>

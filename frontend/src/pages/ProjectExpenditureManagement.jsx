@@ -587,13 +587,13 @@ const ProjectExpenditureManagement = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Client Name</label>
                     <select
                       value={filters.customer}
                       onChange={(e) => handleFilterChange('customer', e.target.value)}
                       className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
                     >
-                      <option value="">All Customers</option>
+                      <option value="">All Client</option>
                       {customers.map(customer => (
                         <option key={customer._id} value={customer._id}>
                           {customer.name || customer.customerName}
@@ -634,7 +634,7 @@ const ProjectExpenditureManagement = () => {
                         Financial Year
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Customer
+                        Client Name
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Project
@@ -914,7 +914,7 @@ const ProjectExpenditureManagement = () => {
                     <p className="mt-1 text-sm text-gray-900">{viewingExpenditure.financialYear}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Customer</label>
+                    <label className="block text-sm font-medium text-gray-700">Client Name</label>
                     <p className="mt-1 text-sm text-gray-900">{viewingExpenditure.customerName || viewingExpenditure.customer?.name}</p>
                   </div>
                   <div>

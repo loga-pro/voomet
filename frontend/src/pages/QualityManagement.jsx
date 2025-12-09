@@ -387,13 +387,13 @@ const QualityManagement = () => {
               <div className="px-4 py-5 sm:p-6 bg-gray-50 border-b border-gray-200 mt-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Client Name</label>
                     <select
                       value={filters.customer}
                       onChange={(e) => handleFilterChange('customer', e.target.value)}
                       className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
                     >
-                      <option value="">All Customers</option>
+                      <option value="">All Client</option>
                       {customers.map(customer => (
                         <option key={customer._id} value={customer.customerName}>
                           {customer.customerName}
@@ -479,7 +479,7 @@ const QualityManagement = () => {
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
-                        Customer
+                        Client Name
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
                         Scope of Work
@@ -815,7 +815,7 @@ const QualityManagement = () => {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Customer</label>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Client Name</label>
                 <p className="text-sm text-gray-900 font-medium bg-blue-50 px-3 py-2 rounded-lg border border-blue-100">
                   {viewingIssue.customer}
                 </p>
@@ -971,7 +971,7 @@ const QualityManagement = () => {
               </p>
               <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
                 <p className="text-sm text-red-600">
-                  <span className="font-medium">Customer:</span> {issueToDelete?.customer}
+                  <span className="font-medium">Client Name:</span> {issueToDelete?.customer}
                 </p>
                 <p className="text-sm text-red-600">
                   <span className="font-medium">Scope of Work:</span> {issueToDelete?.scopeOfWork}
