@@ -147,11 +147,44 @@ router.post('/', auth, async (req, res) => {
       }
     }
     
+    // Validate that customer and project exist
+    const Customer = require('../models/Customer');
+    const Project = require('../models/Project');
+    
+    console.log('Validating customer ID:', req.body.customer);
+    const customer = await Customer.findById(req.body.customer);
+    if (!customer) {
+      console.error('Customer not found with ID:', req.body.customer);
+      return res.status(400).json({
+        message: 'Customer not found',
+        customerId: req.body.customer
+      });
+    }
+    
+    console.log('Validating project ID:', req.body.project);
+    const project = await Project.findById(req.body.project);
+    if (!project) {
+      console.error('Project not found with ID:', req.body.project);
+      return res.status(400).json({
+        message: 'Project not found',
+        projectId: req.body.project
+      });
+    }
+    
     const expenditureData = {
       ...req.body,
       createdBy: req.user.id,
       updatedBy: req.user.id
     };
+
+    // Generate expenditure number if not provided
+    if (!expenditureData.expenditureNumber) {
+      const lastExpenditure = await ProjectExpenditure.findOne().sort({ createdAt: -1 });
+      const lastNumber = lastExpenditure && lastExpenditure.expenditureNumber 
+        ? parseInt(lastExpenditure.expenditureNumber.replace('PROJ', '')) 
+        : 0;
+      expenditureData.expenditureNumber = `PROJ${String(lastNumber + 1).padStart(6, '0')}`;
+    }
 
     console.log('Creating expenditure with data:', JSON.stringify(expenditureData, null, 2));
 
@@ -194,6 +227,15 @@ router.post('/', auth, async (req, res) => {
         field: error.path,
         value: error.value,
         details: 'The provided ID is not a valid MongoDB ObjectId'
+      });
+    }
+    
+    // Handle specific reference not found errors
+    if (error.message && error.message.includes('not found')) {
+      console.error('Reference not found error:', error.message);
+      return res.status(400).json({
+        message: 'Reference not found',
+        details: error.message
       });
     }
     

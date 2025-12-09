@@ -42,6 +42,9 @@ const LogisticExpenditureForm = ({
   const [selectedCustomer, setSelectedCustomer] = useState(customerName || '');
   const [selectedProject, setSelectedProject] = useState(projectName || '');
   
+  // Number of rows before scrolling starts
+  const MAX_VISIBLE_ROWS = 4;
+  
   // Validation patterns
   const validationPatterns = {
     purpose: {
@@ -501,6 +504,14 @@ const LogisticExpenditureForm = ({
     });
   };
 
+  // Inline styles for the scrollable table
+  const tableContainerStyle = {
+    maxHeight: expenditures.length > MAX_VISIBLE_ROWS ? '400px' : 'auto',
+    overflowY: expenditures.length > MAX_VISIBLE_ROWS ? 'auto' : 'visible',
+    overflowX: 'auto',
+    position: 'relative'
+  };
+
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       {/* Master Data Section */}
@@ -561,28 +572,31 @@ const LogisticExpenditureForm = ({
           </button>
         </div>
 
-        <div className="overflow-x-auto border rounded-md">
+        {/* Table container with scroll */}
+        <div className="border rounded-md overflow-hidden" style={tableContainerStyle}>
           <table className="min-w-full divide-y divide-gray-300 text-sm">
-            <thead className="bg-gray-100 text-gray-600">
+            {/* Fixed header */}
+            <thead className="bg-gray-100 text-gray-600 sticky top-0 z-10">
               <tr>
-                <th className="px-3 py-2">Purpose*</th>
-                <th className="px-3 py-2">Vehicle Type*</th>
-                <th className="px-3 py-2">Transporter*</th>
-                <th className="px-3 py-2">From</th>
-                <th className="px-3 py-2">To</th>
-                <th className="px-3 py-2">KM*</th>
-                <th className="px-3 py-2">Total (₹)</th>
-                <th className="px-3 py-2 text-center">Actions</th>
+                <th className="px-3 py-2 min-w-[150px]">Purpose*</th>
+                <th className="px-3 py-2 min-w-[120px]">Vehicle Type*</th>
+                <th className="px-3 py-2 min-w-[150px]">Transporter*</th>
+                <th className="px-3 py-2 min-w-[120px]">From</th>
+                <th className="px-3 py-2 min-w-[120px]">To</th>
+                <th className="px-3 py-2 min-w-[100px]">KM*</th>
+                <th className="px-3 py-2 min-w-[120px]">Total (₹)</th>
+                <th className="px-3 py-2 min-w-[80px] text-center">Actions</th>
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-gray-200">
+            {/* Scrollable body */}
+            <tbody className="divide-y divide-gray-200 bg-white">
               {expenditures.map((exp, index) => (
-                <tr key={index}>
+                <tr key={index} className="hover:bg-gray-50">
                   {/* Purpose */}
                   <td className="px-3 py-2">
                     <input
-                      className="w-full px-2 py-1 border rounded bg-white"
+                      className="w-full px-2 py-1 border rounded bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                       value={exp.purpose}
                       onChange={(e) => handleExpenditureChange(index, 'purpose', e.target.value)}
                       onBlur={(e) => handleBlur(index, 'purpose', e.target.value)}
@@ -600,7 +614,7 @@ const LogisticExpenditureForm = ({
                   {/* Vehicle Type */}
                   <td className="px-3 py-2">
                     <input
-                      className="w-full px-2 py-1 border rounded bg-white"
+                      className="w-full px-2 py-1 border rounded bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                       value={exp.vehicleType}
                       onChange={(e) => handleExpenditureChange(index, 'vehicleType', e.target.value)}
                       onBlur={(e) => handleBlur(index, 'vehicleType', e.target.value)}
@@ -618,7 +632,7 @@ const LogisticExpenditureForm = ({
                   {/* Transporter */}
                   <td className="px-3 py-2">
                     <input
-                      className="w-full px-2 py-1 border rounded bg-white"
+                      className="w-full px-2 py-1 border rounded bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                       value={exp.transporterName}
                       onChange={(e) => handleExpenditureChange(index, 'transporterName', e.target.value)}
                       onBlur={(e) => handleBlur(index, 'transporterName', e.target.value)}
@@ -636,7 +650,7 @@ const LogisticExpenditureForm = ({
                   {/* From */}
                   <td className="px-3 py-2">
                     <input
-                      className="w-full px-2 py-1 border rounded bg-white"
+                      className="w-full px-2 py-1 border rounded bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                       value={exp.from}
                       onChange={(e) => handleExpenditureChange(index, 'from', e.target.value)}
                       onBlur={(e) => handleBlur(index, 'from', e.target.value)}
@@ -654,7 +668,7 @@ const LogisticExpenditureForm = ({
                   {/* To */}
                   <td className="px-3 py-2">
                     <input
-                      className="w-full px-2 py-1 border rounded bg-white"
+                      className="w-full px-2 py-1 border rounded bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                       value={exp.to}
                       onChange={(e) => handleExpenditureChange(index, 'to', e.target.value)}
                       onBlur={(e) => handleBlur(index, 'to', e.target.value)}
@@ -673,7 +687,7 @@ const LogisticExpenditureForm = ({
                   <td className="px-3 py-2">
                     <input
                       type="text"
-                      className="w-full px-2 py-1 border rounded bg-white"
+                      className="w-full px-2 py-1 border rounded bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-right"
                       value={exp.kmTravelled}
                       onChange={(e) => handleExpenditureChange(index, 'kmTravelled', e.target.value)}
                       onBlur={(e) => handleBlur(index, 'kmTravelled', e.target.value)}
@@ -693,7 +707,7 @@ const LogisticExpenditureForm = ({
                     <input
                       type="text"
                       readOnly
-                      className="w-full px-2 py-1 border rounded bg-gray-100 font-medium"
+                      className="w-full px-2 py-1 border rounded bg-gray-100 font-medium text-right"
                       value={exp.totalPrice}
                       placeholder="Auto-calculated"
                     />
@@ -709,9 +723,10 @@ const LogisticExpenditureForm = ({
                     {expenditures.length > 1 && (
                       <button
                         type="button"
-                        className="inline-flex items-center justify-center text-red-600 hover:text-red-800"
+                        className="inline-flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 p-1 rounded"
                         onClick={() => removeRow(index)}
                         aria-label="Delete row"
+                        disabled={!selectedProject}
                       >
                         <svg
                           className="w-5 h-5"
@@ -734,6 +749,13 @@ const LogisticExpenditureForm = ({
             </tbody>
           </table>
         </div>
+
+        {/* Show scroll indicator when there are many rows */}
+        {expenditures.length > MAX_VISIBLE_ROWS && (
+          <div className="text-xs text-gray-500 mt-2 text-center">
+            Scroll to see more rows ({expenditures.length} total)
+          </div>
+        )}
 
         {/* Validation Summary */}
         {Object.keys(errors).length > 0 && (
@@ -771,6 +793,33 @@ const LogisticExpenditureForm = ({
           </button>
         </div>
       </div>
+
+      {/* Add some CSS for better scroll experience */}
+      <style jsx>{`
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .scrollable-table::-webkit-scrollbar {
+          display: none;
+        }
+        
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .scrollable-table {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
+        }
+        
+        /* Optional: Add smooth scrolling */
+        table {
+          border-collapse: collapse;
+        }
+        
+        thead th {
+          position: sticky;
+          top: 0;
+          background-color: #f3f4f6; /* bg-gray-100 */
+          z-index: 10;
+          box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+        }
+      `}</style>
     </div>
   );
 };

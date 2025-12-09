@@ -32,6 +32,10 @@ const itemSchema = new mongoose.Schema({
 }, { _id: false });
 
 const projectExpenditureSchema = new mongoose.Schema({
+  expenditureNumber: {
+    type: String,
+    default: null
+  },
   financialYear: {
     type: String,
     required: true,
@@ -84,8 +88,13 @@ projectExpenditureSchema.index({ createdAt: -1 });
 
 // Pre-save middleware to calculate total amount
 projectExpenditureSchema.pre('save', function(next) {
+  // Only calculate total amount if it's not already set or if items have changed
   if (this.items && this.items.length > 0) {
-    this.totalAmount = this.items.reduce((total, item) => total + (item.amount || 0), 0);
+    const calculatedTotal = this.items.reduce((total, item) => total + (item.amount || 0), 0);
+    // Only override if totalAmount is not set or if items were modified
+    if (!this.totalAmount || this.isModified('items')) {
+      this.totalAmount = calculatedTotal;
+    }
   }
   next();
 });
@@ -99,6 +108,9 @@ projectExpenditureSchema.pre('save', async function(next) {
       const customer = await Customer.findById(this.customer);
       if (customer) {
         this.customerName = customer.customerName; // Use customerName field
+      } else {
+        // If customer not found, we should not proceed as customer is required
+        throw new Error(`Customer with ID ${this.customer} not found`);
       }
     }
     
@@ -107,10 +119,16 @@ projectExpenditureSchema.pre('save', async function(next) {
       const project = await Project.findById(this.project);
       if (project) {
         this.projectName = project.projectName; // Use projectName field
+      } else {
+        // If project not found, we should not proceed as project is required
+        throw new Error(`Project with ID ${this.project} not found`);
       }
     }
   } catch (error) {
     console.error('Error populating names:', error);
+    // Re-throw the error to prevent save
+    next(error);
+    return;
   }
   next();
 });

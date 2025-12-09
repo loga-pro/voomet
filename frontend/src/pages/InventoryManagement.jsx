@@ -211,8 +211,8 @@ const InventoryManagement = () => {
       return { status: "Out of Stock", color: "red", bgColor: "bg-red-100", textColor: "text-red-800" };
     } else if (stockLevel <= reOrderLevel) {
       return { status: "Low Stock", color: "yellow", bgColor: "bg-yellow-100", textColor: "text-yellow-800" };
-    } else if (stockLevel > (reOrderLevel * 1.5)) {
-      return { status: "Excess Stock", color: "blue", bgColor: "bg-blue-100", textColor: "text-blue-800" };
+    } else if (reOrderLevel > 0 && stockLevel > (reOrderLevel * 3)) {
+      return { status: "Excess Stock", color: "purple", bgColor: "bg-purple-100", textColor: "text-purple-800" };
     } else {
       return { status: "In Stock", color: "green", bgColor: "bg-green-100", textColor: "text-green-800" };
     }
@@ -276,18 +276,34 @@ const InventoryManagement = () => {
     const totalItems = inventoryItems.length;
     const totalStockValue = inventoryItems.reduce((sum, item) => sum + (item.totalStockValue || 0), 0);
     const totalInventoryValue = inventoryItems.reduce((sum, item) => sum + (item.totalInventoryValue || 0), 0);
+    
+    // Count items by stock status
+    const outOfStockItems = inventoryItems.filter((item) => {
+      const stockLevel = item.stockAtFactory || 0;
+      return stockLevel <= 0;
+    }).length;
+    
     const lowStockItems = inventoryItems.filter((item) => {
       const stockLevel = item.stockAtFactory || 0;
       const reOrderLevel = item.reOrderLevel || 0;
       // Low stock: stock is above 0, reorder level is set (> 0), and stock is at or below reorder level
       return reOrderLevel > 0 && stockLevel > 0 && stockLevel <= reOrderLevel;
     }).length;
+    
+    const excessStockItems = inventoryItems.filter((item) => {
+      const stockLevel = item.stockAtFactory || 0;
+      const reOrderLevel = item.reOrderLevel || 0;
+      // Excess stock: stock is more than 3x the reorder level
+      return reOrderLevel > 0 && stockLevel > (reOrderLevel * 3);
+    }).length;
 
     return {
       totalItems,
       totalStockValue,
       totalInventoryValue,
-      lowStockItems
+      lowStockItems,
+      outOfStockItems,
+      excessStockItems
     };
   };
 
@@ -1103,7 +1119,7 @@ const InventoryManagement = () => {
       <div className="w-full max-w-full">
 
         {/* KPI Cards Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
           <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -1133,14 +1149,38 @@ const InventoryManagement = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-yellow-200 bg-yellow-50">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <ChartBarIcon className="h-8 w-8 text-orange-600" />
+                <ChartBarIcon className="h-8 w-8 text-yellow-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Low Stock Items</p>
-                <p className="text-2xl font-semibold text-gray-900">{kpis.lowStockItems}</p>
+                <p className="text-sm font-medium text-yellow-700">Low Stock Items</p>
+                <p className="text-2xl font-semibold text-yellow-900">{kpis.lowStockItems}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-red-200 bg-red-50">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <ArchiveBoxIcon className="h-8 w-8 text-red-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-red-700">Out of Stock</p>
+                <p className="text-2xl font-semibold text-red-900">{kpis.outOfStockItems}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-purple-200 bg-purple-50">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <TruckIcon className="h-8 w-8 text-purple-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-purple-700">Excess Stock</p>
+                <p className="text-2xl font-semibold text-purple-900">{kpis.excessStockItems}</p>
               </div>
             </div>
           </div>
@@ -1148,7 +1188,7 @@ const InventoryManagement = () => {
           <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <BuildingOfficeIcon className="h-8 w-8 text-purple-600" />
+                <BuildingOfficeIcon className="h-8 w-8 text-indigo-600" />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Inventory Value</p>

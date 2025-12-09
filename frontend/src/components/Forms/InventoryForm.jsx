@@ -517,8 +517,7 @@ const InventoryForm = ({
     e.preventDefault();
     
     // Validate only the fields present in Summary tab
-    const missingSummary = !formData.customerVendorName || formData.reOrderLevel === '' || formData.reOrderLevel === null || Number.isNaN(Number(formData.reOrderLevel));
-    if (missingSummary) {
+    if (!formData.customerVendorName) {
       setActiveTab('summary');
       showError('Please fill all required summary fields');
       return;
@@ -570,9 +569,94 @@ const InventoryForm = ({
     };
   };
 
+  // Function to calculate reorder level based on dispatch history
+  const calculateReorderLevel = () => {
+    if (dispatches.length > 0) {
+      // Calculate average monthly consumption from dispatches
+      const totalDispatched = dispatches.reduce((sum, d) => sum + (d.quantity || 0), 0);
+      
+      // Get date range of dispatches
+      const dispatchDates = dispatches.map(d => new Date(d.date)).filter(d => !isNaN(d.getTime()));
+      
+      if (dispatchDates.length > 0) {
+        const oldestDate = new Date(Math.min(...dispatchDates));
+        const newestDate = new Date(Math.max(...dispatchDates));
+        const daysDiff = Math.max(1, (newestDate - oldestDate) / (1000 * 60 * 60 * 24));
+        const monthsDiff = Math.max(1, daysDiff / 30);
+        
+        // Average monthly consumption
+        const avgMonthlyConsumption = totalDispatched / monthsDiff;
+        
+        // Set reorder level to 30% of average monthly consumption (about 9 days worth)
+        return Math.ceil(avgMonthlyConsumption * 0.3);
+      }
+    } else if (receipts.length > 0) {
+      // If no dispatches yet, use 20% of total received as reorder level
+      const totalReceived = receipts.reduce((sum, r) => sum + (r.quantity || 0), 0);
+      return Math.ceil(totalReceived * 0.2);
+    }
+    
+    return 0;
+  };
+
+  // Function to determine reorder status based on current stock and reorder level
+  const getReorderStatus = () => {
+    if (!summaryData) return null;
+    
+    const currentStock = summaryData.stockAtFactory || 0;
+    const reorderLevel = parseFloat(formData.reOrderLevel) || 0;
+    
+    // Out of Stock: stock is 0 or negative
+    if (currentStock <= 0) {
+      return {
+        status: 'Out of Stock',
+        color: 'bg-red-100 text-red-800 border-red-300',
+        icon: '🚫',
+        message: 'Stock is depleted. Immediate reorder required!'
+      };
+    }
+    
+    // Low Quantity: stock is at or below reorder level
+    if (currentStock <= reorderLevel) {
+      return {
+        status: 'Low Quantity',
+        color: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+        icon: '⚠️',
+        message: `Stock is at or below reorder level (${reorderLevel}). Consider reordering.`
+      };
+    }
+    
+    // Excess Quantity: stock is more than 3x the reorder level
+    if (reorderLevel > 0 && currentStock > (reorderLevel * 3)) {
+      return {
+        status: 'Excess Quantity',
+        color: 'bg-purple-100 text-purple-800 border-purple-300',
+        icon: '📦',
+        message: `Stock is significantly above reorder level. Current: ${currentStock}, Reorder Level: ${reorderLevel}`
+      };
+    }
+    
+    // Normal: stock is above reorder level but not excessive
+    return {
+      status: 'Normal',
+      color: 'bg-green-100 text-green-800 border-green-300',
+      icon: '✅',
+      message: `Stock levels are healthy. Current: ${currentStock}, Reorder Level: ${reorderLevel}`
+    };
+  };
+
   useEffect(() => {
     const calculated = calculateTotalValue();
     setSummaryData(calculated);
+    
+    // Auto-calculate reorder level when there's no existing reorder level
+    if (!inventory || !inventory.reOrderLevel) {
+      const calculatedReorderLevel = calculateReorderLevel();
+      setFormData(prev => ({
+        ...prev,
+        reOrderLevel: calculatedReorderLevel
+      }));
+    }
   }, [receipts, dispatches]);
 
   return (
@@ -630,16 +714,61 @@ const InventoryForm = ({
               required
             />
             
-            <FloatingInput
-              label="Re-order Level"
-              name="reOrderLevel"
-              value={formData.reOrderLevel}
-              onChange={handleInputChange}
-              type="number"
-              min="0"
-              required
-            />
+            {/* Re-order Level as Floating Input */}
+            <div className="relative">
+              {/* Auto-calculated suggestion */}
+              {!inventory && (
+                <div className="flex items-center justify-between mb-1">
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({
+                      ...prev,
+                      reOrderLevel: calculateReorderLevel()
+                    }))}
+                    className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                   
+                  </button>
+                </div>
+              )}
+              
+              <FloatingInput
+                label="Re-order Level"
+                name="reOrderLevel"
+                value={formData.reOrderLevel}
+                onChange={handleInputChange}
+                type="number"
+                min="0"
+                step="1"
+              />
+            </div>
           </div>
+
+          {/* Reorder Status Indicator */}
+          {summaryData && formData.reOrderLevel !== '' && formData.reOrderLevel !== null && (() => {
+            const reorderStatus = getReorderStatus();
+            return reorderStatus ? (
+              <div className={`mt-4 p-4 rounded-lg border-2 ${reorderStatus.color}`}>
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">{reorderStatus.icon}</span>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-lg mb-1">
+                      Stock Status: {reorderStatus.status}
+                    </h4>
+                    <p className="text-sm">{reorderStatus.message}</p>
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="font-medium">Current Stock:</span> {summaryData.stockAtFactory}
+                      </div>
+                      <div>
+                        <span className="font-medium">Reorder Level:</span> {formData.reOrderLevel}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null;
+          })()}
 
           {/* Summary Display */}
           {summaryData && (

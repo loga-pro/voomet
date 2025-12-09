@@ -99,36 +99,40 @@ router.get('/kpis', auth, async (req, res) => {
     const paymentPending = vendorPayments.filter(payment => payment.status === 'pending').length;
     const paymentOverdue = vendorPayments.filter(payment => payment.status === 'overdue').length;
 
-    // Inventory KPIs - Enhanced calculations
+    // Inventory KPIs - Enhanced calculations matching InventoryManagement.jsx
     const inventoryItems = await Inventory.find();
     
-    // Calculate total inventory value
+    // Total items count
+    const totalItems = inventoryItems.length;
+    
+    // Calculate total stock value and total inventory value
+    const totalStockValue = inventoryItems.reduce((sum, item) => {
+      return sum + (item.totalStockValue || 0);
+    }, 0);
+    
     const totalInventoryValue = inventoryItems.reduce((sum, item) => {
-      return sum + (item.cumulativePriceValue || 0);
+      return sum + (item.totalInventoryValue || 0);
     }, 0);
     
-    // Calculate shop floor value (items not dispatched)
-    const totalPartsValueAtShopFloor = inventoryItems.reduce((sum, item) => {
-      if (!item.isDispatched) {
-        return sum + (item.cumulativePriceValue || 0);
-      }
-      return sum;
-    }, 0);
+    // Count items by stock status based on reorder levels
+    const outOfStockItems = inventoryItems.filter((item) => {
+      const stockLevel = item.stockAtFactory || 0;
+      return stockLevel <= 0;
+    }).length;
     
-    // Calculate site value (dispatched items)
-    const totalPartsValueAtSite = inventoryItems.reduce((sum, item) => {
-      if (item.isDispatched) {
-        return sum + (item.cumulativePriceValue || 0);
-      }
-      return sum;
-    }, 0);
+    const lowStockItems = inventoryItems.filter((item) => {
+      const stockLevel = item.stockAtFactory || 0;
+      const reOrderLevel = item.reOrderLevel || 0;
+      // Low stock: stock is above 0, reorder level is set (> 0), and stock is at or below reorder level
+      return reOrderLevel > 0 && stockLevel > 0 && stockLevel <= reOrderLevel;
+    }).length;
     
-    // Count items at different locations
-    const itemsAtShopFloor = inventoryItems.filter(item => !item.isDispatched).length;
-    const itemsAtSite = inventoryItems.filter(item => item.isDispatched).length;
-    
-    // Low stock items (assuming a threshold of less than 10 items)
-    const lowStockItems = inventoryItems.filter(item => (item.quantity || 0) < 10).length;
+    const excessStockItems = inventoryItems.filter((item) => {
+      const stockLevel = item.stockAtFactory || 0;
+      const reOrderLevel = item.reOrderLevel || 0;
+      // Excess stock: stock is more than 3x the reorder level
+      return reOrderLevel > 0 && stockLevel > (reOrderLevel * 3);
+    }).length;
 
     // Quality KPIs - Enhanced calculations
     const qualityIssues = await Quality.find();
@@ -171,12 +175,12 @@ router.get('/kpis', auth, async (req, res) => {
         paymentOverdue
       },
       inventoryKPIs: {
+        totalItems,
+        totalStockValue,
         totalInventoryValue,
-        totalPartsValueAtShopFloor,
-        totalPartsValueAtSite,
-        itemsAtShopFloor,
-        itemsAtSite,
-        lowStockItems
+        lowStockItems,
+        outOfStockItems,
+        excessStockItems
       },
       qualityKPIs: {
         rectify: rectifyCount,

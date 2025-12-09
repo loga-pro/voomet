@@ -38,6 +38,10 @@ const logisticItemSchema = new mongoose.Schema({
 }, { _id: true });
 
 const logisticExpenditureSchema = new mongoose.Schema({
+  expenditureNumber: {
+    type: String,
+    default: null
+  },
   financialYear: {
     type: String,
     required: true

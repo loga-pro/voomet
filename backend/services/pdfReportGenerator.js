@@ -1149,6 +1149,68 @@ class PDFReportGenerator {
     
     currentY += cardHeight + 8;
     
+    // Calculate flexibility summary if applicable
+    let flexibilitySummary = null;
+    if (flexibilityPercentage && flexibilityPercentage > 0 && tasks.length > 0) {
+      const totalOriginalDuration = tasks.reduce((sum, task) => {
+        const originalDuration = task.originalDuration || task.duration || 0;
+        return sum + originalDuration;
+      }, 0);
+      
+      const totalDaysSubtracted = tasks.reduce((sum, task) => {
+        const originalDuration = task.originalDuration || task.duration || 0;
+        const currentDuration = task.duration || 0;
+        return sum + (originalDuration - currentDuration);
+      }, 0);
+      
+      const tasksWithFlexibility = tasks.filter(task => {
+        const originalDuration = task.originalDuration || task.duration || 0;
+        const currentDuration = task.duration || 0;
+        return originalDuration > currentDuration;
+      }).length;
+      
+      if (totalDaysSubtracted > 0) {
+        flexibilitySummary = {
+          totalDaysSubtracted,
+          tasksAffected: tasksWithFlexibility
+        };
+      }
+    }
+    
+    // Add Flexibility Summary Alert if applicable
+    if (flexibilitySummary) {
+      // Draw alert box
+      doc.setFillColor(254, 243, 199); // Amber/warning background
+      doc.roundedRect(15, currentY, 180, 18, 2, 2, 'F');
+      doc.setDrawColor(251, 191, 36); // Amber border
+      doc.setLineWidth(0.5);
+      doc.roundedRect(15, currentY, 180, 18, 2, 2, 'S');
+      
+      // Alert icon (warning triangle)
+      doc.setFillColor(245, 158, 11); // Amber icon
+      doc.circle(22, currentY + 9, 3, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('!', 21.3, currentY + 11);
+      
+      // Alert text
+      doc.setTextColor(146, 64, 14); // Amber text
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Flexibility Applied', 30, currentY + 8);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text(
+        `${flexibilitySummary.totalDaysSubtracted} days removed from ${flexibilitySummary.tasksAffected} task${flexibilitySummary.tasksAffected !== 1 ? 's' : ''}`,
+        30,
+        currentY + 14
+      );
+      
+      currentY += 25;
+    }
+    
     // Project Timeline Info Panel
     const totalDuration = this._calculateDuration(startDate, endDate);
     this._addModernInfoPanel(
@@ -1168,34 +1230,45 @@ class PDFReportGenerator {
     
     currentY += 55;
     
-    // Tasks Table
+    // Tasks Table with Category column
     if (tasks.length > 0) {
       const tableData = tasks.map((task, index) => {
         const startDate = task.startDate ? this._formatDate(task.startDate) : 'TBD';
         const endDate = task.endDate ? this._formatDate(task.endDate) : 'TBD';
+        const category = task.category === 'outsourced' ? 'Outsourced' : 'Inhouse';
+        
+        // Calculate days removed for this task
+        const originalDuration = task.originalDuration || task.duration || 0;
+        const currentDuration = task.duration || 0;
+        const daysRemoved = originalDuration - currentDuration;
+        const durationDisplay = daysRemoved > 0 
+          ? `${currentDuration} (-${daysRemoved})` 
+          : `${currentDuration}`;
         
         return [
           (index + 1).toString(),
           task.phase || 'N/A',
           task.task || 'N/A',
-          task.duration ? `${task.duration} days` : '0',
+          category,
+          durationDisplay,
           startDate,
           endDate,
           task.responsiblePerson || 'TBD'
         ];
       });
       
-      const head = ['#', 'Phase', 'Task', 'Duration', 'Start Date', 'End Date', 'Responsible Person'];
+      const head = ['#', 'Phase', 'Task', 'Category', 'Duration', 'Start Date', 'End Date', 'Responsible'];
       
       currentY = this._addUltraModernTable(doc, head, tableData, currentY, 'Project Tasks Timeline', {
         columnStyles: {
           0: { cellWidth: 8, halign: 'center', valign: 'middle', fontStyle: 'bold' },
-          1: { cellWidth: 25, halign: 'left', valign: 'middle' },
-          2: { cellWidth: 35, halign: 'left', valign: 'middle' },
-          3: { cellWidth: 15, halign: 'center', valign: 'middle' },
-          4: { cellWidth: 20, halign: 'center', valign: 'middle' },
-          5: { cellWidth: 20, halign: 'center', valign: 'middle' },
-          6: { cellWidth: 25, halign: 'left', valign: 'middle' }
+          1: { cellWidth: 22, halign: 'left', valign: 'middle' },
+          2: { cellWidth: 32, halign: 'left', valign: 'middle' },
+          3: { cellWidth: 18, halign: 'center', valign: 'middle' },
+          4: { cellWidth: 18, halign: 'center', valign: 'middle' },
+          5: { cellWidth: 18, halign: 'center', valign: 'middle' },
+          6: { cellWidth: 18, halign: 'center', valign: 'middle' },
+          7: { cellWidth: 22, halign: 'left', valign: 'middle' }
         }
       });
       

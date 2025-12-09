@@ -16,9 +16,8 @@ import {
   DocumentTextIcon,
   MapPinIcon,
   CalendarIcon,
-  ChartBarIcon,
-  FolderIcon,
   TrophyIcon,
+  FolderIcon,
   FolderOpenIcon
 } from '@heroicons/react/24/outline';
 import CustomerForm from '../components/Forms/CustomerForm';
@@ -38,13 +37,13 @@ const CustomerMaster = () => {
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [filters, setFilters] = useState({
     customerName: '',
-    projectName: '',
-    stage: ''
+    customerEmail: '',
+    city: '',
   });
   const [showFilters, setShowFilters] = useState(false);
   const [uniqueCustomerNames, setUniqueCustomerNames] = useState([]);
-  const [uniqueProjectNames, setUniqueProjectNames] = useState([]);
-  const [uniqueStages, setUniqueStages] = useState([]);
+  const [uniqueCustomerEmails, setUniqueCustomerEmails] = useState([]);
+  const [uniqueCities, setUniqueCities] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -66,8 +65,12 @@ const CustomerMaster = () => {
       
       // Extract unique values for dropdowns
       const customerNames = [...new Set(response.data.map(customer => customer.customerName))].filter(Boolean);
+      const customerEmails = [...new Set(response.data.map(customer => customer.customerEmail))].filter(Boolean);
+      const cities = [...new Set(response.data.map(customer => customer.city))].filter(Boolean);
       
       setUniqueCustomerNames(customerNames);
+      setUniqueCustomerEmails(customerEmails);
+      setUniqueCities(cities);
     } catch (error) {
       console.error('Error fetching customers:', error);
     } finally {
@@ -80,14 +83,6 @@ const CustomerMaster = () => {
       const response = await projectsAPI.getAll();
       // Show all projects (including all stages)
       setAwardedProjects(response.data);
-      
-      // Extract unique project names for dropdown
-      const projectNames = [...new Set(response.data.map(project => project.projectName))].filter(Boolean);
-      setUniqueProjectNames(projectNames);
-      
-      // Extract unique stages for dropdown
-      const stages = [...new Set(response.data.map(project => project.stage))].filter(Boolean);
-      setUniqueStages(stages);
     } catch (error) {
       console.error('Error fetching awarded projects:', error);
     }
@@ -103,18 +98,16 @@ const CustomerMaster = () => {
       );
     }
 
-    if (filters.projectName) {
-      filtered = filtered.filter(customer => {
-        const customerProjects = getProjectsForCustomer(customer.customerName);
-        return customerProjects.some(project => project.projectName === filters.projectName);
-      });
+    if (filters.customerEmail) {
+      filtered = filtered.filter(customer => 
+        customer.customerEmail === filters.customerEmail
+      );
     }
 
-    if (filters.stage) {
-      filtered = filtered.filter(customer => {
-        const customerProjects = getProjectsForCustomer(customer.customerName);
-        return customerProjects.some(project => project.stage === filters.stage);
-      });
+    if (filters.city) {
+      filtered = filtered.filter(customer => 
+        customer.city === filters.city
+      );
     }
 
     // Apply overall search across multiple fields
@@ -151,8 +144,8 @@ const CustomerMaster = () => {
   const clearFilters = () => {
     setFilters({
       customerName: '',
-      projectName: '',
-      stage: ''
+      customerEmail: '',
+      city: '',
     });
     setSearchTerm('');
   };
@@ -234,7 +227,7 @@ const CustomerMaster = () => {
       console.error('Error deleting customer:', error);
       const errorMessage = error.response?.data?.message || 'Error deleting customer';
       showError(errorMessage);
-      setShowDeleteModal(false); // Optionally close modal on error too, or keep it open
+      setShowDeleteModal(false);
     }
   };
 
@@ -246,11 +239,6 @@ const CustomerMaster = () => {
   };
 
   const getProjectsForCustomer = (customerName) => {
-    if (filters.stage) {
-      return awardedProjects.filter(project => 
-        project.customerName === customerName && project.stage === filters.stage
-      );
-    }
     return awardedProjects.filter(project => project.customerName === customerName);
   };
 
@@ -340,7 +328,7 @@ const CustomerMaster = () => {
             </div>
           </div>
 
-          {/* Filters */}
+          {/* Filters Section - Customer Name, Email, and City */}
           {showFilters && (
             <div className="px-4 py-5 sm:p-6 bg-gray-50 border-b border-gray-200">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -357,29 +345,31 @@ const CustomerMaster = () => {
                     ))}
                   </select>
                 </div>
+                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Customer Email</label>
                   <select
-                    value={filters.projectName}
-                    onChange={(e) => handleFilterChange('projectName', e.target.value)}
+                    value={filters.customerEmail}
+                    onChange={(e) => handleFilterChange('customerEmail', e.target.value)}
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
                   >
-                    <option value="">All Projects</option>
-                    {uniqueProjectNames.map(projectName => (
-                      <option key={projectName} value={projectName}>{projectName}</option>
+                    <option value="">All Emails</option>
+                    {uniqueCustomerEmails.map(email => (
+                      <option key={email} value={email}>{email}</option>
                     ))}
                   </select>
                 </div>
+                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Stage</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
                   <select
-                    value={filters.stage}
-                    onChange={(e) => handleFilterChange('stage', e.target.value)}
+                    value={filters.city}
+                    onChange={(e) => handleFilterChange('city', e.target.value)}
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
                   >
-                    <option value="">All Stages</option>
-                    {uniqueStages.map(stage => (
-                      <option key={stage} value={stage}>{stage.replace('_', ' ').toUpperCase()}</option>
+                    <option value="">All Cities</option>
+                    {uniqueCities.map(city => (
+                      <option key={city} value={city}>{city}</option>
                     ))}
                   </select>
                 </div>
@@ -422,7 +412,6 @@ const CustomerMaster = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">{customer.customerEmail}</div>
-            
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">

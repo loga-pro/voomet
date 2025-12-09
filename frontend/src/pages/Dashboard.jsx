@@ -188,19 +188,54 @@ const Dashboard = () => {
     { id: 'vendor-payment-overdue', title: 'Payment Overdue', value: kpis.vendorPaymentKPIs?.paymentOverdue || 0, icon: ExclamationTriangleIcon, color: 'bg-red-500' }
   ];
 
-  // Inventory KPI cards
+  // Inventory KPI cards - Enhanced with stock status categories
   const inventoryKPIs = [
-    { id: 'total-inventory-value', title: 'Total Inventory Value (₹)', value: (kpis.inventoryKPIs?.totalInventoryValue || 0), icon: CubeIcon, color: 'bg-blue-500' },
-    { id: 'shop-floor-value', title: 'Shop Floor Value (₹)', value: (kpis.inventoryKPIs?.totalPartsValueAtShopFloor || 0), icon: CubeIcon, color: 'bg-green-500' },
-    { id: 'site-value', title: 'Site Value (₹)', value: (kpis.inventoryKPIs?.totalPartsValueAtSite || 0), icon: TruckIcon, color: 'bg-purple-500' },
-    { id: 'low-stock-items', title: 'Low Stock Items', value: kpis.inventoryKPIs?.lowStockItems || 0, icon: ExclamationTriangleIcon, color: 'bg-red-500' }
+    { 
+      id: 'total-items', 
+      title: 'Total Items', 
+      value: kpis.inventoryKPIs?.totalItems || 0, 
+      icon: CubeIcon, 
+      color: 'bg-blue-500' 
+    },
+    { 
+      id: 'total-stock-value', 
+      title: 'Total Stock Value (₹)', 
+      value: (kpis.inventoryKPIs?.totalStockValue || 0), 
+      icon: CurrencyRupeeIcon, 
+      color: 'bg-green-500' 
+    },
+    { 
+      id: 'total-inventory-value', 
+      title: 'Total Inventory Value (₹)', 
+      value: (kpis.inventoryKPIs?.totalInventoryValue || 0), 
+      icon: BuildingStorefrontIcon, 
+      color: 'bg-indigo-500' 
+    }
   ];
 
-  // Inventory Status Summary
+  // Inventory Status Summary - Stock health indicators
   const inventoryStatusKPIs = [
-    { id: 'items-shop-floor', title: 'Items at Shop Floor', value: kpis.inventoryKPIs?.itemsAtShopFloor || 0, icon: CubeIcon, color: 'bg-green-500' },
-    { id: 'items-site', title: 'Items at Site', value: kpis.inventoryKPIs?.itemsAtSite || 0, icon: TruckIcon, color: 'bg-blue-500' },
-    { id: 'total-items', title: 'Total Items', value: (kpis.inventoryKPIs?.itemsAtShopFloor || 0) + (kpis.inventoryKPIs?.itemsAtSite || 0), icon: ClipboardDocumentListIcon, color: 'bg-indigo-500' }
+    { 
+      id: 'low-stock-items', 
+      title: 'Low Stock', 
+      value: kpis.inventoryKPIs?.lowStockItems || 0, 
+      icon: ExclamationTriangleIcon, 
+      color: 'bg-yellow-500' 
+    },
+    { 
+      id: 'out-of-stock-items', 
+      title: 'Out of Stock', 
+      value: kpis.inventoryKPIs?.outOfStockItems || 0, 
+      icon: ClockIcon, 
+      color: 'bg-red-500' 
+    },
+    { 
+      id: 'excess-stock-items', 
+      title: 'Excess Stock', 
+      value: kpis.inventoryKPIs?.excessStockItems || 0, 
+      icon: TruckIcon, 
+      color: 'bg-purple-500' 
+    }
   ];
 
   // Quality Control KPI cards
