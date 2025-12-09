@@ -1375,7 +1375,7 @@ const MilestoneTracking = () => {
                         Plan End
                       </th>
                       <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] bg-gray-50">
-                        Responsible
+                        Responsible Person
                       </th>
                       <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] bg-gray-50">
                         Status
