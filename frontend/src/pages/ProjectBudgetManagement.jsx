@@ -37,6 +37,8 @@ const ProjectBudgetManagement = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
   const [uniqueFinancialYears, setUniqueFinancialYears] = useState([]);
+  const [uniqueProjectNames, setUniqueProjectNames] = useState([]);
+  const [uniqueCustomerNames, setUniqueCustomerNames] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -65,6 +67,12 @@ const ProjectBudgetManagement = () => {
 
       const years = [...new Set(budgetsData.map(budget => budget.financialYear))].filter(Boolean);
       setUniqueFinancialYears(years);
+
+      const projectNames = [...new Set(budgetsData.map(budget => budget.projectName))].filter(Boolean);
+      setUniqueProjectNames(projectNames);
+
+      const customerNames = [...new Set(budgetsData.map(budget => budget.customerName))].filter(Boolean);
+      setUniqueCustomerNames(customerNames);
     } catch (error) {
       console.error('Error fetching project budgets:', error);
       console.error('Error response:', error.response);
@@ -85,13 +93,13 @@ const ProjectBudgetManagement = () => {
 
     if (filters.projectName) {
       filtered = filtered.filter(budget =>
-        budget.projectName?.toLowerCase().includes(filters.projectName.toLowerCase())
+        budget.projectName === filters.projectName
       );
     }
 
     if (filters.customerName) {
       filtered = filtered.filter(budget =>
-        budget.customerName?.toLowerCase().includes(filters.customerName.toLowerCase())
+        budget.customerName === filters.customerName
       );
     }
 
@@ -451,24 +459,34 @@ const ProjectBudgetManagement = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
-                  <input
-                    type="text"
+                  <select
                     value={filters.projectName}
                     onChange={(e) => handleFilterChange('projectName', e.target.value)}
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
-                    placeholder="Filter by project name"
-                  />
+                  >
+                    <option value="">All Projects</option>
+                    {uniqueProjectNames.map(projectName => (
+                      <option key={projectName} value={projectName}>
+                        {projectName}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
-                  <input
-                    type="text"
+                  <select
                     value={filters.customerName}
                     onChange={(e) => handleFilterChange('customerName', e.target.value)}
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
-                    placeholder="Filter by customer name"
-                  />
+                  >
+                    <option value="">All Customers</option>
+                    {uniqueCustomerNames.map(customerName => (
+                      <option key={customerName} value={customerName}>
+                        {customerName}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>

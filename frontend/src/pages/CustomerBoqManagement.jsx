@@ -1278,7 +1278,6 @@ const CustomerBoqManagement = () => {
           </div>
         </div>
       </Modal>
-      {console.log("currentItems", currentItems)}
 
       <Modal
         isOpen={showItemsModal}

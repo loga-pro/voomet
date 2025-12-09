@@ -561,6 +561,13 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
 
 
   const addPaymentTerm = () => {
+    // Check if total percentage is already 100%
+    const currentTotal = formData.paymentTerms.reduce((sum, term) => sum + (parseFloat(term.discount) || 0), 0);
+    if (currentTotal >= 100) {
+      showLocalNotification('Total payment percentage cannot exceed 100%', 'error');
+      return;
+    }
+
     if (formData.paymentTerms.length < 5) {
       setFormData(prev => ({
         ...prev,
@@ -570,6 +577,12 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
   };
 
   const removePaymentTerm = (index) => {
+    // If updating existing BOQ, prevent removing original terms
+    if (boq && boq.paymentTerms && index < boq.paymentTerms.length) {
+      showLocalNotification('Cannot remove original payment terms', 'error');
+      return;
+    }
+
     if (formData.paymentTerms.length > 1) {
       setFormData(prev => {
         const newTerms = [...prev.paymentTerms];
@@ -582,12 +595,27 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
   };
 
   const handlePaymentTermChange = (index, value) => {
+    // If updating existing BOQ, prevent editing original terms
+    if (boq && boq.paymentTerms && index < boq.paymentTerms.length) {
+      return;
+    }
+
     // Allows empty string, or positive numbers with up to 2 decimal places
     if (value !== '' && !/^\d{0,3}(\.\d{0,2})?$/.test(value)) return;
 
     if (value !== '') {
       const numValue = parseFloat(value);
       if (isNaN(numValue) || numValue < 0 || numValue > 100) return;
+
+      // Check if new total exceeds 100%
+      const otherTermsTotal = formData.paymentTerms.reduce((sum, term, idx) => {
+        return idx !== index ? sum + (parseFloat(term.discount) || 0) : sum;
+      }, 0);
+
+      if (otherTermsTotal + numValue > 100) {
+        showLocalNotification('Total payment percentage cannot exceed 100%', 'error');
+        return;
+      }
     }
 
     setFormData(prev => {
@@ -665,10 +693,11 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       const itemsForSubmit = (formData.items || []).map((item, index) => {
         if (item.image && item.image instanceof File) {
           submitData.append(`itemImage_${index}`, item.image);
+          const { image, ...rest } = item;
+          return rest;
         }
 
-        const { image, ...rest } = item;
-        return typeof item.image === 'string' ? { ...rest, image: item.image } : rest;
+        return item;
       });
 
       submitData.append('items', JSON.stringify(itemsForSubmit));
@@ -818,7 +847,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
               Basic Information
             </h3>
 
-            {!boq && (
+            {!boq && Object.keys(selectedProject).length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 relative">
                 <FloatingInput
                   label="Selected Project"
@@ -1150,56 +1179,105 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
               Payment Terms
             </h3>
 
-            <div className="bg-gray-50 rounded-lg p-4 space-y-4">
-              {formData.paymentTerms.map((term, index) => (
-                <div key={index} className="flex items-center gap-4">
-                  <span className="text-sm font-medium text-gray-700 min-w-[100px]">
-                    Installment {index + 1}
-                  </span>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Installment
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Discount (%)
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Value (₹)
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {formData.paymentTerms.map((term, index) => {
+                      const discountVal = parseFloat(term.discount || 0);
+                      const calculatedValue = ((parseFloat(formData.totalWithGST || 0) * discountVal) / 100).toFixed(2);
+                      const isOriginalTerm = boq && boq.paymentTerms && index < boq.paymentTerms.length;
 
-                  <div className="relative">
-                    <input
-                      name="discount"
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={term.discount}
-                      onChange={(e) => handlePaymentTermChange(index, e.target.value)}
-                      onBlur={(e) => handlePaymentTermBlur(index, e.target.value)}
-                      className="block w-32 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2 border"
-                      placeholder="Discount"
-                    />
-                  </div>
+                      return (
+                        <tr key={index}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            Installment {index + 1}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={term.discount}
+                              onChange={(e) => handlePaymentTermChange(index, e.target.value)}
+                              onBlur={(e) => handlePaymentTermBlur(index, e.target.value)}
+                              readOnly={isOriginalTerm}
+                              className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2 border ${isOriginalTerm ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                              placeholder="0-100"
+                            />
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                            ₹{parseFloat(calculatedValue).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex items-center space-x-2">
+                              {/* Only show Add button on the last row and if total discount < 100 */}
+                              {index === formData.paymentTerms.length - 1 && (
+                                <button
+                                  type="button"
+                                  onClick={addPaymentTerm}
+                                  disabled={formData.paymentTerms.length >= 5}
+                                  className={`p-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${formData.paymentTerms.length >= 5
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    : 'bg-primary-600 text-white hover:bg-primary-700'
+                                    }`}
+                                  title="Add Installment"
+                                >
+                                  <PlusIcon />
+                                </button>
+                              )}
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={addPaymentTerm}
-                      disabled={formData.paymentTerms.length >= 5}
-                      className={`p-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${formData.paymentTerms.length >= 5
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-primary-600 text-white hover:bg-primary-700'
-                        }`}
-                      title="Add term"
-                    >
-                      <PlusIcon />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => removePaymentTerm(index)}
-                      disabled={formData.paymentTerms.length <= 1}
-                      className={`p-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${formData.paymentTerms.length <= 1
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-red-600 text-white hover:bg-red-700'
-                        }`}
-                      title="Remove term"
-                    >
-                      <MinusIcon />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                              <button
+                                type="button"
+                                onClick={() => removePaymentTerm(index)}
+                                disabled={formData.paymentTerms.length <= 1 || isOriginalTerm}
+                                className={`p-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${formData.paymentTerms.length <= 1 || isOriginalTerm
+                                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                  : 'bg-red-600 text-white hover:bg-red-700'
+                                  }`}
+                                title="Remove Installment"
+                              >
+                                <MinusIcon />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot className="bg-gray-50">
+                    <tr>
+                      <td className="px-6 py-3 text-sm font-bold text-gray-900">Total</td>
+                      <td className="px-6 py-3 text-sm font-bold text-gray-900">
+                        {formData.paymentTerms.reduce((sum, term) => sum + (parseFloat(term.discount) || 0), 0).toFixed(2)}%
+                      </td>
+                      <td className="px-6 py-3 text-sm font-bold text-gray-900">
+                        ₹{formData.paymentTerms.reduce((sum, term) => {
+                          const val = (parseFloat(formData.totalWithGST || 0) * (parseFloat(term.discount) || 0)) / 100;
+                          return sum + val;
+                        }, 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
           </div>
         </form>

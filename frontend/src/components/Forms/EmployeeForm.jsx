@@ -25,6 +25,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
+  const [touchedFields, setTouchedFields] = useState({});
 
   // Map fields to their respective tabs for error navigation
   const fieldToTabMap = {
@@ -80,6 +81,96 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
     }
   }, [employee]);
 
+  // Real-time validation functions
+  const validateField = (name, value) => {
+    let error = '';
+    
+    switch (name) {
+      case 'email':
+        if (!value) {
+          error = 'Email is required';
+        } else if (!/^\S+@\S+\.\S+$/.test(value)) {
+          error = 'Please enter a valid email address';
+        }
+        break;
+        
+      case 'phone':
+        if (!value) {
+          error = 'Phone number is required';
+        } else if (!/^\d{10}$/.test(value)) {
+          error = 'Phone number must be exactly 10 digits';
+        }
+        break;
+        
+      case 'aadhar':
+        if (value) {
+          if (!/^\d{12}$/.test(value)) {
+            error = 'Aadhaar must be exactly 12 digits';
+          }
+        } else if (touchedFields.aadhar) {
+          error = 'Aadhaar is required';
+        }
+        break;
+        
+      case 'pan':
+        if (value) {
+          if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(value)) {
+            error = 'PAN must be in format ABCDE1234F';
+          }
+        } else if (touchedFields.pan) {
+          error = 'PAN is required';
+        }
+        break;
+        
+      case 'uan':
+        if (value && !/^\d{12}$/.test(value)) {
+          error = 'UAN must be exactly 12 digits';
+        }
+        break;
+        
+      case 'name':
+        if (!value) error = 'Name is required';
+        else if (value.length > 50) error = 'Name must be 50 characters or less';
+        break;
+        
+      case 'dob':
+        if (value) {
+          const dobDate = new Date(value);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (dobDate > today) {
+            error = 'Date of birth cannot be a future date';
+          }
+        }
+        break;
+        
+      case 'qualification':
+        if (value && value.length > 30) error = 'Qualification must be 30 characters or less';
+        break;
+        
+      case 'designation':
+        if (value && value.length > 30) error = 'Designation must be 30 characters or less';
+        break;
+        
+      case 'department':
+        if (value && value.length > 30) error = 'Department must be 30 characters or less';
+        break;
+        
+      case 'bankName':
+        if (value && value.length > 20) error = 'Bank name must be 20 characters or less';
+        break;
+        
+      case 'branch':
+        if (value && value.length > 20) error = 'Branch must be 20 characters or less';
+        break;
+        
+      default:
+        break;
+    }
+    
+    return error;
+  };
+
   // Function to navigate to tab containing validation errors
   const navigateToErrorTab = (errors) => {
     const errorFields = Object.keys(errors);
@@ -95,6 +186,11 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     
+    // Mark field as touched
+    if (!touchedFields[name]) {
+      setTouchedFields(prev => ({ ...prev, [name]: true }));
+    }
+    
     // Validation for specific fields
     let validatedValue = value;
     if (name === 'name') {
@@ -107,17 +203,14 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
     } else if (name === 'phone') {
       validatedValue = value.replace(/\D/g, '').slice(0, 10);
     } else if (name === 'uan') {
-      // UAN should be exactly 12 digits
       validatedValue = value.replace(/\D/g, '').slice(0, 12);
     } else if (name === 'bankAccountNumber') {
       validatedValue = value.replace(/\D/g, '').slice(0, 16);
     } else if (name === 'department') {
       validatedValue = value.replace(/[^A-Za-z\s]/g, '').slice(0, 30);
     } else if (name === 'bankName') {
-      // Allow letters and spaces, limit to 20 characters
       validatedValue = value.replace(/[^A-Za-z\s]/g, '').slice(0, 20);
     } else if (name === 'branch') {
-      // Allow letters and spaces, limit to 20 characters
       validatedValue = value.replace(/[^A-Za-z\s]/g, '').slice(0, 20);
     } else if (name === 'qualification') {
       validatedValue = value.replace(/[^A-Za-z\s]/g, '').slice(0, 30);
@@ -130,46 +223,86 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
       [name]: validatedValue
     }));
 
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
+    // Validate field in real-time
+    const fieldError = validateField(name, validatedValue);
+    setErrors(prev => ({
+      ...prev,
+      [name]: fieldError
+    }));
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    
+    // Mark field as touched
+    if (!touchedFields[name]) {
+      setTouchedFields(prev => ({ ...prev, [name]: true }));
     }
+    
+    // Validate on blur
+    const fieldError = validateField(name, value);
+    setErrors(prev => ({
+      ...prev,
+      [name]: fieldError
+    }));
+  };
+
+  // Validate all fields in current tab before moving to next tab
+  const validateCurrentTab = () => {
+    const currentTabFields = Object.keys(fieldToTabMap).filter(
+      field => fieldToTabMap[field] === activeTab
+    );
+    
+    const newErrors = { ...errors };
+    let hasError = false;
+    
+    currentTabFields.forEach(field => {
+      const value = formData[field];
+      const error = validateField(field, value);
+      
+      if (error) {
+        newErrors[field] = error;
+        hasError = true;
+      }
+    });
+    
+    setErrors(newErrors);
+    return !hasError;
+  };
+
+  // Check if required fields in current tab are filled
+  const isCurrentTabComplete = () => {
+    const currentTabFields = Object.keys(fieldToTabMap).filter(
+      field => fieldToTabMap[field] === activeTab
+    );
+    
+    // Required fields for each tab
+    const requiredFields = {
+      personal: ['name', 'email', 'phone', 'aadhar'],
+      professional: ['pan'],
+      bank: []
+    };
+    
+    const tabRequiredFields = requiredFields[activeTab] || [];
+    
+    return tabRequiredFields.every(field => {
+      const value = formData[field];
+      const error = validateField(field, value);
+      return !error && value && value.trim() !== '';
+    });
   };
 
   const validateForm = () => {
     const newErrors = {};
-
-    if (!formData.name) newErrors.name = 'Name is required';
-    else if (formData.name.length > 50) newErrors.name = 'Name must be 50 characters or less';
-    if (!formData.email) newErrors.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid';
-    if (!formData.phone) newErrors.phone = 'Phone is required';
-    else if (!/^\d{10}$/.test(formData.phone)) newErrors.phone = 'Phone must be 10 digits';
-    if (formData.aadhar && !/^\d{12}$/.test(formData.aadhar)) newErrors.aadhar = 'Aadhar must be 12 digits';
-    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan)) newErrors.pan = 'PAN must be in format ABCDE1234F';
-    if (formData.uan && !/^\d{12}$/.test(formData.uan)) newErrors.uan = 'UAN must be 12 digits';
+    const allFields = Object.keys(fieldToTabMap);
     
-    // Validate qualification, designation, department length
-    if (formData.qualification && formData.qualification.length > 30) newErrors.qualification = 'Qualification must be 30 characters or less';
-    if (formData.designation && formData.designation.length > 30) newErrors.designation = 'Designation must be 30 characters or less';
-    if (formData.department && formData.department.length > 30) newErrors.department = 'Department must be 30 characters or less';
-    
-    // Validate bank name and branch length (20 characters)
-    if (formData.bankName && formData.bankName.length > 20) newErrors.bankName = 'Bank name must be 20 characters or less';
-    if (formData.branch && formData.branch.length > 20) newErrors.branch = 'Branch must be 20 characters or less';
-    
-    // Date of birth validation - should not be future date
-    if (formData.dob) {
-      const dobDate = new Date(formData.dob);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
-      if (dobDate > today) {
-        newErrors.dob = 'Date of birth cannot be a future date';
+    allFields.forEach(field => {
+      const value = formData[field];
+      const error = validateField(field, value);
+      if (error) {
+        newErrors[field] = error;
       }
-    }
+    });
 
     setErrors(newErrors);
     
@@ -231,6 +364,28 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
 
   // Get current tab index
   const currentTabIndex = tabs.findIndex(tab => tab.id === activeTab);
+
+  // Function to handle next button click
+  const handleNext = (e) => {
+    e.preventDefault();
+    
+    // Validate current tab before proceeding
+    if (validateCurrentTab()) {
+      const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
+      if (currentIndex < tabs.length - 1) {
+        setActiveTab(tabs[currentIndex + 1].id);
+      }
+    }
+  };
+
+  // Function to handle previous button click
+  const handlePrevious = (e) => {
+    e.preventDefault();
+    const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
+    if (currentIndex > 0) {
+      setActiveTab(tabs[currentIndex - 1].id);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full max-h-[70vh]">
@@ -310,6 +465,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     error={errors.name}
                     maxLength={50}
                     required
@@ -321,6 +477,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                     type="email"
                     value={formData.email}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     error={errors.email}
                     required
                   />
@@ -331,13 +488,13 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                     type="select"
                     value={formData.gender}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     options={[
                       { value: '', label: 'Select Gender' },
                       { value: 'Male', label: 'Male' },
                       { value: 'Female', label: 'Female' },
                       { value: 'Other', label: 'Other' }
                     ]}
-                    required
                   />
 
                   <FloatingInput
@@ -346,6 +503,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                     type="date"
                     value={formData.dob}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     error={errors.dob}
                   />
 
@@ -354,6 +512,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     error={errors.phone}
                     required
                     maxLength={10}
@@ -364,6 +523,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                     name="aadhar"
                     value={formData.aadhar}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     error={errors.aadhar}
                     maxLength={12}
                     required
@@ -376,6 +536,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                       type="textarea"
                       value={formData.address}
                       onChange={handleChange}
+                      onBlur={handleBlur}
                     />
                   </div>
                 </div>
@@ -395,6 +556,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                     name="qualification"
                     value={formData.qualification}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     error={errors.qualification}
                     maxLength={30}
                   />
@@ -404,6 +566,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                     name="designation"
                     value={formData.designation}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     error={errors.designation}
                     maxLength={30}
                   />
@@ -413,6 +576,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                     name="department"
                     value={formData.department}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     error={errors.department}
                     maxLength={30}
                   />
@@ -422,6 +586,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                     name="pan"
                     value={formData.pan}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     error={errors.pan}
                     maxLength={10}
                     required
@@ -432,6 +597,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                     name="uan"
                     value={formData.uan}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     error={errors.uan}
                     maxLength={12}
                   />
@@ -452,6 +618,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                     name="bankName"
                     value={formData.bankName}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     error={errors.bankName}
                     maxLength={20}
                   />
@@ -461,6 +628,8 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                     name="bankAccountNumber"
                     value={formData.bankAccountNumber}
                     onChange={handleChange}
+                    onBlur={handleBlur}
+                    maxLength={16}
                   />
 
                   <FloatingInput
@@ -468,6 +637,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                     name="branch"
                     value={formData.branch}
                     onChange={handleChange}
+                    onBlur={handleBlur}
                     error={errors.branch}
                     maxLength={20}
                   />
@@ -481,13 +651,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
             <div className="flex justify-between">
               <button
                 type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
-                  if (currentIndex > 0) {
-                    setActiveTab(tabs[currentIndex - 1].id);
-                  }
-                }}
+                onClick={handlePrevious}
                 disabled={activeTab === 'personal'}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
@@ -501,7 +665,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                 {activeTab === 'bank' ? (
                   <button
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || !isCurrentTabComplete()}
                     className="px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition duration-200 flex items-center"
                   >
                     {loading ? (
@@ -517,14 +681,9 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                 ) : (
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
-                      if (currentIndex < tabs.length - 1) {
-                        setActiveTab(tabs[currentIndex + 1].id);
-                      }
-                    }}
-                    className="px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200 flex items-center"
+                    onClick={handleNext}
+                    disabled={!isCurrentTabComplete()}
+                    className="px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition duration-200 flex items-center"
                   >
                     Next
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">

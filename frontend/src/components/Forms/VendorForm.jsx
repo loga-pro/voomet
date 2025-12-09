@@ -26,6 +26,7 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [originalVendorName, setOriginalVendorName] = useState('');
+  const [touchedFields, setTouchedFields] = useState({});
   const { notification, showSuccess, showError } = useNotification();
 
   useEffect(() => {
@@ -77,8 +78,108 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
     return { isValid: true, message: '' };
   };
 
+  // Real-time validation functions
+  const validateField = (name, value) => {
+    let error = '';
+    
+    switch (name) {
+      case 'email':
+        if (!value) {
+          error = 'Email is required';
+        } else if (!/^\S+@\S+\.\S+$/.test(value)) {
+          error = 'Please enter a valid email address';
+        }
+        break;
+        
+      case 'mobileNumber':
+        if (!value) {
+          error = 'Mobile number is required';
+        } else if (!/^\d{10}$/.test(value)) {
+          error = 'Mobile number must be exactly 10 digits';
+        }
+        break;
+        
+      case 'gstNumber':
+        if (!value) {
+          error = 'GST number is required';
+        } else {
+          const gstValidation = validateGSTNumber(value);
+          if (!gstValidation.isValid) {
+            error = gstValidation.message;
+          }
+        }
+        break;
+        
+      case 'bankAccountNumber':
+        if (!value) {
+          error = 'Bank account number is required';
+        } else if (!/^\d{16}$/.test(value)) {
+          error = 'Bank account number must be exactly 16 digits';
+        }
+        break;
+        
+      case 'vendorName':
+        if (!value.trim()) {
+          error = `${formData.category === 'vendor' ? 'Vendor' : 'Contractor'} name is required`;
+        } else if (value.trim().length < 2) {
+          error = `${formData.category === 'vendor' ? 'Vendor' : 'Contractor'} name must be at least 2 characters`;
+        } else if (value.length > 25) {
+          error = `${formData.category === 'vendor' ? 'Vendor' : 'Contractor'} name must be 25 characters or less`;
+        }
+        break;
+        
+      case 'address':
+        if (!value.trim()) {
+          error = 'Street address is required';
+        } else if (value.trim().length < 5) {
+          error = 'Address must be at least 5 characters long';
+        }
+        break;
+        
+      case 'city':
+        if (!value.trim()) {
+          error = 'City is required';
+        }
+        break;
+        
+      case 'state':
+        if (!value.trim()) {
+          error = 'State/Province is required';
+        }
+        break;
+        
+      case 'zipCode':
+        if (!value.trim()) {
+          error = 'ZIP/Postal code is required';
+        }
+        break;
+        
+      case 'country':
+        if (!value.trim()) {
+          error = 'Country is required';
+        }
+        break;
+        
+      case 'contactPerson':
+        if (value && value.length > 50) {
+          error = 'Contact person name must be 50 characters or less';
+        }
+        break;
+        
+      default:
+        break;
+    }
+    
+    return error;
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    // Mark field as touched
+    if (!touchedFields[name]) {
+      setTouchedFields(prev => ({ ...prev, [name]: true }));
+    }
 
     let validatedValue = value;
     if (name === 'vendorName') {
@@ -109,76 +210,53 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
       [name]: validatedValue
     }));
 
-    if (errors[name]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
+    // Validate field in real-time
+    const fieldError = validateField(name, validatedValue);
+    setErrors(prev => ({
+      ...prev,
+      [name]: fieldError
+    }));
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    
+    // Mark field as touched
+    if (!touchedFields[name]) {
+      setTouchedFields(prev => ({ ...prev, [name]: true }));
     }
+    
+    // Validate on blur
+    const fieldError = validateField(name, value);
+    setErrors(prev => ({
+      ...prev,
+      [name]: fieldError
+    }));
   };
 
   const validateForm = () => {
     const newErrors = {};
-
-        if (!formData.category) {
-            newErrors.category = "Category is required";
-        }
-
-    if (!formData.vendorName.trim()) {
-      newErrors.vendorName = 'Vendor name is required';
-    } else if (formData.vendorName.trim().length < 2) {
-      newErrors.vendorName = 'Vendor name must be at least 2 characters';
-    }
-
-    if (!formData.address.trim()) {
-      newErrors.address = 'Street address is required';
-    } else if (formData.address.trim().length < 5) {
-      newErrors.address = 'Address must be at least 5 characters long';
-    }
-
-    if (!formData.city.trim()) {
-      newErrors.city = 'City is required';
-    }
-
-    if (!formData.state.trim()) {
-      newErrors.state = 'State/Province is required';
-    }
-
-    if (!formData.zipCode.trim()) {
-      newErrors.zipCode = 'ZIP/Postal code is required';
-    }
-
-    if (!formData.country.trim()) {
-      newErrors.country = 'Country is required';
-    }
-
-    if (!formData.bankAccountNumber) {
-      newErrors.bankAccountNumber = 'Bank account number is required';
-    } else if (!/^[0-9]{16}$/.test(formData.bankAccountNumber)) {
-      newErrors.bankAccountNumber = 'Bank account number must be 16 digits';
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
-    }
-
-    if (!formData.gstNumber) {
-      newErrors.gstNumber = 'GST number is required';
-    } else {
-      const gstValidation = validateGSTNumber(formData.gstNumber);
-      if (!gstValidation.isValid) {
-        newErrors.gstNumber = gstValidation.message;
+    const fieldsToValidate = [
+      'category',
+      'vendorName',
+      'address',
+      'city',
+      'state',
+      'zipCode',
+      'country',
+      'bankAccountNumber',
+      'email',
+      'gstNumber',
+      'mobileNumber'
+    ];
+    
+    fieldsToValidate.forEach(field => {
+      const value = formData[field];
+      const error = validateField(field, value);
+      if (error) {
+        newErrors[field] = error;
       }
-    }
-
-    if (!formData.mobileNumber) {
-      newErrors.mobileNumber = 'Mobile number is required';
-    } else if (!/^[0-9]{10}$/.test(formData.mobileNumber)) {
-      newErrors.mobileNumber = 'Mobile number must be 10 digits';
-    }
+    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -233,7 +311,7 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
     try {
       const submitData = {
         ...formData,
-                category: formData.category,
+        category: formData.category,
         gstNumber: formData.gstNumber.replace(/\s+/g, '').toUpperCase(),
         vendorName: formData.vendorName.trim(),
         address: formData.address.trim(),
@@ -277,6 +355,28 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
     }
   };
 
+  // Helper function to check if required fields are filled with correct format
+  const isFormComplete = () => {
+    const requiredFields = [
+      'vendorName',
+      'address',
+      'city',
+      'state',
+      'zipCode',
+      'country',
+      'bankAccountNumber',
+      'email',
+      'gstNumber',
+      'mobileNumber'
+    ];
+    
+    return requiredFields.every(field => {
+      const value = formData[field];
+      const error = validateField(field, value);
+      return !error && value && value.trim() !== '';
+    });
+  };
+
   return (
     <div className="h-full flex flex-col max-h-[70vh] min-h-[500px]">
       <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -296,57 +396,63 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
             </div>
           )}
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <FloatingInput
-                            label="Category"
-                            name="category"
-                            value={formData.category}
-                            onChange={handleChange}
-                            type="select"
-                            options={categoryOptions}
-                            error={errors.category}
-                            required
-                        />
-                    </div>
+          <div className="grid grid-cols-2 gap-4">
+            <FloatingInput
+              label="Category"
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              type="select"
+              options={categoryOptions}
+              error={errors.category}
+              required
+            />
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FloatingInput
-                            label={formData.category === 'vendor' ? 'Vendor Name' : 'Contractor Name'}
+              label={formData.category === 'vendor' ? 'Vendor Name ' : 'Contractor Name '}
               name="vendorName"
               type="text"
               value={formData.vendorName}
               onChange={handleChange}
+              onBlur={handleBlur}
               error={errors.vendorName}
               required={true}
               maxLength="25"
+            
             />
 
             <FloatingInput
-              label="Email"
+              label="Email "
               name="email"
               type="email"
               value={formData.email}
               onChange={handleChange}
+              onBlur={handleBlur}
               error={errors.email}
               required={true}
             />
 
             <FloatingInput
-              label="GST Number"
+              label="GST Number "
               name="gstNumber"
               value={formData.gstNumber}
               onChange={handleChange}
+              onBlur={handleBlur}
               error={errors.gstNumber}
               required={true}
               maxLength="15"
             />
 
             <FloatingInput
-              label="Mobile Number"
+              label="Mobile Number "
               name="mobileNumber"
               type="tel"
               value={formData.mobileNumber}
               onChange={handleChange}
+              onBlur={handleBlur}
               error={errors.mobileNumber}
               required={true}
               maxLength="10"
@@ -358,6 +464,7 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
               name="contactPerson"
               value={formData.contactPerson}
               onChange={handleChange}
+              onBlur={handleBlur}
               error={errors.contactPerson}
               maxLength="50"
             />
@@ -368,6 +475,7 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
               type="text"
               value={formData.bankAccountNumber}
               onChange={handleChange}
+              onBlur={handleBlur}
               error={errors.bankAccountNumber}
               required={true}
               maxLength="16"
@@ -378,11 +486,12 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
             <h3 className="text-lg font-medium text-gray-900">Address Information</h3>
 
             <FloatingInput
-              label="Street Address"
+              label="Street Address "
               name="address"
               type="text"
               value={formData.address}
               onChange={handleChange}
+              onBlur={handleBlur}
               error={errors.address}
               required={true}
               rows={3}
@@ -391,22 +500,24 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FloatingInput
-                label="City"
+                label="City "
                 name="city"
                 type="text"
                 value={formData.city}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 error={errors.city}
                 required={true}
                 maxLength="50"
               />
 
               <FloatingInput
-                label="State/Province"
+                label="State/Province "
                 name="state"
                 type="text"
                 value={formData.state}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 error={errors.state}
                 required={true}
                 maxLength="50"
@@ -415,22 +526,24 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FloatingInput
-                label="ZIP/Postal Code"
+                label="ZIP/Postal Code "
                 name="zipCode"
                 type="text"
                 value={formData.zipCode}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 error={errors.zipCode}
                 required={true}
                 maxLength="20"
               />
 
               <FloatingInput
-                label="Country"
+                label="Country "
                 name="country"
                 type="text"
                 value={formData.country}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 error={errors.country}
                 required={true}
                 maxLength="50"
@@ -451,7 +564,7 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
           </button>
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !isFormComplete()}
             onClick={handleSubmit}
             className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >

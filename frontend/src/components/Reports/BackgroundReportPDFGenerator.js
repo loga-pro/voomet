@@ -438,7 +438,6 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
               fontWeight: '600',
               marginBottom: '5px'
             }}>
-              CONSTRUCTION & DESIGN
             </div>
             <div style={{ fontSize: '10px', color: '#6b7280' }}>
               <div>Phone: {companyInfo.phone} | Email: {companyInfo.email}</div>

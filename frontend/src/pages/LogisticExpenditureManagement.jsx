@@ -534,55 +534,6 @@ const LogisticExpenditureManagement = () => {
                       ))}
                     </select>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Type</label>
-                    <select
-                      value={filters.vehicleType}
-                      onChange={(e) => handleFilterChange('vehicleType', e.target.value)}
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm py-2 px-3"
-                    >
-                      <option value="">All Types</option>
-                      {vehicleTypes.length > 0 
-                        ? vehicleTypes.map(type => (
-                            <option key={type} value={type}>{type}</option>
-                          ))
-                        : defaultVehicleTypes.map(type => (
-                            <option key={type} value={type}>{type}</option>
-                          ))
-                      }
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Transporter</label>
-                    <select
-                      value={filters.transporter}
-                      onChange={(e) => handleFilterChange('transporter', e.target.value)}
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm py-2 px-3"
-                    >
-                      <option value="">All Transporters</option>
-                      {transporters.map(transporter => (
-                        <option key={transporter._id} value={transporter.name}>
-                          {transporter.name || transporter.companyName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Purpose</label>
-                    <select
-                      value={filters.purpose}
-                      onChange={(e) => handleFilterChange('purpose', e.target.value)}
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm py-2 px-3"
-                    >
-                      <option value="">All Purposes</option>
-                      {purposeOptions.map(purpose => (
-                        <option key={purpose} value={purpose}>{purpose}</option>
-                      ))}
-                    </select>
-                  </div>
                 </div>
               </div>
             )}

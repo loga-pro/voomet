@@ -18,6 +18,7 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
   const [loading, setLoading] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [selectedProjects, setSelectedProjects] = useState([]);
+  const [touchedFields, setTouchedFields] = useState({});
 
   useEffect(() => {
     fetchRelevantProjects();
@@ -46,6 +47,108 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
       setSelectedProjects(customerProjects);
     }
   }, [formData.customerName, projects, customer]);
+
+  // Real-time validation functions
+  const validateField = (name, value) => {
+    let error = '';
+    
+    switch (name) {
+      case 'customerName':
+        if (!value.trim()) {
+          error = 'Customer name is required';
+        } else if (value.length > 50) {
+          error = 'Customer name must be 50 characters or less';
+        } else if (!customer) {
+          // Check for duplicate customer names only when creating new customer
+          const isDuplicate = existingCustomers.some(existingCustomer => 
+            existingCustomer.customerName.toLowerCase() === value.toLowerCase()
+          );
+          if (isDuplicate) {
+            error = 'Customer name already exists';
+          }
+        }
+        break;
+        
+      case 'customerEmail':
+        if (!value.trim()) {
+          error = 'Customer email is required';
+        } else if (!/^\S+@\S+\.\S+$/.test(value)) {
+          error = 'Please enter a valid email address';
+        }
+        break;
+        
+      case 'invoiceEmail':
+        if (!value.trim()) {
+          error = 'Invoice email is required';
+        } else if (!/^\S+@\S+\.\S+$/.test(value)) {
+          error = 'Please enter a valid email address';
+        }
+        break;
+        
+      case 'address':
+        if (!value.trim()) {
+          error = 'Street address is required';
+        } else if (value.trim().length < 5) {
+          error = 'Address must be at least 5 characters long';
+        } else if (value.trim().length > 200) {
+          error = 'Address must be less than 200 characters';
+        }
+        break;
+        
+      case 'city':
+        if (!value.trim()) {
+          error = 'City is required';
+        } else if (value.trim().length < 2) {
+          error = 'City must be at least 2 characters long';
+        } else if (value.trim().length > 50) {
+          error = 'City must be less than 50 characters';
+        } else if (!/^[a-zA-Z\s\-']+$/.test(value.trim())) {
+          error = 'City can only contain letters, spaces, hyphens, and apostrophes';
+        }
+        break;
+        
+      case 'state':
+        if (!value.trim()) {
+          error = 'State/Province is required';
+        } else if (value.trim().length < 2) {
+          error = 'State/Province must be at least 2 characters long';
+        } else if (value.trim().length > 50) {
+          error = 'State/Province must be less than 50 characters';
+        } else if (!/^[a-zA-Z\s\-']+$/.test(value.trim())) {
+          error = 'State/Province can only contain letters, spaces, hyphens, and apostrophes';
+        }
+        break;
+        
+      case 'zipCode':
+        if (!value.trim()) {
+          error = 'ZIP/Postal code is required';
+        } else if (!/^[a-zA-Z0-9\s\-]+$/.test(value.trim())) {
+          error = 'ZIP/Postal code can only contain letters, numbers, spaces, and hyphens';
+        } else if (value.trim().length < 3) {
+          error = 'ZIP/Postal code must be at least 3 characters long';
+        } else if (value.trim().length > 20) {
+          error = 'ZIP/Postal code must be less than 20 characters';
+        }
+        break;
+        
+      case 'country':
+        if (!value.trim()) {
+          error = 'Country is required';
+        } else if (value.trim().length < 2) {
+          error = 'Country must be at least 2 characters long';
+        } else if (value.trim().length > 50) {
+          error = 'Country must be less than 50 characters';
+        } else if (!/^[a-zA-Z\s\-']+$/.test(value.trim())) {
+          error = 'Country can only contain letters, spaces, hyphens, and apostrophes';
+        }
+        break;
+        
+      default:
+        break;
+    }
+    
+    return error;
+  };
 
   const fetchRelevantProjects = async () => {
     try {
@@ -92,114 +195,79 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
     }
   };
 
-  // Handle manual customer name input (for edit mode)
-  const handleCustomerNameChange = (e) => {
-    const { value } = e.target;
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    
+    // Mark field as touched
+    if (!touchedFields[name]) {
+      setTouchedFields(prev => ({ ...prev, [name]: true }));
+    }
+
+    // Format validation for specific fields
+    let validatedValue = value;
+    if (name === 'customerName') {
+      // Allow only letters, spaces, and common punctuation
+      validatedValue = value.replace(/[^a-zA-Z\s\-\'\.]/g, '').slice(0, 50);
+    } else if (name === 'customerEmail' || name === 'invoiceEmail') {
+      // No formatting, just store as-is for email validation
+      validatedValue = value.toLowerCase();
+    } else if (name === 'address') {
+      validatedValue = value.slice(0, 200);
+    } else if (name === 'city' || name === 'state' || name === 'country') {
+      validatedValue = value.replace(/[^a-zA-Z\s\-']/g, '').slice(0, 50);
+    } else if (name === 'zipCode') {
+      validatedValue = value.replace(/[^a-zA-Z0-9\s\-]/g, '').slice(0, 20);
+    }
+
     setFormData(prev => ({
       ...prev,
-      customerName: value
+      [name]: validatedValue
     }));
-    
-    if (errors.customerName) {
-      setErrors(prev => ({
-        ...prev,
-        customerName: ''
-      }));
+
+    // Validate field in real-time
+    const fieldError = validateField(name, validatedValue);
+    if (fieldError) {
+      setErrors(prev => ({ ...prev, [name]: fieldError }));
+    } else if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
-  const handleChange = (e) => {
+  const handleBlur = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
+    
+    // Mark field as touched
+    if (!touchedFields[name]) {
+      setTouchedFields(prev => ({ ...prev, [name]: true }));
+    }
+    
+    // Validate on blur
+    const fieldError = validateField(name, value);
+    if (fieldError) {
+      setErrors(prev => ({ ...prev, [name]: fieldError }));
     }
   };
 
   const validateForm = () => {
     const newErrors = {};
-
-    // Customer Name validation
-    if (!formData.customerName.trim()) {
-      newErrors.customerName = 'Customer name is required';
-    } else if (!customer) {
-      // Check for duplicate customer names only when creating new customer
-      const isDuplicate = existingCustomers.some(existingCustomer => 
-        existingCustomer.customerName.toLowerCase() === formData.customerName.toLowerCase()
-      );
-      if (isDuplicate) {
-        newErrors.customerName = 'Customer name already exists';
+    const fieldsToValidate = [
+      'customerName',
+      'customerEmail',
+      'invoiceEmail',
+      'address',
+      'city',
+      'state',
+      'zipCode',
+      'country'
+    ];
+    
+    fieldsToValidate.forEach(field => {
+      const value = formData[field];
+      const error = validateField(field, value);
+      if (error) {
+        newErrors[field] = error;
       }
-    }
-    
-    // Email validations
-    if (!formData.customerEmail.trim()) {
-      newErrors.customerEmail = 'Customer email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.customerEmail)) {
-      newErrors.customerEmail = 'Customer email is invalid';
-    }
-    
-    if (!formData.invoiceEmail.trim()) {
-      newErrors.invoiceEmail = 'Invoice email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.invoiceEmail)) {
-      newErrors.invoiceEmail = 'Invoice email is invalid';
-    }
-    
-    // Address validations
-    if (!formData.address.trim()) {
-      newErrors.address = 'Street address is required';
-    } else if (formData.address.trim().length < 5) {
-      newErrors.address = 'Address must be at least 5 characters long';
-    } else if (formData.address.trim().length > 200) {
-      newErrors.address = 'Address must be less than 200 characters';
-    }
-    
-    if (!formData.city.trim()) {
-      newErrors.city = 'City is required';
-    } else if (formData.city.trim().length < 2) {
-      newErrors.city = 'City must be at least 2 characters long';
-    } else if (formData.city.trim().length > 50) {
-      newErrors.city = 'City must be less than 50 characters';
-    } else if (!/^[a-zA-Z\s\-']+$/.test(formData.city.trim())) {
-      newErrors.city = 'City can only contain letters, spaces, hyphens, and apostrophes';
-    }
-    
-    if (!formData.state.trim()) {
-      newErrors.state = 'State/Province is required';
-    } else if (formData.state.trim().length < 2) {
-      newErrors.state = 'State/Province must be at least 2 characters long';
-    } else if (formData.state.trim().length > 50) {
-      newErrors.state = 'State/Province must be less than 50 characters';
-    } else if (!/^[a-zA-Z\s\-']+$/.test(formData.state.trim())) {
-      newErrors.state = 'State/Province can only contain letters, spaces, hyphens, and apostrophes';
-    }
-    
-    if (!formData.zipCode.trim()) {
-      newErrors.zipCode = 'ZIP/Postal code is required';
-    } else if (!/^[a-zA-Z0-9\s\-]+$/.test(formData.zipCode.trim())) {
-      newErrors.zipCode = 'ZIP/Postal code can only contain letters, numbers, spaces, and hyphens';
-    } else if (formData.zipCode.trim().length < 3) {
-      newErrors.zipCode = 'ZIP/Postal code must be at least 3 characters long';
-    } else if (formData.zipCode.trim().length > 20) {
-      newErrors.zipCode = 'ZIP/Postal code must be less than 20 characters';
-    }
-    
-    if (!formData.country.trim()) {
-      newErrors.country = 'Country is required';
-    } else if (formData.country.trim().length < 2) {
-      newErrors.country = 'Country must be at least 2 characters long';
-    } else if (formData.country.trim().length > 50) {
-      newErrors.country = 'Country must be less than 50 characters';
-    } else if (!/^[a-zA-Z\s\-']+$/.test(formData.country.trim())) {
-      newErrors.country = 'Country can only contain letters, spaces, hyphens, and apostrophes';
-    }
+    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -229,6 +297,26 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
     }
   };
 
+  // Helper function to check if form is complete and valid
+  const isFormComplete = () => {
+    const requiredFields = [
+      'customerName',
+      'customerEmail',
+      'invoiceEmail',
+      'address',
+      'city',
+      'state',
+      'zipCode',
+      'country'
+    ];
+    
+    return requiredFields.every(field => {
+      const value = formData[field];
+      const error = validateField(field, value);
+      return !error && value && value.trim() !== '';
+    });
+  };
+
   // Prepare options for the customer select dropdown
   const customerOptions = [
     { value: '', label: 'Select customer from awarded projects' },
@@ -240,8 +328,6 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
 
   return (
     <div className="flex flex-col h-full">
-      
-
       {/* Scrollable Form Content */}
       <div className="flex-1 overflow-y-auto max-h-[60vh] pr-2 -mr-2">
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -262,11 +348,14 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
               <FloatingInput
                 type="text"
                 name="customerName"
-                label="Customer Name"
+                label="Customer Name *"
                 value={formData.customerName}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 error={errors.customerName}
                 required={true}
+                maxLength={50}
+                helperText="Max 50 characters, letters and spaces only"
               />
             </div>
 
@@ -274,21 +363,25 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
               <FloatingInput
                 type="email"
                 name="customerEmail"
-                label="Customer Email"
+                label="Customer Email *"
                 value={formData.customerEmail}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 error={errors.customerEmail}
                 required={true}
+                helperText="Enter a valid email address"
               />
 
               <FloatingInput
                 type="email"
                 name="invoiceEmail"
-                label="Invoice Email"
+                label="Invoice Email *"
                 value={formData.invoiceEmail}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 error={errors.invoiceEmail}
                 required={true}
+                helperText="Enter a valid email address"
               />
             </div>
           </div>
@@ -302,32 +395,42 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
             <FloatingInput
               type="text"
               name="address"
-              label="Street Address"
+              label="Street Address *"
               value={formData.address}
               onChange={handleChange}
+              onBlur={handleBlur}
               error={errors.address}
               required={true}
+              rows={3}
+              maxLength={200}
+              helperText="At least 5 characters, max 200 characters"
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FloatingInput
                 type="text"
                 name="city"
-                label="City"
+                label="City *"
                 value={formData.city}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 error={errors.city}
                 required={true}
+                maxLength={50}
+                helperText="Letters, spaces, hyphens, apostrophes only"
               />
 
               <FloatingInput
                 type="text"
                 name="state"
-                label="State/Province"
+                label="State/Province *"
                 value={formData.state}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 error={errors.state}
                 required={true}
+                maxLength={50}
+                helperText="Letters, spaces, hyphens, apostrophes only"
               />
             </div>
 
@@ -335,21 +438,27 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
               <FloatingInput
                 type="text"
                 name="zipCode"
-                label="ZIP/Postal Code"
+                label="ZIP/Postal Code *"
                 value={formData.zipCode}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 error={errors.zipCode}
                 required={true}
+                maxLength={20}
+                helperText="Letters, numbers, spaces, hyphens allowed"
               />
 
               <FloatingInput
                 type="text"
                 name="country"
-                label="Country"
+                label="Country *"
                 value={formData.country}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 error={errors.country}
                 required={true}
+                maxLength={50}
+                helperText="Letters, spaces, hyphens, apostrophes only"
               />
             </div>
           </div>
@@ -369,8 +478,8 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
           <button
             type="submit"
             onClick={handleSubmit}
-            disabled={loading}
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-colors duration-200"
+            disabled={loading || !isFormComplete()}
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
           >
             {loading ? 'Saving...' : customer ? 'Update Customer' : 'Create Customer'}
           </button>

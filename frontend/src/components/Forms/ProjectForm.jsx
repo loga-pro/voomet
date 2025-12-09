@@ -22,8 +22,8 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
   const [isCustomerSyncing, setIsCustomerSyncing] = useState(false);
   const [originalCustomerName, setOriginalCustomerName] = useState('');
   const [customerData, setCustomerData] = useState([]);
+  const [touchedFields, setTouchedFields] = useState({});
   const { showSuccess, showError } = useNotification();
-
 
   const stageOptions = [
     { value: 'rfq', label: 'RFQ' },
@@ -33,6 +33,89 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
     { value: 'completed', label: 'Completed' },
     { value: 'post_implementation', label: 'Post Implementation' }
   ];
+
+  // Real-time validation functions
+  const validateField = (name, value) => {
+    let error = '';
+    
+    switch (name) {
+      case 'projectName':
+        if (!value) {
+          error = 'Project name is required';
+        } else if (!/^[a-zA-Z\s]+$/.test(value)) {
+          error = 'Project name can only contain letters and spaces';
+        } else if (value.length > 30) {
+          error = 'Project name cannot exceed 30 characters';
+        }
+        break;
+        
+      case 'customerId':
+        if (!value) {
+          error = 'Customer name is required';
+        }
+        break;
+        
+      case 'enquiryDate':
+        if (!value) {
+          error = 'Enquiry date is required';
+        } else {
+          const enquiryDate = new Date(value);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (enquiryDate > today) {
+            error = 'Enquiry date cannot be in the future';
+          }
+        }
+        break;
+        
+      case 'stage':
+        if (!value) {
+          error = 'Stage is required';
+        } else if (projectType === 'new') {
+          const restrictedStages = ['under_execution', 'completed', 'post_implementation'];
+          if (restrictedStages.includes(value)) {
+            error = `Cannot set stage to ${value.replace('_', ' ')} for new projects. Allowed stages: RFQ, BOQ, Awarded`;
+          }
+        }
+        break;
+        
+      case 'totalProjectValue':
+        if (!value) {
+          error = 'Project value is required';
+        } else if (isNaN(value) || parseFloat(value) <= 0) {
+          error = 'Project value must be a valid number greater than 0';
+        } else if (parseFloat(value) > 99999999.99) {
+          error = 'Project value cannot exceed ₹99,999,999.99';
+        }
+        break;
+        
+      case 'scopeOfWork':
+        if (value.length === 0) {
+          error = 'At least one scope of work is required';
+        }
+        break;
+        
+      // If we had email or phone fields, we would validate them here
+      // Example for email field:
+      // case 'email':
+      //   if (value && !/^\S+@\S+\.\S+$/.test(value)) {
+      //     error = 'Please enter a valid email address';
+      //   }
+      //   break;
+        
+      // Example for phone field:
+      // case 'phone':
+      //   if (value && !/^\d{10}$/.test(value)) {
+      //     error = 'Phone number must be exactly 10 digits';
+      //   }
+      //   break;
+        
+      default:
+        break;
+    }
+    
+    return error;
+  };
 
   // Stage validation function - SIMPLIFIED
   const validateStageSequence = (stage, projectType) => {
@@ -64,7 +147,6 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
       'civil': 'Civil',
       'plumbing': 'Plumbing',
       'hvac': 'HVAC',
-      // Add more mappings as needed based on your actual scope values
     };
 
     // Return mapped value if exists
@@ -159,19 +241,6 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
     }
   }, [project, customerData]);
 
-  // Auto-sync customer to customer master when customer name is entered
-  useEffect(() => {
-    let customerSyncTimeout;
-    
-  
-    
-    return () => {
-      if (customerSyncTimeout) {
-        clearTimeout(customerSyncTimeout);
-      }
-    };
-  }, [formData.customerName]);
-
   useEffect(() => {
     // Only reset form data when switching to new project type AND not editing an existing project
     if (projectType === 'new' && !project) {
@@ -187,6 +256,7 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
       }));
       // Clear errors when switching tabs
       setErrors({});
+      setTouchedFields({});
     } else if (projectType === 'existing' && !project) {
       setFormData(prev => ({
         ...prev,
@@ -200,6 +270,7 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
       }));
       // Clear errors when switching tabs
       setErrors({});
+      setTouchedFields({});
     }
   }, [projectType, project]);
 
@@ -222,29 +293,14 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
     }
   };
 
-  const fetchCustomerData = async (customerName) => {
-    try {
-      const response = await customersAPI.getAll();
-      // Handle different response structures
-      const customers = response.data || response || [];
-      
-      if (!Array.isArray(customers)) {
-        console.warn('Unexpected response format from customersAPI.getAll():', response);
-        return null;
-      }
-      
-      const foundCustomer = customers.find(c => c.customerName === customerName);
-      console.log(`Customer search for "${customerName}": ${foundCustomer ? 'Found' : 'Not found'}`, foundCustomer);
-      return foundCustomer;
-    } catch (error) {
-      console.error('Error fetching customer data:', error);
-      return null;
-    }
-  };
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     
+    // Mark field as touched
+    if (!touchedFields[name]) {
+      setTouchedFields(prev => ({ ...prev, [name]: true }));
+    }
+
     if (name === 'stage') {
       const validation = validateStageSequence(value, projectType);
       if (!validation.isValid) {
@@ -256,7 +312,6 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
       }
     }
 
-
     if (name === 'projectName') {
       if (/^[a-zA-Z\s]*$/.test(value) && value.length <= 30) {
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -265,8 +320,6 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
       if (/^[a-zA-Z\s]*$/.test(value) && value.length <= 30) {
         setFormData(prev => {
           const newFormData = { ...prev, [name]: value };
-          
-          
           return newFormData;
         });
       }
@@ -289,52 +342,67 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
       setFormData(prev => ({ ...prev, [name]: value }));
     }
 
-    if (errors[name] && name !== 'stage') {
+    // Validate field in real-time
+    const fieldError = validateField(name, name === 'scopeOfWork' ? formData.scopeOfWork : value);
+    if (fieldError) {
+      setErrors(prev => ({ ...prev, [name]: fieldError }));
+    } else if (errors[name] && name !== 'stage') {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    
+    // Mark field as touched
+    if (!touchedFields[name]) {
+      setTouchedFields(prev => ({ ...prev, [name]: true }));
+    }
+    
+    // Validate on blur
+    const fieldError = validateField(name, name === 'scopeOfWork' ? formData.scopeOfWork : value);
+    if (fieldError) {
+      setErrors(prev => ({ ...prev, [name]: fieldError }));
+    }
+  };
+
   const handleScopeChange = (scope) => {
+    const newScopeOfWork = formData.scopeOfWork.includes(scope)
+      ? formData.scopeOfWork.filter(s => s !== scope)
+      : [...formData.scopeOfWork, scope];
+    
     setFormData(prev => ({
       ...prev,
-      scopeOfWork: prev.scopeOfWork.includes(scope)
-        ? prev.scopeOfWork.filter(s => s !== scope)
-        : [...prev.scopeOfWork, scope]
+      scopeOfWork: newScopeOfWork
     }));
     
-    // Clear scope error when user selects at least one scope
-    if (errors.scopeOfWork) {
+    // Validate scope in real-time
+    const fieldError = validateField('scopeOfWork', newScopeOfWork);
+    if (fieldError) {
+      setErrors(prev => ({ ...prev, scopeOfWork: fieldError }));
+    } else if (errors.scopeOfWork) {
       setErrors(prev => ({ ...prev, scopeOfWork: '' }));
     }
   };
 
   const validateForm = () => {
     const newErrors = {};
-
-    if (!formData.customerId) newErrors.customerId = 'Customer name is required';
-    else if (formData.customerId === "") newErrors.customerId = 'Customer name is Required';
+    const fieldsToValidate = [
+      'projectName',
+      'customerId',
+      'enquiryDate',
+      'stage',
+      'totalProjectValue',
+      'scopeOfWork'
+    ];
     
-    if (!formData.projectName) newErrors.projectName = 'Project name is required';
-    else if (formData.projectName.length > 30) newErrors.projectName = 'Project name cannot exceed 30 characters';
-    else if (!/^[a-zA-Z\s]+$/.test(formData.projectName)) newErrors.projectName = 'Project name can only contain letters and spaces';
-    
-    if (!formData.enquiryDate) newErrors.enquiryDate = 'Enquiry date is required';
-    if (!formData.stage) newErrors.stage = 'Stage is required';
-    
-    if (!formData.totalProjectValue) newErrors.totalProjectValue = 'Project value is required';
-    else if (isNaN(formData.totalProjectValue) || parseFloat(formData.totalProjectValue) <= 0) {
-      newErrors.totalProjectValue = 'Project value must be a valid number greater than 0';
-    }
-    
-    if (formData.scopeOfWork.length === 0) newErrors.scopeOfWork = 'At least one scope of work is required';
-
-    // Stage validation - only validate for new projects
-    if (projectType === 'new') {
-      const stageValidation = validateStageSequence(formData.stage, projectType);
-      if (!stageValidation.isValid) {
-        newErrors.stage = stageValidation.message;
+    fieldsToValidate.forEach(field => {
+      const value = formData[field];
+      const error = validateField(field, value);
+      if (error) {
+        newErrors[field] = error;
       }
-    }
+    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -349,20 +417,10 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
 
     setLoading(true);
     try {
-      // Ensure customer is synced to customer master before saving project
-      // if (formData.customerName) {
-      //   const syncResult = await syncCustomerToMaster(formData.customerName, true, originalCustomerName);
-      //   if (!syncResult.success) {
-      //     showError(`Failed to sync customer: ${syncResult.message}`);
-      //     return;
-      //   }
-      // }
-
       const submitData = {
         ...formData,
         totalProjectValue: parseFloat(formData.totalProjectValue),
         projectType: projectType
-
       };
 
       if (project) {
@@ -370,9 +428,6 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
       } else {
         await projectsAPI.create(submitData);
       }
-      
-      // Update original customer name after successful submission
-      // setOriginalCustomerName(formData.customerName);
       
       onSubmit();
     } catch (error) {
@@ -386,20 +441,34 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
     }
   };
 
+  // Helper function to check if form is complete and valid
+  const isFormComplete = () => {
+    const requiredFields = [
+      'projectName',
+      'customerId',
+      'enquiryDate',
+      'stage',
+      'totalProjectValue',
+      'scopeOfWork'
+    ];
+    
+    return requiredFields.every(field => {
+      const value = formData[field];
+      const error = validateField(field, value);
+      return !error && value && (field !== 'scopeOfWork' || value.length > 0);
+    });
+  };
+
   // Determine button text and disabled states
   const isEditingExistingProject = !!project;
   const isCreatingNewProject = !project && projectType === 'new';
   const isCreatingExistingProject = !project && projectType === 'existing';
   
-  // Fix: For creating existing projects, button should say "Create", not "Update"
   const submitButtonText = loading 
     ? 'Saving...' 
     : isEditingExistingProject 
       ? 'Update' 
       : 'Create';
-
-  // Check if form has any validation errors (excluding submit error)
-  const hasValidationErrors = Object.keys(errors).some(key => errors[key] && key !== 'submit');
 
   return (
     <div className="flex flex-col h-full">
@@ -465,22 +534,24 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FloatingInput
-                label="Project Name"
+                label="Project Name "
                 name="projectName"
                 value={formData.projectName}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 error={errors.projectName}
                 required
-                disabled={false}
+                maxLength={30}
               />
 
               <div className="relative">
                 <FloatingInput
-                  label="Customer Name"
+                  label="Customer Name "
                   name="customerId"
                   type="select"
                   value={formData.customerId}
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   options={customerData}
                   error={errors.customerId}
                   required
@@ -491,36 +562,40 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FloatingInput
-                label="Enquiry Date"
+                label="Enquiry Date "
                 name="enquiryDate"
                 type="date"
                 value={formData.enquiryDate}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 error={errors.enquiryDate}
                 required
               />
 
               <FloatingInput
-                label="Stage"
+                label="Stage "
                 name="stage"
                 type="select"
                 value={formData.stage}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 options={stageOptions}
                 error={errors.stage}
                 required
+
               />
             </div>
 
             <FloatingInput
-              label="Total Project Value (₹)"
+              label="Total Project Value (₹) "
               name="totalProjectValue"
               type="number"
               value={formData.totalProjectValue}
               onChange={handleChange}
+              onBlur={handleBlur}
               error={errors.totalProjectValue}
               step="0.01"
-              min="0"
+              min="0.01"
               max="99999999.99"
               required
             />
@@ -566,6 +641,9 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
                   </div>
                 </div>
               )}
+              {!errors.scopeOfWork && touchedFields.scopeOfWork && (
+                <p className="mt-2 text-sm text-gray-500">Select at least one scope of work</p>
+              )}
             </div>
           </div>
         </form>
@@ -584,7 +662,7 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
           <button
             type="submit"
             onClick={handleSubmit}
-            disabled={loading || hasValidationErrors}
+            disabled={loading || !isFormComplete()}
             className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
           >
             {submitButtonText}
