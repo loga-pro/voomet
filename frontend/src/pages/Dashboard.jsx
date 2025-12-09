@@ -16,6 +16,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { projectsAPI, customersAPI, vendorsAPI, dashboardAPI } from '../services/api';
 import ProjectDetailsModal from '../components/Modals/ProjectDetailsModal';
+import ProfitLossSummary from './ProfitLossSummary';
 
 const Dashboard = () => {
   const [kpis, setKpis] = useState({
@@ -301,8 +302,7 @@ const Dashboard = () => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8">
-      {/* Project KPIs - Enhanced with Gradient Cards */}
-      <div>
+      <div className="sticky top-0 z-20 bg-gray-50">
         <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">Project Status Overview</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
           {projectKPIs.map((kpi, index) => (
@@ -310,6 +310,9 @@ const Dashboard = () => {
           ))}
         </div>
       </div>
+
+
+      <ProfitLossSummary />
 
       {/* Financial Overview - Two Box Structure */}
       <div>
