@@ -1154,7 +1154,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
               {formData.paymentTerms.map((term, index) => (
                 <div key={index} className="flex items-center gap-4">
                   <span className="text-sm font-medium text-gray-700 min-w-[100px]">
-                    Increment {index + 1}
+                    Installment {index + 1}
                   </span>
 
                   <div className="relative">
