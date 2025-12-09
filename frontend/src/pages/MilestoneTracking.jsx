@@ -790,13 +790,13 @@ const MilestoneTracking = () => {
             <div className="px-4 py-5 sm:p-6 bg-gray-50 border-b border-gray-200">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Client Name</label>
                   <select
                     value={filters.customer}
                     onChange={(e) => handleFilterChange('customer', e.target.value)}
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
                   >
-                    <option value="">All Customers</option>
+                    <option value="">All Client</option>
                     {getUniqueValues('customer').map(customer => (
                       <option key={customer} value={customer}>{customer}</option>
                     ))}
@@ -934,7 +934,7 @@ const MilestoneTracking = () => {
                           Project
                         </th>
                         <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Customer
+                          Client Name
                         </th>
                         <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Timeline
@@ -1015,7 +1015,7 @@ const MilestoneTracking = () => {
                   <thead className="bg-gray-50">
                     <tr>
                       <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
-                        Customer
+                        Client Name
                       </th>
                       <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
                         Project
@@ -1288,7 +1288,7 @@ const MilestoneTracking = () => {
             {/* Project Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
               <div>
-                <h4 className="text-sm font-medium text-gray-500">Customer</h4>
+                <h4 className="text-sm font-medium text-gray-500">Client Name</h4>
                 <p className="text-sm font-medium text-gray-900">{selectedMilestone.customer || ''}</p>
               </div>
               <div>

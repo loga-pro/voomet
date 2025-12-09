@@ -70,11 +70,11 @@ const MilestoneForm = ({ milestone, onSuccess, onCancel, viewMode = false, onEma
       if (milestone) {
         const formattedTasks = milestone.tasks
           ? milestone.tasks.map(task => ({
-              ...task,
-              startDate: task.startDate ? new Date(task.startDate).toISOString().split('T')[0] : '',
-              endDate: task.endDate ? new Date(task.endDate).toISOString().split('T')[0] : '',
-              originalDuration: task.duration || 0
-            }))
+            ...task,
+            startDate: task.startDate ? new Date(task.startDate).toISOString().split('T')[0] : '',
+            endDate: task.endDate ? new Date(task.endDate).toISOString().split('T')[0] : '',
+            originalDuration: task.duration || 0
+          }))
           : [];
 
         setFormData({
@@ -768,496 +768,485 @@ const MilestoneForm = ({ milestone, onSuccess, onCancel, viewMode = false, onEma
       {/* Optional mobile header (just for looks) */}
       {isMobile && (
         <div className="lg:hidden p-3 border-b bg-white">
-        
+
         </div>
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
-        {/* LEFT PANEL */}
-        <div className="w-full lg:w-1/3 border-r overflow-y-auto p-3 md:p-4 lg:p-6">
-          <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6 h-full">
-            {errors.submit && (
-              <Alert
-                message="Error"
-                description={errors.submit}
-                type="error"
-                showIcon
-                className="mb-3 md:mb-4"
-                closable
-                onClose={() => setErrors(prev => ({ ...prev, submit: null }))}
-              />
-            )}
 
-            {/* Basic Information */}
-            <Card
-              title={<span className="text-sm md:text-base">Basic Information</span>}
-              size="small"
-              className="shadow-sm"
-            >
-              <div className="space-y-3 md:space-y-4">
-                {milestone ? (
-                  <>
-                    <FloatingInput
-                      label="Customer"
-                      value={formData.customer}
-                      readOnly
-                      error={errors.customer}
-                      required
-                      prefix={<UserOutlined className="text-gray-400" />}
-                      size={isMobile ? 'small' : 'middle'}
-                    />
-                    <FloatingInput
-                      label="Project Name"
-                      value={formData.projectName}
-                      readOnly
-                      error={errors.projectName}
-                      required
-                      prefix={<ProjectOutlined className="text-gray-400" />}
-                      size={isMobile ? 'small' : 'middle'}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <FloatingInput
-                      label={customersLoading ? 'Loading customers...' : 'Customer'}
-                      value={formData.customer}
-                      onChange={e =>
-                        setFormData(prev => ({
-                          ...prev,
-                          customer: e.target.value,
-                          projectName: ''
-                        }))
-                      }
-                      error={errors.customer}
-                      type="select"
-                      options={customers.map(c => ({
-                        value: c.customerName,
-                        label: c.customerName
-                      }))}
-                      loading={customersLoading}
-                      required
-                      disabled={viewMode || customersLoading}
-                      size={isMobile ? 'small' : 'middle'}
-                    />
-                    <FloatingInput
-                      label="Project Name"
-                      value={formData.projectName}
-                      onChange={e =>
-                        setFormData(prev => ({
-                          ...prev,
-                          projectName: e.target.value
-                        }))
-                      }
-                      error={errors.projectName}
-                      type="select"
-                      options={filteredProjects.map(p => ({
-                        value: p.projectName,
-                        label: p.projectName
-                      }))}
-                      required
-                      disabled={viewMode || !formData.customer}
-                      size={isMobile ? 'small' : 'middle'}
-                    />
-                  </>
-                )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+      <form onSubmit={handleSubmit} >
+        {errors.submit && (
+          <Alert
+            message="Error"
+            description={errors.submit}
+            type="error"
+            showIcon
+            className="mb-3 md:mb-4"
+            closable
+            onClose={() => setErrors(prev => ({ ...prev, submit: null }))}
+          />
+        )}
+        <div className="flex w-full justify-between gap-2">
+          {/* Basic Information */}
+          <Card
+            title={<span className="text-sm md:text-base">Basic Information</span>}
+            size="small"
+            className="shadow-sm w-full md:w-1/2 lg:w-1/3"
+          >
+            <div className="space-y-3 md:space-y-4">
+              {milestone ? (
+                <>
                   <FloatingInput
-                    label="Start Date"
-                    type="date"
-                    value={formData.startDate}
-                    onChange={e => {
-                      setFormData(prev => ({ ...prev, startDate: e.target.value }));
-                      if (e.target.value && formData.tasks.length > 0) {
-                        updateTaskDates(e.target.value);
-                      }
-                    }}
-                    error={errors.startDate}
-                    required
-                    disabled={viewMode}
-                    size={isMobile ? 'small' : 'middle'}
-                  />
-
-                  <FloatingInput
-                    label="End Date"
-                    type="date"
-                    value={formData.endDate}
+                    label="Client Name"
+                    value={formData.customer}
                     readOnly
+                    error={errors.customer}
+                    required
+                    prefix={<UserOutlined className="text-gray-400" />}
                     size={isMobile ? 'small' : 'middle'}
                   />
-                </div>
-              </div>
-            </Card>
+                  <FloatingInput
+                    label="Project Name"
+                    value={formData.projectName}
+                    readOnly
+                    error={errors.projectName}
+                    required
+                    prefix={<ProjectOutlined className="text-gray-400" />}
+                    size={isMobile ? 'small' : 'middle'}
+                  />
+                </>
+              ) : (
+                <>
+                  <FloatingInput
+                    label={customersLoading ? 'Loading Clients...' : 'Client Name'}
+                    value={formData.customer}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        customer: e.target.value,
+                        projectName: ''
+                      }))
+                    }
+                    error={errors.customer}
+                    type="select"
+                    options={customers.map(c => ({
+                      value: c.customerName,
+                      label: c.customerName
+                    }))}
+                    loading={customersLoading}
+                    required
+                    disabled={viewMode || customersLoading}
+                    size={isMobile ? 'small' : 'middle'}
+                  />
+                  <FloatingInput
+                    label="Project Name"
+                    value={formData.projectName}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        projectName: e.target.value
+                      }))
+                    }
+                    error={errors.projectName}
+                    type="select"
+                    options={filteredProjects.map(p => ({
+                      value: p.projectName,
+                      label: p.projectName
+                    }))}
+                    required
+                    disabled={viewMode || !formData.customer}
+                    size={isMobile ? 'small' : 'middle'}
+                  />
+                </>
+              )}
 
-            {/* Contact Information */}
-            <Card
-              title={<span className="text-sm md:text-base">Contact Information</span>}
-              size="small"
-              className="shadow-sm"
-            >
-              <div className="space-y-3 md:space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 <FloatingInput
-                  label="Email ID "
-                  value={formData.emailId}
-                  readOnly
-                  error={errors.emailId}
+                  label="Start Date"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={e => {
+                    setFormData(prev => ({ ...prev, startDate: e.target.value }));
+                    if (e.target.value && formData.tasks.length > 0) {
+                      updateTaskDates(e.target.value);
+                    }
+                  }}
+                  error={errors.startDate}
                   required
-                  prefix={<MailOutlined className="text-gray-400" />}
+                  disabled={viewMode}
+                  size={isMobile ? 'small' : 'middle'}
+                />
+
+                <FloatingInput
+                  label="End Date"
+                  type="date"
+                  value={formData.endDate}
+                  readOnly
                   size={isMobile ? 'small' : 'middle'}
                 />
               </div>
-            </Card>
-
-            {/* Project Flexibility */}
-            <Card
-              title={<span className="text-sm md:text-base">Project Flexibility</span>}
-              size="small"
-              className="shadow-sm"
-            >
-              <div className="space-y-3 md:space-y-4">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs md:text-sm font-medium text-gray-700">
-                      Timeline Flexibility
-                    </span>
-                    <Tag color="blue">{formData.flexibilityPercentage}%</Tag>
-                  </div>
-                  <Slider
-                    min={0}
-                    max={100}
-                    value={formData.flexibilityPercentage}
-                    onChange={handleFlexibilityChange}
-                    disabled={viewMode || !formData.startDate || formData.tasks.length === 0}
-                    tooltip={{
-                      formatter: value => `${value}% increase`
-                    }}
-                  />
-                  <p className="text-xs text-gray-500 mt-2">
-                    Adjusts project timeline by adding days proportionally to all tasks
-                  </p>
-                </div>
-
-                {flexibilitySummary && (
-                  <Alert
-                    message="Flexibility Applied"
-                    description={`${flexibilitySummary.totalDaysAdded} days added across ${flexibilitySummary.distribution.length} tasks`}
-                    type="success"
-                    showIcon
-                    action={
-                      <Button size="small" type="text" onClick={() => setShowFlexibilityModal(true)}>
-                        Details
-                      </Button>
-                    }
-                  />
-                )}
-              </div>
-            </Card>
-
-            {/* Bottom Actions */}
-            {!viewMode && (
-              <div className="pt-4 border-t border-gray-200">
-                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
-                  <Button
-                    onClick={onCancel}
-                    disabled={loading}
-                    size={isMobile ? 'small' : 'default'}
-                    className="w-full sm:w-auto"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    loading={loading}
-                    icon={<CheckCircleOutlined />}
-                    size={isMobile ? 'small' : 'default'}
-                    className="w-full sm:w-auto"
-                  >
-                    {milestone ? 'Update Milestone' : 'Create Milestone'}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </form>
-        </div>
-
-        {/* RIGHT PANEL – SAME TABLE FOR ALL DEVICES */}
-        <div className="flex-1 overflow-auto p-3 md:p-4 lg:p-6">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h3 className="text-base md:text-lg font-semibold text-gray-900">
-                Project Tasks
-              </h3>
-              <p className="text-xs text-gray-500 mt-1">
-                {formData.tasks.length} tasks, {totalDuration} days total
-              </p>
             </div>
-            {!viewMode && (
+          </Card>
+
+          {/* Contact Information */}
+          <Card
+            title={<span className="text-sm md:text-base">Contact Information</span>}
+            size="small"
+            className="shadow-sm w-full md:w-1/2 lg:w-1/3"
+          >
+            <div className="space-y-3 md:space-y-4">
+              <FloatingInput
+                label="Email ID "
+                value={formData.emailId}
+                readOnly
+                error={errors.emailId}
+                required
+                prefix={<MailOutlined className="text-gray-400" />}
+                size={isMobile ? 'small' : 'middle'}
+              />
+            </div>
+          </Card>
+
+          {/* Project Flexibility */}
+          <Card
+            title={<span className="text-sm md:text-base">Project Flexibility</span>}
+            size="small"
+            className="shadow-sm w-full md:w-1/2 lg:w-1/3"
+          >
+            <div className="space-y-3 md:space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs md:text-sm font-medium text-gray-700">
+                    Timeline Flexibility
+                  </span>
+                  <Tag color="blue">{formData.flexibilityPercentage}%</Tag>
+                </div>
+                <Slider
+                  min={0}
+                  max={100}
+                  value={formData.flexibilityPercentage}
+                  onChange={handleFlexibilityChange}
+                  disabled={viewMode || !formData.startDate || formData.tasks.length === 0}
+                  tooltip={{
+                    formatter: value => `${value}% increase`
+                  }}
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  Adjusts project timeline by adding days proportionally to all tasks
+                </p>
+              </div>
+
+              {flexibilitySummary && (
+                <Alert
+                  message="Flexibility Applied"
+                  description={`${flexibilitySummary.totalDaysAdded} days added across ${flexibilitySummary.distribution.length} tasks`}
+                  type="success"
+                  showIcon
+                  action={
+                    <Button size="small" type="text" onClick={() => setShowFlexibilityModal(true)}>
+                      Details
+                    </Button>
+                  }
+                />
+              )}
+            </div>
+          </Card>
+        </div>
+        {/* Bottom Actions */}
+        {!viewMode && (
+          <div className="pt-4 border-t border-gray-200">
+            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
+              <Button
+                onClick={onCancel}
+                disabled={loading}
+                size={isMobile ? 'small' : 'default'}
+                className="w-full sm:w-auto"
+              >
+                Cancel
+              </Button>
               <Button
                 type="primary"
-                icon={<PlusOutlined />}
-                onClick={addNewTask}
-                disabled={!formData.startDate}
+                htmlType="submit"
+                loading={loading}
+                icon={<CheckCircleOutlined />}
                 size={isMobile ? 'small' : 'default'}
-                className="text-xs md:text-sm"
+                className="w-full sm:w-auto"
               >
-                Add Task
+                {milestone ? 'Update Milestone' : 'Create Milestone'}
               </Button>
-            )}
+            </div>
           </div>
+        )}
+      </form>
 
-          {/* Single desktop-style table with scroll */}
-          <div className="bg-white rounded-lg border overflow-hidden">
-            <div
-              className="table-container overflow-auto"
-              style={{
-                maxHeight: 'calc(100vh - 300px)',
-                minHeight: '400px'
-              }}
+
+      <div className="flex-1 overflow-auto p-3 md:p-4 lg:p-6">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h3 className="text-base md:text-lg font-semibold text-gray-900">
+              Project Tasks
+            </h3>
+            <p className="text-xs text-gray-500 mt-1">
+              {formData.tasks.length} tasks, {totalDuration} days total
+            </p>
+          </div>
+          {!viewMode && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={addNewTask}
+              disabled={!formData.startDate}
+              size={isMobile ? 'small' : 'default'}
+              className="text-xs md:text-sm"
             >
-              <table className="min-w-[900px] w-full divide-y divide-gray-200 table-fixed">
-                <colgroup>
-                  <col className="w-[18%]" /> {/* Phase */}
-                  <col className="w-[38%]" /> {/* Task */}
-                  <col className="w-[10%]" /> {/* Duration */}
-                  <col className="w-[16%]" /> {/* Responsible */}
-                  <col className="w-[8%]" /> {/* Start Date */}
-                  <col className="w-[8%]" /> {/* End Date */}
-                  {!viewMode && <col className="w-[4%]" />} {/* Actions */}
-                </colgroup>
+              Add Task
+            </Button>
+          )}
+        </div>
 
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-red-600 uppercase tracking-wider sticky left-0 top-0 bg-gray-50 z-30">
-                      Phase *
+        {/* Single desktop-style table with scroll */}
+        <div className="bg-white rounded-lg border overflow-hidden">
+          <div
+            className="table-container overflow-auto"
+            style={{
+              maxHeight: '350px', // Approx 5 rows + header
+            }}
+          >
+            <table className="min-w-[900px] w-full divide-y divide-gray-200 table-fixed">
+              <colgroup>
+                <col className="w-[18%]" /> {/* Phase */}
+                <col className="w-[30%]" /> {/* Task */}
+                <col className="w-[10%]" /> {/* Duration */}
+                <col className="w-[16%]" /> {/* Responsible */}
+                <col className="w-[8%]" /> {/* Start Date */}
+                <col className="w-[8%]" /> {/* End Date */}
+                {!viewMode && <col className="w-[4%]" />} {/* Actions */}
+              </colgroup>
+
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-red-600 uppercase tracking-wider sticky left-0 top-0 bg-gray-50 z-30">
+                    Phase *
+                  </th>
+                  <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-red-600 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
+                    Task *
+                  </th>
+                  <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-red-600 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
+                    Duration *
+                  </th>
+                  <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
+                    Responsible Person*
+                  </th>
+                  <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
+                    Start Date
+                  </th>
+                  <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
+                    End Date
+                  </th>
+                  {!viewMode && (
+                    <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky right-0 top-0 bg-gray-50 z-30">
+                      Actions
                     </th>
-                    <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-red-600 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
-                      Task *
-                    </th>
-                    <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-red-600 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
-                      Duration *
-                    </th>
-                    <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-red-600 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
-                      Responsible Person *
-                    </th>
-                    <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
-                      Start Date
-                    </th>
-                    <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
-                      End Date
-                    </th>
-                    {!viewMode && (
-                      <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky right-0 top-0 bg-gray-50 z-30">
-                        Actions
-                      </th>
-                    )}
-                  </tr>
-                </thead>
+                  )}
+                </tr>
+              </thead>
 
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {formData.tasks.map((task, index) => {
-                    const originalDuration = task.originalDuration || 0;
-                    const flexibilityAdded = task.duration - originalDuration;
+              <tbody className="bg-white divide-y divide-gray-200">
+                {formData.tasks.map((task, index) => {
+                  const originalDuration = task.originalDuration || 0;
+                  const flexibilityAdded = task.duration - originalDuration;
 
-                    return (
-                      <tr
-                        key={index}
-                        className={
-                          flexibilityAdded > 0 ? 'bg-green-50 hover:bg-green-100' : 'hover:bg-gray-50'
-                        }
-                      >
-                        {/* Phase */}
-                        <td className="px-3 md:px-4 py-2 md:py-3 sticky left-0 bg-white z-10 border-r">
-                          {viewMode ? (
-                            <span className="text-sm truncate block" title={task.phase}>
-                              {task.phase}
-                            </span>
-                          ) : (
-                            <Tooltip
-                              visible={!!errors[`task_${index}_phase`]}
-                              title={errors[`task_${index}_phase`]}
-                              color="red"
-                            >
-                              <select
-                                value={task.phase}
-                                onChange={e => handleTaskChange(index, 'phase', e.target.value)}
-                                className={`w-full border rounded px-2 py-1 text-sm ${
-                                  errors[`task_${index}_phase`]
-                                    ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-                                }`}
-                              >
-                                <option value="">Select Phase</option>
-                                {phaseOptions.map(phase => (
-                                  <option key={phase} value={phase}>
-                                    {phase}
-                                  </option>
-                                ))}
-                              </select>
-                            </Tooltip>
-                          )}
-                        </td>
-
-                        {/* Task */}
-                        <td className="px-3 md:px-4 py-2 md:py-3">
-                          {viewMode ? (
-                            <span className="text-sm truncate block" title={task.task}>
-                              {task.task}
-                            </span>
-                          ) : (
-                            <Tooltip
-                              visible={!!errors[`task_${index}_task`]}
-                              title={errors[`task_${index}_task`]}
-                              color="red"
-                            >
-                              <input
-                                type="text"
-                                value={task.task}
-                                onChange={e =>
-                                  handleTaskChange(index, 'task', e.target.value)
-                                }
-                                className={`w-full border rounded px-2 py-1 text-sm ${
-                                  errors[`task_${index}_task`]
-                                    ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-                                }`}
-                                placeholder="Task description"
-                                maxLength={50}
-                              />
-                            </Tooltip>
-                          )}
-                        </td>
-
-                        {/* Duration */}
-                        <td className="px-3 md:px-4 py-2 md:py-3">
-                          {viewMode ? (
-                            <span className="text-sm">{task.duration || 0} days</span>
-                          ) : (
-                            <Tooltip
-                              visible={!!errors[`task_${index}_duration`]}
-                              title={errors[`task_${index}_duration`]}
-                              color="red"
-                            >
-                              <div className="relative flex items-center">
-                                <InputNumber
-                                  min={0}
-                                  value={task.duration || 0}
-                                  onChange={value =>
-                                    handleTaskChange(index, 'duration', value)
-                                  }
-                                  style={{ width: 70 }} // keep this narrow
-                                  className={
-                                    errors[`task_${index}_duration`]
-                                      ? 'border-red-300'
-                                      : 'border-gray-300'
-                                  }
-                                  size="small"
-                                />
-                                {flexibilityAdded > 0 && (
-                                  <Tag className="ml-1 text-xs" color="green">
-                                    +{flexibilityAdded}
-                                  </Tag>
-                                )}
-                              </div>
-                            </Tooltip>
-                          )}
-                        </td>
-
-                        {/* Responsible */}
-                        <td className="px-3 md:px-4 py-2 md:py-3">
-                          {viewMode ? (
-                            <span
-                              className="text-sm truncate block"
-                              title={task.responsiblePerson}
-                            >
-                              {task.responsiblePerson}
-                            </span>
-                          ) : (
-                            <Tooltip
-                              visible={!!errors[`task_${index}_responsiblePerson`]}
-                              title={errors[`task_${index}_responsiblePerson`]}
-                              color="red"
-                            >
-                              <input
-                                type="text"
-                                value={task.responsiblePerson}
-                                onChange={e =>
-                                  handleTaskChange(
-                                    index,
-                                    'responsiblePerson',
-                                    e.target.value
-                                  )
-                                }
-                                className={`w-full border rounded px-2 py-1 text-sm ${
-                                  errors[`task_${index}_responsiblePerson`]
-                                    ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-                                }`}
-                                placeholder="Responsible person"
-                                maxLength={30}
-                              />
-                            </Tooltip>
-                          )}
-                        </td>
-
-                        {/* Start Date */}
-                        <td className="px-3 md:px-4 py-2 md:py-3">
-                          <div className="text-xs text-gray-600">
-                            {task.startDate
-                              ? new Date(task.startDate).toLocaleDateString()
-                              : '-'}
-                          </div>
-                        </td>
-
-                        {/* End Date */}
-                        <td className="px-3 md:px-4 py-2 md:py-3">
-                          <div className="text-xs text-gray-600">
-                            {task.endDate
-                              ? new Date(task.endDate).toLocaleDateString()
-                              : '-'}
-                          </div>
-                        </td>
-
-                        {/* Actions */}
-                        {!viewMode && (
-                          <td className="px-3 md:px-4 py-2 md:py-3 sticky right-0 bg-white z-10 border-l">
-                            <Button
+                  return (
+                    <tr
+                      key={index}
+                      className={
+                        flexibilityAdded > 0 ? 'bg-green-50 hover:bg-green-100' : 'hover:bg-gray-50'
+                      }
+                    >
+                      {/* Phase */}
+                      <td className="px-3 md:px-4 py-2 md:py-3 sticky left-0 bg-white z-10 border-r">
+                        {viewMode ? (
+                          <span className="text-sm truncate block" title={task.phase}>
+                            {task.phase}
+                          </span>
+                        ) : (
+                          <Tooltip
+                            visible={!!errors[`task_${index}_phase`]}
+                            title={errors[`task_${index}_phase`]}
+                            color="red"
+                          >
+                            <input
                               type="text"
-                              danger
-                              icon={<DeleteOutlined />}
-                              onClick={() => deleteTask(index)}
-                              size="small"
+                              value={task.phase}
+                              onChange={e => handleTaskChange(index, 'phase', e.target.value)}
+                              className={`w-full border rounded px-2 py-1 text-sm ${errors[`task_${index}_phase`]
+                                ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                                }`}
+                              placeholder="Enter Phase"
                             />
-                          </td>
+                          </Tooltip>
                         )}
-                      </tr>
-                    );
-                  })}
+                      </td>
 
-                  {formData.tasks.length === 0 && (
-                    <tr>
-                      <td colSpan={viewMode ? 6 : 7} className="px-4 py-8 text-center">
-                        <div className="text-gray-400">
-                          <CalendarOutlined className="text-2xl mb-2" />
-                          <p>No tasks added yet</p>
-                          {!viewMode && (
-                            <p className="text-sm mt-1">
-                              {formData.startDate
-                                ? 'Click "Add Task" to get started'
-                                : 'Set a start date first to add tasks'}
-                            </p>
-                          )}
+                      {/* Task */}
+                      <td className="px-3 md:px-4 py-2 md:py-3">
+                        {viewMode ? (
+                          <span className="text-sm truncate block" title={task.task}>
+                            {task.task}
+                          </span>
+                        ) : (
+                          <Tooltip
+                            visible={!!errors[`task_${index}_task`]}
+                            title={errors[`task_${index}_task`]}
+                            color="red"
+                          >
+                            <input
+                              type="text"
+                              value={task.task}
+                              onChange={e =>
+                                handleTaskChange(index, 'task', e.target.value)
+                              }
+                              className={`w-full border rounded px-2 py-1 text-sm ${errors[`task_${index}_task`]
+                                ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                                }`}
+                              placeholder="Task description"
+                              maxLength={50}
+                            />
+                          </Tooltip>
+                        )}
+                      </td>
+
+                      {/* Duration */}
+                      <td className="px-3 md:px-4 py-2 md:py-3">
+                        {viewMode ? (
+                          <span className="text-sm">{task.duration || 0} days</span>
+                        ) : (
+                          <Tooltip
+                            visible={!!errors[`task_${index}_duration`]}
+                            title={errors[`task_${index}_duration`]}
+                            color="red"
+                          >
+                            <div className="relative flex items-center">
+                              <InputNumber
+                                min={0}
+                                value={task.duration || 0}
+                                onChange={value =>
+                                  handleTaskChange(index, 'duration', value)
+                                }
+                                style={{ width: 70 }} // keep this narrow
+                                className={
+                                  errors[`task_${index}_duration`]
+                                    ? 'border-red-300'
+                                    : 'border-gray-300'
+                                }
+                                size="small"
+                              />
+                              {flexibilityAdded > 0 && (
+                                <Tag className="ml-1 text-xs" color="green">
+                                  +{flexibilityAdded}
+                                </Tag>
+                              )}
+                            </div>
+                          </Tooltip>
+                        )}
+                      </td>
+
+                      {/* Responsible */}
+                      <td className="px-3 md:px-4 py-2 md:py-3">
+                        {viewMode ? (
+                          <span
+                            className="text-sm truncate block"
+                            title={task.responsiblePerson}
+                          >
+                            {task.responsiblePerson}
+                          </span>
+                        ) : (
+                          <Tooltip
+                            visible={!!errors[`task_${index}_responsiblePerson`]}
+                            title={errors[`task_${index}_responsiblePerson`]}
+                            color="red"
+                          >
+                            <input
+                              type="text"
+                              value={task.responsiblePerson}
+                              onChange={e =>
+                                handleTaskChange(
+                                  index,
+                                  'responsiblePerson',
+                                  e.target.value
+                                )
+                              }
+                              className={`w-full border rounded px-2 py-1 text-sm ${errors[`task_${index}_responsiblePerson`]
+                                ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                                }`}
+                              placeholder="Responsible person"
+                              maxLength={30}
+                            />
+                          </Tooltip>
+                        )}
+                      </td>
+
+                      {/* Start Date */}
+                      <td className="px-3 md:px-4 py-2 md:py-3">
+                        <div className="text-xs text-gray-600">
+                          {task.startDate
+                            ? new Date(task.startDate).toLocaleDateString()
+                            : '-'}
                         </div>
                       </td>
+
+                      {/* End Date */}
+                      <td className="px-3 md:px-4 py-2 md:py-3">
+                        <div className="text-xs text-gray-600">
+                          {task.endDate
+                            ? new Date(task.endDate).toLocaleDateString()
+                            : '-'}
+                        </div>
+                      </td>
+
+                      {/* Actions */}
+                      {!viewMode && (
+                        <td className="px-3 md:px-4 py-2 md:py-3 sticky right-0 bg-white z-10 border-l">
+                          <Button
+                            type="text"
+                            danger
+                            icon={<DeleteOutlined />}
+                            onClick={() => deleteTask(index)}
+                            size="small"
+                          />
+                        </td>
+                      )}
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  );
+                })}
+
+                {formData.tasks.length === 0 && (
+                  <tr>
+                    <td colSpan={viewMode ? 6 : 7} className="px-4 py-8 text-center">
+                      <div className="text-gray-400">
+                        <CalendarOutlined className="text-2xl mb-2" />
+                        <p>No tasks added yet</p>
+                        {!viewMode && (
+                          <p className="text-sm mt-1">
+                            {formData.startDate
+                              ? 'Click "Add Task" to get started'
+                              : 'Set a start date first to add tasks'}
+                          </p>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
+
+
 
       {/* Flexibility Modal */}
       <Modal

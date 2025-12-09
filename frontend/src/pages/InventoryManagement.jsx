@@ -123,10 +123,50 @@ const InventoryManagement = () => {
       
       setInventoryItems(processedItems);
 
-      const workCategories = [...new Set(processedItems.map((item) => item.workCategory))].filter(Boolean);
+      // Extract work categories from receipts and dispatches
+      const workCategoriesSet = new Set();
+      processedItems.forEach(item => {
+        // Get work categories from receipts
+        if (item.receipts && item.receipts.length > 0) {
+          item.receipts.forEach(receipt => {
+            if (receipt.workCategory) {
+              workCategoriesSet.add(receipt.workCategory);
+            }
+          });
+        }
+        // Get work categories from dispatches
+        if (item.dispatches && item.dispatches.length > 0) {
+          item.dispatches.forEach(dispatch => {
+            if (dispatch.workCategory) {
+              workCategoriesSet.add(dispatch.workCategory);
+            }
+          });
+        }
+      });
+      const workCategories = Array.from(workCategoriesSet).sort();
       setUniqueWorkCategories(workCategories);
 
-      const partNames = [...new Set(processedItems.map((item) => item.partName))].filter(Boolean);
+      // Extract part names from receipts and dispatches
+      const partNamesSet = new Set();
+      processedItems.forEach(item => {
+        // Get part names from receipts
+        if (item.receipts && item.receipts.length > 0) {
+          item.receipts.forEach(receipt => {
+            if (receipt.partName) {
+              partNamesSet.add(receipt.partName);
+            }
+          });
+        }
+        // Get part names from dispatches
+        if (item.dispatches && item.dispatches.length > 0) {
+          item.dispatches.forEach(dispatch => {
+            if (dispatch.partName) {
+              partNamesSet.add(dispatch.partName);
+            }
+          });
+        }
+      });
+      const partNames = Array.from(partNamesSet).sort();
       setUniquePartNames(partNames);
 
       const customerVendors = [...new Set(processedItems.map((item) => item.customerVendorName))].filter(Boolean);
@@ -146,15 +186,31 @@ const InventoryManagement = () => {
     let filtered = [...inventoryItems];
 
     if (filters.workCategory) {
-      filtered = filtered.filter((item) =>
-        item.workCategory?.toLowerCase().includes(filters.workCategory.toLowerCase())
-      );
+      filtered = filtered.filter((item) => {
+        // Check if any receipt has the work category
+        const hasReceiptWithCategory = item.receipts?.some(receipt =>
+          receipt.workCategory?.toLowerCase().includes(filters.workCategory.toLowerCase())
+        );
+        // Check if any dispatch has the work category
+        const hasDispatchWithCategory = item.dispatches?.some(dispatch =>
+          dispatch.workCategory?.toLowerCase().includes(filters.workCategory.toLowerCase())
+        );
+        return hasReceiptWithCategory || hasDispatchWithCategory;
+      });
     }
 
     if (filters.partName) {
-      filtered = filtered.filter((item) =>
-        item.partName?.toLowerCase().includes(filters.partName.toLowerCase())
-      );
+      filtered = filtered.filter((item) => {
+        // Check if any receipt has the part name
+        const hasReceiptWithPart = item.receipts?.some(receipt =>
+          receipt.partName?.toLowerCase().includes(filters.partName.toLowerCase())
+        );
+        // Check if any dispatch has the part name
+        const hasDispatchWithPart = item.dispatches?.some(dispatch =>
+          dispatch.partName?.toLowerCase().includes(filters.partName.toLowerCase())
+        );
+        return hasReceiptWithPart || hasDispatchWithPart;
+      });
     }
 
     if (filters.customerVendorName) {
@@ -1430,25 +1486,7 @@ const InventoryManagement = () => {
           {showFilters && (
             <div className="px-4 py-5 sm:px-6 bg-gray-50 border-b border-gray-200">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Work Category
-                  </label>
-                  <select
-                    value={filters.workCategory}
-                    onChange={(e) =>
-                      handleFilterChange("workCategory", e.target.value)
-                    }
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
-                  >
-                    <option value="">All Categories</option>
-                    {uniqueWorkCategories.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+               
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">

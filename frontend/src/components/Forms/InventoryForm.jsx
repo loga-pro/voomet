@@ -745,7 +745,7 @@ const InventoryForm = ({
           </div>
 
           {/* Reorder Status Indicator */}
-          {summaryData && formData.reOrderLevel !== '' && formData.reOrderLevel !== null && (() => {
+          {summaryData && formData.reOrderLevel !== '' && formData.reOrderLevel !== null && (receipts.length > 0 || dispatches.length > 0 || inventory) && (() => {
             const reorderStatus = getReorderStatus();
             return reorderStatus ? (
               <div className={`mt-4 p-4 rounded-lg border-2 ${reorderStatus.color}`}>

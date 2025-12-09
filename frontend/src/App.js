@@ -30,6 +30,7 @@ import CustomerBoqManagement from './pages/CustomerBoqManagement';
 import InHouseBoqManagement from './pages/InHouseBoqManagement';
 import InhousePartMaster from './pages/InhousePartMaster';
 import InhouseMilestone from './pages/InhouseMilestone';
+import InhouseMilestoneForm from './components/Forms/InhouseMilestoneForm';
 
 function App() {
   return (
@@ -85,11 +86,27 @@ function App() {
                 <InHouseBoqManagement />
               </ProtectedRoute>
             } />
-            <Route path="inhouse-milestone" element={
-              <ProtectedRoute requiredPermissions={['inhouse_milestone']}>
-                <InhouseMilestone />
-              </ProtectedRoute>
-            } />
+            <Route path="inhouse-milestone">
+              <Route index element={
+                <ProtectedRoute requiredPermissions={['inhouse_milestone']}>
+                  <InhouseMilestone />
+                </ProtectedRoute>
+              } />
+              <Route path="edit" element={
+                <ProtectedRoute requiredPermissions={['inhouse_milestone']}>
+                  <InhouseMilestoneForm
+                  // onSuccess={handleFormSuccess}
+                  // onEmailChange={handleEmailChange}
+                  // onCancel={() => {
+                  //   setShowModal(false);
+                  //   setEditingMilestone(null);
+                  // }}
+                  // showNotification={showSuccess}
+                  // showError={showError}
+                  />
+                </ProtectedRoute>
+              } />
+            </Route>
             <Route path="milestone-management" element={
               <ProtectedRoute requiredPermissions={['milestone_management']}>
                 <MilestoneManagement />

@@ -63,11 +63,11 @@ const MilestoneManagement = () => {
 
   useEffect(() => {
     fetchMilestones();
-    
+
     // Set up interval for periodic sync (every 60 seconds)
     const syncInterval = setInterval(() => {
     }, 10);
-    
+
     return () => {
       if (syncInterval) {
         clearInterval(syncInterval);
@@ -177,64 +177,64 @@ const MilestoneManagement = () => {
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   const exportToCSV = () => {
-  try {
-    const headers = [
-      'Customer', 'Project Name', 'Email ID', 'Phase', 'Task', 'Duration', 
-      'Start Date', 'End Date', 'Responsible Person'
-    ];
-    
-    const csvData = filteredMilestones.flatMap(milestone => {
-      // If milestone has tasks, create a row for each task
-      if (milestone.tasks && milestone.tasks.length > 0) {
-        return milestone.tasks.map(task => [
-          milestone.customer || '',
-          milestone.projectName || '',
-          milestone.emailId || '',
-          task.phase || '',
-          task.task || '',
-          `${task.duration || 0} days`,
-          milestone.startDate ? new Date(milestone.startDate).toLocaleDateString() : '',
-          milestone.endDate ? new Date(milestone.endDate).toLocaleDateString() : '',
-          task.responsiblePerson || ''
-        ]);
-      } else {
-        // If no tasks, create one row with empty task data
-        return [[
-          milestone.customer || '',
-          milestone.projectName || '',
-          milestone.emailId || '',
-          '',
-          '',
-          '0 days',
-          milestone.startDate ? new Date(milestone.startDate).toLocaleDateString() : '',
-          milestone.endDate ? new Date(milestone.endDate).toLocaleDateString() : '',
-          '',
-          milestone.projectStatus || 'not started'
-        ]];
-      }
-    });
+    try {
+      const headers = [
+        'Customer', 'Project Name', 'Email ID', 'Phase', 'Task', 'Duration',
+        'Start Date', 'End Date', 'Responsible Person'
+      ];
 
-    const csvContent = [
-      headers.join(','),
-      ...csvData.map(row => row.map(field => `"${field}"`).join(','))
-    ].join('\n');
+      const csvData = filteredMilestones.flatMap(milestone => {
+        // If milestone has tasks, create a row for each task
+        if (milestone.tasks && milestone.tasks.length > 0) {
+          return milestone.tasks.map(task => [
+            milestone.customer || '',
+            milestone.projectName || '',
+            milestone.emailId || '',
+            task.phase || '',
+            task.task || '',
+            `${task.duration || 0} days`,
+            milestone.startDate ? new Date(milestone.startDate).toLocaleDateString() : '',
+            milestone.endDate ? new Date(milestone.endDate).toLocaleDateString() : '',
+            task.responsiblePerson || ''
+          ]);
+        } else {
+          // If no tasks, create one row with empty task data
+          return [[
+            milestone.customer || '',
+            milestone.projectName || '',
+            milestone.emailId || '',
+            '',
+            '',
+            '0 days',
+            milestone.startDate ? new Date(milestone.startDate).toLocaleDateString() : '',
+            milestone.endDate ? new Date(milestone.endDate).toLocaleDateString() : '',
+            '',
+            milestone.projectStatus || 'not started'
+          ]];
+        }
+      });
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', 'milestone_data.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    showSuccess('Milestone data exported successfully');
-  } catch (error) {
-    console.error('Error exporting CSV:', error);
-    showError('Failed to export milestone data');
-  }
-};
+      const csvContent = [
+        headers.join(','),
+        ...csvData.map(row => row.map(field => `"${field}"`).join(','))
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'milestone_data.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      showSuccess('Milestone data exported successfully');
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      showError('Failed to export milestone data');
+    }
+  };
 
   const handleView = (milestone) => {
     setSelectedMilestone(milestone);
@@ -468,14 +468,14 @@ const MilestoneManagement = () => {
 
   const handleEmailChange = (milestoneId, newEmail) => {
     // Update the milestones array with the new email
-    setMilestones(prevMilestones => 
-      prevMilestones.map(milestone => 
-        milestone._id === milestoneId 
+    setMilestones(prevMilestones =>
+      prevMilestones.map(milestone =>
+        milestone._id === milestoneId
           ? { ...milestone, emailId: newEmail }
           : milestone
       )
     );
-    
+
     // Update the unique email IDs if necessary
     setUniqueEmailIds(prevEmails => {
       const updatedEmails = [...new Set([...prevEmails, newEmail])].filter(Boolean);
@@ -623,13 +623,13 @@ const MilestoneManagement = () => {
             <div className="px-4 py-5 sm:p-6 bg-gray-50 border-b border-gray-200">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Client Name</label>
                   <select
                     value={filters.customer}
                     onChange={(e) => handleFilterChange('customer', e.target.value)}
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
                   >
-                    <option value="">All Customers</option>
+                    <option value="">All Client</option>
                     {uniqueCustomers.map(customer => (
                       <option key={customer} value={customer}>{customer}</option>
                     ))}
@@ -675,7 +675,7 @@ const MilestoneManagement = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Customer
+                      Client Name
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Project
@@ -774,118 +774,116 @@ const MilestoneManagement = () => {
             </div>
 
             {/* Mobile Card View */}
-           <div className="sm:hidden">
-  {currentItems.map((milestone) => (
-    <div key={milestone._id} className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors duration-150">
-      <div className="flex justify-between items-start mb-3">
-        {/* Text content section with improved spacing */}
-        <div className="flex-1 min-w-0 mr-3">
-          {/* Project name - removed truncate, added break-words */}
-          <h3 className="text-sm font-medium text-gray-900 break-words mb-1">
-            {milestone.projectName || 'No project name'}
-          </h3>
-          {/* Customer name - removed truncate, added break-words */}
-          <p className="text-sm text-gray-500 break-words">
-            {milestone.customer || 'No customer name'}
-          </p>
-        </div>
-        
-        {/* Action buttons - adjusted spacing and alignment */}
-        <div className="flex flex-shrink-0 space-x-2">
-          <button
-            onClick={() => handlePreview(milestone)}
-            className={`text-green-600 hover:text-green-900 p-1 transition-colors duration-150 ${
-              previewLoading && previewMilestoneId === milestone._id ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-            title="Preview PDF"
-            disabled={previewLoading && previewMilestoneId === milestone._id}
-          >
-            {previewLoading && previewMilestoneId === milestone._id ? (
-              <div className="h-4 w-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              <DocumentArrowDownIcon className="h-4 w-4" />
-            )}
-          </button>
-          <button
-            onClick={() => handleSend(milestone)}
-            className={`text-purple-600 hover:text-purple-900 p-1 transition-colors duration-150 ${
-              sendingEmail && sendingMilestoneId === milestone._id ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-            title="Send Report"
-            disabled={sendingEmail && sendingMilestoneId === milestone._id}
-          >
-            {sendingEmail && sendingMilestoneId === milestone._id ? (
-              <div className="h-4 w-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              <PaperAirplaneIcon className="h-4 w-4" />
-            )}
-          </button>
-          <button
-            onClick={() => handleView(milestone)}
-            className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
-            title="View"
-          >
-            <EyeIcon className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => handleEdit(milestone)}
-            className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
-            title="Edit"
-          >
-            <PencilSquareIcon className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => handleDelete(milestone._id)}
-            className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
-            title="Delete"
-          >
-            <TrashIcon className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-      
-      {/* Improved responsive layout for details */}
-      <div className="space-y-2 text-xs">
-        {/* Email field - full width */}
-        <div className="flex flex-col">
-          <span className="font-medium text-gray-500">Email:</span>
-          <span className="text-gray-900 break-all">{milestone.emailId || 'No email'}</span>
-        </div>
-        
-        {/* Dates - side by side on mobile */}
-        <div className="flex justify-between">
-          <div className="flex flex-col">
-            <span className="font-medium text-gray-500">Start Date:</span>
-            <span className="text-gray-900">
-              {milestone.startDate ? new Date(milestone.startDate).toLocaleDateString() : 'No date'}
-            </span>
+            <div className="sm:hidden">
+              {currentItems.map((milestone) => (
+                <div key={milestone._id} className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors duration-150">
+                  <div className="flex justify-between items-start mb-3">
+                    {/* Text content section with improved spacing */}
+                    <div className="flex-1 min-w-0 mr-3">
+                      {/* Project name - removed truncate, added break-words */}
+                      <h3 className="text-sm font-medium text-gray-900 break-words mb-1">
+                        {milestone.projectName || 'No project name'}
+                      </h3>
+                      {/* Customer name - removed truncate, added break-words */}
+                      <p className="text-sm text-gray-500 break-words">
+                        {milestone.customer || 'No customer name'}
+                      </p>
+                    </div>
+
+                    {/* Action buttons - adjusted spacing and alignment */}
+                    <div className="flex flex-shrink-0 space-x-2">
+                      <button
+                        onClick={() => handlePreview(milestone)}
+                        className={`text-green-600 hover:text-green-900 p-1 transition-colors duration-150 ${previewLoading && previewMilestoneId === milestone._id ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                        title="Preview PDF"
+                        disabled={previewLoading && previewMilestoneId === milestone._id}
+                      >
+                        {previewLoading && previewMilestoneId === milestone._id ? (
+                          <div className="h-4 w-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <DocumentArrowDownIcon className="h-4 w-4" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleSend(milestone)}
+                        className={`text-purple-600 hover:text-purple-900 p-1 transition-colors duration-150 ${sendingEmail && sendingMilestoneId === milestone._id ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                        title="Send Report"
+                        disabled={sendingEmail && sendingMilestoneId === milestone._id}
+                      >
+                        {sendingEmail && sendingMilestoneId === milestone._id ? (
+                          <div className="h-4 w-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <PaperAirplaneIcon className="h-4 w-4" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleView(milestone)}
+                        className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
+                        title="View"
+                      >
+                        <EyeIcon className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleEdit(milestone)}
+                        className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
+                        title="Edit"
+                      >
+                        <PencilSquareIcon className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(milestone._id)}
+                        className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
+                        title="Delete"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Improved responsive layout for details */}
+                  <div className="space-y-2 text-xs">
+                    {/* Email field - full width */}
+                    <div className="flex flex-col">
+                      <span className="font-medium text-gray-500">Email:</span>
+                      <span className="text-gray-900 break-all">{milestone.emailId || 'No email'}</span>
+                    </div>
+
+                    {/* Dates - side by side on mobile */}
+                    <div className="flex justify-between">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-gray-500">Start Date:</span>
+                        <span className="text-gray-900">
+                          {milestone.startDate ? new Date(milestone.startDate).toLocaleDateString() : 'No date'}
+                        </span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-gray-500">End Date:</span>
+                        <span className="text-gray-900">
+                          {milestone.endDate ? new Date(milestone.endDate).toLocaleDateString() : 'No date'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-col">
-            <span className="font-medium text-gray-500">End Date:</span>
-            <span className="text-gray-900">
-              {milestone.endDate ? new Date(milestone.endDate).toLocaleDateString() : 'No date'}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  ))}
-</div>
-          </div>
-{/* No Data Available Message */}
-{filteredMilestones.length === 0 && (
-  <div className="text-center py-12">
-    <div className="flex flex-col items-center justify-center">
-  
-      <p className="text-gray-500 max-w-md mx-auto">
-        {milestones.length === 0 
-          ? 'Get started by adding your first milestone.'
-          : 'No milestones match your current search or filters. Try adjusting your criteria.'
-        }
-      </p>
-    </div>
-  </div>
-)}
+          {/* No Data Available Message */}
+          {filteredMilestones.length === 0 && (
+            <div className="text-center py-12">
+              <div className="flex flex-col items-center justify-center">
+
+                <p className="text-gray-500 max-w-md mx-auto">
+                  {milestones.length === 0
+                    ? 'Get started by adding your first milestone.'
+                    : 'No milestones match your current search or filters. Try adjusting your criteria.'
+                  }
+                </p>
+              </div>
+            </div>
+          )}
           {/* Updated Pagination */}
           {filteredMilestones.length > 0 && (
             <div className="bg-white px-4 py-3 flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 sm:px-6">
@@ -971,7 +969,7 @@ const MilestoneManagement = () => {
           setEditingMilestone(null);
         }}
         title={editingMilestone ? 'Edit Milestone' : 'Add Milestone'}
-        size="6xl"
+        size="xl"
       >
         <MilestoneForm
           milestone={editingMilestone}
@@ -1004,10 +1002,10 @@ const MilestoneManagement = () => {
               <div>
                 <h2 className="text-xl font-semibold text-gray-800">{selectedMilestone.projectName || ''}</h2>
                 <div className="mt-1">
-                  <span className="text-sm text-gray-600">Customer: {selectedMilestone.customer || ''}</span>
+                  <span className="text-sm text-gray-600">Client Name: {selectedMilestone.customer || ''}</span>
                 </div>
               </div>
-             
+
             </div>
 
             {/* Basic Information Card */}
@@ -1112,7 +1110,7 @@ const MilestoneManagement = () => {
             title: emailCompose?.milestoneData.projectName,
             reportType: "milestone",
             data: [emailCompose?.milestoneData],
-            defaultSubject:`Milestone Report - ${emailCompose?.milestoneData?.projectName}` 
+            defaultSubject: `Milestone Report - ${emailCompose?.milestoneData?.projectName}`
           }}
         />
       )}

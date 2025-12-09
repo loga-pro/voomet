@@ -21,8 +21,11 @@ import Notification from '../components/Notifications/Notification';
 import useNotification from '../hooks/useNotification';
 import { milestonesAPI, inhouseMilestonesAPI, reportsAPI } from '../services/api';
 import EmailCompose from '../components/EmailCompose/emailCompose.jsx';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const InhouseMilestone = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [milestones, setMilestones] = useState([]);
   const [filteredMilestones, setFilteredMilestones] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,8 +66,6 @@ const InhouseMilestone = () => {
 
   useEffect(() => {
     fetchMilestones();
-
-    // Set up interval for periodic sync (every 60 seconds)
     const syncInterval = setInterval(() => {
     }, 10);
 
@@ -74,6 +75,12 @@ const InhouseMilestone = () => {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (location.state && location.state.formSuccess) {
+      fetchMilestones()
+    }
+  }, [location, navigate]);
 
   useEffect(() => {
     filterMilestones();
@@ -276,10 +283,7 @@ const InhouseMilestone = () => {
   };
 
   const handleEdit = (milestone) => {
-    // If this is a regular milestone (not yet edited in inhouse), we need to check if it exists in inhouse DB
-    // If it doesn't exist, we'll create it in inhouse DB when saving
-    setEditingMilestone(milestone);
-    setShowModal(true);
+    navigate('/inhouse-milestone/edit', { state: { milestone } });
   };
 
   const handlePreview = async (milestone) => {
@@ -660,13 +664,13 @@ const InhouseMilestone = () => {
             <div className="px-4 py-5 sm:p-6 bg-gray-50 border-b border-gray-200">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Client Name</label>
                   <select
                     value={filters.customer}
                     onChange={(e) => handleFilterChange('customer', e.target.value)}
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
                   >
-                    <option value="">All Customers</option>
+                    <option value="">All Client</option>
                     {uniqueCustomers.map(customer => (
                       <option key={customer} value={customer}>{customer}</option>
                     ))}
@@ -712,7 +716,7 @@ const InhouseMilestone = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Customer
+                      Client Name
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Project
@@ -959,27 +963,21 @@ const InhouseMilestone = () => {
       </div>
 
       {/* Add/Edit Modal */}
-      <Modal
+      {/* <Modal
         isOpen={showModal}
         onClose={() => {
           setShowModal(false);
           setEditingMilestone(null);
         }}
         title={editingMilestone ? 'Edit Milestone' : 'Add Milestone'}
-        size="6xl"
+        size="xl"
       >
         <InhouseMilestoneForm
-          milestone={editingMilestone}
-          onSuccess={handleFormSuccess}
           onEmailChange={handleEmailChange}
-          onCancel={() => {
-            setShowModal(false);
-            setEditingMilestone(null);
-          }}
           showNotification={showSuccess}
           showError={showError}
         />
-      </Modal>
+      </Modal> */}
 
       {/* View Modal */}
       <Modal
@@ -999,7 +997,7 @@ const InhouseMilestone = () => {
               <div>
                 <h2 className="text-xl font-semibold text-gray-800">{selectedMilestone.projectName || ''}</h2>
                 <div className="mt-1">
-                  <span className="text-sm text-gray-600">Customer: {selectedMilestone.customer || ''}</span>
+                  <span className="text-sm text-gray-600">Client Name: {selectedMilestone.customer || ''}</span>
                 </div>
               </div>
 
