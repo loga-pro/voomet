@@ -94,4 +94,5 @@ const ProfitLossSummary = () => {
     );
 };
 
+
 export default ProfitLossSummary;
