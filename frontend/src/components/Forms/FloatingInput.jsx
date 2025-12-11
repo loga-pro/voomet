@@ -11,6 +11,7 @@ const FloatingInput = ({
   options = [], 
   helperText,
   size = 'medium', // New size prop: 'small', 'medium', 'large'
+  hideLabel = false, // Destructure to prevent passing to DOM
   ...props 
 }) => {
   const [isFocused, setIsFocused] = useState(false);

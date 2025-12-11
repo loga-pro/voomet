@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PlusCircleIcon, MinusCircleIcon, XMarkIcon, CheckCircleIcon, InformationCircleIcon, ArrowRightIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import FloatingInput from './FloatingInput';
-import { purchaseRequestsAPI, partsAPI } from '../../services/api';
+import { purchaseRequestsAPI, partsAPI, inhouseMilestonesAPI } from '../../services/api';
 
 const scopeOptions = [
   { value: '', label: 'Select Scope' },
@@ -17,6 +17,8 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
   const [formData, setFormData] = useState({
     customerName: '',
     projectName: '',
+    milestoneStartDate: '',
+    milestoneEndDate: '',
     startDate: '',
     endDate: '',
     items: [
@@ -41,6 +43,8 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
   const [filteredParts, setFilteredParts] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
+  const [inhouseMilestones, setInhouseMilestones] = useState([]);
+  const [inhouseCustomers, setInhouseCustomers] = useState([]);
 
   // Validation constants
   const VALIDATION_RULES = {
@@ -70,6 +74,8 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
       setFormData({
         customerName: purchaseRequest.customerName || '',
         projectName: purchaseRequest.projectName || '',
+        milestoneStartDate: purchaseRequest.milestoneStartDate ? purchaseRequest.milestoneStartDate.split('T')[0] : '',
+        milestoneEndDate: purchaseRequest.milestoneEndDate ? purchaseRequest.milestoneEndDate.split('T')[0] : '',
         startDate: purchaseRequest.startDate ? purchaseRequest.startDate.split('T')[0] : '',
         endDate: purchaseRequest.endDate ? purchaseRequest.endDate.split('T')[0] : '',
         items: purchaseRequest.items?.length > 0 
@@ -97,17 +103,54 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
     }
   }, [purchaseRequest]);
 
-  // Filter projects by selected customer
+  // Fetch inhouseMilestones and populate customers
+  useEffect(() => {
+    const fetchInhouseMilestones = async () => {
+      try {
+        const milestonesRes = await inhouseMilestonesAPI.getAll();
+        const milestones = milestonesRes.data?.milestones || milestonesRes.data || [];
+        setInhouseMilestones(milestones);
+        
+        // Extract unique customers from inhouseMilestones
+        const uniqueCustomers = [...new Set(milestones.map(m => m.customer).filter(Boolean))];
+        setInhouseCustomers(uniqueCustomers.map(c => ({ customerName: c })));
+      } catch (error) {
+        console.error('Error fetching inhouse milestones:', error);
+      }
+    };
+    fetchInhouseMilestones();
+  }, []);
+
+  // Filter projects by selected customer from inhouseMilestones
   useEffect(() => {
     if (formData.customerName) {
-      const customerProjects = projects.filter(project => 
-        project.customerName === formData.customerName
+      const customerMilestones = inhouseMilestones.filter(milestone => 
+        milestone.customer === formData.customerName
       );
-      setFilteredProjects(customerProjects);
+      // Extract unique project names
+      const uniqueProjects = [...new Set(customerMilestones.map(m => m.projectName).filter(Boolean))];
+      setFilteredProjects(uniqueProjects.map(p => ({ projectName: p })));
     } else {
-      setFilteredProjects(projects);
+      setFilteredProjects([]);
     }
-  }, [formData.customerName, projects]);
+  }, [formData.customerName, inhouseMilestones]);
+
+  // Auto-populate milestone dates when project is selected (read-only)
+  useEffect(() => {
+    if (formData.customerName && formData.projectName) {
+      const selectedMilestone = inhouseMilestones.find(
+        m => m.customer === formData.customerName && m.projectName === formData.projectName
+      );
+      
+      if (selectedMilestone) {
+        setFormData(prev => ({
+          ...prev,
+          milestoneStartDate: selectedMilestone.startDate ? new Date(selectedMilestone.startDate).toISOString().split('T')[0] : '',
+          milestoneEndDate: selectedMilestone.endDate ? new Date(selectedMilestone.endDate).toISOString().split('T')[0] : ''
+        }));
+      }
+    }
+  }, [formData.customerName, formData.projectName, inhouseMilestones]);
 
   // Fetch parts based on scope of work
   useEffect(() => {
@@ -236,11 +279,15 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
       }));
     }
 
-    // Reset project name if customer changes
+    // Reset project name and dates if customer changes
     if (name === 'customerName') {
       setFormData(prev => ({
         ...prev,
-        projectName: ''
+        projectName: '',
+        milestoneStartDate: '',
+        milestoneEndDate: '',
+        startDate: '',
+        endDate: ''
       }));
     }
   };
@@ -471,9 +518,11 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
     setLoading(true);
     
     try {
-      // Prepare data for submission
+      // Prepare data for submission (exclude milestone fields - they're only for display)
+      const { milestoneStartDate, milestoneEndDate, ...dataToSubmit } = formData;
+      
       const submitData = {
-        ...formData,
+        ...dataToSubmit,
         items: formData.items.map(item => ({
           scopeOfWork: item.scopeOfWork,
           partName: item.partName,
@@ -534,6 +583,16 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
     }
   };
 
+  // Helper function to format date as "DD-MM-YYYY"
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Not set';
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
   return (
     <form onSubmit={handleSubmit} className="h-full flex flex-col">
   {/* FORM HEADER - Fixed at top */}
@@ -544,8 +603,8 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
       </h2>
     </div>
     
-    {/* Project Information Row - Matching image layout */}
-    <div className="grid grid-cols-5 gap-3 mb-4">
+    {/* Customer and Project Row */}
+    <div className="grid grid-cols-2 gap-4 mb-4">
       <FloatingInput
         label="Customer name"
         name="customerName"
@@ -554,11 +613,11 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
         type="select"
         options={[
           { value: '', label: 'Select Customer' },
-          ...customers.map(c => ({ value: c.customerName, label: c.customerName }))
+          ...inhouseCustomers.map(c => ({ value: c.customerName, label: c.customerName }))
         ]}
         error={showValidation && errors.customerName}
         required
-        size="small"
+        size="medium"
       />
 
       <FloatingInput
@@ -573,29 +632,53 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
         ]}
         error={showValidation && errors.projectName}
         required
-        size="small"
+        size="medium"
       />
+    </div>
 
+    {/* Milestone Dates Row (Read-only from InhouseMilestone) */}
+    <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className="relative">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Start Date
+        </label>
+        <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600">
+          {formatDate(formData.milestoneStartDate)}
+        </div>
+      </div>
+
+      <div className="relative">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          End Date
+        </label>
+        <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600">
+          {formatDate(formData.milestoneEndDate)}
+        </div>
+      </div>
+    </div>
+
+    {/* Purchase Request Dates Row (Editable) */}
+    <div className="grid grid-cols-2 gap-4 mb-4">
       <FloatingInput
-        label="Start date"
+        label="Purchase Request Start Date"
         name="startDate"
         value={formData.startDate}
         onChange={handleChange}
         type="date"
         error={showValidation && errors.startDate}
         required
-        size="small"
+        size="medium"
       />
 
       <FloatingInput
-        label="End date"
+        label="Purchase Request End Date"
         name="endDate"
         value={formData.endDate}
         onChange={handleChange}
         type="date"
         error={showValidation && errors.endDate}
         required
-        size="small"
+        size="medium"
       />
     </div>
   </div>

@@ -233,12 +233,12 @@ const Sidebar = ({ isOpen, onClose }) => {
       hasDropdown: true,
       children: [
         {
-          name: "Purchase Requests",
+          name: "Purchase Requisition",
           path: "/purchase-requests",
           permission: "purchase_request",
         },
         {
-          name: "Production Management",
+          name: "Production Entry System",
           path: "/production-management",
           permission: "production_management",
         },

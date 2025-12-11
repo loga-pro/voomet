@@ -334,7 +334,7 @@ const MilestoneTracking = () => {
       case 'Completed':
         return 100;
       case 'On track':
-        return 50;
+        return 0;
       case 'Likely Delay':
       case 'Delayed':
       case 'Not Started':
@@ -368,7 +368,7 @@ const MilestoneTracking = () => {
   };
 
   function handleCompletionChange(e, index) {
-    let value = e.target.value;
+    let value = parseInt(e.target.value) || 0;
     // Ensure max value is 100 and min is 0
     if (value > 100) value = 100;
     if (value < 0) value = 0;
@@ -377,6 +377,21 @@ const MilestoneTracking = () => {
       const newData = [...prev];
       const task = { ...newData[index] };
       task.completion = value;
+      task.isCompletionManuallyEdited = true; // Mark as manually edited
+      
+      // Update status based on completion percentage
+      // Only change status to Completed when 100%, otherwise keep existing status
+      if (value === 100) {
+        task.status = 'Completed';
+      } else if (value > 0 && value < 100 && task.status !== 'Completed') {
+        // Don't change status if it's "Likely Delay" or "Delayed"
+        // Only update to "On track" if current status is "Not Started"
+        if (task.status === 'Not Started') {
+          task.status = 'On track';
+        }
+        // For "Likely Delay", "Delayed", and "On track" - keep the status as is
+      }
+      
       newData[index] = task;
       return newData;
     });
@@ -426,6 +441,7 @@ const MilestoneTracking = () => {
           });
           task.status = newStatus;
           task.completion = 100;
+          task.isCompletionManuallyEdited = true; // Mark as edited since we're setting it to 100
         } else {
           // When actual end date is cleared, recalculate status without it
           const newStatus = determineStatusBasedOnDates({
@@ -434,25 +450,31 @@ const MilestoneTracking = () => {
           });
           task.status = newStatus;
           
-          const newCompletion = calculateCompletionPercentage({
-            ...task,
-            actualEndDate: ''
-          });
-          task.completion = newCompletion;
+          // Only recalculate completion if it wasn't manually edited
+          if (!task.isCompletionManuallyEdited) {
+            const newCompletion = calculateCompletionPercentage({
+              ...task,
+              actualEndDate: ''
+            });
+            task.completion = newCompletion;
+          }
         }
       } else if (field === 'actualStartDate' || field === 'startDate' || field === 'duration') {
-        // When any of these fields change, recalculate status and completion
+        // When any of these fields change, recalculate status
         const newStatus = determineStatusBasedOnDates({
           ...task,
           [field]: value
         });
         task.status = newStatus;
 
-        const newCompletion = calculateCompletionPercentage({
-          ...task,
-          [field]: value
-        });
-        task.completion = newCompletion;
+        // Only recalculate completion if it wasn't manually edited
+        if (!task.isCompletionManuallyEdited) {
+          const newCompletion = calculateCompletionPercentage({
+            ...task,
+            [field]: value
+          });
+          task.completion = newCompletion;
+        }
       }
 
       newData[index] = task;
@@ -525,13 +547,19 @@ const MilestoneTracking = () => {
             formatDateForInput(calculateBusinessDays(task.actualStartDate, task.duration)) : '');
 
         const status = determineStatusBasedOnDates(task);
-        const completion = calculateCompletionPercentage(task);
+        const calculatedCompletion = calculateCompletionPercentage(task);
+        
+        // Check if completion was manually edited
+        // If task has a saved completion value that differs from calculated, it was manually edited
+        const savedCompletion = task.completion !== undefined ? task.completion : calculatedCompletion;
+        const isManuallyEdited = task.completion !== undefined && task.completion !== calculatedCompletion;
 
         return {
           ...task,
           duration: task.duration || 0,
           status: status,
-          completion: completion,
+          completion: savedCompletion,
+          isCompletionManuallyEdited: isManuallyEdited,
           actualStartDate: task.actualStartDate ? new Date(task.actualStartDate).toISOString().split('T')[0] : '',
           actualEndDate: task.actualEndDate ? new Date(task.actualEndDate).toISOString().split('T')[0] : '',
           outlookCompletion: outlookCompletion,
@@ -903,18 +931,19 @@ const MilestoneTracking = () => {
                             <span className="font-medium text-gray-500">Completed:</span>
                             <span className="ml-1 text-green-600 font-medium">{finished}/{total}</span>
                           </div>
-                          {delayed > 0 && (
-                            <div>
-                              <span className="font-medium text-gray-500">Delayed:</span>
-                              <span className="ml-1 text-red-600 font-medium">{delayed}</span>
-                            </div>
-                          )}
                           {likelyDelayed > 0 && (
                             <div>
                               <span className="font-medium text-gray-500">Likely Delayed:</span>
                               <span className="ml-1 text-yellow-600 font-medium">{likelyDelayed}</span>
                             </div>
                           )}
+                          {delayed > 0 && (
+                            <div>
+                              <span className="font-medium text-gray-500">Delayed:</span>
+                              <span className="ml-1 text-red-600 font-medium">{delayed}</span>
+                            </div>
+                          )}
+                          
                         </div>
                       </div>
                     </div>
@@ -1014,37 +1043,37 @@ const MilestoneTracking = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                      <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
                         Client Name
                       </th>
-                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
+                      <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
                         Project
                       </th>
-                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
+                      <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
                         Plan Start
                       </th>
-                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
+                      <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
                         Plan End
                       </th>
-                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
+                      <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
                         Actual Start
                       </th>
-                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
+                      <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
                         Actual End
                       </th>
-                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                      <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
                         Outlook Completion
                       </th>
-                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
+                      <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
                         Total Activity
                       </th>
-                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                      <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
                         Activity Finished
                       </th>
-                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                      <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
                         Delayed/Likely Delayed
                       </th>
-                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                      <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
                         View Summary
                       </th>
                       <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
@@ -1059,24 +1088,24 @@ const MilestoneTracking = () => {
 
                       return (
                         <tr key={milestone._id} className="hover:bg-gray-50 transition-colors duration-150">
-                          <td className="px-4 py-4 whitespace-normal">
+                          <td className="px-4 py-4 whitespace-normal text-center">
                             <div className="text-sm font-medium text-gray-900 break-words">{milestone.customer || '-'}</div>
                           </td>
-                          <td className="px-4 py-4 whitespace-normal">
+                          <td className="px-4 py-4 whitespace-normal text-center">
                             <div className="text-sm text-gray-900 break-words">{milestone.projectName || '-'}</div>
                           </td>
 
-                          <td className="px-4 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap text-center">
                             <div className="text-sm text-gray-900">
                               {formatDate(milestone.startDate)}
                             </div>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap text-center">
                             <div className="text-sm text-gray-900">
                               {formatDate(milestone.endDate)}
                             </div>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap text-center">
                             <div className="text-sm text-gray-900">
                               {milestone.tasks && milestone.tasks.length > 0
                                 ? formatDate(milestone.tasks[0].actualStartDate)
@@ -1084,7 +1113,7 @@ const MilestoneTracking = () => {
                               }
                             </div>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap text-center">
                             <div className="text-sm text-gray-900">
                               {milestone.tasks && milestone.tasks.length > 0
                                 ? formatDate(milestone.tasks[0].actualEndDate)
@@ -1092,7 +1121,7 @@ const MilestoneTracking = () => {
                               }
                             </div>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap text-center">
                             <div className="text-sm text-gray-900">
                               {milestone.tasks && milestone.tasks.length > 0
                                 ? (() => {
@@ -1116,17 +1145,17 @@ const MilestoneTracking = () => {
                               }
                             </div>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap text-center">
                             <div className="text-sm text-gray-900 text-center">
                               {total}
                             </div>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap text-center">
                             <div className="text-sm text-gray-900 text-center">
                               {finished} / {total}
                             </div>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap text-center">
                             <div className="text-sm text-gray-900 text-center">
                               {delayed > 0 && <span className="text-red-600 font-medium">{delayed} Delayed</span>}
                               {delayed > 0 && likelyDelayed > 0 && <span>, </span>}
@@ -1154,13 +1183,14 @@ const MilestoneTracking = () => {
                                     <span>{summeryViewData.filter(task => task.status && task.status.includes('Completed')).length}</span>
                                   </div>
                                   <div>
-                                    <span className="text-red-600 font-medium">Delayed: </span>
-                                    <span>{summeryViewData.filter(task => task.status && (task.status.includes('Delayed') || task.status === 'Delayed')).length}</span>
-                                  </div>
-                                  <div>
                                     <span className="text-yellow-600 font-medium">Likely Delayed: </span>
                                     <span>{summeryViewData.filter(task => task.status && task.status === 'Likely Delay').length}</span>
                                   </div>
+                                  <div>
+                                    <span className="text-red-600 font-medium">Delayed: </span>
+                                    <span>{summeryViewData.filter(task => task.status && (task.status.includes('Delayed') || task.status === 'Delayed')).length}</span>
+                                  </div>
+                                  
                                 </div>
                               </div>
                             </>}
@@ -1342,13 +1372,13 @@ const MilestoneTracking = () => {
                   <span className="text-green-600 font-medium">Completed: </span>
                   <span>{trackingData.filter(task => task.status && task.status.includes('Completed')).length}</span>
                 </div>
+                 <div>
+                  <span className="text-yellow-600 font-medium">Likely Delayed: </span>
+                  <span>{trackingData.filter(task => task.status && task.status === 'Likely Delay').length}</span>
+                </div>
                 <div>
                   <span className="text-red-600 font-medium">Delayed: </span>
                   <span>{trackingData.filter(task => task.status && (task.status.includes('Delayed') || task.status === 'Delayed')).length}</span>
-                </div>
-                <div>
-                  <span className="text-yellow-600 font-medium">Likely Delayed: </span>
-                  <span>{trackingData.filter(task => task.status && task.status === 'Likely Delay').length}</span>
                 </div>
               </div>
             </div>
@@ -1359,40 +1389,40 @@ const MilestoneTracking = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
-                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] bg-gray-50">
+                      <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] bg-gray-50">
                         Phase
                       </th>
-                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px] bg-gray-50">
+                      <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px] bg-gray-50">
                         Task
                       </th>
-                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px] bg-gray-50">
+                      <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px] bg-gray-50">
                         Duration
                       </th>
-                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px] bg-gray-50">
+                      <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px] bg-gray-50">
                         Plan Start
                       </th>
-                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px] bg-gray-50">
+                      <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px] bg-gray-50">
                         Plan End
                       </th>
-                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] bg-gray-50">
+                      <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] bg-gray-50">
                         Responsible Person
                       </th>
-                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] bg-gray-50">
+                      <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] bg-gray-50">
                         Status
                       </th>
-                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px] bg-gray-50">
+                      <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px] bg-gray-50">
                         % Completion
                       </th>
-                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px] bg-gray-50">
+                      <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px] bg-gray-50">
                         Actual Start
                       </th>
-                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px] bg-gray-50">
+                      <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px] bg-gray-50">
                         Actual End
                       </th>
-                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] bg-gray-50">
+                      <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] bg-gray-50">
                         Outlook Completion
                       </th>
-                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px] bg-gray-50">
+                      <th scope="col" className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px] bg-gray-50">
                         Remarks
                       </th>
                     </tr>
@@ -1400,56 +1430,48 @@ const MilestoneTracking = () => {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {trackingData.map((task, index) => (
                       <tr key={index} className="hover:bg-gray-50">
-                        <td className="px-3 py-4 whitespace-normal text-sm text-gray-900 min-w-[120px]">
-                          <div className="bg-gray-50 px-3 py-2 rounded border border-gray-200">
-                            {task.phase || '-'}
-                          </div>
+                        <td className="px-3 py-4 whitespace-normal text-sm text-gray-900 min-w-[120px] text-center">
+                          {task.phase || '-'}
                         </td>
-                        <td className="px-3 py-4 whitespace-normal text-sm text-gray-900 min-w-[150px]">
-                          <div className="bg-gray-50 px-3 py-2 rounded border border-gray-200">
-                            {task.task || '-'}
-                          </div>
+                        <td className="px-3 py-4 whitespace-normal text-sm text-gray-900 min-w-[150px] text-center">
+                          {task.task || '-'}
                         </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 min-w-[100px]">
-                          <div className="bg-gray-50 px-3 py-2 rounded border border-gray-200 text-center">
-                            {task.duration || 0}
-                          </div>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 min-w-[100px] text-center">
+                          {task.duration || 0}
                         </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 min-w-[100px]">
-                          <div className="bg-gray-50 px-3 py-2 rounded border border-gray-200 text-center">
-                            {formatDateToDDMMYYYY(task.startDate) || '-'} 
-                          </div>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 min-w-[100px] text-center">
+                          {formatDateToDDMMYYYY(task.startDate) || '-'} 
                         </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 min-w-[100px]">
-                          <div className="bg-gray-50 px-3 py-2 rounded border border-gray-200 text-center">
-                            {formatDateToDDMMYYYY(task.endDate) || '-'}
-                          </div>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 min-w-[100px] text-center">
+                          {formatDateToDDMMYYYY(task.endDate) || '-'}
                         </td>
-                        <td className="px-3 py-4 whitespace-normal text-sm text-gray-900 min-w-[120px]">
-                          <div className="bg-gray-50 px-3 py-2 rounded border border-gray-200">
-                            {task.responsiblePerson || '-'}
-                          </div>
+                        <td className="px-3 py-4 whitespace-normal text-sm text-gray-900 min-w-[120px] text-center">
+                          {task.responsiblePerson || '-'}
                         </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 min-w-[120px]">
-                          <div className={`block w-full rounded-md border-gray-300 shadow-sm sm:text-sm px-3 py-2 ${getStatusColor(task.status)}`}>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 min-w-[120px] text-center">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
                             {task.status}
-                          </div>
+                          </span>
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 min-w-[100px]">
-                          <div className="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm px-3 py-2 bg-gray-50">
-                            {task.status === "On track" ? (
-                              <input
-                                type="number"
-                                max="100"
-                                min="0"
-                                value={task.completion}
-                                onChange={(e) => handleCompletionChange(e, index)}
-                                className="w-full bg-gray-50 border-none outline-none text-center"
-                              />
-                            ) : (
-                              `${task.completion}%`
-                            )}
-                          </div>
+                          {task.status === "Completed" ? (
+                            <div className="text-center">
+                              100%
+                            </div>
+                          ) : task.status === "On track" || task.status === "Delayed" || task.status === "Likely Delay" || task.status === "Not Started" ? (
+                            <input
+                              type="number"
+                              max="100"
+                              min="0"
+                              value={task.completion}
+                              onChange={(e) => handleCompletionChange(e, index)}
+                              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 text-center"
+                            />
+                          ) : (
+                            <div className="text-center">
+                              {task.completion}%
+                            </div>
+                          )}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 min-w-[100px]">
                           <input
@@ -1458,7 +1480,7 @@ const MilestoneTracking = () => {
                             onChange={(e) => handleTrackingChange(index, 'actualStartDate', e.target.value)}
                             min="1900-01-01"
                             max="2100-12-31"
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm text-center"
                           />
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 min-w-[100px]">
@@ -1468,7 +1490,7 @@ const MilestoneTracking = () => {
                             onChange={(e) => handleTrackingChange(index, 'actualEndDate', e.target.value)}
                             min="1900-01-01"
                             max="2100-12-31"
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm text-center"
                           />
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 min-w-[120px]">
@@ -1478,7 +1500,7 @@ const MilestoneTracking = () => {
                             onChange={(e) => handleTrackingChange(index, 'outlookCompletion', e.target.value)}
                             min="1900-01-01"
                             max="2100-12-31"
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-gray-50"
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-gray-50 text-center"
                             readOnly
                           />
                         </td>

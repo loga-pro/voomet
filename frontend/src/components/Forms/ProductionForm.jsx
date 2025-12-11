@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { projectsAPI, customersAPI, partsAPI } from '../../services/api';
+import { customersAPI, partsAPI, inhouseMilestonesAPI } from '../../services/api';
 import FloatingInput from './FloatingInput';
 import { 
   PlusCircleIcon, 
@@ -12,8 +12,8 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
   const [formData, setFormData] = useState({
     customerName: '',
     projectName: '',
-    overallProductionStart: '',
-    overallProductionEnd: '',
+    milestoneStartDate: '',
+    milestoneEndDate: '',
     startDate: '',
     endDate: '',
     items: [
@@ -38,6 +38,7 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
   const [filteredProjects, setFilteredProjects] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
+  const [inhouseMilestones, setInhouseMilestones] = useState([]);
 
   // Validation constants
   const VALIDATION_RULES = {
@@ -67,8 +68,8 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
       setFormData({
         customerName: production.customerName || '',
         projectName: production.projectName || '',
-        overallProductionStart: production.overallProductionStart || '',
-        overallProductionEnd: production.overallProductionEnd || '',
+        milestoneStartDate: production.milestoneStartDate ? production.milestoneStartDate.split('T')[0] : '',
+        milestoneEndDate: production.milestoneEndDate ? production.milestoneEndDate.split('T')[0] : '',
         startDate: production.startDate ? production.startDate.split('T')[0] : '',
         endDate: production.endDate ? production.endDate.split('T')[0] : '',
         items: production.items?.length > 0 
@@ -96,16 +97,22 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
     }
   }, [production]);
 
-  // Fetch customers, projects, and parts
+  // Fetch inhouseMilestones and parts
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [customersRes, partsRes] = await Promise.all([
-          customersAPI.getAll(),
+        const [milestonesRes, partsRes] = await Promise.all([
+          inhouseMilestonesAPI.getAll(),
           partsAPI.getAll()
         ]);
         
-        setCustomers(customersRes.data || []);
+        const milestones = milestonesRes.data?.milestones || milestonesRes.data || [];
+        setInhouseMilestones(milestones);
+        
+        // Extract unique customers from inhouseMilestones
+        const uniqueCustomers = [...new Set(milestones.map(m => m.customer).filter(Boolean))];
+        setCustomers(uniqueCustomers.map(c => ({ customerName: c })));
+        
         setParts(partsRes.data || []);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -115,31 +122,36 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
     fetchData();
   }, []);
 
-  // Filter projects based on selected customer
+  // Filter projects based on selected customer from inhouseMilestones
   useEffect(() => {
     if (formData.customerName) {
-      const customerProjects = projects.filter(project => 
-        project.customerName === formData.customerName
+      const customerMilestones = inhouseMilestones.filter(milestone => 
+        milestone.customer === formData.customerName
       );
-      setFilteredProjects(customerProjects);
+      // Extract unique project names
+      const uniqueProjects = [...new Set(customerMilestones.map(m => m.projectName).filter(Boolean))];
+      setFilteredProjects(uniqueProjects.map(p => ({ projectName: p })));
     } else {
-      setFilteredProjects(projects);
+      setFilteredProjects([]);
     }
-  }, [formData.customerName, projects]);
+  }, [formData.customerName, inhouseMilestones]);
 
-  // Fetch projects
+  // Auto-populate milestone dates when project is selected (read-only)
   useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const response = await projectsAPI.getAll();
-        setProjects(response.data || []);
-      } catch (error) {
-        console.error('Error fetching projects:', error);
+    if (formData.customerName && formData.projectName) {
+      const selectedMilestone = inhouseMilestones.find(
+        m => m.customer === formData.customerName && m.projectName === formData.projectName
+      );
+      
+      if (selectedMilestone) {
+        setFormData(prev => ({
+          ...prev,
+          milestoneStartDate: selectedMilestone.startDate ? new Date(selectedMilestone.startDate).toISOString().split('T')[0] : '',
+          milestoneEndDate: selectedMilestone.endDate ? new Date(selectedMilestone.endDate).toISOString().split('T')[0] : ''
+        }));
       }
-    };
-    
-    fetchProjects();
-  }, []);
+    }
+  }, [formData.customerName, formData.projectName, inhouseMilestones]);
 
   // Calculate gap when plan or actual changes
   useEffect(() => {
@@ -244,11 +256,15 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
       }));
     }
 
-    // Reset project name if customer changes
+    // Reset project name and dates if customer changes
     if (name === 'customerName') {
       setFormData(prev => ({
         ...prev,
-        projectName: ''
+        projectName: '',
+        milestoneStartDate: '',
+        milestoneEndDate: '',
+        startDate: '',
+        endDate: ''
       }));
     }
   };
@@ -349,20 +365,12 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
 
     if (!formData.startDate) {
       newErrors.startDate = 'Start date is required';
-    } else if (new Date(formData.startDate) > new Date(formData.endDate)) {
+    } else if (formData.endDate && new Date(formData.startDate) > new Date(formData.endDate)) {
       newErrors.startDate = 'Start date must be before end date';
     }
 
     if (!formData.endDate) {
       newErrors.endDate = 'End date is required';
-    }
-
-    if (!formData.overallProductionStart) {
-      newErrors.overallProductionStart = 'Overall Production Start is required';
-    }
-
-    if (!formData.overallProductionEnd) {
-      newErrors.overallProductionEnd = 'Overall Production End is required';
     }
 
     // Validate items
@@ -464,10 +472,12 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
     setLoading(true);
     
     try {
-      // Prepare data for submission
+      // Prepare data for submission (exclude milestone fields - they're only for display)
+      const { milestoneStartDate, milestoneEndDate, items, ...dataToSubmit } = formData;
+      
       const submitData = {
-        ...formData,
-        items: formData.items.map(item => ({
+        ...dataToSubmit,
+        productionDetails: formData.items.map(item => ({
           date: item.date,
           partName: item.partName,
           productionQuantityPlan: parseInt(item.productionQuantityPlan),
@@ -478,17 +488,8 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
         }))
       };
 
-      if (production) {
-        // Update existing production
-        await projectsAPI.updateProduction(production._id, submitData);
-        showSuccess('Production updated successfully');
-      } else {
-        // Create new production
-        await projectsAPI.createProduction(submitData);
-        showSuccess('Production created successfully');
-      }
-      
-      onSubmit(); // This will close the modal and refresh the list
+      // Pass data to parent component for API call
+      await onSubmit(submitData);
     } catch (error) {
       console.error('Error submitting production:', error);
       
@@ -528,6 +529,16 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
     }
   };
 
+  // Helper function to format date as "DD-MM-YYYY"
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Not set';
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
   const summary = calculateSummary();
 
   return (
@@ -540,8 +551,8 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
           </h2>
         </div>
         
-        {/* Project Information Row - Matching image layout */}
-        <div className="grid grid-cols-6 gap-4 mb-4">
+        {/* Customer and Project Row */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
           <FloatingInput
             label="Customer name"
             name="customerName"
@@ -573,22 +584,33 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
             size="medium"
             className="w-full"
           />
+        </div>
 
-          <FloatingInput
-            label="Overall Production"
-            name="overallProductionStart"
-            value={formData.overallProductionStart}
-            onChange={handleChange}
-            type="text"
-            error={showValidation && errors.overallProductionStart}
-          
-            required
-            size="medium"
-            className="w-full"
-          />
+        {/* Milestone Dates Row (Read-only from InhouseMilestone) */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="relative">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Start Date
+            </label>
+            <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600">
+              {formatDate(formData.milestoneStartDate)}
+            </div>
+          </div>
 
+          <div className="relative">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              End Date
+            </label>
+            <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600">
+              {formatDate(formData.milestoneEndDate)}
+            </div>
+          </div>
+        </div>
+
+        {/* Production Dates Row (Editable) */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
           <FloatingInput
-            label="Start date"
+            label="Production Start Date"
             name="startDate"
             value={formData.startDate}
             onChange={handleChange}
@@ -600,25 +622,12 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
           />
 
           <FloatingInput
-            label="End date"
+            label="Production End Date"
             name="endDate"
             value={formData.endDate}
             onChange={handleChange}
             type="date"
             error={showValidation && errors.endDate}
-            required
-            size="medium"
-            className="w-full"
-          />
-
-          <FloatingInput
-            label="Overall Production"
-            name="overallProductionEnd"
-            value={formData.overallProductionEnd}
-            onChange={handleChange}
-            type="text"
-            error={showValidation && errors.overallProductionEnd}
-           
             required
             size="medium"
             className="w-full"
@@ -652,12 +661,14 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
           <div className="flex-shrink-0 bg-gray-50 border-b border-gray-200">
             <div className="grid grid-cols-12 gap-8 px-8 py-4">
               <div className="col-span-1 text-sm font-medium text-gray-700">S.No</div>
-              <div className="col-span-1 text-sm font-medium text-gray-700">Date</div>
+              {/* Date column made wider */}
+              <div className="col-span-2 text-sm font-medium text-gray-700">Date</div>
               <div className="col-span-2 text-sm font-medium text-gray-700">Part Name</div>
               <div className="col-span-2 text-sm font-medium text-gray-700">Production Quantity</div>
               <div className="col-span-1 text-sm font-medium text-gray-700">Gap</div>
               <div className="col-span-2 text-sm font-medium text-gray-700">Reasons for Delay</div>
-              <div className="col-span-2 text-sm font-medium text-gray-700">Remarks</div>
+              {/* Adjusted remarks to keep total columns 12 */}
+              <div className="col-span-1 text-sm font-medium text-gray-700">Remarks</div>
               <div className="col-span-1 text-sm font-medium text-gray-700">Action</div>
             </div>
           </div>
@@ -671,16 +682,16 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
             ) : (
               <div className="divide-y divide-gray-200">
                 {formData.items.map((item, index) => (
-                  <div key={index} className="px-8 py-5 hover:bg-gray-50 grid grid-cols-12 gap-8">
-                    {/* S.No - More space */}
+                  <div key={index} className="px-8 py-5 hover:bg-gray-50 grid grid-cols-12 gap-8 min-w-0">
+                    {/* S.No */}
                     <div className="col-span-1 flex items-center">
                       <div className="w-10 h-10 flex items-center justify-center rounded-md bg-gray-100">
                         <span className="text-base font-medium text-gray-900">{item.sNo}</span>
                       </div>
                     </div>
 
-                    {/* Date - More width */}
-                    <div className="col-span-1">
+                    {/* Date - wider + allow shrinking/expansion */}
+                    <div className="col-span-2 min-w-0">
                       <FloatingInput
                         value={item.date}
                         onChange={(e) => handleItemChange(index, 'date', e.target.value)}
@@ -690,12 +701,12 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
                         size="medium"
                         hideLabel
                         placeholder="Select date"
-                        className="w-full"
+                        className="w-full min-w-0"
                       />
                     </div>
 
-                    {/* Part Name - More width */}
-                    <div className="col-span-2">
+                    {/* Part Name */}
+                    <div className="col-span-2 min-w-0">
                       <FloatingInput
                         value={item.partName}
                         onChange={(e) => handleItemChange(index, 'partName', e.target.value)}
@@ -712,13 +723,13 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
                         size="medium"
                         hideLabel
                         placeholder="Select part"
-                        className="w-full"
+                        className="w-full min-w-0"
                       />
                     </div>
 
-                    {/* Production Quantity - More space */}
+                    {/* Production Quantity */}
                     <div className="col-span-2 grid grid-cols-2 gap-4">
-                      <div>
+                      <div className="min-w-0">
                         <FloatingInput
                           label="Plan"
                           value={item.productionQuantityPlan}
@@ -730,11 +741,10 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
                           required
                           size="medium"
                           hideLabel
-
-                          className="w-full"
+                          className="w-full min-w-0"
                         />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <FloatingInput
                           label="Actual"
                           value={item.actualProduction}
@@ -746,13 +756,13 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
                           required
                           size="medium"
                           hideLabel
-                          className="w-full"
+                          className="w-full min-w-0"
                         />
                       </div>
                     </div>
 
-                    {/* Gap - More space */}
-                    <div className="col-span-1 flex items-center justify-center">
+                    {/* Gap */}
+                    <div className="col-span-1 flex items-center justify-center min-w-0">
                       <div className={`px-4 py-2.5 w-full text-center rounded-lg ${
                         parseInt(item.gap) > 0 ? 'bg-red-100 text-red-700 border border-red-200' :
                         parseInt(item.gap) < 0 ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' :
@@ -762,8 +772,8 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
                       </div>
                     </div>
 
-                    {/* Reasons for Delay - More width */}
-                    <div className="col-span-2">
+                    {/* Reasons for Delay */}
+                    <div className="col-span-2 min-w-0">
                       <div className="relative">
                         <FloatingInput
                           value={item.reasonForDelay}
@@ -771,10 +781,9 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
                           type="text"
                           size="medium"
                           hideLabel
-                         
                           maxLength={VALIDATION_RULES.REASON_FOR_DELAY.maxLength}
                           error={showValidation && errors.items?.[index]?.reasonForDelay}
-                          className="w-full"
+                          className="w-full min-w-0"
                         />
                         {item.reasonForDelay && (
                           <div className="absolute right-3 top-2.5 text-xs text-gray-400">
@@ -784,8 +793,8 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
                       </div>
                     </div>
 
-                    {/* Remarks - More width */}
-                    <div className="col-span-2">
+                    {/* Remarks */}
+                    <div className="col-span-1 min-w-0">
                       <div className="relative">
                         <FloatingInput
                           value={item.remarks}
@@ -793,10 +802,9 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
                           type="text"
                           size="medium"
                           hideLabel
-                       
                           maxLength={VALIDATION_RULES.REMARKS.maxLength}
                           error={showValidation && errors.items?.[index]?.remarks}
-                          className="w-full"
+                          className="w-full min-w-0"
                         />
                         {item.remarks && (
                           <div className="absolute right-3 top-2.5 text-xs text-gray-400">
@@ -806,7 +814,7 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
                       </div>
                     </div>
 
-                    {/* Action - More space */}
+                    {/* Action */}
                     <div className="col-span-1 flex items-center justify-center">
                       {formData.items.length > 1 && (
                         <button

@@ -61,7 +61,7 @@ const purchaseRequestSchema = new mongoose.Schema({
   },
   overallProduction: {
     type: String,
-    required: [true, 'Overall production description is required'],
+    required: false,
     trim: true
   },
   items: {

@@ -32,8 +32,8 @@ const Header = ({ onMenuClick }) => {
       '/project-budget': 'Project Budget',
       '/project-expenditures': 'Project Expenditures',
       '/logistic-expenditures': 'Logistic Expenditures',
-      '/purchase-requests': 'Purchase Requests',
-      '/production-management': 'Production Management',
+      '/purchase-requests': 'Purchase Requisition',
+      '/production-management': 'Production Entry System',
       '/reports': 'Report',
       '/inhouse-part-master': 'Inhouse Part Master'
     };

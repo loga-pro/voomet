@@ -225,28 +225,54 @@ const PurchaseRequestManagement = () => {
         "Project Name",
         "Start Date",
         "End Date",
-        "Overall Production",
-        "Total Items",
-        "Total Quantity",
+        "Scope of Work",
+        "Part Name",
+        "Quantity Required",
+        "Purpose",
+        "Unit Type",
+        "Estimated Cost",
         "Status",
-        "Remarks"
+        "Remarks",
+        "Created At"
       ];
 
-      const csvData = filteredRequests.map((request) => {
-        const totalItems = request.items?.length || 0;
-        const totalQuantity = request.items?.reduce((sum, item) => sum + (item.quantityRequired || 0), 0) || 0;
-        
-        return [
-          request.customerName,
-          request.projectName,
-          request.startDate,
-          request.endDate,
-          request.overallProduction,
-          totalItems,
-          totalQuantity,
-          request.status,
-          request.remarks || ""
-        ];
+      const csvData = [];
+      filteredRequests.forEach((request) => {
+        if (request.items && request.items.length > 0) {
+          request.items.forEach((item) => {
+            csvData.push([
+              request.customerName,
+              request.projectName,
+              request.startDate ? new Date(request.startDate).toLocaleDateString() : "",
+              request.endDate ? new Date(request.endDate).toLocaleDateString() : "",
+              item.scopeOfWork || "",
+              item.partName || "",
+              item.quantityRequired || 0,
+              item.purpose || "",
+              item.unitType || "",
+              item.estimatedCost || 0,
+              request.status,
+              request.remarks || "",
+              request.createdAt ? new Date(request.createdAt).toLocaleDateString() : ""
+            ]);
+          });
+        } else {
+          csvData.push([
+            request.customerName,
+            request.projectName,
+            request.startDate ? new Date(request.startDate).toLocaleDateString() : "",
+            request.endDate ? new Date(request.endDate).toLocaleDateString() : "",
+            "",
+            "",
+            0,
+            "",
+            "",
+            0,
+            request.status,
+            request.remarks || "",
+            request.createdAt ? new Date(request.createdAt).toLocaleDateString() : ""
+          ]);
+        }
       });
 
       const csvContent = [
@@ -297,14 +323,17 @@ const PurchaseRequestManagement = () => {
 
   const confirmDelete = async () => {
     try {
-      // await purchaseRequestsAPI.delete(requestToDelete._id);
+      await purchaseRequestsAPI.delete(requestToDelete._id);
       showSuccess("Purchase request deleted successfully");
       fetchPurchaseRequests();
       setShowDeleteModal(false);
       setRequestToDelete(null);
     } catch (error) {
       console.error("Error deleting purchase request:", error);
-      showError("Failed to delete purchase request");
+      const errorMessage = error.response?.data?.message || "Failed to delete purchase request";
+      showError(errorMessage);
+      setShowDeleteModal(false);
+      setRequestToDelete(null);
     }
   };
 
@@ -524,9 +553,6 @@ const PurchaseRequestManagement = () => {
                       Production Period
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Overall Production
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Items Count
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -576,12 +602,6 @@ const PurchaseRequestManagement = () => {
                           </div>
                         </td>
 
-                        {/* Overall Production */}
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">
-                            {request.overallProduction || "N/A"}
-                          </div>
-                        </td>
 
                         {/* Items Count */}
                         <td className="px-6 py-4">
@@ -927,12 +947,7 @@ const PurchaseRequestManagement = () => {
                   {selectedRequest.projectName}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Overall Production:</span>
-                <span className="text-sm font-medium text-gray-900">
-                  {selectedRequest.overallProduction}
-                </span>
-              </div>
+              
             </div>
           </div>
 

@@ -8,8 +8,8 @@ const { check, validationResult } = require('express-validator');
 const validateProduction = [
   check('customerName', 'Customer name is required').not().isEmpty().trim(),
   check('projectName', 'Project name is required').not().isEmpty().trim(),
-  check('overallProduction.startDate', 'Start date is required').not().isEmpty().isISO8601(),
-  check('overallProduction.endDate', 'End date is required').not().isEmpty().isISO8601(),
+  check('startDate', 'Start date is required').not().isEmpty().isISO8601(),
+  check('endDate', 'End date is required').not().isEmpty().isISO8601(),
   check('productionDetails', 'Production details are required').isArray({ min: 1 }),
   check('productionDetails.*.date', 'Date is required in production details').not().isEmpty().isISO8601(),
   check('productionDetails.*.partName', 'Part name is required in production details').not().isEmpty().trim(),
@@ -58,12 +58,12 @@ router.get('/', auth, async (req, res) => {
 
     // Date range filter
     if (dateFrom || dateTo) {
-      filter['overallProduction.startDate'] = {};
+      filter['startDate'] = {};
       if (dateFrom) {
-        filter['overallProduction.startDate'].$gte = new Date(dateFrom);
+        filter['startDate'].$gte = new Date(dateFrom);
       }
       if (dateTo) {
-        filter['overallProduction.startDate'].$lte = new Date(dateTo);
+        filter['startDate'].$lte = new Date(dateTo);
       }
     }
 
@@ -212,8 +212,8 @@ router.get('/export/csv', auth, async (req, res) => {
           csvData.push([
             `"${production.customerName}"`,
             `"${production.projectName}"`,
-            `"${production.overallProduction.startDate.toISOString().split('T')[0]}"`,
-            `"${production.overallProduction.endDate.toISOString().split('T')[0]}"`,
+            `"${production.startDate.toISOString().split('T')[0]}"`,
+            `"${production.endDate.toISOString().split('T')[0]}"`,
             `"${detail.partName}"`,
             detail.productionQuantityPlan,
             detail.actualProduction,
@@ -233,8 +233,8 @@ router.get('/export/csv', auth, async (req, res) => {
         csvData.push([
           `"${production.customerName}"`,
           `"${production.projectName}"`,
-          `"${production.overallProduction.startDate.toISOString().split('T')[0]}"`,
-          `"${production.overallProduction.endDate.toISOString().split('T')[0]}"`,
+          `"${production.startDate.toISOString().split('T')[0]}"`,
+          `"${production.endDate.toISOString().split('T')[0]}"`,
           '',
           '',
           '',
@@ -329,8 +329,8 @@ router.post('/', auth, validateProduction, async (req, res) => {
     }
 
     // Validate that end date is after start date
-    const startDate = new Date(req.body.overallProduction.startDate);
-    const endDate = new Date(req.body.overallProduction.endDate);
+    const startDate = new Date(req.body.startDate);
+    const endDate = new Date(req.body.endDate);
     
     if (endDate <= startDate) {
       return res.status(400).json({
@@ -436,8 +436,8 @@ router.put('/:id', auth, validateProduction, async (req, res) => {
     }
 
     // Validate that end date is after start date
-    const startDate = new Date(req.body.overallProduction.startDate);
-    const endDate = new Date(req.body.overallProduction.endDate);
+    const startDate = new Date(req.body.startDate);
+    const endDate = new Date(req.body.endDate);
     
     if (endDate <= startDate) {
       return res.status(400).json({
@@ -603,7 +603,7 @@ router.get('/status/:status', auth, async (req, res) => {
   try {
     const productions = await Production.find({ status: req.params.status })
       .populate('createdBy', 'name email')
-      .sort({ 'overallProduction.startDate': 1 });
+      .sort({ 'startDate': 1 });
 
     res.json({
       success: true,

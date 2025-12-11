@@ -48,20 +48,18 @@ const productionSchema = new mongoose.Schema({
     required: [true, 'Project name is required'],
     trim: true
   },
-  overallProduction: {
-    startDate: {
-      type: Date,
-      required: [true, 'Start date is required']
-    },
-    endDate: {
-      type: Date,
-      required: [true, 'End date is required'],
-      validate: {
-        validator: function(value) {
-          return value > this.overallProduction.startDate;
-        },
-        message: 'End date must be after start date'
-      }
+  startDate: {
+    type: Date,
+    required: [true, 'Start date is required']
+  },
+  endDate: {
+    type: Date,
+    required: [true, 'End date is required'],
+    validate: {
+      validator: function(value) {
+        return value > this.startDate;
+      },
+      message: 'End date must be after start date'
     }
   },
   productionDetails: {
@@ -135,11 +133,11 @@ productionSchema.pre('save', function(next) {
   
   // Auto-update status based on dates and production
   const now = new Date();
-  if (this.overallProduction.endDate < now && this.totalGap > 0) {
+  if (this.endDate < now && this.totalGap > 0) {
     this.status = 'delayed';
-  } else if (this.overallProduction.endDate < now) {
+  } else if (this.endDate < now) {
     this.status = 'completed';
-  } else if (this.overallProduction.startDate <= now && this.overallProduction.endDate >= now) {
+  } else if (this.startDate <= now && this.endDate >= now) {
     this.status = 'in-progress';
   }
   
@@ -150,8 +148,8 @@ productionSchema.pre('save', function(next) {
 productionSchema.index({ customerName: 1 });
 productionSchema.index({ projectName: 1 });
 productionSchema.index({ status: 1 });
-productionSchema.index({ 'overallProduction.startDate': 1 });
-productionSchema.index({ 'overallProduction.endDate': 1 });
+productionSchema.index({ startDate: 1 });
+productionSchema.index({ endDate: 1 });
 productionSchema.index({ createdAt: -1 });
 productionSchema.index({ 
   customerName: 1, 
@@ -175,7 +173,7 @@ productionSchema.statics.getSummary = async function() {
 
 // Static method to get production by status
 productionSchema.statics.getByStatus = async function(status) {
-  return this.find({ status }).sort({ 'overallProduction.startDate': 1 });
+  return this.find({ status }).sort({ startDate: 1 });
 };
 
 // Method to calculate production details summary

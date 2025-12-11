@@ -529,7 +529,8 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true }) => {
                     </div>
                   </div>
                   <div className="text-right text-xs leading-tight">
-                    <div className="font-semibold text-gray-700">                    No.166,Sy.No.40/1 ,3rd Phase
+                    <div className="font-semibold text-gray-700">                   
+                      No.166,Sy.No.40/1 ,3rd Phase
                       Obdenahalli Industrial Area,Kasabahobli
                       Doddaballapur
                     </div>

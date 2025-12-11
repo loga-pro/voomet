@@ -1257,7 +1257,7 @@ class PDFReportGenerator {
         ];
       });
       
-      const head = ['#', 'Phase', 'Task', 'Category', 'Duration', 'Start Date', 'End Date', 'Responsible'];
+      const head = ['#', 'Phase', 'Task', 'Category', 'Duration', 'Start Date', 'End Date', 'Responsible Person'];
       
       currentY = this._addUltraModernTable(doc, head, tableData, currentY, 'Project Tasks Timeline', {
         columnStyles: {

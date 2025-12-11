@@ -81,10 +81,8 @@ const ProductionManagement = () => {
         ...item,
         customerName: item.customerName || "",
         projectName: item.projectName || "",
-        overallProduction: item.overallProduction || {
-          startDate: "",
-          endDate: ""
-        },
+        startDate: item.startDate || "",
+        endDate: item.endDate || "",
         productionDetails: item.productionDetails || [],
         status: item.status || "active",
         createdAt: item.createdAt || new Date().toISOString(),
@@ -276,8 +274,8 @@ const ProductionManagement = () => {
             csvData.push([
               production.customerName,
               production.projectName,
-              production.overallProduction.startDate,
-              production.overallProduction.endDate,
+              production.startDate,
+              production.endDate,
               detail.partName,
               detail.productionQuantityPlan,
               detail.actualProduction,
@@ -291,8 +289,8 @@ const ProductionManagement = () => {
           csvData.push([
             production.customerName,
             production.projectName,
-            production.overallProduction.startDate,
-            production.overallProduction.endDate,
+            production.startDate,
+            production.endDate,
             "",
             "",
             "",
@@ -651,12 +649,12 @@ const ProductionManagement = () => {
                           <div className="text-sm text-gray-900">
                             <div className="flex items-center">
                               <CalendarIcon className="h-4 w-4 mr-1 text-gray-400" />
-                              {item.overallProduction.startDate ? 
-                                new Date(item.overallProduction.startDate).toLocaleDateString() : ""}
+                              {item.startDate ? 
+                                new Date(item.startDate).toLocaleDateString() : "N/A"}
                             </div>
                             <div className="flex items-center text-xs text-gray-500">
-                              to {item.overallProduction.endDate ? 
-                                new Date(item.overallProduction.endDate).toLocaleDateString() : ""}
+                              to {item.endDate ? 
+                                new Date(item.endDate).toLocaleDateString() : "N/A"}
                             </div>
                           </div>
                         </td>
@@ -783,8 +781,8 @@ const ProductionManagement = () => {
                       <div className="bg-gray-50 rounded-md p-2 border border-gray-200">
                         <div className="text-xs text-gray-500">Production Period</div>
                         <div className="text-sm font-medium text-gray-900">
-                          {item.overallProduction.startDate ? 
-                            new Date(item.overallProduction.startDate).toLocaleDateString() : ""}
+                          {item.startDate ? 
+                            new Date(item.startDate).toLocaleDateString() : "N/A"}
                         </div>
                       </div>
                       <div className="bg-gray-50 rounded-md p-2 border border-gray-200">
@@ -952,6 +950,8 @@ const ProductionManagement = () => {
             setShowModal(false);
             setEditingProduction(null);
           }}
+          showSuccess={showSuccess}
+          showError={showError}
         />
       </Modal>
 
@@ -987,11 +987,11 @@ const ProductionManagement = () => {
             </label>
             <div className="flex items-center text-sm text-gray-900">
               <CalendarIcon className="h-4 w-4 mr-2 text-gray-400" />
-              {selectedProduction.overallProduction.startDate ? 
-                new Date(selectedProduction.overallProduction.startDate).toLocaleDateString() : ""}
+              {selectedProduction.startDate ? 
+                new Date(selectedProduction.startDate).toLocaleDateString() : "N/A"}
               {" → "}
-              {selectedProduction.overallProduction.endDate ? 
-                new Date(selectedProduction.overallProduction.endDate).toLocaleDateString() : ""}
+              {selectedProduction.endDate ? 
+                new Date(selectedProduction.endDate).toLocaleDateString() : "N/A"}
             </div>
           </div>
           

@@ -669,7 +669,7 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                             color: '#374151',
                             whiteSpace: 'nowrap',
                             width: '12%'
-                          }}>Responsible</th>
+                          }}>Responsible Person</th>
                         </tr>
                       </thead>
                       <tbody>
