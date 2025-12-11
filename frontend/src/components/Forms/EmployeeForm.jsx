@@ -493,8 +493,9 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                       { value: '', label: 'Select Gender' },
                       { value: 'Male', label: 'Male' },
                       { value: 'Female', label: 'Female' },
-                      { value: 'Other', label: 'Other' }
+                      { value: 'Other', label: 'Other' },
                     ]}
+                    required
                   />
 
                   <FloatingInput

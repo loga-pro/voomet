@@ -106,23 +106,23 @@ const Sidebar = ({ isOpen, onClose }) => {
       icon: KeyIcon,
       permission: "employee_access",
     },
-    {
-      name: "Vendor Master",
-      path: "/vendor-master",
-      icon: BuildingStorefrontIcon,
-      permission: "vendor_master",
+     {
+      name: "Customer Master",
+      path: "/customer-master",
+      icon: UsersIcon,
+      permission: "customer_master",
     },
-    {
+     {
       name: "Project Master",
       path: "/project-master",
       icon: ClipboardDocumentListIcon,
       permission: "project_master",
     },
     {
-      name: "Customer Master",
-      path: "/customer-master",
-      icon: UsersIcon,
-      permission: "customer_master",
+      name: "Vendor Master",
+      path: "/vendor-master",
+      icon: BuildingStorefrontIcon,
+      permission: "vendor_master",
     },
     {
       name: "Part Master",
@@ -145,7 +145,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         {
           name: 'In-House BOQ',
           path: "/inhouse-boq",
-          permission: 'inoffice_boq',
+          permission: 'inhouse_boq',
         },
 
       ]

@@ -82,7 +82,7 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="inhouse-boq" element={
-              <ProtectedRoute requiredPermissions={['inoffice_boq']}>
+              <ProtectedRoute requiredPermissions={['inhouse_boq']}>
                 <InHouseBoqManagement />
               </ProtectedRoute>
             } />

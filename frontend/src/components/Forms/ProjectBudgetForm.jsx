@@ -363,7 +363,12 @@ const ProjectBudgetForm = ({ budget, onSubmit, onCancel, showNotification, showE
         if (name === 'negotiatedPrice') {
           const negotiated = parseFloat(value) || 0;
           const amountSpent = parseFloat(prev.amountSpent) || 0;
-          updated.netProfitLoss = (negotiated - amountSpent).toFixed(2);
+          // Only calculate netProfitLoss if there is actual spending
+          if (amountSpent > 0) {
+            updated.netProfitLoss = (negotiated - amountSpent).toFixed(2);
+          } else {
+            updated.netProfitLoss = '0.00';
+          }
         }
 
         return updated;
@@ -398,10 +403,14 @@ const ProjectBudgetForm = ({ budget, onSubmit, onCancel, showNotification, showE
     const totalAmountSpent = projectExpendituresTotal + logisticExpendituresTotal;
     setFormData(prev => {
       const negotiated = parseFloat(prev.negotiatedPrice) || 0;
+      // Only calculate netProfitLoss if there is actual spending
+      const netProfitLoss = totalAmountSpent > 0 
+        ? (negotiated - totalAmountSpent).toFixed(2)
+        : '0.00';
       return {
         ...prev,
         amountSpent: totalAmountSpent.toFixed(2),
-        netProfitLoss: (negotiated - totalAmountSpent).toFixed(2)
+        netProfitLoss: netProfitLoss
       };
     });
   }, [projectExpendituresTotal, logisticExpendituresTotal]);
@@ -594,16 +603,22 @@ const ProjectBudgetForm = ({ budget, onSubmit, onCancel, showNotification, showE
           totalPrice: parseFloat(log.totalPrice) || 0
         }));
 
+      // Calculate netProfitLoss - only if there is actual spending
+      const negotiatedPrice = parseFloat(formData.negotiatedPrice) || 0;
+      const netProfitLoss = totalAmountSpent > 0 
+        ? negotiatedPrice - totalAmountSpent 
+        : 0;
+
       const submitData = {
         financialYear: formData.financialYear,
         projectName: formData.projectName,
         customerName: formData.customerName,
         siteLocation: formData.siteLocation,
         quotedPrice: parseFloat(formData.quotedPrice) || 0,
-        negotiatedPrice: parseFloat(formData.negotiatedPrice) || 0,
+        negotiatedPrice: negotiatedPrice,
         amountSpent: totalAmountSpent,
-        netProfitLoss: (parseFloat(formData.negotiatedPrice) || 0) - totalAmountSpent,
-        overallBusinessImpact: parseFloat(formData.netProfitLoss) > 0 ? 'Low' : parseFloat(formData.netProfitLoss) < 0 ? 'High' : 'Medium',
+        netProfitLoss: netProfitLoss,
+        overallBusinessImpact: netProfitLoss > 0 ? 'Low' : netProfitLoss < 0 ? 'High' : 'Medium',
         projectExpenditures: projectExpenditures,
         logisticExpenditures: logisticExpenditures
       };

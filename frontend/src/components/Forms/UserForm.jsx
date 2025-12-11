@@ -25,7 +25,7 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
     "project_master",
     "vendor_master",
     'customer_boq',
-    'inoffice_boq',
+    'inhouse_boq',
     "milestone_management",
     "inhouse_milestone",
     "inventory_management",

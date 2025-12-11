@@ -86,9 +86,7 @@ const ProjectDetailsModal = ({ isOpen, onClose, stage, stageTitle }) => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Value
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Created Date
-                      </th>
+                     
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -104,9 +102,7 @@ const ProjectDetailsModal = ({ isOpen, onClose, stage, stageTitle }) => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {formatCurrency(project.totalProjectValue)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatDate(project.createdAt)}
-                        </td>
+                       
                       </tr>
                     ))}
                   </tbody>

@@ -30,6 +30,7 @@ const ProfitLossSummary = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalTitle, setModalTitle] = useState('');
     const [filteredProjects, setFilteredProjects] = useState([]);
+    const [activeKpiType, setActiveKpiType] = useState('all');
 
     useEffect(() => {
         fetchBudgets();
@@ -113,6 +114,7 @@ const ProfitLossSummary = () => {
 
         setFilteredProjects(filtered);
         setModalTitle(title);
+        setActiveKpiType(filterType);
         setIsModalOpen(true);
     };
 
@@ -123,6 +125,28 @@ const ProfitLossSummary = () => {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         }).format(amount || 0);
+    };
+
+    // Helper function to determine which columns to show
+    const getVisibleColumns = () => {
+        const baseColumns = ['projectName', 'customerName'];
+        
+        switch (activeKpiType) {
+            case 'all':
+                return baseColumns; // Show only Project Name and Customer Name
+            case 'boq':
+                return [...baseColumns, 'boqValue'];
+            case 'negotiated':
+                return [...baseColumns, 'negotiated'];
+            case 'spent':
+                return [...baseColumns, 'actualSpent'];
+            case 'profit':
+            case 'loss':
+            case 'net':
+                return [...baseColumns, 'boqValue', 'negotiated', 'actualSpent', 'netAmount', 'profitLoss'];
+            default:
+                return [...baseColumns, 'boqValue', 'negotiated', 'actualSpent', 'netAmount', 'profitLoss'];
+        }
     };
 
     if (summaryData.loading) {
@@ -162,7 +186,7 @@ const ProfitLossSummary = () => {
 
                     {/* Total BOQ Value */}
                     <div 
-                        onClick={() => handleCardClick('all', 'Projects - BOQ Value')}
+                        onClick={() => handleCardClick('boq', 'Projects - BOQ Value')}
                         className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg shadow p-4 sm:p-6 hover:shadow-lg transition-all transform hover:scale-105 duration-200 cursor-pointer"
                     >
                         <div className="flex items-center justify-between">
@@ -181,7 +205,7 @@ const ProfitLossSummary = () => {
 
                     {/* Negotiated Value */}
                     <div 
-                        onClick={() => handleCardClick('all', 'Projects - Negotiated Value')}
+                        onClick={() => handleCardClick('negotiated', 'Projects - Negotiated Value')}
                         className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-lg shadow p-4 sm:p-6 hover:shadow-lg transition-all transform hover:scale-105 duration-200 cursor-pointer"
                     >
                         <div className="flex items-center justify-between">
@@ -200,7 +224,7 @@ const ProfitLossSummary = () => {
 
                     {/* Actual Spent */}
                     <div 
-                        onClick={() => handleCardClick('all', 'Projects - Actual Spent')}
+                        onClick={() => handleCardClick('spent', 'Projects - Actual Spent')}
                         className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg shadow p-4 sm:p-6 hover:shadow-lg transition-all transform hover:scale-105 duration-200 cursor-pointer"
                     >
                         <div className="flex items-center justify-between">
@@ -263,87 +287,115 @@ const ProfitLossSummary = () => {
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Project Name
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Customer
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            BOQ Value
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Negotiated
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Actual Spent
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Net Amount
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Profit/Loss
-                                        </th>
+                                        {getVisibleColumns().includes('projectName') && (
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Project Name
+                                            </th>
+                                        )}
+                                        {getVisibleColumns().includes('customerName') && (
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Customer
+                                            </th>
+                                        )}
+                                        {getVisibleColumns().includes('boqValue') && (
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Project Value
+                                            </th>
+                                        )}
+                                        {getVisibleColumns().includes('negotiated') && (
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Negotiated
+                                            </th>
+                                        )}
+                                        {getVisibleColumns().includes('actualSpent') && (
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Actual Spent
+                                            </th>
+                                        )}
+                                        {getVisibleColumns().includes('netAmount') && (
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Net Amount
+                                            </th>
+                                        )}
+                                        {getVisibleColumns().includes('profitLoss') && (
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Profit/Loss
+                                            </th>
+                                        )}
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {filteredProjects.map((project) => (
                                         <tr key={project._id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center">
-                                                    <div className="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                                                        <BuildingStorefrontIcon className="h-5 w-5 text-blue-600" />
-                                                    </div>
-                                                    <div className="ml-3">
-                                                        <div className="text-sm font-medium text-gray-900">
-                                                            {project.projectName}
+                                            {getVisibleColumns().includes('projectName') && (
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center">
+                                                        <div className="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                                            <BuildingStorefrontIcon className="h-5 w-5 text-blue-600" />
                                                         </div>
-                                                        <div className="text-xs text-gray-500 flex items-center">
-                                                            <MapPinIcon className="h-3 w-3 mr-1" />
-                                                            {project.siteLocation}
+                                                        <div className="ml-3">
+                                                            <div className="text-sm font-medium text-gray-900">
+                                                                {project.projectName}
+                                                            </div>
+                                                            <div className="text-xs text-gray-500 flex items-center">
+                                                                <MapPinIcon className="h-3 w-3 mr-1" />
+                                                                {project.siteLocation}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {project.customerName}
-                                                <div className="text-xs text-gray-500">
-                                                    FY: {project.financialYear}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {formatCurrency(project.quotedPrice)}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {formatCurrency(project.negotiatedPrice)}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {formatCurrency(project.amountSpent)}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
-                                                <span className={project.netProfitLoss >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                                    {formatCurrency(project.netProfitLoss)}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                    project.netProfitLoss >= 0 
-                                                        ? 'bg-green-100 text-green-800' 
-                                                        : 'bg-red-100 text-red-800'
-                                                }`}>
-                                                    {project.netProfitLoss >= 0 ? (
-                                                        <>
-                                                            <ArrowTrendingUpIcon className="h-3 w-3 mr-1" />
-                                                            Profit
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <ArrowTrendingDownIcon className="h-3 w-3 mr-1" />
-                                                            Loss
-                                                        </>
-                                                    )}
-                                                </span>
-                                            </td>
+                                                </td>
+                                            )}
+                                            {getVisibleColumns().includes('customerName') && (
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                    {project.customerName}
+                                                    <div className="text-xs text-gray-500">
+                                                        FY: {project.financialYear}
+                                                    </div>
+                                                </td>
+                                            )}
+                                            {getVisibleColumns().includes('boqValue') && (
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                    {formatCurrency(project.quotedPrice)}
+                                                </td>
+                                            )}
+                                            {getVisibleColumns().includes('negotiated') && (
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                    {formatCurrency(project.negotiatedPrice)}
+                                                </td>
+                                            )}
+                                            {getVisibleColumns().includes('actualSpent') && (
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                    {formatCurrency(project.amountSpent)}
+                                                </td>
+                                            )}
+                                            {getVisibleColumns().includes('netAmount') && (
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
+                                                    <span className={project.netProfitLoss >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                                        {formatCurrency(project.netProfitLoss)}
+                                                    </span>
+                                                </td>
+                                            )}
+                                            {getVisibleColumns().includes('profitLoss') && (
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                        project.netProfitLoss >= 0 
+                                                            ? 'bg-green-100 text-green-800' 
+                                                            : 'bg-red-100 text-red-800'
+                                                    }`}>
+                                                        {project.netProfitLoss >= 0 ? (
+                                                            <>
+                                                                <ArrowTrendingUpIcon className="h-3 w-3 mr-1" />
+                                                                Profit
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <ArrowTrendingDownIcon className="h-3 w-3 mr-1" />
+                                                                Loss
+                                                            </>
+                                                        )}
+                                                    </span>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>

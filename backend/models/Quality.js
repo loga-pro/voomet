@@ -28,6 +28,11 @@ const qualitySchema = new mongoose.Schema({
     enum: ['open', 'closed'],
     default: 'open'
   },
+  personType: {
+    type: String,
+    enum: ['inhouse', 'outsourced'],
+    trim: true
+  },
   responsibility: {
     type: String,
     required: true

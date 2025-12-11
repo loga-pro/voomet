@@ -264,7 +264,6 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
         type="select"
         options={vendors.map(v => ({ value: v.vendorName, label: v.vendorName }))}
         error={errors.vendorName}
-        required
       />
 
       <FloatingInput

@@ -12,7 +12,7 @@ const permissionRouteMap = [
   { permission: 'customer_master', path: '/customer-master' },
   { permission: 'vendor_master', path: '/vendor-master' },
   { permission: 'customer_boq', path: '/customer-boq' },
-  { permission: 'inoffice_boq', path: '/inhouse-boq' },
+  { permission: 'inhouse_boq', path: '/inhouse-boq' },
   { permission: 'milestone_management', path: '/milestone-management' },
   { permission: 'inhouse_milestone', path: '/inhouse-milestone' },
   { permission: 'inventory_management', path: '/inventory-management' },

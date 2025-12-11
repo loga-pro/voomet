@@ -15,6 +15,17 @@ import {
   CurrencyRupeeIcon,
   ListBulletIcon,
   TagIcon,
+  BuildingOfficeIcon,
+  CalendarIcon,
+  ClipboardDocumentCheckIcon,
+  DocumentDuplicateIcon,
+  UserIcon,
+  PhoneIcon,
+  EnvelopeIcon,
+  MapPinIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 import Modal from "../components/Modals/Modal";
 import Notification from '../components/Notifications/Notification';
@@ -49,6 +60,7 @@ const InHouseBoqManagement = () => {
   const { notification, showSuccess, showError, hideNotification } =
     useNotification();
   const [selectedQuote, setSelectedQuote] = useState(null);
+
   // Function to format scope of work text
   const formatScopeOfWork = (scope) => {
     if (!scope) return "";
@@ -67,72 +79,76 @@ const InHouseBoqManagement = () => {
 
   // Fetch projects when customer filter changes
   useEffect(() => {
-    fetchProjectsByCustomer(filters.customer);
+    fetchProjects(filters.customer);
   }, [filters.customer]);
 
   const fetchBOQItems = async () => {
-  try {
-    setLoading(true);
-    const response = await boqAPI.getAll();
-    const items = Array.isArray(response.data.data) ? response.data.data : [];
-    setBoqItems(items);
+    try {
+      setLoading(true);
+      const response = await boqAPI.getAll();
+      const items = Array.isArray(response.data.data) ? response.data.data : [];
+      setBoqItems(items);
 
-    // Extract unique customers
-    const customers = [...new Set(items.map((item) => item.customer))].filter(Boolean);
-    setUniqueProjectNames(customers); // This should be renamed to setUniqueCustomers for clarity
+      // Extract unique customers
+      const customers = [...new Set(items.map((item) => item.customer))].filter(Boolean);
+      setUniqueProjectNames(customers);
 
-    const allScopes = items
-      .flatMap((item) =>
-        Array.isArray(item.scopeOfWork)
-          ? item.scopeOfWork
-          : [item.scopeOfWork]
-      )
-      .filter(Boolean);
-    const uniqueScopes = [...new Set(allScopes)].sort();
-    setUniqueScopeOfWork(uniqueScopes);
+      const allScopes = items
+        .flatMap((item) =>
+          Array.isArray(item.scopeOfWork)
+            ? item.scopeOfWork
+            : [item.scopeOfWork]
+        )
+        .filter(Boolean);
+      const uniqueScopes = [...new Set(allScopes)].sort();
+      setUniqueScopeOfWork(uniqueScopes);
 
-    // Extract unique item descriptions from all items
-    const itemDescriptions = [];
-    items.forEach(item => {
-      if (item.items && Array.isArray(item.items)) {
-        item.items.forEach(subItem => {
-          if (subItem.partName) {
-            itemDescriptions.push(subItem.partName);
-          }
-          if (subItem.itemDescription) {
-            itemDescriptions.push(subItem.itemDescription);
-          }
-        });
-      }
-      // Also check main item description if exists
-      if (item.itemDescription) {
-        itemDescriptions.push(item.itemDescription);
-      }
-    });
-    
-    const uniqueDescriptions = [...new Set(itemDescriptions)].filter(Boolean).sort();
-    setUniqueItemDescriptions(uniqueDescriptions);
-  } catch (error) {
-    console.error("Error fetching BOQ items:", error);
-    setBoqItems([]);
-    showError("Failed to fetch BOQ items");
-  } finally {
-    setLoading(false);
-  }
-};
+      // Extract unique item descriptions from all items
+      const itemDescriptions = [];
+      items.forEach(item => {
+        if (item.items && Array.isArray(item.items)) {
+          item.items.forEach(subItem => {
+            if (subItem.partName) {
+              itemDescriptions.push(subItem.partName);
+            }
+            if (subItem.itemDescription) {
+              itemDescriptions.push(subItem.itemDescription);
+            }
+          });
+        }
+        // Also check main item description if exists
+        if (item.itemDescription) {
+          itemDescriptions.push(item.itemDescription);
+        }
+      });
+      
+      const uniqueDescriptions = [...new Set(itemDescriptions)].filter(Boolean).sort();
+      setUniqueItemDescriptions(uniqueDescriptions);
+    } catch (error) {
+      console.error("Error fetching BOQ items:", error);
+      setBoqItems([]);
+      showError("Failed to fetch BOQ items");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Fetch projects when customer filter is selected
-  const fetchProjectsByCustomer = async (customerName) => {
-    if (customerName) {
-      try {
+  // Updated function to fetch projects
+  const fetchProjects = async (customerName) => {
+    try {
+      if (customerName) {
+        // Fetch projects for specific customer
         const response = await projectsAPI.getAll({ customerName });
         const projectsData = response.data || response;
         setProjects(projectsData || []);
-      } catch (error) {
-        console.error("Error fetching projects:", error);
-        setProjects([]);
+      } else {
+        // Fetch all projects when no customer is selected
+        const response = await projectsAPI.getAll();
+        const projectsData = response.data || response;
+        setProjects(projectsData || []);
       }
-    } else {
+    } catch (error) {
+      console.error("Error fetching projects:", error);
       setProjects([]);
     }
   };
@@ -143,69 +159,69 @@ const InHouseBoqManagement = () => {
   };
 
   const filterItems = () => {
-  const itemsArray = Array.isArray(boqItems) ? boqItems : [];
-  let filtered = itemsArray;
+    const itemsArray = Array.isArray(boqItems) ? boqItems : [];
+    let filtered = itemsArray;
 
-  if (filters.customer) {
-    filtered = filtered.filter((item) => item.customer === filters.customer);
-  }
+    if (filters.customer) {
+      filtered = filtered.filter((item) => item.customer === filters.customer);
+    }
 
-  if (filters.projectName) {
-    filtered = filtered.filter((item) => item.projectName === filters.projectName);
-  }
+    if (filters.projectName) {
+      filtered = filtered.filter((item) => item.projectName === filters.projectName);
+    }
 
-  if (filters.scopeOfWork) {
-    filtered = filtered.filter(
-      (item) =>
-        Array.isArray(item.scopeOfWork) &&
-        item.scopeOfWork.includes(filters.scopeOfWork)
-    );
-  }
+    if (filters.scopeOfWork) {
+      filtered = filtered.filter(
+        (item) =>
+          Array.isArray(item.scopeOfWork) &&
+          item.scopeOfWork.includes(filters.scopeOfWork)
+      );
+    }
 
-  // FIXED: Item Description Filter - Search in nested items
-  if (filters.itemDescription) {
-    filtered = filtered.filter((item) => {
-      // Check in main item description
-      if (item.itemDescription === filters.itemDescription) return true;
-      
-      // Check in nested items
-      if (item.items && Array.isArray(item.items)) {
-        return item.items.some(
-          (subItem) => 
-            subItem.partName === filters.itemDescription ||
-            subItem.itemDescription === filters.itemDescription
-        );
-      }
-      return false;
-    });
-  }
+    // FIXED: Item Description Filter - Search in nested items
+    if (filters.itemDescription) {
+      filtered = filtered.filter((item) => {
+        // Check in main item description
+        if (item.itemDescription === filters.itemDescription) return true;
+        
+        // Check in nested items
+        if (item.items && Array.isArray(item.items)) {
+          return item.items.some(
+            (subItem) => 
+              subItem.partName === filters.itemDescription ||
+              subItem.itemDescription === filters.itemDescription
+          );
+        }
+        return false;
+      });
+    }
 
-  // Apply overall search across multiple fields
-  if (searchTerm) {
-    const searchLower = searchTerm.toLowerCase();
-    filtered = filtered.filter(
-      (item) =>
-        item.customer?.toLowerCase().includes(searchLower) ||
-        item.projectName?.toLowerCase().includes(searchLower) ||
-        (Array.isArray(item.scopeOfWork) &&
-          item.scopeOfWork.some((scope) =>
-            scope.toLowerCase().includes(searchLower)
-          )) ||
-        item.itemDescription?.toLowerCase().includes(searchLower) ||
-        // Search in nested items
-        (item.items &&
-          item.items.some(
-            (subItem) =>
-              subItem.partName?.toLowerCase().includes(searchLower) ||
-              subItem.itemDescription?.toLowerCase().includes(searchLower) ||
-              subItem.partNumber?.toLowerCase().includes(searchLower)
-          )) ||
-        item.totalAmount?.toString().includes(searchTerm)
-    );
-  }
+    // Apply overall search across multiple fields
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (item) =>
+          item.customer?.toLowerCase().includes(searchLower) ||
+          item.projectName?.toLowerCase().includes(searchLower) ||
+          (Array.isArray(item.scopeOfWork) &&
+            item.scopeOfWork.some((scope) =>
+              scope.toLowerCase().includes(searchLower)
+            )) ||
+          item.itemDescription?.toLowerCase().includes(searchLower) ||
+          // Search in nested items
+          (item.items &&
+            item.items.some(
+              (subItem) =>
+                subItem.partName?.toLowerCase().includes(searchLower) ||
+                subItem.itemDescription?.toLowerCase().includes(searchLower) ||
+                subItem.partNumber?.toLowerCase().includes(searchLower)
+            )) ||
+          item.totalAmount?.toString().includes(searchTerm)
+      );
+    }
 
-  setFilteredItems(filtered);
-};
+    setFilteredItems(filtered);
+  };
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({
@@ -266,6 +282,28 @@ const InHouseBoqManagement = () => {
     const itemName = item.partName || item.itemDescription || "Unnamed Item";
 
     return `${itemName} (${quantity} ${unit})`;
+  };
+
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return "Not specified";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  // Format currency
+  const formatCurrency = (amount) => {
+    if (!amount) return "₹0.00";
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount);
   };
 
   // Pagination logic
@@ -351,6 +389,11 @@ const InHouseBoqManagement = () => {
     setSelectedItem(item);
   };
 
+  const handleDelete = (item) => {
+    setItemToDelete(item);
+    setShowDeleteModal(true);
+  };
+
   const confirmDelete = async () => {
     try {
       await boqAPI.delete(itemToDelete._id);
@@ -372,12 +415,11 @@ const InHouseBoqManagement = () => {
     );
   }
 
-
   return (
     <div className="bg-gray-50 p-2 sm:p-3 lg:p-4 xl:p-6">
       <div className="max-w-none w-full">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-auto mb-6">
-          {/* Header Section - Similar to CustomerMaster */}
+          {/* Header Section */}
           <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
               <div className="flex items-center space-x-3">
@@ -477,9 +519,8 @@ const InHouseBoqManagement = () => {
                       handleFilterChange("projectName", e.target.value)
                     }
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
-                    disabled={!filters.customer}
                   >
-                    <option value="">{filters.customer ? "All Projects" : "Select Customer First"}</option>
+                    <option value="">All Projects</option>
                     {projects.map((project) => (
                       <option key={project._id} value={project.projectName}>
                         {project.projectName}
@@ -508,7 +549,7 @@ const InHouseBoqManagement = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Item Description
+                    Part Name
                   </label>
                   <select
                     value={filters.itemDescription}
@@ -517,7 +558,7 @@ const InHouseBoqManagement = () => {
                     }
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
                   >
-                    <option value="">All Descriptions</option>
+                    <option value="">All Parts</option>
                     {uniqueItemDescriptions.map((description) => (
                       <option key={description} value={description}>
                         {description}
@@ -592,8 +633,8 @@ const InHouseBoqManagement = () => {
 
                             <td className="px-6 py-4">
                               <div className="text-sm text-gray-900">
-                                    {formatScopeDisplay(boq.scopeOfWork)}
-                                  </div>
+                                {formatScopeDisplay(boq.scopeOfWork)}
+                              </div>
                             </td>
                             {/* Actions Column */}
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -611,6 +652,13 @@ const InHouseBoqManagement = () => {
                                   title="Generate PDF"
                                 >
                                   <DocumentArrowDownIcon className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(boq)}
+                                  className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
+                                  title="Delete"
+                                >
+                                  <TrashIcon className="h-5 w-5" />
                                 </button>
                               </div>
                             </td>
@@ -662,13 +710,6 @@ const InHouseBoqManagement = () => {
                             title="View"
                           >
                             <EyeIcon className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleEdit(boq)}
-                            className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
-                            title="Edit"
-                          >
-                            <PencilSquareIcon className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleAdvancedPDFPreview(boq)}
@@ -784,7 +825,7 @@ const InHouseBoqManagement = () => {
             </div>
           </div>
 
-          {/* Pagination - Same as CustomerMaster */}
+          {/* Pagination */}
           {safeFilteredItems.length > 0 && (
             <div className="bg-white px-4 py-3 flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 sm:px-6">
               <div className="flex items-center mb-4 sm:mb-0">
@@ -844,7 +885,7 @@ const InHouseBoqManagement = () => {
                             className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
                                 ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
                                 : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
-                            }`}
+                              }`}
                           >
                             {page}
                           </button>
@@ -868,175 +909,311 @@ const InHouseBoqManagement = () => {
         </div>
       </div>
 
-      {/* View BOQ Modal */}
       {selectedItem && (
-        <Modal
-          isOpen={!!selectedItem}
-          onClose={() => setSelectedItem(null)}
-          title="BOQ Details"
-          size="lg"
-          className="font-sans"
-        >
-          <div className="space-y-0">
-            {/* Fixed Header Section */}
-            <div className="bg-white border-b border-gray-200 pb-4 sticky top-0 z-10">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <DocumentTextIcon className="h-6 w-6 text-blue-600" />
-                    </div>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">
-                      {selectedItem.customer}
-                    </h2>
-                    
-                  </div>
-                </div>
+  <Modal
+    isOpen={!!selectedItem}
+    onClose={() => setSelectedItem(null)}
+    title="BOQ Details"
+    size="xl"
+    className="font-sans"
+  >
+    <div className="space-y-6 max-h-[85vh] overflow-y-auto p-1">
+      {/* Consolidated Header Section */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-6">
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex items-center space-x-4">
+            <div className="flex-shrink-0">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg">
+                <DocumentTextIcon className="h-8 w-8 text-white" />
               </div>
             </div>
-
-            {/* Scrollable Content */}
-            <div className="max-h-[60vh] overflow-y-auto space-y-6 pt-4">
-              {/* Main Information Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* BOQ Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                    <DocumentTextIcon className="h-5 w-5 mr-2 text-blue-600" />
-                    BOQ Information
-                  </h3>
-
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-500 mb-1">
-                        Client Name
-                      </label>
-                      <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md border border-gray-200">
-                        {selectedItem.customer}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-500 mb-1">
-                        Project Name
-                      </label>
-                      <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md border border-gray-200">
-                        {selectedItem.projectName}
-                      </div>
-                    </div>
-
-                   
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-500 mb-1">
-                        Scope of Work
-                      </label>
-                      <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md border border-gray-200">
-                        {formatScopeDisplay(selectedItem.scopeOfWork)}
-                      </div>
-                    </div>
-                  </div>
+            <div>
+              {/* Consolidated Title Area */}
+              <div className="mb-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <BuildingOfficeIcon className="h-5 w-5 text-gray-500" />
+                  <span className="text-lg font-semibold text-gray-600">
+                    Client
+                  </span>
                 </div>
-
-                {/* Items & Pricing */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                    <CubeIcon className="h-5 w-5 mr-2 text-green-600" />
-                    Items & Pricing
-                  </h3>
-
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-500 mb-1">
-                        Total Items
-                      </label>
-                      <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md border border-gray-200 flex items-center">
-                        <ListBulletIcon className="h-4 w-4 mr-2 text-gray-400" />
-                        {selectedItem.items ? selectedItem.items.length : 0}{" "}
-                        items
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {selectedItem.customer || "Not specified"}
+                </h2>
               </div>
-
-              {/* Items List */}
-              {selectedItem.items && selectedItem.items.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                    <ListBulletIcon className="h-5 w-5 mr-2 text-amber-600" />
-                    Items List
-                  </h3>
-
-                  <div className="space-y-3">
-                    {selectedItem.items.map((item, index) => (
-                      <div
-                        key={index}
-                        className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-4 rounded-lg hover:shadow-md transition-all duration-200"
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                              <TagIcon className="h-4 w-4 text-blue-600" />
-                            </div>
-                            <div>
-                              <span className="font-semibold text-gray-900">
-                                {item.partName || item.itemDescription}
-                              </span>
-                              {item.partNumber && (
-                                <p className="text-xs text-gray-500">
-                                  Part: {item.partNumber}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                         
-                        </div>
-                        <div className="flex justify-between items-center text-xs text-blue-700 mt-2">
-                          <div className="flex items-center space-x-4">
-                            <span className="flex items-center">
-                              <CubeIcon className="h-3 w-3 mr-1" />
-                              {item.numberOfUnits || item.quantity || 0}{" "}
-                              {item.unitType || item.unit || ""}
-                            </span>
-                          </div>
-                          {item.remarks && (
-                            <span className="font-medium bg-blue-100 px-2 py-1 rounded">
-                              {item.remarks}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+              
+              <div className="border-l-2 border-blue-300 pl-3 mt-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <DocumentDuplicateIcon className="h-5 w-5 text-gray-500" />
+                  <span className="text-lg font-semibold text-gray-600">
+                    Project
+                  </span>
                 </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 pb-2">
-                {/* <button
-                  onClick={() => {
-                    setSelectedItem(null);
-                    handleEdit(selectedItem);
-                  }}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-                >
-                  <PencilSquareIcon className="h-4 w-4 mr-2" />
-                  Edit BOQ
-                </button> */}
-                <button
-                  onClick={() => setSelectedItem(null)}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-                >
-                  Close
-                </button>
+                <p className="text-xl font-bold text-gray-800">
+                  {selectedItem.projectName || "Not specified"}
+                </p>
               </div>
             </div>
           </div>
-        </Modal>
-      )}
+
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+            <div className="flex items-center mb-2">
+              <ListBulletIcon className="h-5 w-5 text-blue-600 mr-2" />
+              <span className="text-sm font-medium text-gray-700">Total Items</span>
+            </div>
+            <div className="text-2xl font-bold text-gray-900">
+              {selectedItem.items ? selectedItem.items.length : 0}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+            <div className="flex items-center mb-2">
+              <CubeIcon className="h-5 w-5 text-green-600 mr-2" />
+              <span className="text-sm font-medium text-gray-700">Total Quantity</span>
+            </div>
+            <div className="text-2xl font-bold text-gray-900">
+              {calculateItemStats(selectedItem.items).totalQty}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Units: {calculateItemStats(selectedItem.items).units.join(", ")}
+            </div>
+          </div>
+          
+        </div>
+      </div>
+
+      {/* Main Details Section */}
+      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-100 flex items-center">
+          <InformationCircleIcon className="h-5 w-5 text-blue-600 mr-2" />
+          Detailed Information
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Left Column - Contact & Location */}
+          <div className="space-y-6">
+            {/* Scope of Work */}
+            {selectedItem.scopeOfWork && (
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                  <div className="flex items-center">
+                    <ClipboardDocumentCheckIcon className="h-4 w-4 mr-2 text-gray-400" />
+                    Scope of Work
+                  </div>
+                </label>
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                  <div className="text-base text-gray-700 whitespace-pre-line">
+                    {formatScopeDisplay(selectedItem.scopeOfWork)}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Prepared By & Additional Info */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {selectedItem.preparedBy && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                    Prepared By
+                  </label>
+                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="text-base font-medium text-gray-900">
+                      {selectedItem.preparedBy}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Add other metadata fields here if needed */}
+            </div>
+          </div>
+        </div>
+
+        {/* Overall Remarks */}
+        {selectedItem.overallRemarks && (
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+              <div className="flex items-center">
+                <ChatBubbleLeftRightIcon className="h-4 w-4 mr-2 text-gray-400" />
+                Overall Remarks
+              </div>
+            </label>
+            <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+              <div className="text-sm text-gray-700 whitespace-pre-line">
+                {selectedItem.overallRemarks}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Items List Section */}
+      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-100 flex items-center">
+          <ListBulletIcon className="h-5 w-5 text-amber-600 mr-2" />
+          Items List ({selectedItem.items ? selectedItem.items.length : 0} items)
+        </h3>
+        
+        {selectedItem.items && selectedItem.items.length > 0 ? (
+          <div className="space-y-4">
+            {/* Desktop Table View */}
+            <div className="hidden md:block">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Item Description
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Quantity
+                      </th>
+                      {selectedItem.items.some(item => item.remarks) && (
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Remarks
+                        </th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {selectedItem.items.map((item, index) => (
+                      <tr key={index} className="hover:bg-gray-50 transition-colors duration-150">
+                        <td className="px-4 py-4">
+                          <div className="flex items-center">
+                            <div className="w-8 h-8 flex-shrink-0 bg-blue-100 rounded flex items-center justify-center mr-3">
+                              <span className="text-sm font-medium text-blue-600">
+                                {index + 1}
+                              </span>
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {item.partName || item.itemDescription || `Item ${index + 1}`}
+                              </div>
+                              {item.itemDescription && item.itemDescription !== item.partName && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {item.itemDescription}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {item.numberOfUnits || item.quantity || 0}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {item.unitType || item.unit || "units"}
+                          </div>
+                        </td>
+                        {selectedItem.items.some(item => item.remarks) && (
+                          <td className="px-4 py-4">
+                            <div className="text-sm text-gray-700 max-w-xs">
+                              {item.remarks || "-"}
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+              {selectedItem.items.map((item, index) => (
+                <div
+                  key={index}
+                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-200"
+                >
+                  <div className="flex items-start space-x-3 mb-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-medium text-blue-600">
+                        {index + 1}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900">
+                        {item.partName || item.itemDescription || `Item ${index + 1}`}
+                      </h4>
+                      {item.itemDescription && item.itemDescription !== item.partName && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          {item.itemDescription}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-gray-100">
+                    <div>
+                      <div className="text-xs text-gray-500">Quantity</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {item.numberOfUnits || item.quantity || 0} {item.unitType || item.unit || ""}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <div className="text-xs text-gray-500">Unit</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {item.unitType || item.unit || "units"}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {item.remarks && (
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <div className="text-xs text-gray-500 mb-1">Remarks</div>
+                      <div className="text-sm text-gray-700 bg-gray-50 px-3 py-2 rounded">
+                        {item.remarks}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-12 text-gray-500">
+            <DocumentDuplicateIcon className="h-16 w-16 mx-auto text-gray-300 mb-4" />
+            <p className="text-lg font-medium">No items in this BOQ</p>
+            <p className="text-sm mt-2">Add items to see them listed here</p>
+          </div>
+        )}
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0 pt-4 border-t border-gray-200">
+        <div className="text-sm text-gray-500">
+          <div className="flex items-center">
+            <CheckCircleIcon className="h-4 w-4 text-green-500 mr-1" />
+            BOQ is ready for processing
+          </div>
+        </div>
+        
+        <div className="flex space-x-3">
+          <button
+            onClick={() => handleAdvancedPDFPreview(selectedItem)}
+            className="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200"
+          >
+            <DocumentArrowDownIcon className="h-4 w-4 mr-2" />
+            Generate PDF
+          </button>
+          
+          <button
+            onClick={() => setSelectedItem(null)}
+            className="inline-flex items-center px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+          >
+            <XMarkIcon className="h-4 w-4 mr-2" />
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </Modal>
+)}
 
       {/* Notification */}
       <Notification
@@ -1051,7 +1228,7 @@ const InHouseBoqManagement = () => {
         <AdvancedBOQPDFGenerator
           boqData={pdfBOQData}
           onClose={() => setShowAdvancedPDF(false)}
-          hasInOffice = {false}
+          hasInOffice={false}
         />
       )}
 

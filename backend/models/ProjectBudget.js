@@ -51,8 +51,13 @@ projectBudgetSchema.pre('save', function(next) {
     // Update amountSpent
     this.amountSpent = projectTotal + logisticTotal;
     
-    // Calculate net profit/loss
-    this.netProfitLoss = (this.negotiatedPrice || 0) - (this.amountSpent || 0);
+    // Calculate net profit/loss only if there is actual spending
+    // If amountSpent is 0, netProfitLoss should also be 0
+    if (this.amountSpent > 0) {
+      this.netProfitLoss = (this.negotiatedPrice || 0) - this.amountSpent;
+    } else {
+      this.netProfitLoss = 0;
+    }
   } catch (err) {
     console.error('Error calculating budget totals:', err);
   }
@@ -82,12 +87,22 @@ projectBudgetSchema.pre('findOneAndUpdate', function(next) {
       if (update.$set) {
         update.$set.amountSpent = amountSpent;
         if (negotiatedPrice !== undefined) {
-          update.$set.netProfitLoss = negotiatedPrice - amountSpent;
+          // Only calculate netProfitLoss if there is actual spending
+          if (amountSpent > 0) {
+            update.$set.netProfitLoss = negotiatedPrice - amountSpent;
+          } else {
+            update.$set.netProfitLoss = 0;
+          }
         }
       } else {
         update.amountSpent = amountSpent;
         if (negotiatedPrice !== undefined) {
-          update.netProfitLoss = negotiatedPrice - amountSpent;
+          // Only calculate netProfitLoss if there is actual spending
+          if (amountSpent > 0) {
+            update.netProfitLoss = negotiatedPrice - amountSpent;
+          } else {
+            update.netProfitLoss = 0;
+          }
         }
       }
     }

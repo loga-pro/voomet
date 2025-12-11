@@ -524,9 +524,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true }) => {
                       }}
                     />
                     <div>
-                      <h1 className="text-2xl font-bold text-gray-900">
-                        VOOMET
-                      </h1>
+                     
 
                     </div>
                   </div>

@@ -16,6 +16,17 @@ import {
   CurrencyRupeeIcon,
   ListBulletIcon,
   TagIcon,
+  BuildingOfficeIcon,
+  CalendarIcon,
+  ClipboardDocumentCheckIcon,
+  DocumentDuplicateIcon,
+  UserIcon,
+  PhoneIcon,
+  EnvelopeIcon,
+  MapPinIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 import BOQForm from "../components/Forms/BOQForm";
 import Modal from "../components/Modals/Modal";
@@ -55,6 +66,7 @@ const CustomerBoqManagement = () => {
   const { notification, showSuccess, showError, hideNotification } =
     useNotification();
   const [selectedQuote, setSelectedQuote] = useState(null);
+
   // Function to format scope of work text
   const formatScopeOfWork = (scope) => {
     if (!scope) return "";
@@ -73,7 +85,7 @@ const CustomerBoqManagement = () => {
 
   // Fetch projects when customer filter changes
   useEffect(() => {
-    fetchProjectsByCustomer(filters.customer);
+    fetchProjects(filters.customer);
   }, [filters.customer]);
 
   const fetchBOQItems = async () => {
@@ -85,7 +97,7 @@ const CustomerBoqManagement = () => {
 
       // Extract unique customers
       const customers = [...new Set(items.map((item) => item.customer))].filter(Boolean);
-      setUniqueProjectNames(customers); // This should be renamed to setUniqueCustomers for clarity
+      setUniqueProjectNames(customers);
 
       // Extract unique project names
       const projectNames = [...new Set(items.map((item) => item.projectName))].filter(Boolean);
@@ -131,18 +143,22 @@ const CustomerBoqManagement = () => {
     }
   };
 
-  // Fetch projects when customer filter is selected
-  const fetchProjectsByCustomer = async (customerName) => {
-    if (customerName) {
-      try {
+  // Updated function to fetch projects
+  const fetchProjects = async (customerName) => {
+    try {
+      if (customerName) {
+        // Fetch projects for specific customer
         const response = await projectsAPI.getAll({ customerName });
         const projectsData = response.data || response;
         setProjects(projectsData || []);
-      } catch (error) {
-        console.error("Error fetching projects:", error);
-        setProjects([]);
+      } else {
+        // Fetch all projects when no customer is selected
+        const response = await projectsAPI.getAll();
+        const projectsData = response.data || response;
+        setProjects(projectsData || []);
       }
-    } else {
+    } catch (error) {
+      console.error("Error fetching projects:", error);
       setProjects([]);
     }
   };
@@ -276,6 +292,28 @@ const CustomerBoqManagement = () => {
     const itemName = item.partName || item.itemDescription || "Unnamed Item";
 
     return `${itemName} (${quantity} ${unit})`;
+  };
+
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return "Not specified";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  // Format currency
+  const formatCurrency = (amount) => {
+    if (!amount) return "₹0.00";
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount);
   };
 
   // Pagination logic
@@ -432,12 +470,11 @@ const CustomerBoqManagement = () => {
     );
   }
 
-
   return (
     <div className="bg-gray-50 p-2 sm:p-3 lg:p-4 xl:p-6">
       <div className="max-w-none w-full">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-auto mb-6">
-          {/* Header Section - Similar to CustomerMaster */}
+          {/* Header Section */}
           <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
               <div className="flex items-center space-x-3">
@@ -512,7 +549,7 @@ const CustomerBoqManagement = () => {
             </div>
           </div>
 
-          {/* Filters Section */}
+          {/* Filters Section - UPDATED */}
           {showFilters && (
             <div className="px-4 py-5 sm:p-6 bg-gray-50 border-b border-gray-200">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -545,9 +582,8 @@ const CustomerBoqManagement = () => {
                       handleFilterChange("projectName", e.target.value)
                     }
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
-                    disabled={!filters.customer}
                   >
-                    <option value="">{filters.customer ? "All Projects" : "Select Customer First"}</option>
+                    <option value="">All Projects</option>
                     {projects.map((project) => (
                       <option key={project._id} value={project.projectName}>
                         {project.projectName}
@@ -576,7 +612,7 @@ const CustomerBoqManagement = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Item Description
+                    Part Name
                   </label>
                   <select
                     value={filters.itemDescription}
@@ -585,7 +621,7 @@ const CustomerBoqManagement = () => {
                     }
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
                   >
-                    <option value="">All Descriptions</option>
+                    <option value="">All Parts</option>
                     {uniqueItemDescriptions.map((description) => (
                       <option key={description} value={description}>
                         {description}
@@ -700,7 +736,13 @@ const CustomerBoqManagement = () => {
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-left">
-                              <EyeIcon className="h-5 w-5 mr-2" onClick={() => handleShowItems(boq._id)} />
+                              <button
+                                onClick={() => handleShowItems(boq._id)}
+                                className="text-blue-600 hover:text-blue-900 transition-colors duration-150"
+                                title="View Items"
+                              >
+                                <EyeIcon className="h-5 w-5" />
+                              </button>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right">
                               <div className="space-y-2">
@@ -775,7 +817,7 @@ const CustomerBoqManagement = () => {
                     ) : (
                       <tr>
                         <td
-                          colSpan="6"
+                          colSpan="10"
                           className="px-6 py-8 text-center text-gray-500"
                         >
                           {Object.values(filters).some((val) => val !== "") ||
@@ -882,33 +924,29 @@ const CustomerBoqManagement = () => {
                         )}
                       </div>
 
-                      {/* Quantity & Pricing - Mobile */}
+                      {/* Financial Summary - Mobile */}
                       <div className="grid grid-cols-2 gap-3 mb-3">
                         <div className="bg-blue-50 rounded-lg p-2 border border-blue-100">
                           <div className="flex items-center space-x-1 mb-1">
-                            <CubeIcon className="h-3 w-3 text-blue-600" />
+                            <CurrencyRupeeIcon className="h-3 w-3 text-blue-600" />
                             <span className="text-xs font-medium text-gray-700">
-                              Qty
+                              Total
                             </span>
                           </div>
                           <div className="text-sm font-bold text-blue-700">
-                            {stats.totalQty} {stats.units.join(", ")}
+                            ₹{boq.finalTotalWithoutGST?.toLocaleString('en-IN')}
                           </div>
                         </div>
 
-                        <div className="bg-green-50 rounded-lg p-2 border border-green-100">
+                        <div className="bg-red-50 rounded-lg p-2 border border-red-100">
                           <div className="flex items-center space-x-1 mb-1">
-                            <CurrencyRupeeIcon className="h-3 w-3 text-green-600" />
+                            <CurrencyRupeeIcon className="h-3 w-3 text-red-600" />
                             <span className="text-xs font-medium text-gray-700">
-                              Price
+                              Discount
                             </span>
                           </div>
-                          <div className="text-sm font-bold text-green-700">
-                            {stats.minPrice === stats.maxPrice
-                              ? `₹${stats.minPrice.toFixed(2)}`
-                              : `₹${stats.minPrice.toFixed(
-                                2
-                              )}-₹${stats.maxPrice.toFixed(2)}`}
+                          <div className="text-sm font-bold text-red-700">
+                            -₹{(boq.discountAmount || 0).toLocaleString('en-IN')}
                           </div>
                         </div>
                       </div>
@@ -916,13 +954,13 @@ const CustomerBoqManagement = () => {
                       {/* Total Amount */}
                       <div className="flex justify-between items-center pt-2 border-t border-gray-200">
                         <span className="text-sm font-medium text-gray-700">
-                          Total Amount:
+                          Grand Total:
                         </span>
                         <span className="font-bold text-green-700 text-lg">
                           ₹
                           {parseFloat(
-                            boq.totalAmount || boq.totalWithGST || 0
-                          ).toFixed(2)}
+                            boq.totalWithGST || boq.totalAmount || 0
+                          ).toLocaleString('en-IN')}
                         </span>
                       </div>
                     </div>
@@ -939,7 +977,7 @@ const CustomerBoqManagement = () => {
             </div>
           </div>
 
-          {/* Pagination - Same as CustomerMaster */}
+          {/* Pagination */}
           {safeFilteredItems.length > 0 && (
             <div className="bg-white px-4 py-3 flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 sm:px-6">
               <div className="flex items-center mb-4 sm:mb-0">
@@ -1047,185 +1085,357 @@ const CustomerBoqManagement = () => {
         />
       </Modal>
 
-      {/* View BOQ Modal */}
+      {/* View BOQ Modal - IMPROVED VERSION */}
       {selectedItem && (
         <Modal
           isOpen={!!selectedItem}
-          onClose={() => setSelectedItem(null)}
+          onClose={() => {
+            setSelectedItem(null);
+            setViewModal(false);
+          }}
           title="BOQ Details"
-          size="lg"
+          size="xl"
           className="font-sans"
         >
-          <div className="space-y-0">
-            {/* Fixed Header Section */}
-            <div className="bg-white border-b border-gray-200 pb-4 sticky top-0 z-10">
-              <div className="flex items-start justify-between">
+          <div className="space-y-6 max-h-[85vh] overflow-y-auto p-1">
+            {/* Header Section */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-6">
+              <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-4">
                   <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <DocumentTextIcon className="h-6 w-6 text-blue-600" />
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg">
+                      <DocumentTextIcon className="h-8 w-8 text-white" />
                     </div>
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">
+                    <h2 className="text-2xl font-bold text-gray-900">
                       {selectedItem.customer}
                     </h2>
-
+                    <p className="text-lg text-gray-600 mt-1">
+                      {selectedItem.projectName}
+                    </p>
+                   
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-green-700">
-                    ₹
-                    {parseFloat(
-                      selectedItem.totalAmount || selectedItem.totalWithGST || 0
-                    ).toFixed(2)}
+               
+              </div>
+
+              {/* Financial Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+                <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                  <div className="flex items-center mb-2">
+                    <CurrencyRupeeIcon className="h-5 w-5 text-blue-600 mr-2" />
+                    <span className="text-sm font-medium text-gray-700">Subtotal</span>
                   </div>
-                  {selectedItem.totalWithGST &&
-                    selectedItem.totalWithGST !== selectedItem.totalAmount && (
-                      <div className="text-xs text-gray-500">
-                        Inc. GST: ₹
-                        {parseFloat(selectedItem.totalWithGST).toFixed(2)}
-                      </div>
-                    )}
+                  <div className="text-xl font-bold text-gray-900">
+                    {formatCurrency(selectedItem.finalTotalWithoutGST || 0)}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                  <div className="flex items-center mb-2">
+                    <CurrencyRupeeIcon className="h-5 w-5 text-red-600 mr-2" />
+                    <span className="text-sm font-medium text-gray-700">Discount</span>
+                  </div>
+                  <div className="text-xl font-bold text-red-700">
+                    -{formatCurrency(selectedItem.discountAmount || 0)}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {selectedItem.discountPercentage || 0}%
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                  <div className="flex items-center mb-2">
+                    <CurrencyRupeeIcon className="h-5 w-5 text-green-600 mr-2" />
+                    <span className="text-sm font-medium text-gray-700">GST</span>
+                  </div>
+                  <div className="text-xl font-bold text-green-700">
+                    {formatCurrency((selectedItem.totalWithGST || 0) - (selectedItem.finalTotalWithoutGST || 0))}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {selectedItem.gstPercentage || 0}%
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg p-4 border border-green-200 shadow-sm bg-gradient-to-r from-green-50 to-emerald-50">
+                  <div className="flex items-center mb-2">
+                    <CurrencyRupeeIcon className="h-5 w-5 text-emerald-600 mr-2" />
+                    <span className="text-sm font-medium text-gray-700">Grand Total</span>
+                  </div>
+                  <div className="text-2xl font-bold text-emerald-700">
+                    {formatCurrency(selectedItem.totalWithGST || selectedItem.totalAmount || 0)}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Scrollable Content */}
-            <div className="max-h-[60vh] overflow-y-auto space-y-6 pt-4">
-              {/* Main Information Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* BOQ Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                    <DocumentTextIcon className="h-5 w-5 mr-2 text-blue-600" />
-                    BOQ Information
+            {/* Main Details Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Client & Project Details */}
+              <div className="space-y-6">
+                <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100 flex items-center">
+                    <BuildingOfficeIcon className="h-5 w-5 text-blue-600 mr-2" />
+                    Client & Project Information
                   </h3>
-
-                  <div className="space-y-3">
+                  
+                  <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-500 mb-1">
+                      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
                         Client Name
                       </label>
-                      <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md border border-gray-200">
-                        {selectedItem.customer}
+                      <div className="text-base text-gray-900 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                        {selectedItem.customer || "Not specified"}
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-500 mb-1">
+                      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
                         Project Name
                       </label>
-                      <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md border border-gray-200">
-                        {selectedItem.projectName}
+                      <div className="text-base text-gray-900 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                        {selectedItem.projectName || "Not specified"}
                       </div>
                     </div>
-
-
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-500 mb-1">
+                      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
                         Scope of Work
                       </label>
-                      <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md border border-gray-200">
-                        {formatScopeDisplay(selectedItem.scopeOfWork)}
+                      <div className="text-base text-gray-900 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                        {formatScopeDisplay(selectedItem.scopeOfWork) || "Not specified"}
                       </div>
                     </div>
+
+                    {selectedItem.projectLocation && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+                          Project Location
+                        </label>
+                        <div className="text-base text-gray-900 bg-gray-50 p-3 rounded-lg border border-gray-200 flex items-start">
+                          <MapPinIcon className="h-4 w-4 text-gray-400 mr-2 mt-1 flex-shrink-0" />
+                          {selectedItem.projectLocation}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Items & Pricing */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                    <CubeIcon className="h-5 w-5 mr-2 text-green-600" />
-                    Items & Pricing
+                {/* Additional Information */}
+                <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100 flex items-center">
+                    <InformationCircleIcon className="h-5 w-5 text-indigo-600 mr-2" />
+                    Financial Details
                   </h3>
-
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-500 mb-1">
-                        Total Items
-                      </label>
-                      <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md border border-gray-200 flex items-center">
-                        <ListBulletIcon className="h-4 w-4 mr-2 text-gray-400" />
-                        {selectedItem.items ? selectedItem.items.length : 0}{" "}
-                        items
+                  
+                  <div className="space-y-4">
+                    {selectedItem.transportationCharges > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-700">Transportation Charges:</span>
+                        <span className="font-medium text-gray-900">
+                          {formatCurrency(selectedItem.transportationCharges)}
+                        </span>
                       </div>
-                    </div>
+                    )}
+
+                    {selectedItem.overallRemarks && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+                          Overall Remarks
+                        </label>
+                        <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                          {selectedItem.overallRemarks}
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedItem.preparedBy && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+                          Prepared By
+                        </label>
+                        <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-200 flex items-center">
+                          <UserIcon className="h-4 w-4 text-gray-400 mr-2" />
+                          {selectedItem.preparedBy}
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedItem.contactDetails && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+                          Contact Details
+                        </label>
+                        <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                          {selectedItem.contactDetails}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Items List */}
-              {selectedItem.items && selectedItem.items.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                    <ListBulletIcon className="h-5 w-5 mr-2 text-amber-600" />
+              <div className="space-y-6">
+                <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-100 flex items-center">
+                    <ListBulletIcon className="h-5 w-5 text-amber-600 mr-2" />
                     Items List
                   </h3>
-
-                  <div className="space-y-3">
-                    {selectedItem.items.map((item, index) => (
-                      <div
-                        key={index}
-                        className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-4 rounded-lg hover:shadow-md transition-all duration-200"
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                              <TagIcon className="h-4 w-4 text-blue-600" />
+                  
+                  {selectedItem.items && selectedItem.items.length > 0 ? (
+                    <div className="space-y-4">
+                      {selectedItem.items.map((item, index) => (
+                        <div
+                          key={index}
+                          className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 hover:shadow-md transition-all duration-200"
+                        >
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex items-start space-x-3">
+                              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                                <TagIcon className="h-5 w-5 text-blue-600" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-gray-900 text-base">
+                                  {item.partName || item.itemDescription || "Unnamed Item"}
+                                </h4>
+                                {item.partNumber && (
+                                  <p className="text-sm text-gray-600 mt-1">
+                                    Part #: {item.partNumber}
+                                  </p>
+                                )}
+                                {item.itemDescription && item.itemDescription !== item.partName && (
+                                  <p className="text-sm text-gray-600 mt-1">
+                                    Description: {item.itemDescription}
+                                  </p>
+                                )}
+                              </div>
                             </div>
-                            <div>
-                              <span className="font-semibold text-gray-900">
-                                {item.partName || item.itemDescription}
-                              </span>
-                              {item.partNumber && (
-                                <p className="text-xs text-gray-500">
-                                  Part: {item.partNumber}
-                                </p>
-                              )}
+                            <div className="text-right">
+                              <div className="text-lg font-bold text-green-700">
+                                {formatCurrency(item.totalPrice || 0)}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {item.numberOfUnits || item.quantity || 0} × {formatCurrency(item.unitPrice || 0)}
+                              </div>
                             </div>
                           </div>
-                          <span className="text-blue-700 font-bold bg-white px-3 py-1 rounded-md text-sm border border-blue-200">
-                            ₹{parseFloat(item.unitPrice || 0).toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center text-xs text-blue-700 mt-2">
-                          <div className="flex items-center space-x-4">
-                            <span className="flex items-center">
-                              <CubeIcon className="h-3 w-3 mr-1" />
-                              {item.numberOfUnits || item.quantity || 0}{" "}
-                              {item.unitType || item.unit || ""}
-                            </span>
+                          
+                          <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-blue-100">
+                            <div className="flex items-center">
+                              <CubeIcon className="h-4 w-4 text-blue-600 mr-2" />
+                              <div>
+                                <div className="text-xs text-gray-500">Quantity</div>
+                                <div className="font-medium text-gray-900">
+                                  {item.numberOfUnits || item.quantity || 0} {item.unitType || item.unit || ""}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center">
+                              <CurrencyRupeeIcon className="h-4 w-4 text-green-600 mr-2" />
+                              <div>
+                                <div className="text-xs text-gray-500">Unit Price</div>
+                                <div className="font-medium text-gray-900">
+                                  {formatCurrency(item.unitPrice || 0)}
+                                </div>
+                              </div>
+                            </div>
                           </div>
+                          
                           {item.remarks && (
-                            <span className="font-medium bg-blue-100 px-2 py-1 rounded">
-                              {item.remarks}
-                            </span>
+                            <div className="mt-3 pt-3 border-t border-blue-100">
+                              <div className="text-xs text-gray-500 mb-1">Remarks</div>
+                              <div className="text-sm text-gray-700 bg-white px-3 py-2 rounded-lg border border-blue-100">
+                                {item.remarks}
+                              </div>
+                            </div>
                           )}
                         </div>
+                      ))}
+                      
+                      {/* Items Summary */}
+                      <div className="mt-6 pt-6 border-t border-gray-200">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="text-right text-sm text-gray-600">Total Items:</div>
+                          <div className="font-semibold text-gray-900">
+                            {selectedItem.items.length}
+                          </div>
+                          
+                          <div className="text-right text-sm text-gray-600">Subtotal:</div>
+                          <div className="font-semibold text-gray-900">
+                            {formatCurrency(selectedItem.finalTotalWithoutGST || 0)}
+                          </div>
+                          
+                          <div className="text-right text-sm text-gray-600">Discount:</div>
+                          <div className="font-semibold text-red-700">
+                            -{formatCurrency(selectedItem.discountAmount || 0)}
+                          </div>
+                          
+                          <div className="text-right text-sm text-gray-600">After Discount:</div>
+                          <div className="font-semibold text-gray-900">
+                            {formatCurrency((selectedItem.finalTotalWithoutGST || 0) - (selectedItem.discountAmount || 0))}
+                          </div>
+                          
+                          <div className="text-right text-sm text-gray-600">GST ({selectedItem.gstPercentage || 0}%):</div>
+                          <div className="font-semibold text-green-700">
+                            {formatCurrency((selectedItem.totalWithGST || 0) - (selectedItem.finalTotalWithoutGST || 0))}
+                          </div>
+                          
+                          <div className="text-right text-sm font-medium text-gray-900">Grand Total:</div>
+                          <div className="font-bold text-emerald-700 text-lg">
+                            {formatCurrency(selectedItem.totalWithGST || selectedItem.totalAmount || 0)}
+                          </div>
+                        </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <DocumentDuplicateIcon className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                      <p className="text-lg font-medium">No items found</p>
+                      <p className="text-sm mt-1">This BOQ doesn't contain any items</p>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+            </div>
 
-              {/* Action Buttons */}
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 pb-2">
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0 pt-6 border-t border-gray-200">
+              <div className="text-sm text-gray-500">
+                Last updated: {formatDate(selectedItem.updatedAt || selectedItem.createdAt)}
+              </div>
+              
+              <div className="flex space-x-3">
                 <button
                   onClick={() => {
                     setSelectedItem(null);
+                    setViewModal(false);
                     handleEdit(selectedItem);
                   }}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
                 >
                   <PencilSquareIcon className="h-4 w-4 mr-2" />
                   Edit BOQ
                 </button>
+                
                 <button
-                  onClick={() => setSelectedItem(null)}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                  onClick={() => handleAdvancedPDFPreview(selectedItem)}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200"
                 >
+                  <DocumentArrowDownIcon className="h-4 w-4 mr-2" />
+                  Generate PDF
+                </button>
+                
+                <button
+                  onClick={() => {
+                    setSelectedItem(null);
+                    setViewModal(false);
+                  }}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                >
+                  <XMarkIcon className="h-4 w-4 mr-2" />
                   Close
                 </button>
               </div>
@@ -1279,6 +1489,7 @@ const CustomerBoqManagement = () => {
         </div>
       </Modal>
 
+      {/* Items Modal */}
       <Modal
         isOpen={showItemsModal}
         onClose={() => setShowItemsModal(false)}

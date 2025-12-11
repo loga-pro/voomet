@@ -32,7 +32,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: [
       'dashboard', 'employee_master', 'employee_access', 'part_master', 
-      'customer_master', 'project_master', 'vendor_master', 'customer_boq', 'inoffice_boq',
+      'customer_master', 'project_master', 'vendor_master', 'customer_boq', 'inhouse_boq',
       'milestone_management','inhouse_milestone',  'inventory_management', 'quality_management', 'payment_master', 'project_budget','logistic_expenditure','project_expenditure','purchase_request','production_management', 'reports', 'inhouse_partmaster', 'boq_management'
     ]
   }],

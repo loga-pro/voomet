@@ -22,7 +22,7 @@ import QualityForm from '../components/Forms/QualityForm';
 import Modal from '../components/Modals/Modal';
 import Notification from '../components/Notifications/Notification';
 import useNotification from '../hooks/useNotification';
-import api, { qualityAPI, customersAPI, vendorsAPI } from '../services/api';
+import api, { qualityAPI, customersAPI, vendorsAPI, employeesAPI } from '../services/api';
 
 const QualityManagement = () => {
   const [qualityIssues, setQualityIssues] = useState([]);
@@ -41,6 +41,7 @@ const QualityManagement = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [customers, setCustomers] = useState([]);
   const [vendors, setVendors] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -55,6 +56,7 @@ const QualityManagement = () => {
     fetchQualityIssues();
     fetchCustomers();
     fetchVendors();
+    fetchEmployees();
   }, []);
 
   useEffect(() => {
@@ -91,6 +93,15 @@ const QualityManagement = () => {
       setVendors(response.data || []);
     } catch (error) {
       console.error('Error fetching vendors:', error);
+    }
+  };
+
+  const fetchEmployees = async () => {
+    try {
+      const response = await employeesAPI.getAll();
+      setEmployees(response.data || []);
+    } catch (error) {
+      console.error('Error fetching employees:', error);
     }
   };
 
@@ -181,13 +192,14 @@ const QualityManagement = () => {
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   const exportToCSV = () => {
-    const headers = ['Customer', 'Scope of Work', 'Open Issues', 'Category', 'Status', 'Responsible person'];
+    const headers = ['Customer', 'Scope of Work', 'Open Issues', 'Category', 'Status', 'Person Type', 'Responsible Person'];
     const csvData = filteredIssues.map(issue => [
       issue.customer,
       Array.isArray(issue.scopeOfWork) ? issue.scopeOfWork.join(', ') : issue.scopeOfWork,
       issue.openIssues,
       issue.category,
       issue.status,
+      issue.personType || '',
       issue.responsibility
     ]);
 
@@ -844,6 +856,14 @@ const QualityManagement = () => {
               <h3 className="ml-3 text-lg font-semibold text-gray-900">Assignment & Timeline</h3>
             </div>
             <div className="space-y-4">
+              {viewingIssue.personType && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Person Type</label>
+                  <p className="text-sm text-gray-900 font-medium bg-indigo-50 px-3 py-2 rounded-lg border border-indigo-100 capitalize">
+                    {viewingIssue.personType}
+                  </p>
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Responsible Person</label>
                 <p className="text-sm text-gray-900 font-medium bg-green-50 px-3 py-2 rounded-lg border border-green-100">
