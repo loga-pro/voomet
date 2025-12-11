@@ -910,310 +910,171 @@ const InHouseBoqManagement = () => {
       </div>
 
       {selectedItem && (
-  <Modal
-    isOpen={!!selectedItem}
-    onClose={() => setSelectedItem(null)}
-    title="BOQ Details"
-    size="xl"
-    className="font-sans"
-  >
-    <div className="space-y-6 max-h-[85vh] overflow-y-auto p-1">
-      {/* Consolidated Header Section */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-6">
-        <div className="flex items-start justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            <div className="flex-shrink-0">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg">
-                <DocumentTextIcon className="h-8 w-8 text-white" />
-              </div>
-            </div>
-            <div>
-              {/* Consolidated Title Area */}
-              <div className="mb-2">
-                <div className="flex items-center gap-2 mb-1">
-                  <BuildingOfficeIcon className="h-5 w-5 text-gray-500" />
-                  <span className="text-lg font-semibold text-gray-600">
-                    Client
-                  </span>
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {selectedItem.customer || "Not specified"}
-                </h2>
+        <Modal
+          isOpen={!!selectedItem}
+          onClose={() => setSelectedItem(null)}
+          title=""
+          size="xl"
+        >
+          <div className="space-y-6 max-h-[85vh] overflow-y-auto p-2">
+            {/* Client & Project Information - Full Width */}
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <BuildingOfficeIcon className="h-5 w-5 text-gray-400 mr-2" />
+                  Client & Project Information
+                </h3>
               </div>
               
-              <div className="border-l-2 border-blue-300 pl-3 mt-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <DocumentDuplicateIcon className="h-5 w-5 text-gray-500" />
-                  <span className="text-lg font-semibold text-gray-600">
-                    Project
-                  </span>
-                </div>
-                <p className="text-xl font-bold text-gray-800">
-                  {selectedItem.projectName || "Not specified"}
-                </p>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-            <div className="flex items-center mb-2">
-              <ListBulletIcon className="h-5 w-5 text-blue-600 mr-2" />
-              <span className="text-sm font-medium text-gray-700">Total Items</span>
-            </div>
-            <div className="text-2xl font-bold text-gray-900">
-              {selectedItem.items ? selectedItem.items.length : 0}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-            <div className="flex items-center mb-2">
-              <CubeIcon className="h-5 w-5 text-green-600 mr-2" />
-              <span className="text-sm font-medium text-gray-700">Total Quantity</span>
-            </div>
-            <div className="text-2xl font-bold text-gray-900">
-              {calculateItemStats(selectedItem.items).totalQty}
-            </div>
-            <div className="text-xs text-gray-500 mt-1">
-              Units: {calculateItemStats(selectedItem.items).units.join(", ")}
-            </div>
-          </div>
-          
-        </div>
-      </div>
-
-      {/* Main Details Section */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-100 flex items-center">
-          <InformationCircleIcon className="h-5 w-5 text-blue-600 mr-2" />
-          Detailed Information
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Left Column - Contact & Location */}
-          <div className="space-y-6">
-            {/* Scope of Work */}
-            {selectedItem.scopeOfWork && (
-              <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
-                  <div className="flex items-center">
-                    <ClipboardDocumentCheckIcon className="h-4 w-4 mr-2 text-gray-400" />
-                    Scope of Work
+              <div className="px-6 py-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Client Name */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                      CLIENT NAME
+                    </label>
+                    <p className="text-sm font-medium text-gray-900">
+                      {selectedItem.customer || "Not specified"}
+                    </p>
                   </div>
-                </label>
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
-                  <div className="text-base text-gray-700 whitespace-pre-line">
-                    {formatScopeDisplay(selectedItem.scopeOfWork)}
+
+                  {/* Project Name */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                      PROJECT NAME
+                    </label>
+                    <p className="text-sm font-medium text-gray-900">
+                      {selectedItem.projectName || "Not specified"}
+                    </p>
+                  </div>
+
+                  {/* Scope of Work */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                      SCOPE OF WORK
+                    </label>
+                    <p className="text-sm text-gray-900">
+                      {formatScopeDisplay(selectedItem.scopeOfWork) || "Not specified"}
+                    </p>
+                  </div>
+
+                  {/* Total Items */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                      TOTAL ITEMS
+                    </label>
+                    <p className="text-sm font-medium text-gray-900">
+                      {selectedItem.items?.length || 0}
+                    </p>
                   </div>
                 </div>
-              </div>
-            )}
 
-            {/* Prepared By & Additional Info */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {selectedItem.preparedBy && (
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-                    Prepared By
-                  </label>
-                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <div className="text-base font-medium text-gray-900">
-                      {selectedItem.preparedBy}
+                {/* Project Location - Second Row (if available) */}
+                {selectedItem.projectLocation && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                          PROJECT LOCATION
+                        </label>
+                        <p className="text-sm text-gray-900 flex items-center">
+                          <MapPinIcon className="h-4 w-4 text-gray-400 mr-1 flex-shrink-0" />
+                          {selectedItem.projectLocation}
+                        </p>
+                      </div>
                     </div>
                   </div>
+                )}
+              </div>
+            </div>
+
+            {/* Items List */}
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <ListBulletIcon className="h-5 w-5 text-gray-400 mr-2" />
+                  Items List
+                </h3>
+              </div>
+              
+              {selectedItem.items && selectedItem.items.length > 0 ? (
+                <div className="px-6 py-5">
+                  {/* Items Table */}
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="text-left py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Part Name
+                          </th>
+                          <th className="text-left py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Units
+                          </th>
+                          {selectedItem.items.some(item => item.remarks) && (
+                            <th className="text-left py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                              Remarks
+                            </th>
+                          )}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedItem.items.map((item, index) => (
+                          <tr key={index} className="border-b border-gray-100">
+                            <td className="py-3 text-sm text-gray-900">
+                              <div>
+                                <div className="font-medium">{item.partName || item.itemDescription || "Unnamed Item"}</div>
+                                {item.partNumber && (
+                                  <div className="text-xs text-gray-500 mt-0.5">Part #: {item.partNumber}</div>
+                                )}
+                                {item.itemDescription && item.itemDescription !== item.partName && (
+                                  <div className="text-xs text-gray-600 mt-0.5">{item.itemDescription}</div>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 text-sm text-gray-900">
+                              {item.numberOfUnits || item.quantity || 0} {item.unitType || item.unit || ""}
+                            </td>
+                            {selectedItem.items.some(item => item.remarks) && (
+                              <td className="py-3 text-sm text-gray-700">
+                                {item.remarks || "-"}
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <div className="px-6 py-12 text-center">
+                  <DocumentDuplicateIcon className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                  <p className="text-base font-medium text-gray-500">No items found</p>
+                  <p className="text-sm text-gray-400 mt-1">This BOQ doesn't contain any items</p>
                 </div>
               )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row justify-end items-center gap-3 pt-5 border-t border-gray-200">
+              <button
+                onClick={() => handleAdvancedPDFPreview(selectedItem)}
+                className="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+              >
+                <DocumentArrowDownIcon className="h-4 w-4 mr-2" />
+                Generate PDF
+              </button>
               
-              {/* Add other metadata fields here if needed */}
+              <button
+                onClick={() => setSelectedItem(null)}
+                className="inline-flex items-center px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                <XMarkIcon className="h-4 w-4 mr-2" />
+                Close
+              </button>
             </div>
           </div>
-        </div>
-
-        {/* Overall Remarks */}
-        {selectedItem.overallRemarks && (
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
-              <div className="flex items-center">
-                <ChatBubbleLeftRightIcon className="h-4 w-4 mr-2 text-gray-400" />
-                Overall Remarks
-              </div>
-            </label>
-            <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
-              <div className="text-sm text-gray-700 whitespace-pre-line">
-                {selectedItem.overallRemarks}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Items List Section */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-100 flex items-center">
-          <ListBulletIcon className="h-5 w-5 text-amber-600 mr-2" />
-          Items List ({selectedItem.items ? selectedItem.items.length : 0} items)
-        </h3>
-        
-        {selectedItem.items && selectedItem.items.length > 0 ? (
-          <div className="space-y-4">
-            {/* Desktop Table View */}
-            <div className="hidden md:block">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Item Description
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Quantity
-                      </th>
-                      {selectedItem.items.some(item => item.remarks) && (
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Remarks
-                        </th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {selectedItem.items.map((item, index) => (
-                      <tr key={index} className="hover:bg-gray-50 transition-colors duration-150">
-                        <td className="px-4 py-4">
-                          <div className="flex items-center">
-                            <div className="w-8 h-8 flex-shrink-0 bg-blue-100 rounded flex items-center justify-center mr-3">
-                              <span className="text-sm font-medium text-blue-600">
-                                {index + 1}
-                              </span>
-                            </div>
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {item.partName || item.itemDescription || `Item ${index + 1}`}
-                              </div>
-                              {item.itemDescription && item.itemDescription !== item.partName && (
-                                <div className="text-xs text-gray-500 mt-1">
-                                  {item.itemDescription}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            {item.numberOfUnits || item.quantity || 0}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {item.unitType || item.unit || "units"}
-                          </div>
-                        </td>
-                        {selectedItem.items.some(item => item.remarks) && (
-                          <td className="px-4 py-4">
-                            <div className="text-sm text-gray-700 max-w-xs">
-                              {item.remarks || "-"}
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Mobile Card View */}
-            <div className="md:hidden space-y-4">
-              {selectedItem.items.map((item, index) => (
-                <div
-                  key={index}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-200"
-                >
-                  <div className="flex items-start space-x-3 mb-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-medium text-blue-600">
-                        {index + 1}
-                      </span>
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900">
-                        {item.partName || item.itemDescription || `Item ${index + 1}`}
-                      </h4>
-                      {item.itemDescription && item.itemDescription !== item.partName && (
-                        <p className="text-sm text-gray-600 mt-1">
-                          {item.itemDescription}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-gray-100">
-                    <div>
-                      <div className="text-xs text-gray-500">Quantity</div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {item.numberOfUnits || item.quantity || 0} {item.unitType || item.unit || ""}
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <div className="text-xs text-gray-500">Unit</div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {item.unitType || item.unit || "units"}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {item.remarks && (
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      <div className="text-xs text-gray-500 mb-1">Remarks</div>
-                      <div className="text-sm text-gray-700 bg-gray-50 px-3 py-2 rounded">
-                        {item.remarks}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-12 text-gray-500">
-            <DocumentDuplicateIcon className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-            <p className="text-lg font-medium">No items in this BOQ</p>
-            <p className="text-sm mt-2">Add items to see them listed here</p>
-          </div>
-        )}
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0 pt-4 border-t border-gray-200">
-        <div className="text-sm text-gray-500">
-          <div className="flex items-center">
-            <CheckCircleIcon className="h-4 w-4 text-green-500 mr-1" />
-            BOQ is ready for processing
-          </div>
-        </div>
-        
-        <div className="flex space-x-3">
-          <button
-            onClick={() => handleAdvancedPDFPreview(selectedItem)}
-            className="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200"
-          >
-            <DocumentArrowDownIcon className="h-4 w-4 mr-2" />
-            Generate PDF
-          </button>
-          
-          <button
-            onClick={() => setSelectedItem(null)}
-            className="inline-flex items-center px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
-          >
-            <XMarkIcon className="h-4 w-4 mr-2" />
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  </Modal>
-)}
+        </Modal>
+      )}
 
       {/* Notification */}
       <Notification
