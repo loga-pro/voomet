@@ -32,7 +32,8 @@ const ProtectedRoute = ({ children, requiredPermissions = [] }) => {
   }
 
   if (requiredPermissions.length > 0) {
-    const hasPermission = requiredPermissions.some(permission => 
+    const isAdmin = user.role === 'admin';
+    const hasPermission = isAdmin || requiredPermissions.some(permission => 
       user.permissions?.includes(permission)
     );
     

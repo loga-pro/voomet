@@ -25,6 +25,7 @@ const permissionRouteMap = [
   { permission: 'production_management', path: '/production-management' },
   { permission: 'reports', path: '/reports' },
     { permission: 'inhouse_partmaster', path: '/inhouse-part-master' },
+    { permission: 'stock_master', path: '/stock-master' },
 ];
 
 const HomeRedirect = () => {
@@ -35,6 +36,10 @@ const HomeRedirect = () => {
 
   if (firstAllowedRoute) {
     return <Navigate to={firstAllowedRoute.path} replace />;
+  }
+
+  if (user.role === 'admin') {
+    return <Navigate to="/dashboard" replace />;
   }
 
   // If no permissions match, or user object is not as expected, redirect to login

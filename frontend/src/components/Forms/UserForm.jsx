@@ -37,6 +37,7 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
     "purchase_request",
     "production_management",
     "reports",
+    "stock_master",
   ];
 
   const roleOptions = [

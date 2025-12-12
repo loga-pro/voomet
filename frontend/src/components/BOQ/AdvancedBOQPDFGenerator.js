@@ -537,11 +537,13 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true }) => {
                     <div className="text-gray-600">Bangalore</div>
                     <div className="text-gray-600">Karnataka, Code : 29</div>
                     <div className="text-gray-600">PIN: 561203</div>
-                    <div className="mt-1 text-gray-500">
-                      <div>Ph: {companyInfo.phone}</div>
-                      <div>Email: Accounts@voomet.com</div>
-                      <div>Web: {companyInfo.website}</div>
-                    </div>
+                    <div className="mt-1 text-gray-500 text-xs flex items-center gap-2">
+  <span>Ph: {companyInfo.phone}</span>
+  <span className="text-gray-400">|</span>
+  <span>Email: Accounts@voomet.com</span>
+  <span className="text-gray-400">|</span>
+  <span>Web: {companyInfo.website}</span>
+</div>
                   </div>
                 </div>
 

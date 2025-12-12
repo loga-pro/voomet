@@ -16,7 +16,7 @@ const receiptSchema = new mongoose.Schema({
     enum: ['buy', 'return'],
     default: 'buy'
   },
-  customerVendorName: String,
+  vendorName: String,
   invoiceNo: String,
   invoiceDate: Date,
   invoiceValueWithoutGST: {
@@ -57,7 +57,7 @@ const dispatchSchema = new mongoose.Schema({
     type: String,
     enum: ['dispatch', 'return']
   },
-  customerVendorName: String,
+  customerName: String,
   invoiceNo: String,
   invoiceDate: Date,
   invoiceValueWithoutGST: {
@@ -87,11 +87,16 @@ const dispatchSchema = new mongoose.Schema({
 const inventorySchema = new mongoose.Schema({
   customerVendorName: {
     type: String,
-    required: true
+  },
+  workCategory: {
+    type: String,
+  
+  },
+  partName: {
+    type: String,
   },
   reOrderLevel: {
     type: Number,
-    required: true,
     default: 0
   },
   

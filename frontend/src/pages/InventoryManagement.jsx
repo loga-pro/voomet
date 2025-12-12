@@ -123,10 +123,14 @@ const InventoryManagement = () => {
       
       setInventoryItems(processedItems);
 
-      // Extract work categories from receipts and dispatches
+      // Extract work categories
       const workCategoriesSet = new Set();
       processedItems.forEach(item => {
-        // Get work categories from receipts
+        // Root level
+        if (item.workCategory) {
+          workCategoriesSet.add(item.workCategory);
+        }
+        // Receipts
         if (item.receipts && item.receipts.length > 0) {
           item.receipts.forEach(receipt => {
             if (receipt.workCategory) {
@@ -134,7 +138,7 @@ const InventoryManagement = () => {
             }
           });
         }
-        // Get work categories from dispatches
+        // Dispatches
         if (item.dispatches && item.dispatches.length > 0) {
           item.dispatches.forEach(dispatch => {
             if (dispatch.workCategory) {
@@ -146,10 +150,14 @@ const InventoryManagement = () => {
       const workCategories = Array.from(workCategoriesSet).sort();
       setUniqueWorkCategories(workCategories);
 
-      // Extract part names from receipts and dispatches
+      // Extract part names
       const partNamesSet = new Set();
       processedItems.forEach(item => {
-        // Get part names from receipts
+        // Root level
+        if (item.partName) {
+          partNamesSet.add(item.partName);
+        }
+        // Receipts
         if (item.receipts && item.receipts.length > 0) {
           item.receipts.forEach(receipt => {
             if (receipt.partName) {
@@ -157,7 +165,7 @@ const InventoryManagement = () => {
             }
           });
         }
-        // Get part names from dispatches
+        // Dispatches
         if (item.dispatches && item.dispatches.length > 0) {
           item.dispatches.forEach(dispatch => {
             if (dispatch.partName) {
@@ -187,11 +195,15 @@ const InventoryManagement = () => {
 
     if (filters.workCategory) {
       filtered = filtered.filter((item) => {
-        // Check if any receipt has the work category
+        // Check root level first
+        if (item.workCategory?.toLowerCase().includes(filters.workCategory.toLowerCase())) {
+          return true;
+        }
+        // Check receipts
         const hasReceiptWithCategory = item.receipts?.some(receipt =>
           receipt.workCategory?.toLowerCase().includes(filters.workCategory.toLowerCase())
         );
-        // Check if any dispatch has the work category
+        // Check dispatches
         const hasDispatchWithCategory = item.dispatches?.some(dispatch =>
           dispatch.workCategory?.toLowerCase().includes(filters.workCategory.toLowerCase())
         );
@@ -201,11 +213,15 @@ const InventoryManagement = () => {
 
     if (filters.partName) {
       filtered = filtered.filter((item) => {
-        // Check if any receipt has the part name
+        // Check root level first
+        if (item.partName?.toLowerCase().includes(filters.partName.toLowerCase())) {
+          return true;
+        }
+        // Check receipts
         const hasReceiptWithPart = item.receipts?.some(receipt =>
           receipt.partName?.toLowerCase().includes(filters.partName.toLowerCase())
         );
-        // Check if any dispatch has the part name
+        // Check dispatches
         const hasDispatchWithPart = item.dispatches?.some(dispatch =>
           dispatch.partName?.toLowerCase().includes(filters.partName.toLowerCase())
         );
@@ -1862,7 +1878,7 @@ const InventoryManagement = () => {
       </div>
 
       {/* CSS for Custom Scrollbar */}
-      <style jsx>{`
+      <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
         }

@@ -174,6 +174,12 @@ const Sidebar = ({ isOpen, onClose }) => {
       ],
     },
     {
+      name: "Stock Master",
+      path: "/stock-master",
+      icon: CubeIcon,
+      permission: "stock_master",
+    },
+    {
       name: "Inventory Management",
       path: "/inventory-management",
       icon: TruckIcon,

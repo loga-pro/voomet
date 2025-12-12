@@ -51,10 +51,13 @@ router.post('/', auth, async (req, res) => {
   try {
     console.log('Creating inventory item with data:', JSON.stringify(req.body, null, 2));
     
-    if (!req.body.customerVendorName) {
+    const requiredFields = ['customerVendorName', 'workCategory', 'partName'];
+    const missingFields = requiredFields.filter(field => !req.body[field]);
+
+    if (missingFields.length > 0) {
       return res.status(400).json({
-        message: 'Missing required field: customerVendorName is required',
-        details: ['customerVendorName is required']
+        message: `Missing required fields: ${missingFields.join(', ')}`,
+        details: missingFields.map(field => `${field} is required`)
       });
     }
 
@@ -97,7 +100,7 @@ router.post('/', auth, async (req, res) => {
           workCategory: receipt.workCategory || '',
           partName: (receipt.partName || '').trim(),
           receiptCategory: receipt.receiptCategory || 'buy',
-          customerVendorName: receipt.customerVendorName || '',
+          vendorName: receipt.vendorName || receipt.customerVendorName || '',
           invoiceNo: receipt.invoiceNo || '',
           invoiceDate: validInvoiceDate,
           invoiceValueWithoutGST: validInvoiceValue,
@@ -141,7 +144,7 @@ router.post('/', auth, async (req, res) => {
           workCategory: dispatch.workCategory || '',
           partName: (dispatch.partName || '').trim(),
           dispatchCategory: dispatch.dispatchCategory || 'dispatch',
-          customerVendorName: dispatch.customerVendorName || '',
+          customerName: dispatch.customerName || dispatch.customerVendorName || '',
           invoiceNo: dispatch.invoiceNo || '',
           invoiceDate: validInvoiceDate,
           invoiceValueWithoutGST: validInvoiceValue,
@@ -215,10 +218,13 @@ router.put('/:id', auth, async (req, res) => {
     console.log('Updating inventory item with ID:', req.params.id);
     console.log('Update data:', JSON.stringify(req.body, null, 2));
     
-    if (!req.body.customerVendorName) {
+    const requiredFields = ['customerVendorName', 'workCategory', 'partName'];
+    const missingFields = requiredFields.filter(field => !req.body[field]);
+
+    if (missingFields.length > 0) {
       return res.status(400).json({
-        message: 'Missing required field: customerVendorName is required',
-        details: ['customerVendorName is required']
+        message: `Missing required fields: ${missingFields.join(', ')}`,
+        details: missingFields.map(field => `${field} is required`)
       });
     }
 
@@ -252,7 +258,7 @@ router.put('/:id', auth, async (req, res) => {
           workCategory: receipt.workCategory || '',
           partName: (receipt.partName || '').trim(),
           receiptCategory: receipt.receiptCategory || 'buy',
-          customerVendorName: receipt.customerVendorName || '',
+          vendorName: receipt.vendorName || receipt.customerVendorName || '',
           invoiceNo: receipt.invoiceNo || '',
           invoiceDate: validInvoiceDate,
           invoiceValueWithoutGST: validInvoiceValue,
@@ -296,7 +302,7 @@ router.put('/:id', auth, async (req, res) => {
           workCategory: dispatch.workCategory || '',
           partName: (dispatch.partName || '').trim(),
           dispatchCategory: dispatch.dispatchCategory || 'dispatch',
-          customerVendorName: dispatch.customerVendorName || '',
+          customerName: dispatch.customerName || dispatch.customerVendorName || '',
           invoiceNo: dispatch.invoiceNo || '',
           invoiceDate: validInvoiceDate,
           invoiceValueWithoutGST: validInvoiceValue,

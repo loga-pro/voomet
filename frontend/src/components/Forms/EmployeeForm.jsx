@@ -27,6 +27,8 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
   const [activeTab, setActiveTab] = useState('personal');
   const [touchedFields, setTouchedFields] = useState({});
   const [visitedTabs, setVisitedTabs] = useState(new Set(['personal']));
+  const [showNextError, setShowNextError] = useState(false);
+  const [nextErrorMessage, setNextErrorMessage] = useState('');
   const formRef = useRef(null);
 
   // Map fields to their respective tabs for error navigation
@@ -197,6 +199,30 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
     return error;
   };
 
+  // Function to get error messages for current tab
+  const getCurrentTabErrors = () => {
+    const tabFields = Object.keys(fieldToTabMap).filter(field => fieldToTabMap[field] === activeTab);
+    const requiredFields = tabRequiredFields[activeTab] || [];
+    const errorMessages = [];
+    
+    // Check required fields
+    requiredFields.forEach(field => {
+      const value = formData[field];
+      if (!value || value.trim() === '') {
+        errorMessages.push(`${field.charAt(0).toUpperCase() + field.slice(1)} is required`);
+      }
+    });
+    
+    // Check validation errors
+    tabFields.forEach(field => {
+      if (errors[field]) {
+        errorMessages.push(errors[field]);
+      }
+    });
+    
+    return errorMessages;
+  };
+
   // Function to validate all fields in a specific tab
   const validateTab = (tabId) => {
     const tabFields = Object.keys(fieldToTabMap).filter(field => fieldToTabMap[field] === tabId);
@@ -239,6 +265,11 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
     // Mark field as touched
     if (!touchedFields[name]) {
       setTouchedFields(prev => ({ ...prev, [name]: true }));
+    }
+    
+    // Hide error popup when user starts typing
+    if (showNextError) {
+      setShowNextError(false);
     }
     
     // Validation for specific fields
@@ -430,6 +461,9 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
   const handleNext = (e) => {
     e.preventDefault();
     
+    // Hide any previous error popup
+    setShowNextError(false);
+    
     // Validate current tab before proceeding
     if (validateTab(activeTab)) {
       const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
@@ -437,12 +471,26 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
         setActiveTab(tabs[currentIndex + 1].id);
         setVisitedTabs(prev => new Set([...prev, tabs[currentIndex + 1].id]));
       }
+    } else {
+      // Get error messages for current tab
+      const errorMessages = getCurrentTabErrors();
+      if (errorMessages.length > 0) {
+        // Show red popup with error messages
+        setNextErrorMessage(errorMessages[0]); // Show first error message
+        setShowNextError(true);
+        
+        // Auto-hide the popup after 5 seconds
+        setTimeout(() => {
+          setShowNextError(false);
+        }, 5000);
+      }
     }
   };
 
   // Function to handle previous button click
   const handlePrevious = (e) => {
     e.preventDefault();
+    setShowNextError(false); // Hide error popup when going back
     const currentIndex = tabs.findIndex(tab => tab.id === activeTab);
     if (currentIndex > 0) {
       setActiveTab(tabs[currentIndex - 1].id);
@@ -453,7 +501,33 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
   const currentTabIndex = tabs.findIndex(tab => tab.id === activeTab);
 
   return (
-    <div className="flex flex-col h-full max-h-[70vh]">
+    <div className="flex flex-col h-full max-h-[70vh] relative">
+      {/* Red Error Popup */}
+      {showNextError && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in-down">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl shadow-lg flex items-center space-x-3 max-w-md">
+            <div className="flex-shrink-0">
+              <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium">{nextErrorMessage}</p>
+              <p className="text-xs text-red-600 mt-1">Please fix the error before proceeding</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowNextError(false)}
+              className="flex-shrink-0 text-red-500 hover:text-red-700"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Fixed Tabs Section */}
       <div className="flex-shrink-0 px-6 py-4 bg-white border-b border-gray-200">
         <div className="flex items-center justify-between">
@@ -576,7 +650,6 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                       { value: 'Female', label: 'Female' },
                       { value: 'Other', label: 'Other' },
                     ]}
-                    required
                   />
 
                   <FloatingInput
@@ -601,7 +674,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                   />
 
                   <FloatingInput
-                    label="Aadhaar Number"
+                    label="Aadhaar Number "
                     name="aadhar"
                     value={formData.aadhar}
                     onChange={handleChange}
@@ -664,7 +737,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                   />
 
                   <FloatingInput
-                    label="PAN Number"
+                    label="PAN Number "
                     name="pan"
                     value={formData.pan}
                     onChange={handleChange}
@@ -747,7 +820,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                 {activeTab === 'bank' ? (
                   <button
                     type="submit"
-                    disabled={loading || !isCurrentTabValid()}
+                    disabled={loading}
                     className="px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition duration-200 flex items-center"
                   >
                     {loading ? (
@@ -764,8 +837,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                   <button
                     type="button"
                     onClick={handleNext}
-                    disabled={!isCurrentTabValid()}
-                    className="px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition duration-200 flex items-center"
+                    className="px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200 flex items-center"
                   >
                     Next
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -783,20 +855,6 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                 </button>
               </div>
             </div>
-            
-            {/* Validation Summary */}
-            {!isCurrentTabValid() && (
-              <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <div className="flex items-center text-yellow-700">
-                  <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  <span className="text-sm font-medium">
-                    Please fill all required fields (*)
-                  </span>
-                </div>
-              </div>
-            )}
           </div>
         </form>
       </div>
