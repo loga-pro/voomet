@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   PlusCircleIcon,
-  MinusCircleIcon,
   XMarkIcon,
   CheckCircleIcon,
   InformationCircleIcon
@@ -201,20 +200,12 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
   const handleChange = (e) => {
     const { name, value } = e.target;
     let validatedValue = value;
-
     if (name === 'remarks') {
-      if (value.length <= VALIDATION_RULES.REMARKS.maxLength) {
-        validatedValue = value;
-      } else {
-        return;
-      }
+      if (value.length <= VALIDATION_RULES.REMARKS.maxLength) validatedValue = value;
+      else return;
     }
-
     setFormData(prev => ({ ...prev, [name]: validatedValue }));
-
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
 
     if (name === 'customerName') {
       setFormData(prev => ({ ...prev, projectName: '', milestoneStartDate: '', milestoneEndDate: '', startDate: '', endDate: '' }));
@@ -229,7 +220,6 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
       validatedValue = value.replace(/[^\d]/g, '');
       validatedValue = validatedValue.replace(/^0+/, '') || '0';
       updatedItems[index][field] = validatedValue;
-
       if (updatedItems[index].partName) {
         const selectedPart = availableParts.find(part => part.partName === updatedItems[index].partName);
         if (selectedPart && selectedPart.partPrice) {
@@ -248,9 +238,8 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
         }
       }
     } else if (field === 'purpose') {
-      if (value.length <= VALIDATION_RULES.PURPOSE.maxLength) {
-        updatedItems[index][field] = value;
-      } else return;
+      if (value.length <= VALIDATION_RULES.PURPOSE.maxLength) updatedItems[index][field] = value;
+      else return;
     } else if (field === 'estimatedCost') {
       validatedValue = value.replace(/[^\d.]/g, '');
       const parts = validatedValue.split('.');
@@ -266,9 +255,7 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
     if (errors.items && errors.items[index] && errors.items[index][field]) {
       const updatedErrors = { ...errors };
       delete updatedErrors.items[index][field];
-      if (Object.keys(updatedErrors.items[index] || {}).length === 0) {
-        delete updatedErrors.items[index];
-      }
+      if (Object.keys(updatedErrors.items[index] || {}).length === 0) delete updatedErrors.items[index];
       setErrors(updatedErrors);
     }
   };
@@ -292,16 +279,38 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
     }));
   };
 
+  // UPDATED: delete behavior now always shows a delete button.
+  // - If multiple rows: remove the row and reindex.
+  // - If single row: reset fields of that row (keeps the empty row visible).
   const removeItem = (index) => {
-    if (formData.items.length > 1) {
-      const updatedItems = [...formData.items];
-      updatedItems.splice(index, 1);
-      updatedItems.forEach((item, idx) => { item.sNo = idx + 1; });
-      setFormData(prev => ({ ...prev, items: updatedItems }));
+    const currentItems = [...formData.items];
+    if (currentItems.length > 1) {
+      currentItems.splice(index, 1);
+      currentItems.forEach((item, idx) => { item.sNo = idx + 1; });
+      setFormData(prev => ({ ...prev, items: currentItems }));
 
       if (errors.items && errors.items[index]) {
         const updatedErrors = { ...errors };
         updatedErrors.items.splice(index, 1);
+        setErrors(updatedErrors);
+      }
+    } else {
+      // Reset the single row to defaults instead of removing it
+      const resetRow = {
+        sNo: 1,
+        scopeOfWork: '',
+        partName: '',
+        quantityRequired: '',
+        purpose: '',
+        unitType: '',
+        estimatedCost: ''
+      };
+      setFormData(prev => ({ ...prev, items: [resetRow] }));
+
+      // Clear any item errors
+      if (errors.items) {
+        const updatedErrors = { ...errors };
+        delete updatedErrors.items;
         setErrors(updatedErrors);
       }
     }
@@ -440,7 +449,6 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
           </h2>
         </div>
 
-        {/* Two-col customer/project */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FloatingInput
             label="Customer name"
@@ -467,12 +475,11 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
           />
         </div>
 
-        {/* Milestone row (readonly) + Request dates */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
           <FloatingInput label="Project Start Date" name="milestoneStartDate" value={formData.milestoneStartDate} onChange={() => {}} type="date" readOnly size="small" className="bg-gray-50 cursor-not-allowed" />
           <FloatingInput label="Project End Date" name="milestoneEndDate" value={formData.milestoneEndDate} onChange={() => {}} type="date" readOnly size="small" className="bg-gray-50 cursor-not-allowed" />
-          <FloatingInput label="Request Start Date" name="startDate" value={formData.startDate} onChange={handleChange} type="date" error={showValidation && errors.startDate} required size="small" />
-          <FloatingInput label="Request End Date" name="endDate" value={formData.endDate} onChange={handleChange} type="date" error={showValidation && errors.endDate} required size="small" />
+          <FloatingInput label="Production Start Date" name="startDate" value={formData.startDate} onChange={handleChange} type="date" error={showValidation && errors.startDate} required size="small" />
+          <FloatingInput label="Production End Date" name="endDate" value={formData.endDate} onChange={handleChange} type="date" error={showValidation && errors.endDate} required size="small" />
         </div>
       </div>
 
@@ -484,26 +491,23 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
             <button type="button" onClick={addItem} className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
               <PlusCircleIcon className="h-4 w-4 mr-2" /> Add Row
             </button>
-            <div className="text-xs text-gray-500">Rows: <span className="font-medium">{formData.items.length}</span></div>
+           
           </div>
         </div>
 
-        {/* Table container: using 12-column grid for precise column widths */}
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden flex flex-col flex-1">
-          {/* Sticky header */}
           <div className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
             <div className="grid grid-cols-12 gap-4 px-4 py-3 items-center">
               <div className="col-span-1 text-sm font-medium text-gray-700">s.no</div>
-              <div className="col-span-2 text-sm font-medium text-gray-700">Scope of Work</div>
-              <div className="col-span-3 text-sm font-medium text-gray-700">Part name</div>
-              <div className="col-span-1 text-sm font-medium text-gray-700">Qty</div>
-              <div className="col-span-3 text-sm font-medium text-gray-700">Purpose</div>
-              <div className="col-span-1 text-sm font-medium text-gray-700">Unit</div>
+              <div className="col-span-2 text-sm font-medium text-gray-700">Scope of Work*</div>
+              <div className="col-span-3 text-sm font-medium text-gray-700">Part name*</div>
+              <div className="col-span-1 text-sm font-medium text-gray-700">Qty*</div>
+              <div className="col-span-1 text-sm font-medium text-gray-700">Unit*</div>
+              <div className="col-span-3 text-sm font-medium text-gray-700">Purpose*</div>
               <div className="col-span-1 text-sm font-medium text-gray-700 text-right">Action</div>
             </div>
           </div>
 
-          {/* Scrollable rows */}
           <div className="flex-1 overflow-y-auto">
             {formData.items.length === 0 ? (
               <div className="px-4 py-8 text-center text-gray-500">No items added. Click "Add Row" to add items.</div>
@@ -511,14 +515,12 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
               <div className="divide-y divide-gray-200">
                 {formData.items.map((item, index) => (
                   <div key={index} className="grid grid-cols-12 gap-4 px-4 py-4 items-start">
-                    {/* s.no */}
                     <div className="col-span-1 flex items-center">
                       <div className="w-8 h-8 flex items-center justify-center rounded-md bg-gray-100">
                         <span className="text-sm font-medium text-gray-900">{item.sNo}</span>
                       </div>
                     </div>
 
-                    {/* scope */}
                     <div className="col-span-2">
                       <FloatingInput
                         value={item.scopeOfWork}
@@ -526,7 +528,6 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
                         type="select"
                         options={scopeOptions}
                         error={showValidation && errors.items?.[index]?.scopeOfWork}
-                        required
                         size="small"
                         hideLabel
                         placeholder="Select Scope"
@@ -534,7 +535,6 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
                       />
                     </div>
 
-                    {/* part */}
                     <div className="col-span-3">
                       <FloatingInput
                         value={item.partName}
@@ -545,7 +545,6 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
                           ...(filteredParts[index] || []).map(part => ({ value: part.partName, label: part.partName }))
                         ]}
                         error={showValidation && errors.items?.[index]?.partName}
-                        required
                         size="small"
                         hideLabel
                         placeholder="Select Part"
@@ -553,7 +552,6 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
                       />
                     </div>
 
-                    {/* qty */}
                     <div className="col-span-1">
                       <FloatingInput
                         value={item.quantityRequired}
@@ -561,7 +559,6 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
                         type="text"
                         inputMode="numeric"
                         error={showValidation && errors.items?.[index]?.quantityRequired}
-                        required
                         size="small"
                         hideLabel
                         className="w-full"
@@ -569,24 +566,7 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
                       />
                     </div>
 
-                    {/* purpose */}
-                    <div className="col-span-3">
-                      <FloatingInput
-                        value={item.purpose}
-                        onChange={(e) => handleItemChange(index, 'purpose', e.target.value)}
-                        type="text"
-                        error={showValidation && errors.items?.[index]?.purpose}
-                        required
-                        size="small"
-                        hideLabel
-                        maxLength={VALIDATION_RULES.PURPOSE.maxLength}
-                        className="w-full"
-                        placeholder="Purpose / usage"
-                      />
-                    </div>
-
-                    {/* unit */}
-                    <div className="col-span-1">
+                     <div className="col-span-1">
                       <FloatingInput
                         value={item.unitType}
                         onChange={(e) => handleItemChange(index, 'unitType', e.target.value)}
@@ -599,18 +579,32 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
                       />
                     </div>
 
-                    {/* action */}
-                    <div className="col-span-1 flex items-center justify-end space-x-2">
-                      {formData.items.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeItem(index)}
-                          className="inline-flex items-center justify-center h-8 w-8 rounded-md text-red-600 hover:bg-red-50"
-                          title="Delete Row"
-                        >
-                          <XMarkIcon className="h-5 w-5" />
-                        </button>
-                      )}
+                    <div className="col-span-3">
+                      <FloatingInput
+                        value={item.purpose}
+                        onChange={(e) => handleItemChange(index, 'purpose', e.target.value)}
+                        type="text"
+                        error={showValidation && errors.items?.[index]?.purpose}
+                        size="small"
+                        hideLabel
+                        maxLength={VALIDATION_RULES.PURPOSE.maxLength}
+                        className="w-full"
+                        placeholder="Purpose / usage"
+                      />
+                    </div>
+
+                   
+
+                    {/* Action: Delete always visible */}
+                    <div className="col-span-1 flex items-center justify-end">
+                      <button
+                        type="button"
+                        onClick={() => removeItem(index)}
+                        className="inline-flex items-center justify-center h-8 w-8 rounded-md text-red-600 hover:bg-red-50"
+                        title={formData.items.length > 1 ? 'Delete Row' : 'Clear Row'}
+                      >
+                        <XMarkIcon className="h-5 w-5" />
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -619,7 +613,6 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
           </div>
         </div>
 
-        {/* Remarks */}
         <div className="mt-6 relative">
           <FloatingInput
             label="Remarks (Optional)"
@@ -630,7 +623,6 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
             error={errors.remarks}
             size="medium"
             rows={3}
-            placeholder="Enter any additional remarks or notes..."
             maxLength={VALIDATION_RULES.REMARKS.maxLength}
           />
           {formData.remarks && (
@@ -640,7 +632,6 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
           )}
         </div>
 
-        {/* edit only status */}
         {purchaseRequest && (
           <div className="mt-6">
             <FloatingInput

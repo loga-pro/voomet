@@ -1176,8 +1176,20 @@ const MilestoneTracking = () => {
                                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 cursor-pointer text-blue-600 hover:text-blue-800" onClick={() => hide(false, milestone)}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                   </svg>
-
                                 </div>
+                                
+                                {/* Project and Client Info */}
+                                <div className="mb-3 pb-3 border-b border-blue-200">
+                                  <div className="text-sm mb-1">
+                                    <span className="font-medium text-blue-700">Project: </span>
+                                    <span className="text-gray-900">{milestone.projectName || '-'}</span>
+                                  </div>
+                                  <div className="text-sm">
+                                    <span className="font-medium text-blue-700">Client: </span>
+                                    <span className="text-gray-900">{milestone.customer || '-'}</span>
+                                  </div>
+                                </div>
+
                                 <div className="grid grid-cols-2 md:grid-cols-2 gap-4 text-sm">
                                   <div>
                                     <span className="text-blue-600 font-medium">Total Activities: </span>

@@ -16,11 +16,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import useNotification from '../../hooks/useNotification';
 import Notification from '../Notifications/Notification';
 
-const InhouseMilestoneForm = ({ viewMode = false }) => {
+const InhouseMilestoneForm = ({ viewMode = false, milestone: milestoneProp, onSuccess }) => {
   const navigate = useNavigate();
   const { notification, showSuccess, showError, hideNotification } = useNotification();
   const location = useLocation();
-  const { milestone } = location.state || {}; // Safe access for Add mode
+  const milestone = milestoneProp || location.state?.milestone; // Use prop first, then location.state
   const phaseOptions = [
     'Project Initiation',
     'Concept Design',
@@ -787,7 +787,13 @@ const InhouseMilestoneForm = ({ viewMode = false }) => {
   const flexibilitySummary = calculateFlexibilitySummary();
 
   const onCancel = () => {
-    navigate('/inhouse-milestone', { state: { formSuccess: true } });
+    if (onSuccess) {
+      // Modal mode - call the success callback
+      onSuccess();
+    } else {
+      // Standalone page mode - navigate
+      navigate('/inhouse-milestone', { state: { formSuccess: true } });
+    }
   };
 
 
@@ -799,6 +805,7 @@ const InhouseMilestoneForm = ({ viewMode = false }) => {
         isVisible={notification.isVisible}
         onClose={hideNotification}
       />
+      
       {/* Optional mobile header */}
       {isMobile && (
         <div className="lg:hidden p-3 border-b bg-white">
@@ -806,21 +813,21 @@ const InhouseMilestoneForm = ({ viewMode = false }) => {
         </div>
       )}
 
-      {/* LEFT PANEL */}
-      <div >
-        <form onSubmit={handleSubmit}>
-          {errors.submit && (
-            <Alert
-              message="Error"
-              description={errors.submit}
-              type="error"
-              showIcon
-              className="mb-3 md:mb-4"
-              closable
-              onClose={() => setErrors(prev => ({ ...prev, submit: null }))}
-            />
-          )}
+      <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+        {errors.submit && (
+          <Alert
+            message="Error"
+            description={errors.submit}
+            type="error"
+            showIcon
+            className="mb-3 md:mb-4 mx-3 md:mx-4 lg:mx-6 mt-3 md:mt-4 lg:mt-6"
+            closable
+            onClose={() => setErrors(prev => ({ ...prev, submit: null }))}
+          />
+        )}
 
+        {/* Main content area - scrollable */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-4 lg:p-6">
           {/* Summary Information Header */}
           <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-4">
             <div className="flex flex-row flex-wrap gap-4 justify-between">
@@ -925,7 +932,7 @@ const InhouseMilestoneForm = ({ viewMode = false }) => {
           <Card
             title={<span className="text-sm md:text-base">Project Flexibility</span>}
             size="small"
-            className="shadow-sm"
+            className="shadow-sm mb-6"
           >
             <div className="flex flex-col md:flex-row gap-4 items-start">
               <div className="flex-1 w-full">
@@ -968,341 +975,338 @@ const InhouseMilestoneForm = ({ viewMode = false }) => {
             </div>
           </Card>
 
-          {/* Bottom Actions */}
-          {!viewMode && (
-            <div className="pt-4 border-t border-gray-200">
-              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
-                <Button
-                  onClick={onCancel}
-                  disabled={loading}
-                  size={isMobile ? 'small' : 'default'}
-                  className="w-full sm:w-auto"
-                >
-                  Cancel
-                </Button>
+          {/* Tasks Table Section */}
+          <div className="bg-white rounded-lg border overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b">
+              <div>
+                <h3 className="text-base md:text-lg font-semibold text-gray-900">
+                  Project Tasks
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.tasks.length} tasks, {totalDuration} days total
+                </p>
+              </div>
+              {/* Uncomment if you want the Add Task button */}
+              {/* {!viewMode && (
                 <Button
                   type="primary"
-                  htmlType="submit"
-                  loading={loading}
-                  icon={<CheckCircleOutlined />}
+                  icon={<PlusOutlined />}
+                  onClick={addNewTask}
+                  disabled={!formData.startDate}
                   size={isMobile ? 'small' : 'default'}
-                  className="w-full sm:w-auto"
+                  className="text-xs md:text-sm"
                 >
-                  {milestone ? 'Update Milestone' : 'Create Milestone'}
+                  Add Task
                 </Button>
-              </div>
+              )} */}
             </div>
-          )}
-        </form>
-      </div>
 
-      {/* RIGHT PANEL */}
-      <div className="flex-1 overflow-auto p-3 md:p-4 lg:p-6">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h3 className="text-base md:text-lg font-semibold text-gray-900">
-              Project Tasks
-            </h3>
-            <p className="text-xs text-gray-500 mt-1">
-              {formData.tasks.length} tasks, {totalDuration} days total
-            </p>
-          </div>
-          {/* {!viewMode && (
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={addNewTask}
-              disabled={!formData.startDate}
-              size={isMobile ? 'small' : 'default'}
-              className="text-xs md:text-sm"
+            <div
+              className="table-container overflow-auto"
+              style={{
+                maxHeight: '500px'
+              }}
             >
-              Add Task
-            </Button>
-          )} */}
-        </div>
+              <table className="min-w-[1000px] w-full divide-y divide-gray-200 table-fixed">
+                <colgroup>
+                  <col className="w-[15%]" /> {/* Phase */}
+                  <col className="w-[30%]" /> {/* Task */}
+                  <col className="w-[10%]" /> {/* Duration */}
+                  <col className="w-[15%]" /> {/* Category */}
+                  <col className="w-[12%]" /> {/* Responsible */}
+                  <col className="w-[8%]" /> {/* Start Date */}
+                  <col className="w-[8%]" /> {/* End Date */}
+                  {!viewMode && <col className="w-[4%]" />} {/* Actions */}
+                </colgroup>
 
-        {/* Single desktop-style table with scroll */}
-        <div className="bg-white rounded-lg border overflow-hidden">
-          <div
-            className="table-container overflow-auto"
-            style={{
-              maxHeight: 'calc(100vh - 300px)',
-              minHeight: '400px'
-            }}
-          >
-            <table className="min-w-[1000px] w-full divide-y divide-gray-200 table-fixed">
-              <colgroup>
-                <col className="w-[15%]" /> {/* Phase */}
-                <col className="w-[30%]" /> {/* Task */}
-                <col className="w-[10%]" /> {/* Duration */}
-                <col className="w-[15%]" /> {/* Category */}
-                <col className="w-[12%]" /> {/* Responsible */}
-                <col className="w-[8%]" /> {/* Start Date */}
-                <col className="w-[8%]" /> {/* End Date */}
-                {!viewMode && <col className="w-[4%]" />} {/* Actions */}
-              </colgroup>
-
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-red-600 uppercase tracking-wider sticky left-0 top-0 bg-gray-50 z-30">
-                    Phase *
-                  </th>
-                  <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-red-600 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
-                    Task *
-                  </th>
-                  <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-red-600 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
-                    Duration *
-                  </th>
-                  <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
-                    Category
-                  </th>
-                  <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-red-600 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
-                    Responsible Person*
-                  </th>
-                  <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
-                    Start Date
-                  </th>
-                  <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
-                    End Date
-                  </th>
-                  {!viewMode && (
-                    <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky right-0 top-0 bg-gray-50 z-30">
-                      Actions
-                    </th>
-                  )}
-                </tr>
-              </thead>
-
-              <tbody className="bg-white divide-y divide-gray-200">
-                {formData.tasks.map((task, index) => {
-                  const originalDuration = task.originalDuration || 0;
-                  const flexibilitySubtracted = originalDuration - task.duration;
-
-                  return (
-                    <tr
-                      key={index}
-                      className={
-                        flexibilitySubtracted > 0 ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50'
-                      }
-                    >
-                      {/* Phase */}
-                      <td className="px-3 md:px-4 py-2 md:py-3 sticky left-0 bg-white z-10 border-r">
-                        {viewMode ? (
-                          <span className="text-sm truncate block" title={task.phase}>
-                            {task.phase}
-                          </span>
-                        ) : (
-                          <Tooltip
-                            visible={!!errors[`task_${index}_phase`]}
-                            title={errors[`task_${index}_phase`]}
-                            color="red"
-                          >
-                            <select
-                              value={task.phase}
-                              disabled={true}
-                              className={`w-full border rounded px-2 py-1 text-sm bg-gray-50 ${errors[`task_${index}_phase`]
-                                ? 'border-red-300'
-                                : 'border-gray-300'
-                                }`}
-                            >
-                              <option value="">Select Phase</option>
-                              {phaseOptions.map(phase => (
-                                <option key={phase} value={phase}>
-                                  {phase}
-                                </option>
-                              ))}
-                            </select>
-                          </Tooltip>
-                        )}
-                      </td>
-
-                      {/* Task */}
-                      <td className="px-3 md:px-4 py-2 md:py-3">
-                        {viewMode ? (
-                          <span className="text-sm truncate block" title={task.task}>
-                            {task.task}
-                          </span>
-                        ) : (
-                          <Tooltip
-                            visible={!!errors[`task_${index}_task`]}
-                            title={errors[`task_${index}_task`]}
-                            color="red"
-                          >
-                            <input
-                              type="text"
-                              value={task.task}
-                              readOnly={true}
-                              className={`w-full border rounded px-2 py-1 text-sm bg-gray-50 ${errors[`task_${index}_task`]
-                                ? 'border-red-300'
-                                : 'border-gray-300'
-                                }`}
-                              placeholder="Task description"
-                            />
-                          </Tooltip>
-                        )}
-                      </td>
-
-                      {/* Duration */}
-                      <td className="px-3 md:px-4 py-2 md:py-3">
-                        {viewMode ? (
-                          <span className="text-sm">{task.duration || 0} days</span>
-                        ) : (
-                          <Tooltip
-                            visible={!!errors[`task_${index}_duration`]}
-                            title={errors[`task_${index}_duration`]}
-                            color="red"
-                          >
-                            <div className="relative flex items-center">
-                              <InputNumber
-                                min={0}
-                                value={task.duration || 0}
-                                onChange={value =>
-                                  handleTaskChange(index, 'duration', value)
-                                }
-                                style={{ width: 70 }}
-                                className={
-                                  errors[`task_${index}_duration`]
-                                    ? 'border-red-300'
-                                    : 'border-gray-300'
-                                }
-                                size="small"
-                              />
-                              {flexibilitySubtracted > 0 && (
-                                <Tag className="ml-1 text-xs" color="red">
-                                  -{flexibilitySubtracted}
-                                </Tag>
-                              )}
-                            </div>
-                          </Tooltip>
-                        )}
-                      </td>
-
-                      {/* Category */}
-                      <td className="px-3 md:px-4 py-2 md:py-3">
-                        {viewMode ? (
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${task.category === 'inhouse'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-green-100 text-green-800'
-                            }`}>
-                            {task.category === 'inhouse' ? 'Inhouse' : 'Outsourced'}
-                          </span>
-                        ) : (
-                          <select
-                            value={task.category || 'inhouse'}
-                            onChange={(e) => handleTaskChange(index, 'category', e.target.value)}
-                            className="block w-full rounded-md shadow-sm text-sm p-2 border-2 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                          >
-                            <option value="inhouse">Inhouse</option>
-                            <option value="outsourced">Outsourced</option>
-                          </select>
-                        )}
-                      </td>
-
-                      {/* Responsible Person */}
-                      <td className="px-3 md:px-4 py-2 md:py-3">
-                        {viewMode ? (
-                          <span
-                            className="text-sm truncate block"
-                            title={task.responsiblePerson}
-                          >
-                            {task.responsiblePerson}
-                          </span>
-                        ) : (
-                          <Tooltip
-                            visible={!!errors[`task_${index}_responsiblePerson`]}
-                            title={errors[`task_${index}_responsiblePerson`]}
-                            color="red"
-                          >
-                            <select
-                              value={task.responsiblePerson}
-                              onChange={e =>
-                                handleTaskChange(
-                                  index,
-                                  'responsiblePerson',
-                                  e.target.value
-                                )
-                              }
-                              className={`w-full border rounded px-2 py-1 text-sm ${errors[`task_${index}_responsiblePerson`]
-                                ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                                : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-                                }`}
-                            >
-                              <option value="">Select Person</option>
-                              {task.category === 'inhouse' ? (
-                                employees.map((employee) => (
-                                  <option key={employee._id} value={employee.name}>
-                                    {employee.name}
-                                  </option>
-                                ))
-                              ) : (
-                                vendors.map((vendor) => (
-                                  <option key={vendor._id} value={vendor.vendorName}>
-                                    {vendor.vendorName}
-                                  </option>
-                                ))
-                              )}
-                            </select>
-                          </Tooltip>
-                        )}
-                      </td>
-
-                      {/* Start Date */}
-                      <td className="px-3 md:px-4 py-2 md:py-3">
-                        <div className="text-xs text-gray-600">
-                          {task.startDate
-                            ? new Date(task.startDate).toLocaleDateString()
-                            : '-'}
-                        </div>
-                      </td>
-
-                      {/* End Date */}
-                      <td className="px-3 md:px-4 py-2 md:py-3">
-                        <div className="text-xs text-gray-600">
-                          {task.endDate
-                            ? new Date(task.endDate).toLocaleDateString()
-                            : '-'}
-                        </div>
-                      </td>
-
-                      {/* Actions */}
-                      {!viewMode && (
-                        <td className="px-3 md:px-4 py-2 md:py-3 sticky right-0 bg-white z-10 border-l">
-                          <Button
-                            type="text"
-                            danger
-                            icon={<DeleteOutlined />}
-                            onClick={() => deleteTask(index)}
-                            size="small"
-                          />
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })}
-
-                {formData.tasks.length === 0 && (
+                <thead className="bg-gray-50">
                   <tr>
-                    <td colSpan={viewMode ? 7 : 8} className="px-4 py-8 text-center">
-                      <div className="text-gray-400">
-                        <CalendarOutlined className="text-2xl mb-2" />
-                        <p>No tasks added yet</p>
-                        {!viewMode && (
-                          <p className="text-sm mt-1">
-                            {formData.startDate
-                              ? 'Click "Add Task" to get started'
-                              : 'Set a start date first to add tasks'}
-                          </p>
-                        )}
-                      </div>
-                    </td>
+                    <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-red-600 uppercase tracking-wider sticky left-0 top-0 bg-gray-50 z-30">
+                      Phase *
+                    </th>
+                    <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-red-600 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
+                      Task *
+                    </th>
+                    <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-red-600 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
+                      Duration *
+                    </th>
+                    <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
+                      Category
+                    </th>
+                    <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-red-600 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
+                      Responsible Person*
+                    </th>
+                    <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
+                      Start Date
+                    </th>
+                    <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 z-20">
+                      End Date
+                    </th>
+                    {!viewMode && (
+                      <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky right-0 top-0 bg-gray-50 z-30">
+                        Actions
+                      </th>
+                    )}
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {formData.tasks.map((task, index) => {
+                    const originalDuration = task.originalDuration || 0;
+                    const flexibilitySubtracted = originalDuration - task.duration;
+
+                    return (
+                      <tr
+                        key={index}
+                        className={
+                          flexibilitySubtracted > 0 ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50'
+                        }
+                      >
+                        {/* Phase */}
+                        <td className="px-3 md:px-4 py-2 md:py-3 sticky left-0 bg-white z-10 border-r">
+                          {viewMode ? (
+                            <span className="text-sm truncate block" title={task.phase}>
+                              {task.phase}
+                            </span>
+                          ) : (
+                            <Tooltip
+                              visible={!!errors[`task_${index}_phase`]}
+                              title={errors[`task_${index}_phase`]}
+                              color="red"
+                            >
+                              <select
+                                value={task.phase}
+                                disabled={true}
+                                className={`w-full border rounded px-2 py-1 text-sm bg-gray-50 ${errors[`task_${index}_phase`]
+                                  ? 'border-red-300'
+                                  : 'border-gray-300'
+                                  }`}
+                              >
+                                <option value="">Select Phase</option>
+                                {phaseOptions.map(phase => (
+                                  <option key={phase} value={phase}>
+                                    {phase}
+                                  </option>
+                                ))}
+                              </select>
+                            </Tooltip>
+                          )}
+                        </td>
+
+                        {/* Task */}
+                        <td className="px-3 md:px-4 py-2 md:py-3">
+                          {viewMode ? (
+                            <span className="text-sm truncate block" title={task.task}>
+                              {task.task}
+                            </span>
+                          ) : (
+                            <Tooltip
+                              visible={!!errors[`task_${index}_task`]}
+                              title={errors[`task_${index}_task`]}
+                              color="red"
+                            >
+                              <input
+                                type="text"
+                                value={task.task}
+                                readOnly={true}
+                                className={`w-full border rounded px-2 py-1 text-sm bg-gray-50 ${errors[`task_${index}_task`]
+                                  ? 'border-red-300'
+                                  : 'border-gray-300'
+                                  }`}
+                                placeholder="Task description"
+                              />
+                            </Tooltip>
+                          )}
+                        </td>
+
+                        {/* Duration */}
+                        <td className="px-3 md:px-4 py-2 md:py-3">
+                          {viewMode ? (
+                            <span className="text-sm">{task.duration || 0} days</span>
+                          ) : (
+                            <Tooltip
+                              visible={!!errors[`task_${index}_duration`]}
+                              title={errors[`task_${index}_duration`]}
+                              color="red"
+                            >
+                              <div className="relative flex items-center">
+                                <InputNumber
+                                  min={0}
+                                  value={task.duration || 0}
+                                  onChange={value =>
+                                    handleTaskChange(index, 'duration', value)
+                                  }
+                                  style={{ width: 70 }}
+                                  className={
+                                    errors[`task_${index}_duration`]
+                                      ? 'border-red-300'
+                                      : 'border-gray-300'
+                                  }
+                                  size="small"
+                                />
+                                {flexibilitySubtracted > 0 && (
+                                  <Tag className="ml-1 text-xs" color="red">
+                                    -{flexibilitySubtracted}
+                                  </Tag>
+                                )}
+                              </div>
+                            </Tooltip>
+                          )}
+                        </td>
+
+                        {/* Category */}
+                        <td className="px-3 md:px-4 py-2 md:py-3">
+                          {viewMode ? (
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${task.category === 'inhouse'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-green-100 text-green-800'
+                              }`}>
+                              {task.category === 'inhouse' ? 'Inhouse' : 'Outsourced'}
+                            </span>
+                          ) : (
+                            <select
+                              value={task.category || 'inhouse'}
+                              onChange={(e) => handleTaskChange(index, 'category', e.target.value)}
+                              className="block w-full rounded-md shadow-sm text-sm p-2 border-2 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                            >
+                              <option value="inhouse">Inhouse</option>
+                              <option value="outsourced">Outsourced</option>
+                            </select>
+                          )}
+                        </td>
+
+                        {/* Responsible Person */}
+                        <td className="px-3 md:px-4 py-2 md:py-3">
+                          {viewMode ? (
+                            <span
+                              className="text-sm truncate block"
+                              title={task.responsiblePerson}
+                            >
+                              {task.responsiblePerson}
+                            </span>
+                          ) : (
+                            <Tooltip
+                              visible={!!errors[`task_${index}_responsiblePerson`]}
+                              title={errors[`task_${index}_responsiblePerson`]}
+                              color="red"
+                            >
+                              <select
+                                value={task.responsiblePerson}
+                                onChange={e =>
+                                  handleTaskChange(
+                                    index,
+                                    'responsiblePerson',
+                                    e.target.value
+                                  )
+                                }
+                                className={`w-full border rounded px-2 py-1 text-sm ${errors[`task_${index}_responsiblePerson`]
+                                  ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                                  : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                                  }`}
+                              >
+                                <option value="">Select Person</option>
+                                {task.category === 'inhouse' ? (
+                                  employees.map((employee) => (
+                                    <option key={employee._id} value={employee.name}>
+                                      {employee.name}
+                                    </option>
+                                  ))
+                                ) : (
+                                  vendors.map((vendor) => (
+                                    <option key={vendor._id} value={vendor.vendorName}>
+                                      {vendor.vendorName}
+                                    </option>
+                                  ))
+                                )}
+                              </select>
+                            </Tooltip>
+                          )}
+                        </td>
+
+                        {/* Start Date */}
+                        <td className="px-3 md:px-4 py-2 md:py-3">
+                          <div className="text-xs text-gray-600">
+                            {task.startDate
+                              ? new Date(task.startDate).toLocaleDateString()
+                              : '-'}
+                          </div>
+                        </td>
+
+                        {/* End Date */}
+                        <td className="px-3 md:px-4 py-2 md:py-3">
+                          <div className="text-xs text-gray-600">
+                            {task.endDate
+                              ? new Date(task.endDate).toLocaleDateString()
+                              : '-'}
+                          </div>
+                        </td>
+
+                        {/* Actions */}
+                        {!viewMode && (
+                          <td className="px-3 md:px-4 py-2 md:py-3 sticky right-0 bg-white z-10 border-l">
+                            <Button
+                              type="text"
+                              danger
+                              icon={<DeleteOutlined />}
+                              onClick={() => deleteTask(index)}
+                              size="small"
+                            />
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+
+                  {formData.tasks.length === 0 && (
+                    <tr>
+                      <td colSpan={viewMode ? 7 : 8} className="px-4 py-8 text-center">
+                        <div className="text-gray-400">
+                          <CalendarOutlined className="text-2xl mb-2" />
+                          <p>No tasks added yet</p>
+                          {!viewMode && (
+                            <p className="text-sm mt-1">
+                              {formData.startDate
+                                ? 'Click "Add Task" to get started'
+                                : 'Set a start date first to add tasks'}
+                            </p>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-      </div>
 
+        {/* Bottom Actions - Fixed at bottom */}
+        {!viewMode && (
+          <div className="border-t border-gray-200 bg-white p-4 flex-shrink-0">
+            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
+              <Button
+                type="button"
+                onClick={onCancel}
+                disabled={loading}
+                size={isMobile ? 'small' : 'default'}
+                className="w-full sm:w-auto"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                icon={<CheckCircleOutlined />}
+                size={isMobile ? 'small' : 'default'}
+                className="w-full sm:w-auto"
+              >
+                {milestone ? 'Update Milestone' : 'Create Milestone'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </form>
 
       {/* Flexibility Modal */}
       <Modal

@@ -9,7 +9,8 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
     category: '',
     unitType: '',
     partPrice: '',
-    vendorName: ''
+    vendorName: '',
+    reorderLevel: ''
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -39,7 +40,8 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
         category: part.category || 'inhouse',
         unitType: part.unitType || '',
         partPrice: part.partPrice || '',
-        vendorName: part.vendorName || ''
+        vendorName: part.vendorName || '',
+        reorderLevel: part.reorderLevel || ''
       });
     }
   }, [part]);
@@ -75,6 +77,14 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
     if (name === 'partPrice') {
       // Allow empty string or validate 8 digits and 2 decimals (max 99999999.99)
       if (value === '' || /^\d{0,8}(\.\d{0,2})?$/.test(value)) {
+        setFormData(prev => ({
+          ...prev,
+          [name]: value
+        }));
+      }
+    } else if (name === 'reorderLevel') {
+      // Allow empty string or validate up to 8 digits (integers only, no decimals)
+      if (value === '' || /^\d{0,8}$/.test(value)) {
         setFormData(prev => ({
           ...prev,
           [name]: value
@@ -206,7 +216,9 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
         unitType: formData.unitType.trim(),
         partPrice: parseFloat(formData.partPrice),
         // Only include vendorName if it has a value
-        ...(formData.vendorName && formData.vendorName.trim() && { vendorName: formData.vendorName.trim() })
+        ...(formData.vendorName && formData.vendorName.trim() && { vendorName: formData.vendorName.trim() }),
+        // Include reorderLevel (default to 0 if empty)
+        reorderLevel: formData.reorderLevel ? parseInt(formData.reorderLevel) : 0
       };
 
       console.log('Submitting part data:', JSON.stringify(submitData, null, 2));
@@ -319,6 +331,18 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
         min="0"
         max="99999999.99"
         required
+      />
+
+      <FloatingInput
+        label="Reorder Level"
+        name="reorderLevel"
+        value={formData.reorderLevel}
+        onChange={handleChange}
+        type="number"
+        error={errors.reorderLevel}
+        min="0"
+        max="99999999"
+        step="1"
       />
 
       <div className="flex justify-end space-x-3 pt-4">

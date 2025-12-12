@@ -992,7 +992,7 @@ const MilestoneManagement = () => {
           setSelectedMilestone(null);
         }}
         title="Milestone Details"
-        size="lg"
+        size="xl"
         className="font-sans"
       >
         {selectedMilestone && (
@@ -1005,7 +1005,6 @@ const MilestoneManagement = () => {
                   <span className="text-sm text-gray-600">Client Name: {selectedMilestone.customer || ''}</span>
                 </div>
               </div>
-
             </div>
 
             {/* Basic Information Card */}
@@ -1021,6 +1020,7 @@ const MilestoneManagement = () => {
                   <p className="text-sm text-gray-900 font-medium">{selectedMilestone.emailId || ''}</p>
                 </div>
 
+
                 <div className="space-y-1">
                   <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Start Date</h4>
                   <p className="text-sm text-gray-900 font-medium">
@@ -1034,8 +1034,58 @@ const MilestoneManagement = () => {
                     {selectedMilestone.endDate ? new Date(selectedMilestone.endDate).toLocaleDateString() : ''}
                   </p>
                 </div>
+
+                {selectedMilestone.flexibilityPercentage !== undefined && selectedMilestone.flexibilityPercentage > 0 && (
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Flexibility Applied</h4>
+                    <p className="text-sm text-gray-900 font-medium">{selectedMilestone.flexibilityPercentage}%</p>
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* Tasks Table */}
+            {selectedMilestone.tasks && selectedMilestone.tasks.length > 0 && (
+              <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-200">
+                  <h3 className="text-md font-semibold text-gray-700 flex items-center">
+                    <i className="fas fa-tasks mr-2 text-blue-500"></i>
+                    Project Tasks ({selectedMilestone.tasks.length})
+                  </h3>
+                </div>
+                <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50 sticky top-0 z-10">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phase</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Responsible Person</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {selectedMilestone.tasks.map((task, index) => (
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 text-sm text-gray-900">{task.phase || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{task.task || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{task.duration || 0} days</td>
+                         
+                          <td className="px-4 py-3 text-sm text-gray-900">{task.responsiblePerson || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {task.startDate ? new Date(task.startDate).toLocaleDateString() : '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {task.endDate ? new Date(task.endDate).toLocaleDateString() : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex justify-end space-x-3 pt-2">

@@ -1891,7 +1891,7 @@ const InventoryManagement = () => {
           setEditingItem(null);
         }}
         title={editingItem ? "Edit Inventory Item" : "Add Inventory Item"}
-        size="xl"
+        size="6xl"
       >
         <InventoryForm
           inventory={editingItem}

@@ -58,6 +58,12 @@ const InventoryForm = ({
   const [editingReceiptIndex, setEditingReceiptIndex] = useState(null);
   const [editingDispatchIndex, setEditingDispatchIndex] = useState(null);
   
+  // Row-specific data for the summary table
+  const [rowData, setRowData] = useState([
+    { id: 1, category: 'In house', vendorNames: [] },
+    { id: 2, category: 'Bought-out', vendorNames: [] }
+  ]);
+  
   // Dropdown data states
   const [customers, setCustomers] = useState([]);
   const [vendors, setVendors] = useState([]);
@@ -119,6 +125,11 @@ const InventoryForm = ({
         remarks: inventory.remarks || '',
         status: inventory.status || 'active'
       }));
+      
+      // Populate row data if exists
+      if (inventory.rowData && Array.isArray(inventory.rowData)) {
+        setRowData(inventory.rowData);
+      }
       
       if (inventory.receipts) {
         setReceipts(inventory.receipts);
@@ -513,6 +524,131 @@ const InventoryForm = ({
     showNotification('Editing dispatch - modify and click "Update Dispatch"');
   };
 
+  // Handler for updating row category
+  const handleRowCategoryChange = (rowId, newCategory) => {
+    setRowData(prev => prev.map(row => 
+      row.id === rowId ? { ...row, category: newCategory } : row
+    ));
+  };
+
+  // Handler for updating row vendor names (multi-select)
+  const handleRowVendorChange = (rowId, vendorName) => {
+    setRowData(prev => prev.map(row => {
+      if (row.id === rowId) {
+        const currentVendors = row.vendorNames || [];
+        const isSelected = currentVendors.includes(vendorName);
+        
+        return {
+          ...row,
+          vendorNames: isSelected
+            ? currentVendors.filter(v => v !== vendorName)
+            : [...currentVendors, vendorName]
+        };
+      }
+      return row;
+    }));
+  };
+
+  // Helper function to get unique work categories from receipts and dispatches
+  const getUniqueWorkCategories = () => {
+    const categories = new Set();
+    receipts.forEach(r => {
+      if (r.workCategory) categories.add(r.workCategory);
+    });
+    dispatches.forEach(d => {
+      if (d.workCategory) categories.add(d.workCategory);
+    });
+    return Array.from(categories);
+  };
+
+  // Helper function to get unique part names from receipts and dispatches
+  const getUniquePartNames = () => {
+    const partNames = new Set();
+    receipts.forEach(r => {
+      if (r.partName) partNames.add(r.partName);
+    });
+    dispatches.forEach(d => {
+      if (d.partName) partNames.add(d.partName);
+    });
+    return Array.from(partNames);
+  };
+
+  // Helper function to get unique combinations of work category and part name
+  const getUniqueCombinations = () => {
+    const combinations = new Map();
+    
+    // Collect from receipts
+    receipts.forEach(r => {
+      const key = `${r.workCategory || ''}_${r.partName || ''}`;
+      if (!combinations.has(key) && (r.workCategory || r.partName)) {
+        combinations.set(key, {
+          workCategory: r.workCategory || '-',
+          partName: r.partName || '-'
+        });
+      }
+    });
+    
+    // Collect from dispatches
+    dispatches.forEach(d => {
+      const key = `${d.workCategory || ''}_${d.partName || ''}`;
+      if (!combinations.has(key) && (d.workCategory || d.partName)) {
+        combinations.set(key, {
+          workCategory: d.workCategory || '-',
+          partName: d.partName || '-'
+        });
+      }
+    });
+    
+    return Array.from(combinations.values());
+  };
+
+  // Helper function to calculate stock values for a specific work category and part name
+  const calculateStockForCombination = (workCategory, partName) => {
+    // Filter receipts for this combination
+    const matchingReceipts = receipts.filter(r => 
+      r.workCategory === workCategory && r.partName === partName
+    );
+    
+    // Filter dispatches for this combination
+    const matchingDispatches = dispatches.filter(d => 
+      d.workCategory === workCategory && d.partName === partName
+    );
+    
+    // Separate regular receipts (buy) from returns
+    const regularReceipts = matchingReceipts.filter(r => r.receiptCategory !== 'return');
+    const returns = matchingReceipts.filter(r => r.receiptCategory === 'return');
+    
+    // Calculate totals for regular receipts only (excluding returns)
+    const regularReceiptsTotal = regularReceipts.reduce((sum, r) => sum + (r.totalValue || 0), 0);
+    const regularReceiptsQty = regularReceipts.reduce((sum, r) => sum + (r.quantity || 0), 0);
+    
+    // Calculate dispatch totals
+    const dispatchesTotal = matchingDispatches.reduce((sum, d) => sum + (d.totalValue || 0), 0);
+    const dispatchesQty = matchingDispatches.reduce((sum, d) => sum + (d.quantity || 0), 0);
+    
+    // Calculate return totals (separate from factory stock)
+    const returnsTotal = returns.reduce((sum, r) => sum + (r.totalValue || 0), 0);
+    const returnsQty = returns.reduce((sum, r) => sum + (r.quantity || 0), 0);
+    
+    return {
+      // Stock at Factory: Only regular receipts minus dispatches (NO returns)
+      stockAtFactory: Math.max(0, regularReceiptsQty - dispatchesQty),
+      stockValueAtFactory: regularReceiptsTotal - dispatchesTotal,
+      
+      // Stock sent to customer
+      stockSentToCustomer: dispatchesQty,
+      stockValueSentToCustomer: dispatchesTotal,
+      
+      // Returns tracked separately
+      stockReturnFromCustomer: returnsQty,
+      stockValueReturnFromCustomer: returnsTotal,
+      
+      // Total stock: Factory stock + Returns (kept separate)
+      totalStock: Math.max(0, regularReceiptsQty - dispatchesQty) + returnsQty,
+      totalStockValue: (regularReceiptsTotal - dispatchesTotal) + returnsTotal
+    };
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -526,7 +662,8 @@ const InventoryForm = ({
     const inventoryData = {
       ...formData,
       receipts,
-      dispatches
+      dispatches,
+      rowData  // Include row-specific data
     };
 
     try {
@@ -544,28 +681,41 @@ const InventoryForm = ({
   };
 
   const calculateTotalValue = () => {
-    const receiptsTotal = receipts.reduce((sum, receipt) => sum + (receipt.totalValue || 0), 0);
-    const dispatchesTotal = dispatches.reduce((sum, dispatch) => sum + (dispatch.totalValue || 0), 0);
-    
-    const stockAtFactory = receipts.reduce((sum, r) => sum + (r.quantity || 0), 0) - 
-                         dispatches.reduce((sum, d) => sum + (d.quantity || 0), 0);
-    
+    // Separate regular receipts from returns
+    const regularReceipts = receipts.filter(r => r.receiptCategory !== 'return');
     const returns = receipts.filter(r => r.receiptCategory === 'return');
+    
+    // Calculate totals for regular receipts only
+    const regularReceiptsTotal = regularReceipts.reduce((sum, r) => sum + (r.totalValue || 0), 0);
+    const regularReceiptsQty = regularReceipts.reduce((sum, r) => sum + (r.quantity || 0), 0);
+    
+    // Calculate dispatch totals
+    const dispatchesTotal = dispatches.reduce((sum, d) => sum + (d.totalValue || 0), 0);
+    const dispatchesQty = dispatches.reduce((sum, d) => sum + (d.quantity || 0), 0);
+    
+    // Calculate return totals
     const returnsTotal = returns.reduce((sum, r) => sum + (r.totalValue || 0), 0);
     const returnsQuantity = returns.reduce((sum, r) => sum + (r.quantity || 0), 0);
     
     return {
-      stockAtFactory: Math.max(0, stockAtFactory),
-      stockValueAtFactory: receiptsTotal - dispatchesTotal,
-      stockSentToCustomer: dispatches.reduce((sum, d) => sum + (d.quantity || 0), 0),
+      // Stock at Factory: Only regular receipts minus dispatches (NO returns)
+      stockAtFactory: Math.max(0, regularReceiptsQty - dispatchesQty),
+      stockValueAtFactory: regularReceiptsTotal - dispatchesTotal,
+      
+      stockSentToCustomer: dispatchesQty,
       stockValueSentToCustomer: dispatchesTotal,
+      
+      // Returns tracked separately
       stockReturnFromCustomer: returnsQuantity,
-      totalStock: Math.max(0, stockAtFactory) + returnsQuantity,
-      totalStockValue: (receiptsTotal - dispatchesTotal) + returnsTotal,
-      inventoryAtFactoryValue: receiptsTotal - dispatchesTotal,
+      
+      // Total stock includes both factory stock and returns
+      totalStock: Math.max(0, regularReceiptsQty - dispatchesQty) + returnsQuantity,
+      totalStockValue: (regularReceiptsTotal - dispatchesTotal) + returnsTotal,
+      
+      inventoryAtFactoryValue: regularReceiptsTotal - dispatchesTotal,
       inventoryAtCustomerEndValue: dispatchesTotal,
       inventoryReturnFromCustomerValue: returnsTotal,
-      totalInventoryValue: receiptsTotal + returnsTotal
+      totalInventoryValue: regularReceiptsTotal + returnsTotal
     };
   };
 
@@ -659,6 +809,35 @@ const InventoryForm = ({
     }
   }, [receipts, dispatches]);
 
+  // Sync rowData with unique combinations
+  useEffect(() => {
+    const combinations = getUniqueCombinations();
+    
+    // If we have combinations, create rows for each
+    if (combinations.length > 0) {
+      const newRowData = combinations.map((combo, index) => {
+        // Try to find existing row data for this combination
+        const existingRow = rowData.find(r => r.id === index + 1);
+        return {
+          id: index + 1,
+          workCategory: combo.workCategory,
+          partName: combo.partName,
+          category: existingRow?.category || 'In house',
+          vendorNames: existingRow?.vendorNames || []
+        };
+      });
+      setRowData(newRowData);
+    } else {
+      // If no combinations, keep default 2 rows
+      if (rowData.length === 0 || !rowData[0].workCategory) {
+        setRowData([
+          { id: 1, category: 'In house', vendorNames: [] },
+          { id: 2, category: 'Bought-out', vendorNames: [] }
+        ]);
+      }
+    }
+  }, [receipts, dispatches]);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Tabs */}
@@ -701,130 +880,205 @@ const InventoryForm = ({
       </div>
 
       {/* Summary Tab */}
-      {activeTab === 'summary' && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FloatingInput
-              label="Client/Vendor Name"
-              name="customerVendorName"
-              value={formData.customerVendorName}
-              onChange={handleInputChange}
-              type="select"
-              options={customerVendorOptions}
-              required
-            />
-            
-            {/* Re-order Level as Floating Input */}
-            <div className="relative">
-              {/* Auto-calculated suggestion */}
-              {!inventory && (
-                <div className="flex items-center justify-between mb-1">
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({
-                      ...prev,
-                      reOrderLevel: calculateReorderLevel()
-                    }))}
-                    className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
-                  >
-                   
-                  </button>
-                </div>
-              )}
-              
-              <FloatingInput
-                label="Re-order Level"
-                name="reOrderLevel"
-                value={formData.reOrderLevel}
-                onChange={handleInputChange}
-                type="number"
-                min="0"
-                step="1"
-              />
-            </div>
-          </div>
+     {/* Summary Tab */}
+{activeTab === 'summary' && (
+  <div className="space-y-6">
+    {/* Header inputs */}
+  
 
-          {/* Reorder Status Indicator */}
-          {summaryData && formData.reOrderLevel !== '' && formData.reOrderLevel !== null && (receipts.length > 0 || dispatches.length > 0 || inventory) && (() => {
-            const reorderStatus = getReorderStatus();
-            return reorderStatus ? (
-              <div className={`mt-4 p-4 rounded-lg border-2 ${reorderStatus.color}`}>
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">{reorderStatus.icon}</span>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-lg mb-1">
-                      Stock Status: {reorderStatus.status}
-                    </h4>
-                    <p className="text-sm">{reorderStatus.message}</p>
-                    <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <span className="font-medium">Current Stock:</span> {summaryData.stockAtFactory}
+    {/* Summary Table - Exact match to image */}
+    <div className="mt-6 overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-200 border border-gray-300">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+              S.No
+            </th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+              Work Category
+            </th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+              Part Name
+            </th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+              Category
+            </th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+              Vendor Name
+            </th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+              Re-order level
+            </th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+              Stock at Factory
+            </th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+              Stock value at Factory
+            </th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+              Stock sent to Customer
+            </th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+              Stock value sent to Customer
+            </th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+              Stock return from Customer
+            </th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+              Stock value return from Customer
+            </th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+              Total Stock
+            </th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+              Total Stock value
+            </th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {rowData.map((row) => (
+            <tr key={row.id}>
+              <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">{row.id}</td>
+              <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">
+                {row.workCategory || '-'}
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">
+                {row.partName || '-'}
+              </td>
+              {/* Editable Category Column */}
+              <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">
+                <select
+                  value={row.category}
+                  onChange={(e) => handleRowCategoryChange(row.id, e.target.value)}
+                  className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                >
+                  <option value="In house">In house</option>
+                  <option value="Bought-out">Bought-out</option>
+                </select>
+              </td>
+              {/* Multi-select Vendor Name Column */}
+              <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">
+                <div className="relative">
+                  <div className="min-h-[32px] border border-gray-300 rounded-md px-2 py-1 bg-white">
+                    {row.vendorNames && row.vendorNames.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {row.vendorNames.map((vendorName, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
+                          >
+                            {vendorName}
+                            <button
+                              type="button"
+                              onClick={() => handleRowVendorChange(row.id, vendorName)}
+                              className="ml-1 inline-flex items-center p-0.5 text-blue-600 hover:text-blue-800"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
                       </div>
-                      <div>
-                        <span className="font-medium">Reorder Level:</span> {formData.reOrderLevel}
-                      </div>
-                    </div>
+                    ) : (
+                      <span className="text-gray-400 text-sm">Select vendors...</span>
+                    )}
                   </div>
+                  <details className="mt-1">
+                    <summary className="cursor-pointer text-xs text-blue-600 hover:text-blue-800">
+                      {row.vendorNames && row.vendorNames.length > 0 ? 'Modify selection' : 'Select vendors'}
+                    </summary>
+                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                      {vendors.length > 0 ? (
+                        vendors.map((vendor) => (
+                          <label
+                            key={vendor._id}
+                            className="flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={row.vendorNames?.includes(vendor.vendorName) || false}
+                              onChange={() => handleRowVendorChange(row.id, vendor.vendorName)}
+                              className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-900">{vendor.vendorName}</span>
+                          </label>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-sm text-gray-500">No vendors available</div>
+                      )}
+                    </div>
+                  </details>
                 </div>
-              </div>
-            ) : null;
-          })()}
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">
+                {formData.reOrderLevel || '0'}
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">
+                {(() => {
+                  const stock = calculateStockForCombination(row.workCategory, row.partName);
+                  return stock.stockAtFactory || '0';
+                })()}
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">
+                {(() => {
+                  const stock = calculateStockForCombination(row.workCategory, row.partName);
+                  return `₹${stock.stockValueAtFactory?.toFixed(2) || '0.00'}`;
+                })()}
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">
+                {(() => {
+                  const stock = calculateStockForCombination(row.workCategory, row.partName);
+                  return stock.stockSentToCustomer || '0';
+                })()}
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">
+                {(() => {
+                  const stock = calculateStockForCombination(row.workCategory, row.partName);
+                  return `₹${stock.stockValueSentToCustomer?.toFixed(2) || '0.00'}`;
+                })()}
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">
+                {(() => {
+                  const stock = calculateStockForCombination(row.workCategory, row.partName);
+                  return stock.stockReturnFromCustomer || '0';
+                })()}
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">
+                {(() => {
+                  const stock = calculateStockForCombination(row.workCategory, row.partName);
+                  return `₹${stock.stockValueReturnFromCustomer?.toFixed(2) || '0.00'}`;
+                })()}
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">
+                {(() => {
+                  const stock = calculateStockForCombination(row.workCategory, row.partName);
+                  return stock.totalStock || '0';
+                })()}
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">
+                {(() => {
+                  const stock = calculateStockForCombination(row.workCategory, row.partName);
+                  return `₹${stock.totalStockValue?.toFixed(2) || '0.00'}`;
+                })()}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
 
-          {/* Summary Display */}
-          {summaryData && (
-            <div className="mt-6 bg-gray-50 rounded-lg p-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Calculated Summary</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="bg-white p-3 rounded border">
-                  <div className="text-sm text-gray-500">Stock at Factory</div>
-                  <div className="text-lg font-semibold">{summaryData.stockAtFactory}</div>
-                  <div className="text-sm text-gray-600">Value: ₹{summaryData.stockValueAtFactory.toFixed(2)}</div>
-                </div>
-                
-                <div className="bg-white p-3 rounded border">
-                  <div className="text-sm text-gray-500">Stock Sent to Customer</div>
-                  <div className="text-lg font-semibold">{summaryData.stockSentToCustomer}</div>
-                  <div className="text-sm text-gray-600">Value: ₹{summaryData.stockValueSentToCustomer.toFixed(2)}</div>
-                </div>
-                
-                <div className="bg-white p-3 rounded border">
-                  <div className="text-sm text-gray-500">Stock Return from Customer</div>
-                  <div className="text-lg font-semibold">{summaryData.stockReturnFromCustomer}</div>
-                  <div className="text-sm text-gray-600">Value: ₹{summaryData.inventoryReturnFromCustomerValue.toFixed(2)}</div>
-                </div>
-                
-                <div className="bg-white p-3 rounded border">
-                  <div className="text-sm text-gray-500">Total Stock</div>
-                  <div className="text-lg font-semibold">{summaryData.totalStock}</div>
-                  <div className="text-sm text-gray-600">Value: ₹{summaryData.totalStockValue.toFixed(2)}</div>
-                </div>
-                
-                <div className="bg-white p-3 rounded border">
-                  <div className="text-sm text-gray-500">Inventory at Factory</div>
-                  <div className="text-lg font-semibold">₹{summaryData.inventoryAtFactoryValue.toFixed(2)}</div>
-                </div>
-                
-                <div className="bg-white p-3 rounded border">
-                  <div className="text-sm text-gray-500">Total Inventory Value</div>
-                  <div className="text-xl font-bold text-blue-600">₹{summaryData.totalInventoryValue.toFixed(2)}</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="mt-4">
-            <FloatingInput
-              label="Remarks"
-              name="remarks"
-              value={formData.remarks}
-              onChange={handleInputChange}
-              type="textarea"
-              rows={4}
-            />
-          </div>
-        </div>
-      )}
-
+    {/* Remarks section */}
+    <div className="mt-6">
+      <FloatingInput
+        label="Remarks"
+        name="remarks"
+        value={formData.remarks}
+        onChange={handleInputChange}
+        type="textarea"
+        rows={4}
+      />
+    </div>
+  </div>
+)}
       {/* Receipts Tab */}
       {activeTab === 'receipts' && (
         <div className="space-y-6">

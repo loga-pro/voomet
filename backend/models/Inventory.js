@@ -145,6 +145,17 @@ const inventorySchema = new mongoose.Schema({
     default: 0
   },
   
+  // Row-specific data for summary table
+  rowData: [{
+    id: Number,
+    category: {
+      type: String,
+      enum: ['In house', 'Bought-out'],
+      default: 'In house'
+    },
+    vendorNames: [String]
+  }],
+  
   remarks: String,
 }, {
   timestamps: true
@@ -152,27 +163,34 @@ const inventorySchema = new mongoose.Schema({
 
 // Helper function to calculate summary values
 function calculateSummaryValues(doc) {
-  const receiptsTotal = doc.receipts.reduce((sum, r) => sum + (r.totalValue || 0), 0);
-  const dispatchesTotal = doc.dispatches.reduce((sum, d) => sum + (d.totalValue || 0), 0);
+  // Separate regular receipts from returns
+  const regularReceipts = doc.receipts.filter(r => r.receiptCategory !== 'return');
+  const returns = doc.receipts.filter(r => r.receiptCategory === 'return');
   
-  const receiptsQty = doc.receipts.reduce((sum, r) => sum + (r.quantity || 0), 0);
+  // Calculate totals for regular receipts only
+  const regularReceiptsTotal = regularReceipts.reduce((sum, r) => sum + (r.totalValue || 0), 0);
+  const regularReceiptsQty = regularReceipts.reduce((sum, r) => sum + (r.quantity || 0), 0);
+  
+  // Calculate dispatch totals
+  const dispatchesTotal = doc.dispatches.reduce((sum, d) => sum + (d.totalValue || 0), 0);
   const dispatchesQty = doc.dispatches.reduce((sum, d) => sum + (d.quantity || 0), 0);
   
-  const returns = doc.receipts.filter(r => r.receiptCategory === 'return');
+  // Calculate return totals
   const returnsTotal = returns.reduce((sum, r) => sum + (r.totalValue || 0), 0);
   const returnsQty = returns.reduce((sum, r) => sum + (r.quantity || 0), 0);
   
-  doc.stockAtFactory = Math.max(0, receiptsQty - dispatchesQty);
-  doc.stockValueAtFactory = receiptsTotal - dispatchesTotal;
+  // Stock at Factory: Only regular receipts minus dispatches (NO returns)
+  doc.stockAtFactory = Math.max(0, regularReceiptsQty - dispatchesQty);
+  doc.stockValueAtFactory = regularReceiptsTotal - dispatchesTotal;
   doc.stockSentToCustomer = dispatchesQty;
   doc.stockValueSentToCustomer = dispatchesTotal;
   doc.stockReturnFromCustomer = returnsQty;
-  doc.totalStock = Math.max(0, receiptsQty - dispatchesQty) + returnsQty;
-  doc.totalStockValue = (receiptsTotal - dispatchesTotal) + returnsTotal;
-  doc.inventoryAtFactoryValue = receiptsTotal - dispatchesTotal;
+  doc.totalStock = Math.max(0, regularReceiptsQty - dispatchesQty) + returnsQty;
+  doc.totalStockValue = (regularReceiptsTotal - dispatchesTotal) + returnsTotal;
+  doc.inventoryAtFactoryValue = regularReceiptsTotal - dispatchesTotal;
   doc.inventoryAtCustomerEndValue = dispatchesTotal;
   doc.inventoryReturnFromCustomerValue = returnsTotal;
-  doc.totalInventoryValue = receiptsTotal + returnsTotal;
+  doc.totalInventoryValue = regularReceiptsTotal + returnsTotal;
 }
 
 // Pre-save middleware to calculate summary values
@@ -190,29 +208,35 @@ inventorySchema.pre('findOneAndUpdate', function(next) {
     const receipts = update.receipts || [];
     const dispatches = update.dispatches || [];
     
-    const receiptsTotal = receipts.reduce((sum, r) => sum + (r.totalValue || 0), 0);
-    const dispatchesTotal = dispatches.reduce((sum, d) => sum + (d.totalValue || 0), 0);
+    // Separate regular receipts from returns
+    const regularReceipts = receipts.filter(r => r.receiptCategory !== 'return');
+    const returns = receipts.filter(r => r.receiptCategory === 'return');
     
-    const receiptsQty = receipts.reduce((sum, r) => sum + (r.quantity || 0), 0);
+    // Calculate totals for regular receipts only
+    const regularReceiptsTotal = regularReceipts.reduce((sum, r) => sum + (r.totalValue || 0), 0);
+    const regularReceiptsQty = regularReceipts.reduce((sum, r) => sum + (r.quantity || 0), 0);
+    
+    // Calculate dispatch totals
+    const dispatchesTotal = dispatches.reduce((sum, d) => sum + (d.totalValue || 0), 0);
     const dispatchesQty = dispatches.reduce((sum, d) => sum + (d.quantity || 0), 0);
     
-    const returns = receipts.filter(r => r.receiptCategory === 'return');
+    // Calculate return totals
     const returnsTotal = returns.reduce((sum, r) => sum + (r.totalValue || 0), 0);
     const returnsQty = returns.reduce((sum, r) => sum + (r.quantity || 0), 0);
     
     // Update the calculated fields in the update object
     this.set({
-      stockAtFactory: Math.max(0, receiptsQty - dispatchesQty),
-      stockValueAtFactory: receiptsTotal - dispatchesTotal,
+      stockAtFactory: Math.max(0, regularReceiptsQty - dispatchesQty),
+      stockValueAtFactory: regularReceiptsTotal - dispatchesTotal,
       stockSentToCustomer: dispatchesQty,
       stockValueSentToCustomer: dispatchesTotal,
       stockReturnFromCustomer: returnsQty,
-      totalStock: Math.max(0, receiptsQty - dispatchesQty) + returnsQty,
-      totalStockValue: (receiptsTotal - dispatchesTotal) + returnsTotal,
-      inventoryAtFactoryValue: receiptsTotal - dispatchesTotal,
+      totalStock: Math.max(0, regularReceiptsQty - dispatchesQty) + returnsQty,
+      totalStockValue: (regularReceiptsTotal - dispatchesTotal) + returnsTotal,
+      inventoryAtFactoryValue: regularReceiptsTotal - dispatchesTotal,
       inventoryAtCustomerEndValue: dispatchesTotal,
       inventoryReturnFromCustomerValue: returnsTotal,
-      totalInventoryValue: receiptsTotal + returnsTotal
+      totalInventoryValue: regularReceiptsTotal + returnsTotal
     });
   }
   

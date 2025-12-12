@@ -28,6 +28,12 @@ const partSchema = new mongoose.Schema({
   vendorName: {
     type: String,
     required: false
+  },
+  reorderLevel: {
+    type: Number,
+    required: false,
+    min: 0,
+    default: 0
   }
 }, {
   timestamps: true

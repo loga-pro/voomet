@@ -1055,10 +1055,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
             <div className="space-y-4 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4 bg-gray-50">
               {formData.items.map((item, index) => (
                 <div key={index} className="bg-white rounded-lg border p-4">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-sm font-medium text-gray-700 bg-primary-100 px-2 py-1 rounded">
-                      Item {index + 1}
-                    </span>
+                  <div className="flex justify-end items-center mb-3">
                     {formData.items.length > 1 && (
                       <button
                         type="button"
