@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { PlusCircleIcon, MinusCircleIcon, XMarkIcon, CheckCircleIcon, InformationCircleIcon, ArrowRightIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+import {
+  PlusCircleIcon,
+  MinusCircleIcon,
+  XMarkIcon,
+  CheckCircleIcon,
+  InformationCircleIcon
+} from '@heroicons/react/24/outline';
 import FloatingInput from './FloatingInput';
 import { purchaseRequestsAPI, partsAPI, inhouseMilestonesAPI } from '../../services/api';
 
@@ -13,7 +19,7 @@ const scopeOptions = [
   { value: 'access', label: 'Access' }
 ];
 
-const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], onSubmit, onCancel, showSuccess, showError }) => {
+const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess, showError }) => {
   const [formData, setFormData] = useState({
     customerName: '',
     projectName: '',
@@ -35,7 +41,7 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
     remarks: '',
     status: 'pending'
   });
-  
+
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [availableParts, setAvailableParts] = useState([]);
@@ -46,29 +52,13 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
   const [inhouseMilestones, setInhouseMilestones] = useState([]);
   const [inhouseCustomers, setInhouseCustomers] = useState([]);
 
-  // Validation constants
   const VALIDATION_RULES = {
-    REMARKS: {
-      maxLength: 200,
-      allowNumbers: true,
-      allowSpecialChars: true
-    },
-    PURPOSE: {
-      maxLength: 100
-    },
-    QUANTITY_REQUIRED: {
-      maxDigits: 8,
-      allowDecimal: false,
-      minValue: 1,
-      maxValue: 99999999
-    },
-    ESTIMATED_COST: {
-      maxValue: 9999999999.99,
-      decimalPlaces: 2
-    }
+    REMARKS: { maxLength: 200 },
+    PURPOSE: { maxLength: 100 },
+    QUANTITY_REQUIRED: { maxDigits: 8, allowDecimal: false, minValue: 1, maxValue: 99999999 },
+    ESTIMATED_COST: { maxValue: 9999999999.99, decimalPlaces: 2 }
   };
 
-  // Helper function to format date for date input (YYYY-MM-DD)
   const formatDateForInput = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -78,7 +68,6 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
     return `${year}-${month}-${day}`;
   };
 
-  // Initialize form with existing data
   useEffect(() => {
     if (purchaseRequest) {
       setFormData({
@@ -88,7 +77,7 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
         milestoneEndDate: purchaseRequest.milestoneEndDate ? formatDateForInput(purchaseRequest.milestoneEndDate) : '',
         startDate: purchaseRequest.startDate ? formatDateForInput(purchaseRequest.startDate) : '',
         endDate: purchaseRequest.endDate ? formatDateForInput(purchaseRequest.endDate) : '',
-        items: purchaseRequest.items?.length > 0 
+        items: purchaseRequest.items?.length > 0
           ? purchaseRequest.items.map((item, index) => ({
               sNo: index + 1,
               scopeOfWork: item.scopeOfWork || '',
@@ -113,15 +102,12 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
     }
   }, [purchaseRequest]);
 
-  // Fetch inhouseMilestones and populate customers
   useEffect(() => {
     const fetchInhouseMilestones = async () => {
       try {
         const milestonesRes = await inhouseMilestonesAPI.getAll();
         const milestones = milestonesRes.data?.milestones || milestonesRes.data || [];
         setInhouseMilestones(milestones);
-        
-        // Extract unique customers from inhouseMilestones
         const uniqueCustomers = [...new Set(milestones.map(m => m.customer).filter(Boolean))];
         setInhouseCustomers(uniqueCustomers.map(c => ({ customerName: c })));
       } catch (error) {
@@ -131,13 +117,9 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
     fetchInhouseMilestones();
   }, []);
 
-  // Filter projects by selected customer from inhouseMilestones
   useEffect(() => {
     if (formData.customerName) {
-      const customerMilestones = inhouseMilestones.filter(milestone => 
-        milestone.customer === formData.customerName
-      );
-      // Extract unique project names
+      const customerMilestones = inhouseMilestones.filter(milestone => milestone.customer === formData.customerName);
       const uniqueProjects = [...new Set(customerMilestones.map(m => m.projectName).filter(Boolean))];
       setFilteredProjects(uniqueProjects.map(p => ({ projectName: p })));
     } else {
@@ -145,13 +127,9 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
     }
   }, [formData.customerName, inhouseMilestones]);
 
-  // Auto-populate milestone dates when project is selected (read-only)
   useEffect(() => {
     if (formData.customerName && formData.projectName) {
-      const selectedMilestone = inhouseMilestones.find(
-        m => m.customer === formData.customerName && m.projectName === formData.projectName
-      );
-      
+      const selectedMilestone = inhouseMilestones.find(m => m.customer === formData.customerName && m.projectName === formData.projectName);
       if (selectedMilestone) {
         setFormData(prev => ({
           ...prev,
@@ -162,7 +140,6 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
     }
   }, [formData.customerName, formData.projectName, inhouseMilestones]);
 
-  // Fetch parts based on scope of work
   useEffect(() => {
     const fetchParts = async () => {
       try {
@@ -177,150 +154,84 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
     fetchParts();
   }, []);
 
-  // Filter parts by scope of work for each item
   useEffect(() => {
     const filtered = {};
     formData.items.forEach((item, index) => {
       if (item.scopeOfWork) {
-        filtered[index] = availableParts.filter(part => 
-          part.scopeOfWork === item.scopeOfWork
-        );
+        filtered[index] = availableParts.filter(part => part.scopeOfWork === item.scopeOfWork);
       }
     });
     setFilteredParts(filtered);
   }, [formData.items, availableParts]);
 
-  // Validation functions
   const validateRemarks = (value, fieldName = 'Remarks') => {
     const rules = VALIDATION_RULES.REMARKS;
-    
-    if (!value) return ''; // Optional field
-    
-    if (value.length > rules.maxLength) {
-      return `${fieldName} cannot exceed ${rules.maxLength} characters`;
-    }
-    
+    if (!value) return '';
+    if (value.length > rules.maxLength) return `${fieldName} cannot exceed ${rules.maxLength} characters`;
     return '';
   };
 
   const validatePurpose = (value) => {
     const rules = VALIDATION_RULES.PURPOSE;
-    
     if (!value) return 'Purpose is required';
-    
-    if (value.length > rules.maxLength) {
-      return `Maximum ${rules.maxLength} characters allowed`;
-    }
-    
+    if (value.length > rules.maxLength) return `Maximum ${rules.maxLength} characters allowed`;
     return '';
   };
 
   const validateQuantityRequired = (value) => {
     if (!value) return 'Quantity is required';
-    
-    // Check if it's a valid integer
-    if (!/^\d+$/.test(value)) {
-      return 'Only whole numbers are allowed (no decimals)';
-    }
-    
+    if (!/^\d+$/.test(value)) return 'Only whole numbers are allowed (no decimals)';
     const numValue = parseInt(value, 10);
-    
-    // Check if value is within range
-    if (numValue < 1) {
-      return `Minimum value is 1`;
-    }
-    
-    if (numValue > 99999999) {
-      return `Maximum value is 99,999,999`;
-    }
-    
+    if (numValue < 1) return `Minimum value is 1`;
+    if (numValue > 99999999) return `Maximum value is 99,999,999`;
     return '';
   };
 
   const validateEstimatedCost = (value) => {
     const rules = VALIDATION_RULES.ESTIMATED_COST;
-    
-    if (!value) return ''; // Optional field
-    
-    // Check if it's a valid number with optional 2 decimal places
-    if (!/^\d+(\.\d{0,2})?$/.test(value)) {
-      return 'Must be a valid number with up to 2 decimal places';
-    }
-    
+    if (!value) return '';
+    if (!/^\d+(\.\d{0,2})?$/.test(value)) return 'Must be a valid number with up to 2 decimal places';
     const numValue = parseFloat(value);
-    
-    if (numValue > rules.maxValue) {
-      return `Maximum value is ${rules.maxValue.toLocaleString()}`;
-    }
-    
-    // Check decimal places
+    if (numValue > rules.maxValue) return `Maximum value is ${rules.maxValue.toLocaleString()}`;
     const decimalPart = value.split('.')[1];
-    if (decimalPart && decimalPart.length > rules.decimalPlaces) {
-      return `Maximum ${rules.decimalPlaces} decimal places allowed`;
-    }
-    
+    if (decimalPart && decimalPart.length > rules.decimalPlaces) return `Maximum ${rules.decimalPlaces} decimal places allowed`;
     return '';
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
     let validatedValue = value;
-    
-    // Apply validation rules based on field type
+
     if (name === 'remarks') {
       if (value.length <= VALIDATION_RULES.REMARKS.maxLength) {
         validatedValue = value;
       } else {
-        return; // Don't update if exceeds max length
+        return;
       }
     }
-    
-    setFormData(prev => ({
-      ...prev,
-      [name]: validatedValue
-    }));
 
-    // Clear error for this field
+    setFormData(prev => ({ ...prev, [name]: validatedValue }));
+
     if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
+      setErrors(prev => ({ ...prev, [name]: '' }));
     }
 
-    // Reset project name and dates if customer changes
     if (name === 'customerName') {
-      setFormData(prev => ({
-        ...prev,
-        projectName: '',
-        milestoneStartDate: '',
-        milestoneEndDate: '',
-        startDate: '',
-        endDate: ''
-      }));
+      setFormData(prev => ({ ...prev, projectName: '', milestoneStartDate: '', milestoneEndDate: '', startDate: '', endDate: '' }));
     }
   };
 
   const handleItemChange = (index, field, value) => {
     const updatedItems = [...formData.items];
-    
     let validatedValue = value;
-    
+
     if (field === 'quantityRequired') {
-      // Allow only digits, remove non-digit characters
       validatedValue = value.replace(/[^\d]/g, '');
-      
-      // Remove leading zeros
       validatedValue = validatedValue.replace(/^0+/, '') || '0';
-      
       updatedItems[index][field] = validatedValue;
-      
-      // Calculate estimated cost if part price is available
-      if (field === 'quantityRequired' && updatedItems[index].partName) {
-        const selectedPart = availableParts.find(part => 
-          part.partName === updatedItems[index].partName
-        );
+
+      if (updatedItems[index].partName) {
+        const selectedPart = availableParts.find(part => part.partName === updatedItems[index].partName);
         if (selectedPart && selectedPart.partPrice) {
           const quantity = parseInt(validatedValue) || 0;
           updatedItems[index].estimatedCost = (quantity * selectedPart.partPrice).toFixed(2);
@@ -328,8 +239,6 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
       }
     } else if (field === 'partName') {
       updatedItems[index][field] = value;
-      
-      // Auto-fill unit type and calculate estimated cost
       const selectedPart = availableParts.find(part => part.partName === value);
       if (selectedPart) {
         updatedItems[index].unitType = selectedPart.unitType || '';
@@ -341,39 +250,23 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
     } else if (field === 'purpose') {
       if (value.length <= VALIDATION_RULES.PURPOSE.maxLength) {
         updatedItems[index][field] = value;
-      } else {
-        return; // Don't update if exceeds max length
-      }
+      } else return;
     } else if (field === 'estimatedCost') {
-      // Allow only numbers and up to 2 decimal places
       validatedValue = value.replace(/[^\d.]/g, '');
-      
-      // Ensure only one decimal point
       const parts = validatedValue.split('.');
-      if (parts.length > 2) {
-        validatedValue = parts[0] + '.' + parts.slice(1).join('');
-      }
-      
-      // Limit decimal places to 2
-      if (parts[1] && parts[1].length > 2) {
-        validatedValue = parts[0] + '.' + parts[1].slice(0, 2);
-      }
-      
+      if (parts.length > 2) validatedValue = parts[0] + '.' + parts.slice(1).join('');
+      if (parts[1] && parts[1].length > 2) validatedValue = parts[0] + '.' + parts[1].slice(0, 2);
       updatedItems[index][field] = validatedValue;
     } else {
       updatedItems[index][field] = value;
     }
-    
-    setFormData(prev => ({
-      ...prev,
-      items: updatedItems
-    }));
 
-    // Clear error for this field
+    setFormData(prev => ({ ...prev, items: updatedItems }));
+
     if (errors.items && errors.items[index] && errors.items[index][field]) {
       const updatedErrors = { ...errors };
       delete updatedErrors.items[index][field];
-      if (Object.keys(updatedErrors.items[index]).length === 0) {
+      if (Object.keys(updatedErrors.items[index] || {}).length === 0) {
         delete updatedErrors.items[index];
       }
       setErrors(updatedErrors);
@@ -403,16 +296,8 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
     if (formData.items.length > 1) {
       const updatedItems = [...formData.items];
       updatedItems.splice(index, 1);
-      
-      // Update serial numbers
-      updatedItems.forEach((item, idx) => {
-        item.sNo = idx + 1;
-      });
-      
-      setFormData(prev => ({
-        ...prev,
-        items: updatedItems
-      }));
+      updatedItems.forEach((item, idx) => { item.sNo = idx + 1; });
+      setFormData(prev => ({ ...prev, items: updatedItems }));
 
       if (errors.items && errors.items[index]) {
         const updatedErrors = { ...errors };
@@ -425,74 +310,36 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.customerName) {
-      newErrors.customerName = 'Customer name is required';
-    }
+    if (!formData.customerName) newErrors.customerName = 'Customer name is required';
+    if (!formData.projectName) newErrors.projectName = 'Project name is required';
 
-    if (!formData.projectName) {
-      newErrors.projectName = 'Project name is required';
-    }
+    if (!formData.startDate) newErrors.startDate = 'Start date is required';
+    else if (new Date(formData.startDate) > new Date(formData.endDate)) newErrors.startDate = 'Start date must be before end date';
 
-    if (!formData.startDate) {
-      newErrors.startDate = 'Start date is required';
-    } else if (new Date(formData.startDate) > new Date(formData.endDate)) {
-      newErrors.startDate = 'Start date must be before end date';
-    }
+    if (!formData.endDate) newErrors.endDate = 'End date is required';
 
-    if (!formData.endDate) {
-      newErrors.endDate = 'End date is required';
-    }
-
-    // Validate remarks
     const remarksError = validateRemarks(formData.remarks);
-    if (remarksError) {
-      newErrors.remarks = remarksError;
-    }
+    if (remarksError) newErrors.remarks = remarksError;
 
-    // Validate items
     const itemErrors = [];
     let hasValidItems = false;
-    
+
     formData.items.forEach((item, index) => {
       const itemError = {};
-      
-      if (!item.scopeOfWork) {
-        itemError.scopeOfWork = 'Scope of work is required';
-      }
-      
-      if (!item.partName) {
-        itemError.partName = 'Part name is required';
-      }
-      
-      // Validate quantity
+      if (!item.scopeOfWork) itemError.scopeOfWork = 'Scope of work is required';
+      if (!item.partName) itemError.partName = 'Part name is required';
       const quantityError = validateQuantityRequired(item.quantityRequired);
-      if (quantityError) {
-        itemError.quantityRequired = quantityError;
-      }
-      
-      // Validate purpose
+      if (quantityError) itemError.quantityRequired = quantityError;
       const purposeError = validatePurpose(item.purpose);
-      if (purposeError) {
-        itemError.purpose = purposeError;
-      }
-      
-      // Validate estimated cost
+      if (purposeError) itemError.purpose = purposeError;
       const costError = validateEstimatedCost(item.estimatedCost);
-      if (costError) {
-        itemError.estimatedCost = costError;
-      }
-      
-      if (Object.keys(itemError).length > 0) {
-        itemErrors[index] = itemError;
-      } else {
-        hasValidItems = true;
-      }
+      if (costError) itemError.estimatedCost = costError;
+
+      if (Object.keys(itemError).length > 0) itemErrors[index] = itemError;
+      else hasValidItems = true;
     });
 
-    if (itemErrors.length > 0) {
-      newErrors.items = itemErrors;
-    }
-
+    if (itemErrors.length > 0) newErrors.items = itemErrors;
     if (!hasValidItems) {
       newErrors.items = newErrors.items || {};
       newErrors.items.general = 'At least one valid item is required';
@@ -503,22 +350,14 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
     return Object.keys(newErrors).length === 0;
   };
 
-  const calculateTotalEstimatedCost = () => {
-    return formData.items.reduce((total, item) => {
-      const cost = parseFloat(item.estimatedCost) || 0;
-      return total + cost;
-    }, 0).toFixed(2);
-  };
+  const calculateTotalEstimatedCost = () =>
+    formData.items.reduce((total, item) => total + (parseFloat(item.estimatedCost) || 0), 0).toFixed(2);
 
-  const calculateTotalQuantity = () => {
-    return formData.items.reduce((total, item) => {
-      return total + (parseInt(item.quantityRequired) || 0);
-    }, 0);
-  };
+  const calculateTotalQuantity = () =>
+    formData.items.reduce((total, item) => total + (parseInt(item.quantityRequired) || 0), 0);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!validateForm()) {
       showError('Please fix the errors in the form');
       return;
@@ -526,11 +365,9 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
 
     setIsSubmitting(true);
     setLoading(true);
-    
+
     try {
-      // Prepare data for submission (exclude milestone fields - they're only for display)
       const { milestoneStartDate, milestoneEndDate, ...dataToSubmit } = formData;
-      
       const submitData = {
         ...dataToSubmit,
         items: formData.items.map(item => ({
@@ -544,44 +381,35 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
       };
 
       if (purchaseRequest) {
-        // Update existing request
         await purchaseRequestsAPI.update(purchaseRequest._id, submitData);
         showSuccess('Purchase request updated successfully');
       } else {
-        // Create new request
         await purchaseRequestsAPI.create(submitData);
         showSuccess('Purchase request created successfully');
       }
-      
-      onSubmit(); // This will close the modal and refresh the list
+
+      onSubmit();
     } catch (error) {
       console.error('Error submitting purchase request:', error);
-      
-      // Handle validation errors from backend
-      if (error.response?.status === 400) {
-        if (error.response?.data?.errors) {
-          const backendErrors = {};
-          error.response.data.errors.forEach(err => {
-            if (err.path) {
-              const field = err.path;
-              if (field.includes('items')) {
-                // Handle nested item errors
-                const match = field.match(/items\[(\d+)\]\.(\w+)/);
-                if (match) {
-                  const [, index, fieldName] = match;
-                  if (!backendErrors.items) backendErrors.items = [];
-                  if (!backendErrors.items[index]) backendErrors.items[index] = {};
-                  backendErrors.items[index][fieldName] = err.msg;
-                }
-              } else {
-                backendErrors[field] = err.msg;
+      if (error.response?.status === 400 && error.response?.data?.errors) {
+        const backendErrors = {};
+        error.response.data.errors.forEach(err => {
+          if (err.path) {
+            const field = err.path;
+            if (field.includes('items')) {
+              const match = field.match(/items\[(\d+)\]\.(\w+)/);
+              if (match) {
+                const [, index, fieldName] = match;
+                if (!backendErrors.items) backendErrors.items = [];
+                if (!backendErrors.items[index]) backendErrors.items[index] = {};
+                backendErrors.items[index][fieldName] = err.msg;
               }
+            } else {
+              backendErrors[field] = err.msg;
             }
-          });
-          setErrors(backendErrors);
-        } else if (error.response?.data?.message) {
-          showError(error.response.data.message);
-        }
+          }
+        });
+        setErrors(backendErrors);
       } else if (error.response?.data?.message) {
         showError(error.response.data.message);
       } else {
@@ -593,7 +421,6 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
     }
   };
 
-  // Helper function to format date as "DD-MM-YYYY" for display
   const formatDate = (dateString) => {
     if (!dateString) return 'Not set';
     const date = new Date(dateString);
@@ -605,26 +432,23 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
 
   return (
     <form onSubmit={handleSubmit} className="h-full flex flex-col">
-      {/* FORM HEADER - Fixed at top */}
+      {/* Header */}
       <div className="flex-shrink-0 bg-gray-50 border-b border-gray-200 p-4">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center justify-between mb-3">
           <h2 className="text-xl font-bold text-gray-900">
             {purchaseRequest ? 'Edit Purchase Requisition' : 'Create Purchase Requisition'}
           </h2>
         </div>
-        
-        {/* Customer and Project Row */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
+
+        {/* Two-col customer/project */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FloatingInput
             label="Customer name"
             name="customerName"
             value={formData.customerName}
             onChange={handleChange}
             type="select"
-            options={[
-              { value: '', label: 'Select Customer' },
-              ...inhouseCustomers.map(c => ({ value: c.customerName, label: c.customerName }))
-            ]}
+            options={[{ value: '', label: 'Select Customer' }, ...inhouseCustomers.map(c => ({ value: c.customerName, label: c.customerName }))]}
             error={showValidation && errors.customerName}
             required
             size="medium"
@@ -636,123 +460,66 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
             value={formData.projectName}
             onChange={handleChange}
             type="select"
-            options={[
-              { value: '', label: 'Select Project' },
-              ...filteredProjects.map(p => ({ value: p.projectName, label: p.projectName }))
-            ]}
+            options={[{ value: '', label: 'Select Project' }, ...filteredProjects.map(p => ({ value: p.projectName, label: p.projectName }))]}
             error={showValidation && errors.projectName}
             required
             size="medium"
           />
         </div>
-        
-        {/* Milestone Dates Row (Read-only from InhouseMilestone using FloatingInput) */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <FloatingInput
-            label="Project Start Date"
-            name="milestoneStartDate"
-            value={formData.milestoneStartDate}
-            onChange={() => {}}
-            type="date"
-            error={showValidation && errors.milestoneStartDate}
-            size="medium"
-            readOnly
-            className="bg-gray-50 cursor-not-allowed"
-          />
 
-          <FloatingInput
-            label="Project End Date"
-            name="milestoneEndDate"
-            value={formData.milestoneEndDate}
-            onChange={() => {}}
-            type="date"
-            error={showValidation && errors.milestoneEndDate}
-            size="medium"
-            readOnly
-            className="bg-gray-50 cursor-not-allowed"
-          />
-        </div>
-        
-        {/* Purchase Request Dates Row (Editable) */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <FloatingInput
-            label="Production Request Start Date"
-            name="startDate"
-            value={formData.startDate}
-            onChange={handleChange}
-            type="date"
-            error={showValidation && errors.startDate}
-            required
-            size="medium"
-          />
-
-          <FloatingInput
-            label="Production Request End Date"
-            name="endDate"
-            value={formData.endDate}
-            onChange={handleChange}
-            type="date"
-            error={showValidation && errors.endDate}
-            required
-            size="medium"
-          />
+        {/* Milestone row (readonly) + Request dates */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+          <FloatingInput label="Project Start Date" name="milestoneStartDate" value={formData.milestoneStartDate} onChange={() => {}} type="date" readOnly size="small" className="bg-gray-50 cursor-not-allowed" />
+          <FloatingInput label="Project End Date" name="milestoneEndDate" value={formData.milestoneEndDate} onChange={() => {}} type="date" readOnly size="small" className="bg-gray-50 cursor-not-allowed" />
+          <FloatingInput label="Request Start Date" name="startDate" value={formData.startDate} onChange={handleChange} type="date" error={showValidation && errors.startDate} required size="small" />
+          <FloatingInput label="Request End Date" name="endDate" value={formData.endDate} onChange={handleChange} type="date" error={showValidation && errors.endDate} required size="small" />
         </div>
       </div>
 
-      {/* SCROLLABLE CONTENT AREA */}
-      <div className="flex-1 overflow-hidden p-4">
-        {errors.submit && (
-          <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
-            {errors.submit}
+      {/* Body */}
+      <div className="flex-1 overflow-hidden p-4 flex flex-col">
+        <div className="mb-4 flex justify-between items-center">
+          <div className="text-sm text-gray-600">Add parts required for this request</div>
+          <div className="flex items-center space-x-2">
+            <button type="button" onClick={addItem} className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+              <PlusCircleIcon className="h-4 w-4 mr-2" /> Add Row
+            </button>
+            <div className="text-xs text-gray-500">Rows: <span className="font-medium">{formData.items.length}</span></div>
           </div>
-        )}
-
-        {/* Add Row Button - Placed above the table */}
-        <div className="mb-4 flex justify-end">
-          <button
-            type="button"
-            onClick={addItem}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <PlusCircleIcon className="h-4 w-4 mr-2" />
-            Add Row
-          </button>
         </div>
 
-        {/* Main Table Container with Fixed Header and Scrollable Body */}
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden flex flex-col h-full max-h-[400px]">
-          {/* Fixed Table Header */}
-          <div className="flex-shrink-0 bg-gray-50 border-b border-gray-200">
-            <div className="grid grid-cols-8 gap-4 px-4 py-3">
-              <div className="text-sm font-medium text-gray-700">s.no</div>
-              <div className="text-sm font-medium text-gray-700">Scope of Work</div>
-              <div className="text-sm font-medium text-gray-700">Part name</div>
-              <div className="text-sm font-medium text-gray-700">Quantity Required</div>
-              <div className="text-sm font-medium text-gray-700">Purpose</div>
-              <div className="text-sm font-medium text-gray-700">Unit</div>
-              <div className="text-sm font-medium text-gray-700">Action</div>
+        {/* Table container: using 12-column grid for precise column widths */}
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden flex flex-col flex-1">
+          {/* Sticky header */}
+          <div className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
+            <div className="grid grid-cols-12 gap-4 px-4 py-3 items-center">
+              <div className="col-span-1 text-sm font-medium text-gray-700">s.no</div>
+              <div className="col-span-2 text-sm font-medium text-gray-700">Scope of Work</div>
+              <div className="col-span-3 text-sm font-medium text-gray-700">Part name</div>
+              <div className="col-span-1 text-sm font-medium text-gray-700">Qty</div>
+              <div className="col-span-3 text-sm font-medium text-gray-700">Purpose</div>
+              <div className="col-span-1 text-sm font-medium text-gray-700">Unit</div>
+              <div className="col-span-1 text-sm font-medium text-gray-700 text-right">Action</div>
             </div>
           </div>
 
-          {/* Scrollable Table Body */}
+          {/* Scrollable rows */}
           <div className="flex-1 overflow-y-auto">
             {formData.items.length === 0 ? (
-              <div className="px-4 py-8 text-center text-gray-500">
-                No items added. Click "Add Row" to add items.
-              </div>
+              <div className="px-4 py-8 text-center text-gray-500">No items added. Click "Add Row" to add items.</div>
             ) : (
               <div className="divide-y divide-gray-200">
                 {formData.items.map((item, index) => (
-                  <div key={index} className="px-4 py-4 hover:bg-gray-50 grid grid-cols-8 gap-4">
-                    {/* S.No with proper spacing */}
-                    <div className="flex items-center">
+                  <div key={index} className="grid grid-cols-12 gap-4 px-4 py-4 items-start">
+                    {/* s.no */}
+                    <div className="col-span-1 flex items-center">
                       <div className="w-8 h-8 flex items-center justify-center rounded-md bg-gray-100">
                         <span className="text-sm font-medium text-gray-900">{item.sNo}</span>
                       </div>
                     </div>
 
-                    {/* Scope of Work with more width */}
-                    <div>
+                    {/* scope */}
+                    <div className="col-span-2">
                       <FloatingInput
                         value={item.scopeOfWork}
                         onChange={(e) => handleItemChange(index, 'scopeOfWork', e.target.value)}
@@ -767,18 +534,15 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
                       />
                     </div>
 
-                    {/* Part Name with more width */}
-                    <div>
+                    {/* part */}
+                    <div className="col-span-3">
                       <FloatingInput
                         value={item.partName}
                         onChange={(e) => handleItemChange(index, 'partName', e.target.value)}
                         type="select"
                         options={[
                           { value: '', label: 'Select Part' },
-                          ...(filteredParts[index] || []).map(part => ({
-                            value: part.partName,
-                            label: part.partName
-                          }))
+                          ...(filteredParts[index] || []).map(part => ({ value: part.partName, label: part.partName }))
                         ]}
                         error={showValidation && errors.items?.[index]?.partName}
                         required
@@ -789,8 +553,8 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
                       />
                     </div>
 
-                    {/* Quantity Required with proper spacing */}
-                    <div>
+                    {/* qty */}
+                    <div className="col-span-1">
                       <FloatingInput
                         value={item.quantityRequired}
                         onChange={(e) => handleItemChange(index, 'quantityRequired', e.target.value)}
@@ -801,11 +565,12 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
                         size="small"
                         hideLabel
                         className="w-full"
+                        placeholder="0"
                       />
                     </div>
 
-                    {/* Purpose with more width */}
-                    <div>
+                    {/* purpose */}
+                    <div className="col-span-3">
                       <FloatingInput
                         value={item.purpose}
                         onChange={(e) => handleItemChange(index, 'purpose', e.target.value)}
@@ -816,11 +581,12 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
                         hideLabel
                         maxLength={VALIDATION_RULES.PURPOSE.maxLength}
                         className="w-full"
+                        placeholder="Purpose / usage"
                       />
                     </div>
 
-                    {/* Unit Type */}
-                    <div>
+                    {/* unit */}
+                    <div className="col-span-1">
                       <FloatingInput
                         value={item.unitType}
                         onChange={(e) => handleItemChange(index, 'unitType', e.target.value)}
@@ -829,16 +595,17 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
                         hideLabel
                         readOnly={!!item.partName}
                         className="w-full"
+                        placeholder="Unit"
                       />
                     </div>
 
-                    {/* Action - Delete Button */}
-                    <div className="flex items-center">
+                    {/* action */}
+                    <div className="col-span-1 flex items-center justify-end space-x-2">
                       {formData.items.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeItem(index)}
-                          className="w-8 h-8 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+                          className="inline-flex items-center justify-center h-8 w-8 rounded-md text-red-600 hover:bg-red-50"
                           title="Delete Row"
                         >
                           <XMarkIcon className="h-5 w-5" />
@@ -852,7 +619,7 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
           </div>
         </div>
 
-        {/* Remarks Section */}
+        {/* Remarks */}
         <div className="mt-6 relative">
           <FloatingInput
             label="Remarks (Optional)"
@@ -873,7 +640,7 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
           )}
         </div>
 
-        {/* Status (for editing only) */}
+        {/* edit only status */}
         {purchaseRequest && (
           <div className="mt-6">
             <FloatingInput
@@ -894,32 +661,21 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
           </div>
         )}
 
-        {/* Validation summary */}
         {showValidation && errors.items?.general && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <div className="flex items-center">
-              <InformationCircleIcon className="h-5 w-5 text-red-400 mr-2" />
-              <p className="text-sm text-red-600">{errors.items.general}</p>
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <div className="flex items-center text-sm text-red-600">
+              <InformationCircleIcon className="h-5 w-5 mr-2" />
+              <span>{errors.items.general}</span>
             </div>
           </div>
         )}
       </div>
 
-      {/* FIXED BOTTOM BUTTONS */}
+      {/* Footer */}
       <div className="flex-shrink-0 border-t border-gray-200 bg-white p-4">
         <div className="flex justify-end space-x-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading || isSubmitting}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 flex items-center"
-          >
+          <button type="button" onClick={onCancel} className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50">Cancel</button>
+          <button type="submit" disabled={loading || isSubmitting} className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center">
             {loading ? (
               <>
                 <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">

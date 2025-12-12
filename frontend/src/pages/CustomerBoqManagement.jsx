@@ -32,7 +32,7 @@ import BOQForm from "../components/Forms/BOQForm";
 import Modal from "../components/Modals/Modal";
 import Notification from '../components/Notifications/Notification';
 import useNotification from '../hooks/useNotification';
-import { boqAPI, projectsAPI, customersAPI } from "../services/api";
+import { boqAPI, projectsAPI } from "../services/api";
 import AdvancedBOQPDFGenerator from "../components/BOQ/AdvancedBOQPDFGenerator";
 
 const CustomerBoqManagement = () => {
@@ -56,7 +56,7 @@ const CustomerBoqManagement = () => {
   const [uniqueProjectNamesList, setUniqueProjectNamesList] = useState([]);
   const [uniqueScopeOfWork, setUniqueScopeOfWork] = useState([]);
   const [uniqueItemDescriptions, setUniqueItemDescriptions] = useState([]);
-  const [projects, setProjects] = useState([]);
+  const [allProjects, setAllProjects] = useState([]); // Store all projects to check stages
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -77,33 +77,72 @@ const CustomerBoqManagement = () => {
 
   useEffect(() => {
     fetchBOQItems();
+    fetchAllProjects(); // Fetch projects to check stages
   }, []);
 
   useEffect(() => {
     filterItems();
   }, [boqItems, filters, searchTerm, currentPage, itemsPerPage]);
 
-  // Fetch projects when customer filter changes
-  useEffect(() => {
-    fetchProjects(filters.customer);
-  }, [filters.customer]);
+  // Fetch all projects to check their stages
+  const fetchAllProjects = async () => {
+    try {
+      const response = await projectsAPI.getAll();
+      const projectsData = response.data || response;
+      setAllProjects(projectsData || []);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+      setAllProjects([]);
+    }
+  };
+
+  // Filter project names based on selected customer from saved BOQ items
+  // Exclude projects in RFQ stage
+  const getFilteredProjectNames = () => {
+    let projectNames = uniqueProjectNamesList;
+    
+    // Filter by customer if selected
+    if (filters.customer) {
+      const filteredProjects = boqItems
+        .filter(item => item.customer === filters.customer)
+        .map(item => item.projectName)
+        .filter(Boolean);
+      projectNames = [...new Set(filteredProjects)];
+    }
+    
+    // Filter out RFQ stage projects
+    // Only show: boq, awarded, under_execution, completed, post_implementation
+    const allowedStages = ['boq', 'awarded', 'under_execution', 'completed', 'post_implementation'];
+    const filteredByStage = projectNames.filter(projectName => {
+      const project = allProjects.find(p => p.projectName === projectName);
+      return project && allowedStages.includes(project.stage);
+    });
+    
+    return filteredByStage;
+  };
 
   const fetchBOQItems = async () => {
     try {
       setLoading(true);
       const response = await boqAPI.getAll();
-      const items = Array.isArray(response.data.data) ? response.data.data : [];
-      setBoqItems(items);
+      const allItems = Array.isArray(response.data.data) ? response.data.data : [];
+      
+      // Filter to show only saved BOQs (those with items)
+      const savedItems = allItems.filter(item => 
+        item.items && Array.isArray(item.items) && item.items.length > 0
+      );
+      
+      setBoqItems(savedItems);
 
-      // Extract unique customers
-      const customers = [...new Set(items.map((item) => item.customer))].filter(Boolean);
+      // Extract unique customers from saved items only
+      const customers = [...new Set(savedItems.map((item) => item.customer))].filter(Boolean);
       setUniqueProjectNames(customers);
 
-      // Extract unique project names
-      const projectNames = [...new Set(items.map((item) => item.projectName))].filter(Boolean);
+      // Extract unique project names from saved items only
+      const projectNames = [...new Set(savedItems.map((item) => item.projectName))].filter(Boolean);
       setUniqueProjectNamesList(projectNames);
 
-      const allScopes = items
+      const allScopes = savedItems
         .flatMap((item) =>
           Array.isArray(item.scopeOfWork)
             ? item.scopeOfWork
@@ -113,9 +152,9 @@ const CustomerBoqManagement = () => {
       const uniqueScopes = [...new Set(allScopes)].sort();
       setUniqueScopeOfWork(uniqueScopes);
 
-      // Extract unique item descriptions from all items
+      // Extract unique item descriptions from all saved items
       const itemDescriptions = [];
-      items.forEach(item => {
+      savedItems.forEach(item => {
         if (item.items && Array.isArray(item.items)) {
           item.items.forEach(subItem => {
             if (subItem.partName) {
@@ -143,25 +182,7 @@ const CustomerBoqManagement = () => {
     }
   };
 
-  // Updated function to fetch projects
-  const fetchProjects = async (customerName) => {
-    try {
-      if (customerName) {
-        // Fetch projects for specific customer
-        const response = await projectsAPI.getAll({ customerName });
-        const projectsData = response.data || response;
-        setProjects(projectsData || []);
-      } else {
-        // Fetch all projects when no customer is selected
-        const response = await projectsAPI.getAll();
-        const projectsData = response.data || response;
-        setProjects(projectsData || []);
-      }
-    } catch (error) {
-      console.error("Error fetching projects:", error);
-      setProjects([]);
-    }
-  };
+
 
   const handleAdvancedPDFPreview = (item) => {
     setPdfBOQData(item);
@@ -587,9 +608,9 @@ const CustomerBoqManagement = () => {
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
                   >
                     <option value="">All Projects</option>
-                    {projects.map((project) => (
-                      <option key={project._id} value={project.projectName}>
-                        {project.projectName}
+                    {getFilteredProjectNames().map((projectName) => (
+                      <option key={projectName} value={projectName}>
+                        {projectName}
                       </option>
                     ))}
                   </select>

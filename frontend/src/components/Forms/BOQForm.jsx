@@ -191,7 +191,14 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       if (boq && boq.customer) {
         try {
           const response = await projectsAPI.getAll({ customerName: boq.customer });
-          const projectsData = response.data || response;
+          let projectsData = response.data || response;
+          
+          // Filter projects by stage (exclude RFQ), but always include the current project
+          const allowedStages = ['boq', 'awarded', 'under_execution', 'completed', 'post_implementation'];
+          projectsData = (projectsData || []).filter(project => 
+            allowedStages.includes(project.stage) || project.projectName === boq.projectName
+          );
+          
           setProjects(projectsData || []);
         } catch (error) {
           console.error('Error fetching projects for edit:', error);
@@ -229,7 +236,14 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
         try {
           setLoading(true);
           const response = await projectsAPI.getAll({ customerName: formData.customer });
-          const projectsData = response.data || response;
+          let projectsData = response.data || response;
+          
+          // Filter projects by stage (exclude RFQ), but always include the current project if editing
+          const allowedStages = ['boq', 'awarded', 'under_execution', 'completed', 'post_implementation'];
+          projectsData = (projectsData || []).filter(project => 
+            allowedStages.includes(project.stage) || (boq && project.projectName === boq.projectName)
+          );
+          
           setProjects(projectsData || []);
 
           // If there's only one project, auto-populate the project name
@@ -1249,7 +1263,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                         Installment
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Discount (%)
+                        Payment  (%)
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Value (₹)

@@ -62,20 +62,30 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
     }
   };
 
+  // Helper function to format date for date input (YYYY-MM-DD)
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Initialize form with existing data
   useEffect(() => {
     if (production) {
       setFormData({
         customerName: production.customerName || '',
         projectName: production.projectName || '',
-        milestoneStartDate: production.milestoneStartDate ? production.milestoneStartDate.split('T')[0] : '',
-        milestoneEndDate: production.milestoneEndDate ? production.milestoneEndDate.split('T')[0] : '',
-        startDate: production.startDate ? production.startDate.split('T')[0] : '',
-        endDate: production.endDate ? production.endDate.split('T')[0] : '',
+        milestoneStartDate: production.milestoneStartDate ? formatDateForInput(production.milestoneStartDate) : '',
+        milestoneEndDate: production.milestoneEndDate ? formatDateForInput(production.milestoneEndDate) : '',
+        startDate: production.startDate ? formatDateForInput(production.startDate) : '',
+        endDate: production.endDate ? formatDateForInput(production.endDate) : '',
         items: production.items?.length > 0 
           ? production.items.map((item, index) => ({
               sNo: index + 1,
-              date: item.date ? item.date.split('T')[0] : '',
+              date: item.date ? formatDateForInput(item.date) : '',
               partName: item.partName || '',
               productionQuantityPlan: item.productionQuantityPlan || '',
               actualProduction: item.actualProduction || '',
@@ -146,8 +156,8 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
       if (selectedMilestone) {
         setFormData(prev => ({
           ...prev,
-          milestoneStartDate: selectedMilestone.startDate ? new Date(selectedMilestone.startDate).toISOString().split('T')[0] : '',
-          milestoneEndDate: selectedMilestone.endDate ? new Date(selectedMilestone.endDate).toISOString().split('T')[0] : ''
+          milestoneStartDate: selectedMilestone.startDate ? formatDateForInput(selectedMilestone.startDate) : '',
+          milestoneEndDate: selectedMilestone.endDate ? formatDateForInput(selectedMilestone.endDate) : ''
         }));
       }
     }
@@ -529,30 +539,20 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
     }
   };
 
-  // Helper function to format date as "DD-MM-YYYY"
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Not set';
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}-${month}-${year}`;
-  };
-
   const summary = calculateSummary();
 
   return (
     <form onSubmit={handleSubmit} className="h-full flex flex-col">
       {/* FORM HEADER - Fixed at top */}
-      <div className="flex-shrink-0 bg-gray-50 border-b border-gray-200 p-4">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-gray-900">
+      <div className="flex-shrink-0 bg-gray-50 border-b border-gray-200 p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">
             {production ? 'Edit Production' : 'Create Production'}
           </h2>
         </div>
         
         {/* Customer and Project Row */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-2 gap-6 mb-6">
           <FloatingInput
             label="Customer name"
             name="customerName"
@@ -586,29 +586,35 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
           />
         </div>
 
-        {/* Milestone Dates Row (Read-only from InhouseMilestone) */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Project Start Date
-            </label>
-            <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600">
-              {formatDate(formData.milestoneStartDate)}
-            </div>
-          </div>
+        {/* Milestone Dates Row (Read-only from InhouseMilestone using FloatingInput) */}
+        <div className="grid grid-cols-2 gap-6 mb-6">
+          <FloatingInput
+            label="Project Start Date"
+            name="milestoneStartDate"
+            value={formData.milestoneStartDate}
+            onChange={() => {}}
+            type="date"
+            error={showValidation && errors.milestoneStartDate}
+            size="medium"
+            readOnly
+            className="bg-gray-50 cursor-not-allowed"
+          />
 
-          <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Project End Date
-            </label>
-            <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600">
-              {formatDate(formData.milestoneEndDate)}
-            </div>
-          </div>
+          <FloatingInput
+            label="Project End Date"
+            name="milestoneEndDate"
+            value={formData.milestoneEndDate}
+            onChange={() => {}}
+            type="date"
+            error={showValidation && errors.milestoneEndDate}
+            size="medium"
+            readOnly
+            className="bg-gray-50 cursor-not-allowed"
+          />
         </div>
 
         {/* Production Dates Row (Editable) */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-2 gap-6">
           <FloatingInput
             label="Production Start Date"
             name="startDate"
@@ -638,60 +644,63 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
       {/* SCROLLABLE CONTENT AREA */}
       <div className="flex-1 overflow-hidden p-6">
         {errors.submit && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-600 px-5 py-4 rounded-lg">
             {errors.submit}
           </div>
         )}
 
-        {/* Add Row Button - Placed above the table */}
-        <div className="mb-6 flex justify-end">
+        {/* Add Row Button */}
+        <div className="mb-6 flex justify-between items-center">
+          <h3 className="text-lg font-semibold text-gray-900">Production Items</h3>
           <button
             type="button"
             onClick={addItem}
-            className="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             <PlusCircleIcon className="h-5 w-5 mr-2" />
             Add Row
           </button>
         </div>
 
-        {/* Main Table Container with Fixed Header and Scrollable Body */}
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden flex flex-col h-full max-h-[450px]">
+        {/* Main Table Container */}
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden flex flex-col h-full max-h-[500px]">
           {/* Fixed Table Header */}
           <div className="flex-shrink-0 bg-gray-50 border-b border-gray-200">
-            <div className="grid grid-cols-12 gap-8 px-8 py-4">
-              <div className="col-span-1 text-sm font-medium text-gray-700">S.No</div>
-              {/* Date column made wider */}
-              <div className="col-span-2 text-sm font-medium text-gray-700">Date</div>
-              <div className="col-span-2 text-sm font-medium text-gray-700">Part Name</div>
-              <div className="col-span-2 text-sm font-medium text-gray-700">Production Quantity</div>
-              <div className="col-span-1 text-sm font-medium text-gray-700">Gap</div>
-              <div className="col-span-2 text-sm font-medium text-gray-700">Reasons for Delay</div>
-              {/* Adjusted remarks to keep total columns 12 */}
-              <div className="col-span-1 text-sm font-medium text-gray-700">Remarks</div>
-              <div className="col-span-1 text-sm font-medium text-gray-700">Action</div>
+            <div className="grid grid-cols-12 gap-6 px-6 py-4">
+              <div className="col-span-1 text-sm font-semibold text-gray-700">S.No</div>
+              <div className="col-span-2 text-sm font-semibold text-gray-700">Date</div>
+              <div className="col-span-2 text-sm font-semibold text-gray-700">Part Name</div>
+              <div className="col-span-2 text-sm font-semibold text-gray-700">Production Quantity</div>
+              <div className="col-span-1 text-sm font-semibold text-gray-700">Gap</div>
+              <div className="col-span-2 text-sm font-semibold text-gray-700">Reason for Delay</div>
+              <div className="col-span-1 text-sm font-semibold text-gray-700">Remarks</div>
+              <div className="col-span-1 text-sm font-semibold text-gray-700 text-center">Action</div>
             </div>
           </div>
 
           {/* Scrollable Table Body */}
           <div className="flex-1 overflow-y-auto">
             {formData.items.length === 0 ? (
-              <div className="px-8 py-12 text-center text-gray-500">
-                No items added. Click "Add Row" to add items.
+              <div className="px-6 py-12 text-center text-gray-500">
+                <div className="mb-4">
+                  <PlusCircleIcon className="h-12 w-12 text-gray-300 mx-auto" />
+                </div>
+                <p className="text-lg font-medium">No items added</p>
+                <p className="text-sm mt-1">Click "Add Row" to add production items</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-200">
                 {formData.items.map((item, index) => (
-                  <div key={index} className="px-8 py-5 hover:bg-gray-50 grid grid-cols-12 gap-8 min-w-0">
+                  <div key={index} className="px-6 py-4 hover:bg-gray-50 grid grid-cols-12 gap-6">
                     {/* S.No */}
                     <div className="col-span-1 flex items-center">
-                      <div className="w-10 h-10 flex items-center justify-center rounded-md bg-gray-100">
+                      <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-100">
                         <span className="text-base font-medium text-gray-900">{item.sNo}</span>
                       </div>
                     </div>
 
-                    {/* Date - wider + allow shrinking/expansion */}
-                    <div className="col-span-2 min-w-0">
+                    {/* Date */}
+                    <div className="col-span-2">
                       <FloatingInput
                         value={item.date}
                         onChange={(e) => handleItemChange(index, 'date', e.target.value)}
@@ -701,12 +710,12 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
                         size="medium"
                         hideLabel
                         placeholder="Select date"
-                        className="w-full min-w-0"
+                        className="w-full"
                       />
                     </div>
 
                     {/* Part Name */}
-                    <div className="col-span-2 min-w-0">
+                    <div className="col-span-2">
                       <FloatingInput
                         value={item.partName}
                         onChange={(e) => handleItemChange(index, 'partName', e.target.value)}
@@ -723,13 +732,13 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
                         size="medium"
                         hideLabel
                         placeholder="Select part"
-                        className="w-full min-w-0"
+                        className="w-full"
                       />
                     </div>
 
                     {/* Production Quantity */}
                     <div className="col-span-2 grid grid-cols-2 gap-4">
-                      <div className="min-w-0">
+                      <div>
                         <FloatingInput
                           label="Plan"
                           value={item.productionQuantityPlan}
@@ -741,10 +750,11 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
                           required
                           size="medium"
                           hideLabel
-                          className="w-full min-w-0"
+                          placeholder="Plan"
+                          className="w-full"
                         />
                       </div>
-                      <div className="min-w-0">
+                      <div>
                         <FloatingInput
                           label="Actual"
                           value={item.actualProduction}
@@ -756,14 +766,15 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
                           required
                           size="medium"
                           hideLabel
-                          className="w-full min-w-0"
+                          placeholder="Actual"
+                          className="w-full"
                         />
                       </div>
                     </div>
 
                     {/* Gap */}
-                    <div className="col-span-1 flex items-center justify-center min-w-0">
-                      <div className={`px-4 py-2.5 w-full text-center rounded-lg ${
+                    <div className="col-span-1 flex items-center">
+                      <div className={`px-3 py-2.5 w-full text-center rounded-lg ${
                         parseInt(item.gap) > 0 ? 'bg-red-100 text-red-700 border border-red-200' :
                         parseInt(item.gap) < 0 ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' :
                         'bg-green-100 text-green-700 border border-green-200'
@@ -772,8 +783,8 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
                       </div>
                     </div>
 
-                    {/* Reasons for Delay */}
-                    <div className="col-span-2 min-w-0">
+                    {/* Reason for Delay */}
+                    <div className="col-span-2">
                       <div className="relative">
                         <FloatingInput
                           value={item.reasonForDelay}
@@ -781,12 +792,13 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
                           type="text"
                           size="medium"
                           hideLabel
+                          placeholder="Reason"
                           maxLength={VALIDATION_RULES.REASON_FOR_DELAY.maxLength}
                           error={showValidation && errors.items?.[index]?.reasonForDelay}
-                          className="w-full min-w-0"
+                          className="w-full"
                         />
                         {item.reasonForDelay && (
-                          <div className="absolute right-3 top-2.5 text-xs text-gray-400">
+                          <div className="absolute right-2 top-2 text-xs text-gray-400">
                             {item.reasonForDelay.length}/{VALIDATION_RULES.REASON_FOR_DELAY.maxLength}
                           </div>
                         )}
@@ -794,7 +806,7 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
                     </div>
 
                     {/* Remarks */}
-                    <div className="col-span-1 min-w-0">
+                    <div className="col-span-1">
                       <div className="relative">
                         <FloatingInput
                           value={item.remarks}
@@ -802,12 +814,13 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
                           type="text"
                           size="medium"
                           hideLabel
+                          placeholder="Remarks"
                           maxLength={VALIDATION_RULES.REMARKS.maxLength}
                           error={showValidation && errors.items?.[index]?.remarks}
-                          className="w-full min-w-0"
+                          className="w-full"
                         />
                         {item.remarks && (
-                          <div className="absolute right-3 top-2.5 text-xs text-gray-400">
+                          <div className="absolute right-2 top-2 text-xs text-gray-400">
                             {item.remarks.length}/{VALIDATION_RULES.REMARKS.maxLength}
                           </div>
                         )}
@@ -820,10 +833,10 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
                         <button
                           type="button"
                           onClick={() => removeItem(index)}
-                          className="w-12 h-12 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+                          className="w-10 h-10 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
                           title="Delete Row"
                         >
-                          <XMarkIcon className="h-6 w-6" />
+                          <XMarkIcon className="h-5 w-5" />
                         </button>
                       )}
                     </div>
@@ -838,7 +851,7 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
         {showValidation && errors.items?.general && (
           <div className="mt-6 p-5 bg-red-50 border border-red-200 rounded-lg">
             <div className="flex items-center">
-              <InformationCircleIcon className="h-6 w-6 text-red-400 mr-3" />
+              <InformationCircleIcon className="h-5 w-5 text-red-400 mr-3" />
               <p className="text-sm text-red-600">{errors.items.general}</p>
             </div>
           </div>
@@ -847,34 +860,39 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
 
       {/* FIXED BOTTOM BUTTONS */}
       <div className="flex-shrink-0 border-t border-gray-200 bg-white p-6">
-        <div className="flex justify-end space-x-4">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-8 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-base"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading || isSubmitting}
-            className="px-8 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 flex items-center text-base"
-          >
-            {loading ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                {production ? 'Updating...' : 'Creating...'}
-              </>
-            ) : (
-              <>
-                <CheckCircleIcon className="h-5 w-5 mr-2" />
-                {production ? 'Save Production' : 'Create Production'}
-              </>
-            )}
-          </button>
+        <div className="flex justify-between items-center">
+          <div className="text-sm text-gray-600">
+            {formData.items.length} item{formData.items.length !== 1 ? 's' : ''} added
+          </div>
+          <div className="flex space-x-4">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-8 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-base font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading || isSubmitting}
+              className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-base font-medium"
+            >
+              {loading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  {production ? 'Updating...' : 'Creating...'}
+                </>
+              ) : (
+                <>
+                  <CheckCircleIcon className="h-5 w-5 mr-2" />
+                  {production ? 'Save Production' : 'Create Production'}
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </form>
