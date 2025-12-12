@@ -285,16 +285,18 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
         required
       />
 
-      <FloatingInput
-        label="Vendor Name"
-        name="vendorName"
-        value={formData.vendorName || ''}
-        onChange={handleChange}
-        type="select"
-        options={vendors.map(v => ({ value: v.vendorName, label: v.vendorName }))}
-        error={errors.vendorName}
-        required={formData.category === 'out_sourced' || formData.category === 'bought_out'}
-      />
+      {(formData.category === 'out_sourced' || formData.category === 'bought_out') && (
+        <FloatingInput
+          label="Vendor Name"
+          name="vendorName"
+          value={formData.vendorName || ''}
+          onChange={handleChange}
+          type="select"
+          options={vendors.map(v => ({ value: v.vendorName, label: v.vendorName }))}
+          error={errors.vendorName}
+          required={formData.category === 'out_sourced' || formData.category === 'bought_out'}
+        />
+      )}
 
       <FloatingInput
         label="Part Name"
