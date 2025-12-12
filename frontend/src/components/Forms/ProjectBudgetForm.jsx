@@ -618,7 +618,7 @@ const ProjectBudgetForm = ({ budget, onSubmit, onCancel, showNotification, showE
         negotiatedPrice: negotiatedPrice,
         amountSpent: totalAmountSpent,
         netProfitLoss: netProfitLoss,
-        overallBusinessImpact: netProfitLoss > 0 ? 'Low' : netProfitLoss < 0 ? 'High' : 'Medium',
+        overallBusinessImpact: totalAmountSpent === 0 ? 'Medium' : (netProfitLoss > 0.01 ? 'Low' : netProfitLoss < -0.01 ? 'High' : 'Medium'),
         projectExpenditures: projectExpenditures,
         logisticExpenditures: logisticExpenditures
       };
@@ -765,16 +765,20 @@ const ProjectBudgetForm = ({ budget, onSubmit, onCancel, showNotification, showE
                 </label>
                 <div
                   className={`px-4 py-3 rounded-lg text-sm font-semibold text-center ${
-                    parseFloat(formData.netProfitLoss) > 0
+                    parseFloat(formData.amountSpent || 0) === 0
+                      ? 'bg-gray-100 text-gray-600 border border-gray-200'
+                      : parseFloat(formData.netProfitLoss || 0) > 0.01
                       ? 'bg-green-100 text-green-800 border border-green-200'
-                      : parseFloat(formData.netProfitLoss) < 0
+                      : parseFloat(formData.netProfitLoss || 0) < -0.01
                       ? 'bg-red-100 text-red-800 border border-red-200'
                       : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
                   }`}
                 >
-                  {parseFloat(formData.netProfitLoss) > 0
+                  {parseFloat(formData.amountSpent || 0) === 0
+                    ? 'No Expenditure Yet'
+                    : parseFloat(formData.netProfitLoss || 0) > 0.01
                     ? 'Low Impact (Profit)'
-                    : parseFloat(formData.netProfitLoss) < 0
+                    : parseFloat(formData.netProfitLoss || 0) < -0.01
                     ? 'High Impact (Loss)'
                     : 'Medium Impact (Break Even)'}
                 </div>

@@ -264,14 +264,16 @@ const MilestoneTracking = () => {
       // Compare with plan end date
       if (task.endDate) {
         const planEnd = new Date(task.endDate);
-        if (actualEnd <= planEnd) {
+        if (actualEnd < planEnd) {
+          return 'Completed Earlier';
+        } else if (actualEnd.getTime() === planEnd.getTime()) {
           return 'Completed (On Time)';
         } else {
           const delayDays = getDaysDifference(planEnd, actualEnd);
           if (delayDays > 30) {
-            return 'Completed (Delayed)';
+            return 'Completed with Delayed';
           } else {
-            return 'Completed (Likely Delayed)';
+            return 'Completed with Likely Delayed';
           }
         }
       }
@@ -328,9 +330,10 @@ const MilestoneTracking = () => {
 
     // Based on status rules
     switch (status) {
+      case 'Completed Earlier':
       case 'Completed (On Time)':
-      case 'Completed (Delayed)':
-      case 'Completed (Likely Delayed)':
+      case 'Completed with Delayed':
+      case 'Completed with Likely Delayed':
       case 'Completed':
         return 100;
       case 'On track':
@@ -347,12 +350,14 @@ const MilestoneTracking = () => {
   // Get status color
   const getStatusColor = (status) => {
     switch (status) {
+      case 'Completed Earlier':
+        return 'bg-emerald-100 text-emerald-800';
       case 'Completed (On Time)':
       case 'Completed':
         return 'bg-green-100 text-green-800';
-      case 'Completed (Likely Delayed)':
+      case 'Completed with Likely Delayed':
         return 'bg-yellow-100 text-yellow-800';
-      case 'Completed (Delayed)':
+      case 'Completed with Delayed':
         return 'bg-red-100 text-red-800';
       case 'On track':
         return 'bg-blue-100 text-blue-800';

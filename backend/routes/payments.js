@@ -99,46 +99,26 @@ router.post('/', auth, async (req, res) => {
   try {
     const user = req.user;
     
+    console.log('=== Payment Creation Request ===');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    console.log('User:', user);
+    
     // Validate required fields
-    const { customer, projectName, project, projectCost, invoices } = req.body;
+    const { customer, projectName, project, projectCost, invoices, payments } = req.body;
     
     if (!customer) {
+      console.log('Validation failed: Customer is required');
       return res.status(400).json({ message: 'Customer is required' });
     }
     
     if (!projectName && !project) {
+      console.log('Validation failed: Project name is required');
       return res.status(400).json({ message: 'Project name is required' });
     }
     
     if (!projectCost || isNaN(projectCost)) {
+      console.log('Validation failed: Valid project cost is required');
       return res.status(400).json({ message: 'Valid project cost is required' });
-    }
-    
-    if (!invoices || !invoices.length) {
-      return res.status(400).json({ message: 'At least one invoice is required' });
-    }
-
-    // Validate invoices and payments
-    for (let i = 0; i < invoices.length; i++) {
-      const invoice = invoices[i];
-      if (!invoice.invoiceNumber) {
-        return res.status(400).json({ message: `Invoice ${i+1} must have an invoice number` });
-      }
-      if (!invoice.invoiceValue || isNaN(invoice.invoiceValue)) {
-        return res.status(400).json({ message: `Invoice ${i+1} must have a valid value` });
-      }
-      
-      if (invoice.payments && invoice.payments.length) {
-        for (let j = 0; j < invoice.payments.length; j++) {
-          const payment = invoice.payments[j];
-          if (!payment.transactionId) {
-            return res.status(400).json({ message: `Payment ${j+1} in Invoice ${i+1} must have a transaction ID` });
-          }
-          if (!payment.amount || isNaN(payment.amount)) {
-            return res.status(400).json({ message: `Payment ${j+1} in Invoice ${i+1} must have a valid amount` });
-          }
-        }
-      }
     }
 
     const paymentData = {
@@ -146,24 +126,34 @@ router.post('/', auth, async (req, res) => {
       project: projectName || project,
       projectName: projectName || project,
       projectCost: parseFloat(projectCost),
-      invoices: invoices.map(invoice => ({
+      paymentType: req.body.paymentType || 'advance',
+      includeGST: req.body.includeGST || false,
+      gstPercentage: req.body.gstPercentage || 0,
+      invoices: (invoices || []).map(invoice => ({
         invoiceNumber: invoice.invoiceNumber,
-        invoiceValue: parseFloat(invoice.invoiceValue),
+        invoiceValue: parseFloat(invoice.invoiceValue) || 0,
         invoiceDate: invoice.invoiceDate ? new Date(invoice.invoiceDate) : new Date(),
-        payments: invoice.payments.map(payment => ({
-          transactionId: payment.transactionId,
-          bankName: payment.bankName,
-          amount: parseFloat(payment.amount),
-          date: payment.paymentDate || payment.date ? new Date(payment.paymentDate || payment.date) : new Date(),
-          paymentDate: payment.paymentDate || payment.date ? new Date(payment.paymentDate || payment.date) : new Date(),
-          remarks: payment.remarks || ''
-        }))
+        paymentType: invoice.paymentType || 'advance'
+      })),
+      payments: (payments || []).map(payment => ({
+        transactionId: payment.transactionId,
+        bankName: payment.bankName,
+        gst: payment.gst ? parseFloat(payment.gst) : 0,
+        amount: parseFloat(payment.amount) || 0,
+        date: payment.paymentDate || payment.date ? new Date(payment.paymentDate || payment.date) : new Date(),
+        paymentDate: payment.paymentDate || payment.date ? new Date(payment.paymentDate || payment.date) : new Date(),
+        paymentType: payment.paymentType || 'advance',
+        remarks: payment.remarks || ''
       })),
       createdBy: user.name || user.username || 'Unknown'
     };
 
+    console.log('Payment data to save:', JSON.stringify(paymentData, null, 2));
+
     const payment = new Payment(paymentData);
+    console.log('Payment model created, attempting to save...');
     await payment.save();
+    console.log('Payment saved successfully:', payment._id);
     
     res.status(201).json({
       message: 'Payment created successfully',
@@ -171,6 +161,7 @@ router.post('/', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Payment creation error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ 
       message: 'Server error creating payment',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -181,7 +172,7 @@ router.post('/', auth, async (req, res) => {
 // Update payment (recalculates totals via pre-save)
 router.put('/:id', auth, async (req, res) => {
   try {
-    const { customer, projectName, project, projectCost, invoices } = req.body;
+    const { customer, projectName, project, projectCost, invoices, payments } = req.body;
     
     // Validate required fields
     if (!customer) {
@@ -195,28 +186,30 @@ router.put('/:id', auth, async (req, res) => {
     if (!projectCost || isNaN(projectCost)) {
       return res.status(400).json({ message: 'Valid project cost is required' });
     }
-    
-    if (!invoices || !invoices.length) {
-      return res.status(400).json({ message: 'At least one invoice is required' });
-    }
 
     const updateData = {
       customer,
       project: projectName || project,
       projectName: projectName || project,
       projectCost: parseFloat(projectCost),
-      invoices: invoices.map(invoice => ({
+      paymentType: req.body.paymentType || 'advance',
+      includeGST: req.body.includeGST || false,
+      gstPercentage: req.body.gstPercentage || 0,
+      invoices: (invoices || []).map(invoice => ({
         invoiceNumber: invoice.invoiceNumber,
-        invoiceValue: parseFloat(invoice.invoiceValue),
+        invoiceValue: parseFloat(invoice.invoiceValue) || 0,
         invoiceDate: invoice.invoiceDate ? new Date(invoice.invoiceDate) : new Date(),
-        payments: invoice.payments.map(payment => ({
-          transactionId: payment.transactionId,
-          bankName: payment.bankName,
-          amount: parseFloat(payment.amount),
-          date: payment.paymentDate || payment.date ? new Date(payment.paymentDate || payment.date) : new Date(),
-          paymentDate: payment.paymentDate || payment.date ? new Date(payment.paymentDate || payment.date) : new Date(),
-          remarks: payment.remarks || ''
-        }))
+        paymentType: invoice.paymentType || 'advance'
+      })),
+      payments: (payments || []).map(payment => ({
+        transactionId: payment.transactionId,
+        bankName: payment.bankName,
+        gst: payment.gst ? parseFloat(payment.gst) : 0,
+        amount: parseFloat(payment.amount) || 0,
+        date: payment.paymentDate || payment.date ? new Date(payment.paymentDate || payment.date) : new Date(),
+        paymentDate: payment.paymentDate || payment.date ? new Date(payment.paymentDate || payment.date) : new Date(),
+        paymentType: payment.paymentType || 'advance',
+        remarks: payment.remarks || ''
       }))
     };
 

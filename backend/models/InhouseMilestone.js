@@ -36,9 +36,10 @@ const taskSchema = new mongoose.Schema({
       'Delayed', 
       'Likely Delay', 
       'Completed',
+      'Completed Earlier',
       'Completed (On Time)',
-      'Completed (Delayed)',
-      'Completed (Likely Delayed)'
+      'Completed with Delayed',
+      'Completed with Likely Delayed'
     ]
   },
   completion: {

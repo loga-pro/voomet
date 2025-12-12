@@ -590,7 +590,7 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Start Date
+              Project Start Date
             </label>
             <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600">
               {formatDate(formData.milestoneStartDate)}
@@ -599,7 +599,7 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
 
           <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              End Date
+              Project End Date
             </label>
             <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600">
               {formatDate(formData.milestoneEndDate)}

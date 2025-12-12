@@ -84,7 +84,7 @@ const ProjectDetailsModal = ({ isOpen, onClose, stage, stageTitle }) => {
                         Customer
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Value
+                        Project Value
                       </th>
                      
                     </tr>

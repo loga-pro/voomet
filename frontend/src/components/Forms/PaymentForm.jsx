@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, FileText, Plus, Trash2 } from 'lucide-react';
+import { Building2, FileText, Plus, Trash2, Wallet } from 'lucide-react';
 import FloatingInput from './FloatingInput';
 import { customersAPI, paymentsAPI, projectsAPI } from '../../services/api';
 
@@ -13,7 +13,8 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     paymentType: 'advance',
     includeGST: false,
     gstPercentage: 18,
-    invoices: []
+    invoices: [],
+    payments: []
   });
   const [customers, setCustomers] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -36,7 +37,8 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         paymentType: payment.paymentType || 'advance',
         includeGST: payment.includeGST || false,
         gstPercentage: payment.gstPercentage || 18,
-        invoices: payment.invoices || []
+        invoices: payment.invoices || [],
+        payments: payment.payments || []
       });
       if (payment.customer) {
         fetchProjects(payment.customer);
@@ -55,7 +57,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       if (selectedProject && (!formData.projectCost || formData.projectCost !== selectedProject.totalProjectValue)) {
         setFormData(prev => ({
           ...prev,
-          project: selectedProject._id || selectedProject.projectName,
+          project: selectedProject.projectName,
           projectName: selectedProject.projectName,
           projectCost: selectedProject.totalProjectValue || prev.projectCost
         }));
@@ -113,7 +115,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       if (selectedProject) {
         setFormData(prev => ({
           ...prev,
-          project: selectedProject._id || selectedProject.projectName,
+          project: selectedProject.projectName,
           projectName: selectedProject.projectName,
           projectCost: selectedProject.totalProjectValue || selectedProject.projectCost || ''
         }));
@@ -136,10 +138,8 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     const gst = formData.includeGST ? (cost * parseFloat(formData.gstPercentage || 0)) / 100 : 0;
     const totalAmount = cost + gst;
     
-    const paidAmount = formData.invoices.reduce((sum, invoice) => {
-      return sum + (invoice.payments || []).reduce((pSum, payment) => {
-        return pSum + (parseFloat(payment.amount) || 0);
-      }, 0);
+    const paidAmount = formData.payments.reduce((sum, payment) => {
+      return sum + (parseFloat(payment.amount) || 0);
     }, 0);
     
     const remainingAmount = totalAmount - paidAmount;
@@ -165,33 +165,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       newErrors.gstPercentage = 'Valid GST percentage is required';
     }
 
-    // Validate invoices and payments
-    formData.invoices.forEach((invoice, index) => {
-      if (!invoice.invoiceNumber) {
-        newErrors[`invoiceNumber_${index}`] = 'Invoice number is required';
-      }
-      if (!invoice.invoiceValue || parseFloat(invoice.invoiceValue) <= 0) {
-        newErrors[`invoiceValue_${index}`] = 'Valid invoice value is required';
-      }
-      if (!invoice.invoiceDate) {
-        newErrors[`invoiceDate_${index}`] = 'Invoice date is required';
-      }
-
-      (invoice.payments || []).forEach((payment, paymentIndex) => {
-        if (!payment.transactionId) {
-          newErrors[`transactionId_${index}_${paymentIndex}`] = 'Transaction ID is required';
-        }
-        if (!payment.bankName) {
-          newErrors[`bankName_${index}_${paymentIndex}`] = 'Bank name is required';
-        }
-        if (!payment.amount || parseFloat(payment.amount) <= 0) {
-          newErrors[`amount_${index}_${paymentIndex}`] = 'Valid amount is required';
-        }
-        if (!payment.paymentDate) {
-          newErrors[`paymentDate_${index}_${paymentIndex}`] = 'Payment date is required';
-        }
-      });
-    });
+    // Invoices and payments are now optional - no validation required
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -209,8 +183,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
           invoiceNumber: '',
           invoiceValue: '',
           invoiceDate: new Date().toISOString().split('T')[0],
-          paymentType: 'advance',
-          payments: []
+          paymentType: 'advance'
         }
       ]
     }));
@@ -232,58 +205,37 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     }));
   };
 
-  const addPayment = (invoiceIndex) => {
+  const addPayment = () => {
     setFormData(prev => ({
       ...prev,
-      invoices: prev.invoices.map((inv, i) => 
-        i === invoiceIndex 
-          ? {
-              ...inv,
-              payments: [
-                ...(inv.payments || []),
-                {
-                  id: Date.now().toString(),
-                  transactionId: '',
-                  bankName: '',
-                  gst: '',
-                  amount: '',
-                  paymentDate: new Date().toISOString().split('T')[0],
-                  paymentType: 'advance',
-                  remarks: ''
-                }
-              ]
-            }
-          : inv
-      )
+      payments: [
+        ...prev.payments,
+        {
+          id: Date.now().toString(),
+          transactionId: '',
+          bankName: '',
+          gst: '',
+          amount: '',
+          paymentDate: new Date().toISOString().split('T')[0],
+          paymentType: 'advance',
+          remarks: ''
+        }
+      ]
     }));
   };
 
-  const removePayment = (invoiceIndex, paymentIndex) => {
+  const removePayment = (index) => {
     setFormData(prev => ({
       ...prev,
-      invoices: prev.invoices.map((inv, i) => 
-        i === invoiceIndex 
-          ? {
-              ...inv,
-              payments: (inv.payments || []).filter((_, pi) => pi !== paymentIndex)
-            }
-          : inv
-      )
+      payments: prev.payments.filter((_, i) => i !== index)
     }));
   };
 
-  const updatePayment = (invoiceIndex, paymentIndex, field, value) => {
+  const updatePayment = (index, field, value) => {
     setFormData(prev => ({
       ...prev,
-      invoices: prev.invoices.map((inv, i) => 
-        i === invoiceIndex 
-          ? {
-              ...inv,
-              payments: (inv.payments || []).map((pmt, pi) => 
-                pi === paymentIndex ? { ...pmt, [field]: value } : pmt
-              )
-            }
-          : inv
+      payments: prev.payments.map((pmt, i) => 
+        i === index ? { ...pmt, [field]: value } : pmt
       )
     }));
   };
@@ -292,6 +244,10 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     e.preventDefault();
     
     if (!validateForm()) return;
+
+    console.log('=== Payment Form Submission ===');
+    console.log('Raw formData.payments:', formData.payments);
+    console.log('Number of payments before filtering:', formData.payments.length);
 
     // Clean up form data
     const cleanedData = {
@@ -308,19 +264,29 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         invoiceNumber: invoice.invoiceNumber?.trim() || undefined,
         invoiceValue: invoice.invoiceValue ? parseFloat(invoice.invoiceValue) : undefined,
         invoiceDate: invoice.invoiceDate || undefined,
-        paymentType: invoice.paymentType?.trim() || 'advance',
-        payments: (invoice.payments || []).map(payment => ({
-          ...payment,
-          transactionId: payment.transactionId?.trim() || undefined,
-          bankName: payment.bankName?.trim() || undefined,
-          gst: payment.gst ? parseFloat(payment.gst) : undefined,
-          amount: payment.amount ? parseFloat(payment.amount) : undefined,
-          paymentDate: payment.paymentDate || undefined,
-          paymentType: payment.paymentType?.trim() || 'advance',
-          remarks: payment.remarks?.trim() || undefined
-        })).filter(payment => payment.transactionId && payment.amount) // Remove empty payments
-      })).filter(invoice => invoice.invoiceNumber) // Remove empty invoices
+        paymentType: invoice.paymentType?.trim() || 'advance'
+      })).filter(invoice => invoice.invoiceNumber), // Remove empty invoices
+      payments: formData.payments.map(payment => ({
+        ...payment,
+        transactionId: payment.transactionId?.trim() || undefined,
+        bankName: payment.bankName?.trim() || undefined,
+        gst: payment.gst ? parseFloat(payment.gst) : undefined,
+        amount: payment.amount ? parseFloat(payment.amount) : undefined,
+        paymentDate: payment.paymentDate || undefined,
+        paymentType: payment.paymentType?.trim() || 'advance',
+        remarks: payment.remarks?.trim() || undefined
+      })).filter(payment => {
+        // Only require amount to be present (transactionId is optional)
+        const isValid = payment.amount && payment.amount > 0;
+        if (!isValid) {
+          console.log('Filtering out payment (missing or invalid amount):', payment);
+        }
+        return isValid;
+      }) // Remove empty payments
     };
+
+    console.log('Number of payments after filtering:', cleanedData.payments.length);
+    console.log('Cleaned payments data:', cleanedData.payments);
 
     // Remove any undefined values
     Object.keys(cleanedData).forEach(key => {
@@ -374,7 +340,18 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
             }`}
           >
             <FileText size={18} />
-            <span className="font-medium">Invoices & Payments</span>
+            <span className="font-medium">Invoices</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('payments')}
+            className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-colors ${
+              activeTab === 'payments'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            <Wallet size={18} />
+            <span className="font-medium">Payments</span>
           </button>
         </div>
       </div>
@@ -422,7 +399,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                     required={true}
                     options={[
                       { value: '', label: 'Select Project' },
-                      ...projects.map(p => ({ value: p._id || p.projectName, label: p.projectName }))
+                      ...projects.map(p => ({ value: p.projectName, label: p.projectName }))
                     ]}
                   />
 
@@ -509,7 +486,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <FileText size={20} className="text-orange-600" />
-                  <h3 className="text-lg font-semibold text-gray-800">Invoices & Payments</h3>
+                  <h3 className="text-lg font-semibold text-gray-800">Invoices</h3>
                 </div>
                 <button
                   type="button"
@@ -550,14 +527,14 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
 
                       {/* Invoice Details */}
                       <div className="p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                           <FloatingInput
                             label="Invoice Number"
                             name="invoiceNumber"
                             value={invoice.invoiceNumber}
                             onChange={(e) => updateInvoice(invoiceIndex, 'invoiceNumber', e.target.value)}
                             error={errors[`invoiceNumber_${invoiceIndex}`]}
-                            required={true}
+                            required
                           />
                           <FloatingInput
                             label="Invoice Value (₹)"
@@ -566,7 +543,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                             value={invoice.invoiceValue}
                             onChange={(e) => updateInvoice(invoiceIndex, 'invoiceValue', e.target.value)}
                             error={errors[`invoiceValue_${invoiceIndex}`]}
-                            required={true}
+                            required
                           />
                           <FloatingInput
                             label="Payment Type"
@@ -575,7 +552,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                             value={invoice.paymentType || 'advance'}
                             onChange={(e) => updateInvoice(invoiceIndex, 'paymentType', e.target.value)}
                             options={paymentTypeOptions}
-                            required={true}
+                            required
                           />
                           <FloatingInput
                             label="Invoice Date"
@@ -584,120 +561,124 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                             value={invoice.invoiceDate}
                             onChange={(e) => updateInvoice(invoiceIndex, 'invoiceDate', e.target.value)}
                             error={errors[`invoiceDate_${invoiceIndex}`]}
-                            required={true}
+                            required
                           />
                         </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
-                        {/* Payments Section */}
-                        <div className="bg-white rounded-lg p-4 border border-gray-200">
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-semibold text-gray-700">💵 Payments</span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => addPayment(invoiceIndex)}
-                              className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
-                            >
-                              <Plus size={16} />
-                              Add Payment
-                            </button>
-                          </div>
+          {activeTab === 'payments' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Wallet size={20} className="text-green-600" />
+                  <h3 className="text-lg font-semibold text-gray-800">Payments</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={addPayment}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <Plus size={18} />
+                  Add Payment
+                </button>
+              </div>
 
-                          {(!invoice.payments || invoice.payments.length === 0) ? (
-                            <p className="text-center text-gray-500 text-sm py-4">
-                              No payments added for this invoice
-                            </p>
-                          ) : (
-                            <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
-                              {invoice.payments.map((payment, paymentIndex) => (
-                                <div key={payment.id} className="bg-green-50 rounded-lg p-4 border border-green-200">
-                                  <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-medium text-gray-700">Payment #{paymentIndex + 1}</span>
-                                      <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
-                                        {payment.paymentType || 'Advance'}
-                                      </span>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => removePayment(invoiceIndex, paymentIndex)}
-                                      className="text-red-600 hover:text-red-800"
-                                    >
-                                      <Trash2 size={16} />
-                                    </button>
-                                  </div>
-                                  
-                                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                                    <FloatingInput
-                                      label="Transaction ID"
-                                      name="transactionId"
-                                      value={payment.transactionId}
-                                      onChange={(e) => updatePayment(invoiceIndex, paymentIndex, 'transactionId', e.target.value)}
-                                      error={errors[`transactionId_${invoiceIndex}_${paymentIndex}`]}
-                                      required={true}
-                                    />
-                                    <FloatingInput
-                                      label="Bank Name"
-                                      name="bankName"
-                                      value={payment.bankName}
-                                      onChange={(e) => updatePayment(invoiceIndex, paymentIndex, 'bankName', e.target.value)}
-                                      error={errors[`bankName_${invoiceIndex}_${paymentIndex}`]}
-                                      required={true}
-                                    />
-                                    <FloatingInput
-                                      label="GST (₹)"
-                                      name="gst"
-                                      type="number"
-                                      value={payment.gst || ''}
-                                      onChange={(e) => updatePayment(invoiceIndex, paymentIndex, 'gst', e.target.value)}
-                                    />
-                                    <FloatingInput
-                                      label="Amount (₹)"
-                                      name="amount"
-                                      type="number"
-                                      value={payment.amount}
-                                      onChange={(e) => updatePayment(invoiceIndex, paymentIndex, 'amount', e.target.value)}
-                                      error={errors[`amount_${invoiceIndex}_${paymentIndex}`]}
-                                      required={true}
-                                    />
-                                  </div>
-                                  
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                                    <FloatingInput
-                                      label="Payment Date"
-                                      name="paymentDate"
-                                      type="date"
-                                      value={payment.paymentDate}
-                                      onChange={(e) => updatePayment(invoiceIndex, paymentIndex, 'paymentDate', e.target.value)}
-                                      error={errors[`paymentDate_${invoiceIndex}_${paymentIndex}`]}
-                                      required={true}
-                                    />
-                                    <FloatingInput
-                                      label="Payment Type"
-                                      name="paymentType"
-                                      type="select"
-                                      value={payment.paymentType}
-                                      onChange={(e) => updatePayment(invoiceIndex, paymentIndex, 'paymentType', e.target.value)}
-                                      options={paymentTypeOptions}
-                                    />
-                                  </div>
-                                  
-                                  <div className="mt-3">
-                                    <FloatingInput
-                                      label="Remarks"
-                                      name="remarks"
-                                      value={payment.remarks}
-                                      onChange={(e) => updatePayment(invoiceIndex, paymentIndex, 'remarks', e.target.value)}
-                                      type="textarea"
-                                      rows={2}
-                                    />
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+              {formData.payments.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <Wallet size={48} className="mx-auto mb-4 text-gray-300" />
+                  <p>No payments added yet. Click "Add Payment" to get started.</p>
+                </div>
+              ) : (
+                <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+                  {formData.payments.map((payment, paymentIndex) => (
+                    <div key={payment.id} className="bg-green-50 rounded-lg p-4 border border-green-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Wallet size={18} className="text-green-600" />
+                          <span className="font-semibold text-gray-800">Payment #{paymentIndex + 1}</span>
+                          <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                            {payment.paymentType || 'Advance'}
+                          </span>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => removePayment(paymentIndex)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <FloatingInput
+                          label="Transaction ID"
+                          name="transactionId"
+                          value={payment.transactionId}
+                          onChange={(e) => updatePayment(paymentIndex, 'transactionId', e.target.value)}
+                          error={errors[`transactionId_${paymentIndex}`]}
+                          required={false}
+                        />
+                        <FloatingInput
+                          label="Bank Name"
+                          name="bankName"
+                          value={payment.bankName}
+                          onChange={(e) => updatePayment(paymentIndex, 'bankName', e.target.value)}
+                          error={errors[`bankName_${paymentIndex}`]}
+                          required={false}
+                        />
+                        <FloatingInput
+                          label="GST (₹)"
+                          name="gst"
+                          type="number"
+                          value={payment.gst || ''}
+                          onChange={(e) => updatePayment(paymentIndex, 'gst', e.target.value)}
+                        />
+                        <FloatingInput
+                          label="Amount (₹)"
+                          name="amount"
+                          type="number"
+                          value={payment.amount}
+                          onChange={(e) => updatePayment(paymentIndex, 'amount', e.target.value)}
+                          error={errors[`amount_${paymentIndex}`]}
+                          required={false}
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                        <FloatingInput
+                          label="Payment Date"
+                          name="paymentDate"
+                          type="date"
+                          value={payment.paymentDate}
+                          onChange={(e) => updatePayment(paymentIndex, 'paymentDate', e.target.value)}
+                          error={errors[`paymentDate_${paymentIndex}`]}
+                          required={false}
+                        />
+                        <FloatingInput
+                          label="Payment Type"
+                          name="paymentType"
+                          type="select"
+                          value={payment.paymentType}
+                          onChange={(e) => updatePayment(paymentIndex, 'paymentType', e.target.value)}
+                          options={paymentTypeOptions}
+                        />
+                      </div>
+                      
+                      <div className="mt-3">
+                        <FloatingInput
+                          label="Remarks"
+                          name="remarks"
+                          value={payment.remarks}
+                          onChange={(e) => updatePayment(paymentIndex, 'remarks', e.target.value)}
+                          type="textarea"
+                          rows={2}
+                        />
                       </div>
                     </div>
                   ))}

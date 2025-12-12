@@ -337,10 +337,7 @@ const ProfitLossSummary = () => {
                                                             <div className="text-sm font-medium text-gray-900">
                                                                 {project.projectName}
                                                             </div>
-                                                            <div className="text-xs text-gray-500 flex items-center">
-                                                                <MapPinIcon className="h-3 w-3 mr-1" />
-                                                                {project.siteLocation}
-                                                            </div>
+                                                            
                                                         </div>
                                                     </div>
                                                 </td>
@@ -348,9 +345,7 @@ const ProfitLossSummary = () => {
                                             {getVisibleColumns().includes('customerName') && (
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                     {project.customerName}
-                                                    <div className="text-xs text-gray-500">
-                                                        FY: {project.financialYear}
-                                                    </div>
+                                                    
                                                 </td>
                                             )}
                                             {getVisibleColumns().includes('boqValue') && (

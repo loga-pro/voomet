@@ -128,6 +128,12 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
       newErrors.category = 'Category is required';
     }
 
+    // Validate vendor name for outsource and bought out categories
+    if ((formData.category === 'out_sourced' || formData.category === 'bought_out') && 
+        (!formData.vendorName || !formData.vendorName.trim())) {
+      newErrors.vendorName = 'Vendor name is required for outsource and bought out categories';
+    }
+
     if (!formData.partName.trim()) {
       newErrors.partName = 'Part name is required';
     } else if (/\d/.test(formData.partName)) {
@@ -255,6 +261,17 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
         error={errors.scopeOfWork}
         required
       />
+      
+      <FloatingInput
+        label="Category"
+        name="category"
+        value={formData.category}
+        onChange={handleChange}
+        type="select"
+        options={categoryOptions}
+        error={errors.category}
+        required
+      />
 
       <FloatingInput
         label="Vendor Name"
@@ -264,6 +281,7 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
         type="select"
         options={vendors.map(v => ({ value: v.vendorName, label: v.vendorName }))}
         error={errors.vendorName}
+        required={formData.category === 'out_sourced' || formData.category === 'bought_out'}
       />
 
       <FloatingInput
@@ -277,16 +295,7 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
         required
       />
 
-      <FloatingInput
-        label="Category"
-        name="category"
-        value={formData.category}
-        onChange={handleChange}
-        type="select"
-        options={categoryOptions}
-        error={errors.category}
-        required
-      />
+      
 
       <FloatingInput
         label="Unit Type"

@@ -507,22 +507,6 @@ const EmployeeAccess = () => {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <select
-                    value={filters.email}
-                    onChange={(e) => handleFilterChange('email', e.target.value)}
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
-                  >
-                    <option value="">All Emails</option>
-                    {getUniqueValues('email').map(email => (
-                      <option key={email} value={email}>
-                        {email}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                   <select
                     value={filters.role}

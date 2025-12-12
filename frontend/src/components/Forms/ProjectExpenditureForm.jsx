@@ -892,7 +892,7 @@ const ProjectExpenditureForm = ({
                           handleExpenditureChange(index, 'quantityToBeOrdered', formattedValue);
                         }
                       }}
-                      placeholder="0.000"
+                    
                       maxLength={VALIDATION_RULES.QUANTITY.MAX_LENGTH}
                       step="0.001"
                       min="0"
@@ -931,7 +931,7 @@ const ProjectExpenditureForm = ({
                           handleExpenditureChange(index, 'quantityOrderedActual', formattedValue);
                         }
                       }}
-                      placeholder="0.000"
+
                       maxLength={VALIDATION_RULES.QUANTITY.MAX_LENGTH}
                       step="0.001"
                       min="0"

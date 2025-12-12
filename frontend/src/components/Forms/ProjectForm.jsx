@@ -651,6 +651,7 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
 
       {/* Fixed Action Buttons */}
       <div className="flex-shrink-0 border-t border-gray-200 pt-4 mt-4">
+        <p className="text-sm text-gray-500"> Please fill all required fields (*) </p>
         <div className="flex justify-end space-x-3">
           <button
             type="button"

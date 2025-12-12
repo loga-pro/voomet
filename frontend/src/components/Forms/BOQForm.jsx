@@ -111,7 +111,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       );
       setFilteredParts(filtered);
     } else {
-      setFilteredParts(parts);
+      setFilteredParts([]);
     }
   }, [formData.scopeOfWork, parts]);
 
@@ -173,13 +173,35 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       gstPercentage: String(boq.gstPercentage || '18'),
       totalWithGST: String(boq.totalWithGST || '0'),
       overallRemarks: boq.overallRemarks || '',
-      paymentTerms: boq.paymentTerms && boq.paymentTerms.length > 0 ? boq.paymentTerms : [{ discount: '', Installment: 1 }]
+      paymentTerms: boq.paymentTerms && boq.paymentTerms.length > 0 
+        ? boq.paymentTerms.map(term => ({
+            discount: String(term.discount || ''),
+            Installment: term.Installment || 1
+          }))
+        : [{ discount: '', Installment: 1 }]
     };
 
     setFormData(finalFormData);
     setIsInitialLoad(false);
   }, [boq]);
 
+  // Fetch projects when boq is loaded in edit mode
+  useEffect(() => {
+    const fetchProjectsForEdit = async () => {
+      if (boq && boq.customer) {
+        try {
+          const response = await projectsAPI.getAll({ customerName: boq.customer });
+          const projectsData = response.data || response;
+          setProjects(projectsData || []);
+        } catch (error) {
+          console.error('Error fetching projects for edit:', error);
+          setProjects([]);
+        }
+      }
+    };
+
+    fetchProjectsForEdit();
+  }, [boq]);
 
   // Fetch customers on component mount
   useEffect(() => {
@@ -235,7 +257,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     };
 
     fetchProjects();
-  }, [formData.customer, showLocalNotification]);
+  }, [formData.customer]);
 
   // Calculate totals helper
   const calculateBoqMetrics = (data) => {
@@ -249,28 +271,31 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       };
     });
 
+    // Calculate items total only (no transportation in subtotal)
     const itemsTotal = updatedItems.reduce((sum, item) => {
       return sum + (parseFloat(item.totalPrice || 0));
     }, 0);
 
-    const transportationCharges = parseFloat(data.transportationCharges || 0);
-    const finalTotalBeforeDiscount = itemsTotal + transportationCharges;
-
+    // Apply discount to items total only
     let discountPercentage = parseFloat(data.discountPercentage || 0);
     if (isNaN(discountPercentage) || discountPercentage < 0) discountPercentage = 0;
     if (discountPercentage > 100) discountPercentage = 100;
 
-    const discountAmount = finalTotalBeforeDiscount * (discountPercentage / 100);
-    const finalTotalWithoutGST = Math.max(0, finalTotalBeforeDiscount - discountAmount);
+    const discountAmount = itemsTotal * (discountPercentage / 100);
+    const finalTotalWithoutGST = Math.max(0, itemsTotal - discountAmount);
 
+    // Calculate GST on items total (after discount, before transportation)
     const gstPercentage = parseFloat(data.gstPercentage || 0);
     const gstAmount = finalTotalWithoutGST * (gstPercentage / 100);
-    const totalWithGST = finalTotalWithoutGST + gstAmount;
+    
+    // Add transportation charges to final total with GST
+    const transportationCharges = parseFloat(data.transportationCharges || 0);
+    const totalWithGST = finalTotalWithoutGST + gstAmount + transportationCharges;
 
     return {
       items: updatedItems,
       discountAmount: isNaN(discountAmount) ? '0.00' : discountAmount.toFixed(2),
-      finalTotalWithoutGST: isNaN(finalTotalBeforeDiscount) ? '0.00' : finalTotalBeforeDiscount.toFixed(2),
+      finalTotalWithoutGST: isNaN(finalTotalWithoutGST) ? '0.00' : finalTotalWithoutGST.toFixed(2),
       totalWithGST: isNaN(totalWithGST) ? '0.00' : totalWithGST.toFixed(2)
     };
   };
@@ -365,15 +390,30 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
         currentScopes.push(scope);
       }
 
+      // Filter parts based on new scopes
+      const newFilteredParts = currentScopes.length > 0
+        ? parts.filter(part => currentScopes.includes(part.scopeOfWork))
+        : [];
+
+      // Clear items that don't match the new scope selection
+      const updatedItems = prev.items.map(item => {
+        // If no scopes selected or item's part doesn't match any selected scope
+        const itemPart = newFilteredParts.find(p => p.partName === item.partName);
+        if (!itemPart) {
+          return {
+            ...item,
+            partName: '',
+            unitType: '',
+            unitPrice: ''
+          };
+        }
+        return item;
+      });
+
       return {
         ...prev,
         scopeOfWork: currentScopes,
-        items: prev.items.map(item => ({
-          ...item,
-          partName: '',
-          unitType: '',
-          unitPrice: ''
-        }))
+        items: updatedItems
       };
     });
   };
@@ -793,7 +833,12 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       gstPercentage: String(project.gstPercentage || '18'),
       totalWithGST: String(project.totalWithGST || '0'),
       overallRemarks: project.overallRemarks || '',
-      paymentTerms: project.paymentTerms && project.paymentTerms.length > 0 ? project.paymentTerms : [{ discount: '', Installment: 1 }]
+      paymentTerms: project.paymentTerms && project.paymentTerms.length > 0 
+      ? project.paymentTerms.map(term => ({
+          discount: String(term.discount || ''),
+          Installment: term.Installment || 1
+        }))
+      : [{ discount: '', Installment: 1 }]
     };
 
     setFormData(finalFormData);
@@ -907,23 +952,34 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
               )}
 
               {/* Project Name */}
-              <FloatingInput
-                label="Project Name"
-                name="projectName"
-                value={formData.projectName}
-                onChange={handleChange}
-                error={errors.projectName}
-                type="select"
-                options={[
-                  { value: '', label: 'Select Project' },
-                  ...projects.map(project => ({
-                    value: project.projectName,
-                    label: project.projectName
-                  }))
-                ]}
-                required
-                disabled={!formData.customer || projects.length === 0}
-              />
+              {boq ? (
+                <FloatingInput
+                  label="Project Name"
+                  name="projectName"
+                  value={formData.projectName}
+                  readOnly
+                  error={errors.projectName}
+                  required
+                />
+              ) : (
+                <FloatingInput
+                  label="Project Name"
+                  name="projectName"
+                  value={formData.projectName}
+                  onChange={handleChange}
+                  error={errors.projectName}
+                  type="select"
+                  options={[
+                    { value: '', label: 'Select Project' },
+                    ...projects.map(project => ({
+                      value: project.projectName,
+                      label: project.projectName
+                    }))
+                  ]}
+                  required
+                  disabled={!formData.customer || projects.length === 0}
+                />
+              )}
 
               {/* Scope of Work */}
               <div className="relative">
@@ -1007,10 +1063,15 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                       onChange={(e) => handlePartSelect(index, e.target.value)}
                       error={errors[`item-${index}-partName`]}
                       type="select"
-                      options={[{ value: '', label: 'Select Part' }, ...filteredParts.map(part => ({
-                        value: part.partName,
-                        label: `${part.partName}`
-                      }))]}
+                      options={
+                        formData.scopeOfWork && formData.scopeOfWork.length > 0
+                          ? [{ value: '', label: 'Select Part' }, ...filteredParts.map(part => ({
+                              value: part.partName,
+                              label: `${part.partName}`
+                            }))]
+                          : [{ value: '', label: 'Select Scope of Work first' }]
+                      }
+                      disabled={!formData.scopeOfWork || formData.scopeOfWork.length === 0}
                       required
                     />
 

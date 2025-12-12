@@ -36,12 +36,10 @@ const paymentSchema = new mongoose.Schema({
   invoices: [{
     invoiceNumber: {
       type: String,
-      required: true,
       trim: true
     },
     invoiceValue: {
-      type: Number,
-      required: true
+      type: Number
     },
     paymentType: {
       type: String,
@@ -51,44 +49,41 @@ const paymentSchema = new mongoose.Schema({
     invoiceDate: {
       type: Date,
       default: Date.now
+    }
+  }],
+  payments: [{
+    transactionId: {
+      type: String,
+      trim: true
     },
-    payments: [{
-      transactionId: {
-        type: String,
-        required: true,
-        trim: true
-      },
-      bankName: {
-        type: String,
-        required: true,
-        trim: true
-      },
-      gst: {
-        type: Number,
-        default: 0
-      },
-      amount: {
-        type: Number,
-        required: true
-      },
-      date: {
-        type: Date,
-        default: Date.now
-      },
-      paymentDate: {
-        type: Date,
-        default: Date.now
-      },
-      paymentType: {
-        type: String,
-        enum: ['advance', 'final'],
-        default: 'advance'
-      },
-      remarks: {
-        type: String,
-        trim: true
-      }
-    }]
+    bankName: {
+      type: String,
+      trim: true
+    },
+    gst: {
+      type: Number,
+      default: 0
+    },
+    amount: {
+      type: Number
+    },
+    date: {
+      type: Date,
+      default: Date.now
+    },
+    paymentDate: {
+      type: Date,
+      default: Date.now
+    },
+    paymentType: {
+      type: String,
+      enum: ['advance', 'final'],
+      default: 'advance'
+    },
+    remarks: {
+      type: String,
+      trim: true
+    }
   }],
   totalInvoiceRaised: {
     type: Number,
@@ -127,10 +122,9 @@ paymentSchema.pre('save', function(next) {
     return total + (invoice.invoiceValue || 0);
   }, 0);
   
-  this.totalPayments = this.invoices.reduce((total, invoice) => {
-    return total + invoice.payments.reduce((invoiceTotal, payment) => {
-      return invoiceTotal + (payment.amount || 0);
-    }, 0);
+  // Calculate total payments from the separate payments array
+  this.totalPayments = (this.payments || []).reduce((total, payment) => {
+    return total + (payment.amount || 0);
   }, 0);
   
   this.balanceAmount = this.totalInvoiceRaised - this.totalPayments;

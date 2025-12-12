@@ -68,16 +68,26 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
     }
   };
 
+  // Helper function to format date for date input (YYYY-MM-DD)
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // Initialize form with existing data
   useEffect(() => {
     if (purchaseRequest) {
       setFormData({
         customerName: purchaseRequest.customerName || '',
         projectName: purchaseRequest.projectName || '',
-        milestoneStartDate: purchaseRequest.milestoneStartDate ? purchaseRequest.milestoneStartDate.split('T')[0] : '',
-        milestoneEndDate: purchaseRequest.milestoneEndDate ? purchaseRequest.milestoneEndDate.split('T')[0] : '',
-        startDate: purchaseRequest.startDate ? purchaseRequest.startDate.split('T')[0] : '',
-        endDate: purchaseRequest.endDate ? purchaseRequest.endDate.split('T')[0] : '',
+        milestoneStartDate: purchaseRequest.milestoneStartDate ? formatDateForInput(purchaseRequest.milestoneStartDate) : '',
+        milestoneEndDate: purchaseRequest.milestoneEndDate ? formatDateForInput(purchaseRequest.milestoneEndDate) : '',
+        startDate: purchaseRequest.startDate ? formatDateForInput(purchaseRequest.startDate) : '',
+        endDate: purchaseRequest.endDate ? formatDateForInput(purchaseRequest.endDate) : '',
         items: purchaseRequest.items?.length > 0 
           ? purchaseRequest.items.map((item, index) => ({
               sNo: index + 1,
@@ -145,8 +155,8 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
       if (selectedMilestone) {
         setFormData(prev => ({
           ...prev,
-          milestoneStartDate: selectedMilestone.startDate ? new Date(selectedMilestone.startDate).toISOString().split('T')[0] : '',
-          milestoneEndDate: selectedMilestone.endDate ? new Date(selectedMilestone.endDate).toISOString().split('T')[0] : ''
+          milestoneStartDate: selectedMilestone.startDate ? formatDateForInput(selectedMilestone.startDate) : '',
+          milestoneEndDate: selectedMilestone.endDate ? formatDateForInput(selectedMilestone.endDate) : ''
         }));
       }
     }
@@ -583,7 +593,7 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
     }
   };
 
-  // Helper function to format date as "DD-MM-YYYY"
+  // Helper function to format date as "DD-MM-YYYY" for display
   const formatDate = (dateString) => {
     if (!dateString) return 'Not set';
     const date = new Date(dateString);
@@ -595,333 +605,339 @@ const PurchaseRequestForm = ({ purchaseRequest, customers = [], projects = [], o
 
   return (
     <form onSubmit={handleSubmit} className="h-full flex flex-col">
-  {/* FORM HEADER - Fixed at top */}
-  <div className="flex-shrink-0 bg-gray-50 border-b border-gray-200 p-4">
-    <div className="flex justify-between items-center mb-4">
-      <h2 className="text-xl font-bold text-gray-900">
-        {purchaseRequest ? 'Edit Purchase Requisition' : 'Create Purchase Requisition'}
-      </h2>
-    </div>
-    
-    {/* Customer and Project Row */}
-    <div className="grid grid-cols-2 gap-4 mb-4">
-      <FloatingInput
-        label="Customer name"
-        name="customerName"
-        value={formData.customerName}
-        onChange={handleChange}
-        type="select"
-        options={[
-          { value: '', label: 'Select Customer' },
-          ...inhouseCustomers.map(c => ({ value: c.customerName, label: c.customerName }))
-        ]}
-        error={showValidation && errors.customerName}
-        required
-        size="medium"
-      />
+      {/* FORM HEADER - Fixed at top */}
+      <div className="flex-shrink-0 bg-gray-50 border-b border-gray-200 p-4">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-900">
+            {purchaseRequest ? 'Edit Purchase Requisition' : 'Create Purchase Requisition'}
+          </h2>
+        </div>
+        
+        {/* Customer and Project Row */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <FloatingInput
+            label="Customer name"
+            name="customerName"
+            value={formData.customerName}
+            onChange={handleChange}
+            type="select"
+            options={[
+              { value: '', label: 'Select Customer' },
+              ...inhouseCustomers.map(c => ({ value: c.customerName, label: c.customerName }))
+            ]}
+            error={showValidation && errors.customerName}
+            required
+            size="medium"
+          />
 
-      <FloatingInput
-        label="Project Name"
-        name="projectName"
-        value={formData.projectName}
-        onChange={handleChange}
-        type="select"
-        options={[
-          { value: '', label: 'Select Project' },
-          ...filteredProjects.map(p => ({ value: p.projectName, label: p.projectName }))
-        ]}
-        error={showValidation && errors.projectName}
-        required
-        size="medium"
-      />
-    </div>
+          <FloatingInput
+            label="Project Name"
+            name="projectName"
+            value={formData.projectName}
+            onChange={handleChange}
+            type="select"
+            options={[
+              { value: '', label: 'Select Project' },
+              ...filteredProjects.map(p => ({ value: p.projectName, label: p.projectName }))
+            ]}
+            error={showValidation && errors.projectName}
+            required
+            size="medium"
+          />
+        </div>
+        
+        {/* Milestone Dates Row (Read-only from InhouseMilestone using FloatingInput) */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <FloatingInput
+            label="Project Start Date"
+            name="milestoneStartDate"
+            value={formData.milestoneStartDate}
+            onChange={() => {}}
+            type="date"
+            error={showValidation && errors.milestoneStartDate}
+            size="medium"
+            readOnly
+            className="bg-gray-50 cursor-not-allowed"
+          />
 
-    {/* Milestone Dates Row (Read-only from InhouseMilestone) */}
-    <div className="grid grid-cols-2 gap-4 mb-4">
-      <div className="relative">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Start Date
-        </label>
-        <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600">
-          {formatDate(formData.milestoneStartDate)}
+          <FloatingInput
+            label="Project End Date"
+            name="milestoneEndDate"
+            value={formData.milestoneEndDate}
+            onChange={() => {}}
+            type="date"
+            error={showValidation && errors.milestoneEndDate}
+            size="medium"
+            readOnly
+            className="bg-gray-50 cursor-not-allowed"
+          />
+        </div>
+        
+        {/* Purchase Request Dates Row (Editable) */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <FloatingInput
+            label="Production Request Start Date"
+            name="startDate"
+            value={formData.startDate}
+            onChange={handleChange}
+            type="date"
+            error={showValidation && errors.startDate}
+            required
+            size="medium"
+          />
+
+          <FloatingInput
+            label="Production Request End Date"
+            name="endDate"
+            value={formData.endDate}
+            onChange={handleChange}
+            type="date"
+            error={showValidation && errors.endDate}
+            required
+            size="medium"
+          />
         </div>
       </div>
 
-      <div className="relative">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          End Date
-        </label>
-        <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600">
-          {formatDate(formData.milestoneEndDate)}
-        </div>
-      </div>
-    </div>
-
-    {/* Purchase Request Dates Row (Editable) */}
-    <div className="grid grid-cols-2 gap-4 mb-4">
-      <FloatingInput
-        label="Purchase Request Start Date"
-        name="startDate"
-        value={formData.startDate}
-        onChange={handleChange}
-        type="date"
-        error={showValidation && errors.startDate}
-        required
-        size="medium"
-      />
-
-      <FloatingInput
-        label="Purchase Request End Date"
-        name="endDate"
-        value={formData.endDate}
-        onChange={handleChange}
-        type="date"
-        error={showValidation && errors.endDate}
-        required
-        size="medium"
-      />
-    </div>
-  </div>
-
-  {/* SCROLLABLE CONTENT AREA */}
-  <div className="flex-1 overflow-hidden p-4">
-    {errors.submit && (
-      <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
-        {errors.submit}
-      </div>
-    )}
-
-    {/* Add Row Button - Placed above the table */}
-    <div className="mb-4 flex justify-end">
-      <button
-        type="button"
-        onClick={addItem}
-        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-      >
-        <PlusCircleIcon className="h-4 w-4 mr-2" />
-        Add Row
-      </button>
-    </div>
-
-    {/* Main Table Container with Fixed Header and Scrollable Body */}
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden flex flex-col h-full max-h-[400px]">
-      {/* Fixed Table Header */}
-      <div className="flex-shrink-0 bg-gray-50 border-b border-gray-200">
-        <div className="grid grid-cols-8 gap-4 px-4 py-3">
-          <div className="text-sm font-medium text-gray-700">s.no</div>
-          <div className="text-sm font-medium text-gray-700">Scope of Work</div>
-          <div className="text-sm font-medium text-gray-700">Part name</div>
-          <div className="text-sm font-medium text-gray-700">Quantity Required</div>
-          <div className="text-sm font-medium text-gray-700">Purpose</div>
-          <div className="text-sm font-medium text-gray-700">Unit</div>
-          <div className="text-sm font-medium text-gray-700">Action</div>
-        </div>
-      </div>
-
-      {/* Scrollable Table Body */}
-      <div className="flex-1 overflow-y-auto">
-        {formData.items.length === 0 ? (
-          <div className="px-4 py-8 text-center text-gray-500">
-            No items added. Click "Add Row" to add items.
+      {/* SCROLLABLE CONTENT AREA */}
+      <div className="flex-1 overflow-hidden p-4">
+        {errors.submit && (
+          <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
+            {errors.submit}
           </div>
-        ) : (
-          <div className="divide-y divide-gray-200">
-            {formData.items.map((item, index) => (
-              <div key={index} className="px-4 py-4 hover:bg-gray-50 grid grid-cols-8 gap-4">
-                {/* S.No with proper spacing */}
-                <div className="flex items-center">
-                  <div className="w-8 h-8 flex items-center justify-center rounded-md bg-gray-100">
-                    <span className="text-sm font-medium text-gray-900">{item.sNo}</span>
-                  </div>
-                </div>
+        )}
 
-                {/* Scope of Work with more width */}
-                <div>
-                  <FloatingInput
-                    value={item.scopeOfWork}
-                    onChange={(e) => handleItemChange(index, 'scopeOfWork', e.target.value)}
-                    type="select"
-                    options={scopeOptions}
-                    error={showValidation && errors.items?.[index]?.scopeOfWork}
-                    required
-                    size="small"
-                    hideLabel
-                    placeholder="Select Scope"
-                    className="w-full"
-                  />
-                </div>
+        {/* Add Row Button - Placed above the table */}
+        <div className="mb-4 flex justify-end">
+          <button
+            type="button"
+            onClick={addItem}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <PlusCircleIcon className="h-4 w-4 mr-2" />
+            Add Row
+          </button>
+        </div>
 
-                {/* Part Name with more width */}
-                <div>
-                  <FloatingInput
-                    value={item.partName}
-                    onChange={(e) => handleItemChange(index, 'partName', e.target.value)}
-                    type="select"
-                    options={[
-                      { value: '', label: 'Select Part' },
-                      ...(filteredParts[index] || []).map(part => ({
-                        value: part.partName,
-                        label: part.partName
-                      }))
-                    ]}
-                    error={showValidation && errors.items?.[index]?.partName}
-                    required
-                    size="small"
-                    hideLabel
-                    placeholder="Select Part"
-                    className="w-full"
-                  />
-                </div>
+        {/* Main Table Container with Fixed Header and Scrollable Body */}
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden flex flex-col h-full max-h-[400px]">
+          {/* Fixed Table Header */}
+          <div className="flex-shrink-0 bg-gray-50 border-b border-gray-200">
+            <div className="grid grid-cols-8 gap-4 px-4 py-3">
+              <div className="text-sm font-medium text-gray-700">s.no</div>
+              <div className="text-sm font-medium text-gray-700">Scope of Work</div>
+              <div className="text-sm font-medium text-gray-700">Part name</div>
+              <div className="text-sm font-medium text-gray-700">Quantity Required</div>
+              <div className="text-sm font-medium text-gray-700">Purpose</div>
+              <div className="text-sm font-medium text-gray-700">Unit</div>
+              <div className="text-sm font-medium text-gray-700">Action</div>
+            </div>
+          </div>
 
-                {/* Quantity Required with proper spacing */}
-                <div>
-                  <FloatingInput
-                    value={item.quantityRequired}
-                    onChange={(e) => handleItemChange(index, 'quantityRequired', e.target.value)}
-                    type="text"
-                    inputMode="numeric"
-                    error={showValidation && errors.items?.[index]?.quantityRequired}
-                    required
-                    size="small"
-                    hideLabel
-                    className="w-full"
-                  />
-                </div>
-
-                {/* Purpose with more width */}
-                <div>
-                  <FloatingInput
-                    value={item.purpose}
-                    onChange={(e) => handleItemChange(index, 'purpose', e.target.value)}
-                    type="text"
-                    error={showValidation && errors.items?.[index]?.purpose}
-                    required
-                    size="small"
-                    hideLabel
-                    maxLength={VALIDATION_RULES.PURPOSE.maxLength}
-                    className="w-full"
-                  />
-                </div>
-
-                {/* Unit Type */}
-                <div>
-                  <FloatingInput
-                    value={item.unitType}
-                    onChange={(e) => handleItemChange(index, 'unitType', e.target.value)}
-                    type="text"
-                    size="small"
-                    hideLabel
-                    readOnly={!!item.partName}
-                    className="w-full"
-                  />
-                </div>
-
-                {/* Action - Delete Button */}
-                <div className="flex items-center">
-                  {formData.items.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeItem(index)}
-                      className="w-8 h-8 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
-                      title="Delete Row"
-                    >
-                      <XMarkIcon className="h-5 w-5" />
-                    </button>
-                  )}
-                </div>
+          {/* Scrollable Table Body */}
+          <div className="flex-1 overflow-y-auto">
+            {formData.items.length === 0 ? (
+              <div className="px-4 py-8 text-center text-gray-500">
+                No items added. Click "Add Row" to add items.
               </div>
-            ))}
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {formData.items.map((item, index) => (
+                  <div key={index} className="px-4 py-4 hover:bg-gray-50 grid grid-cols-8 gap-4">
+                    {/* S.No with proper spacing */}
+                    <div className="flex items-center">
+                      <div className="w-8 h-8 flex items-center justify-center rounded-md bg-gray-100">
+                        <span className="text-sm font-medium text-gray-900">{item.sNo}</span>
+                      </div>
+                    </div>
+
+                    {/* Scope of Work with more width */}
+                    <div>
+                      <FloatingInput
+                        value={item.scopeOfWork}
+                        onChange={(e) => handleItemChange(index, 'scopeOfWork', e.target.value)}
+                        type="select"
+                        options={scopeOptions}
+                        error={showValidation && errors.items?.[index]?.scopeOfWork}
+                        required
+                        size="small"
+                        hideLabel
+                        placeholder="Select Scope"
+                        className="w-full"
+                      />
+                    </div>
+
+                    {/* Part Name with more width */}
+                    <div>
+                      <FloatingInput
+                        value={item.partName}
+                        onChange={(e) => handleItemChange(index, 'partName', e.target.value)}
+                        type="select"
+                        options={[
+                          { value: '', label: 'Select Part' },
+                          ...(filteredParts[index] || []).map(part => ({
+                            value: part.partName,
+                            label: part.partName
+                          }))
+                        ]}
+                        error={showValidation && errors.items?.[index]?.partName}
+                        required
+                        size="small"
+                        hideLabel
+                        placeholder="Select Part"
+                        className="w-full"
+                      />
+                    </div>
+
+                    {/* Quantity Required with proper spacing */}
+                    <div>
+                      <FloatingInput
+                        value={item.quantityRequired}
+                        onChange={(e) => handleItemChange(index, 'quantityRequired', e.target.value)}
+                        type="text"
+                        inputMode="numeric"
+                        error={showValidation && errors.items?.[index]?.quantityRequired}
+                        required
+                        size="small"
+                        hideLabel
+                        className="w-full"
+                      />
+                    </div>
+
+                    {/* Purpose with more width */}
+                    <div>
+                      <FloatingInput
+                        value={item.purpose}
+                        onChange={(e) => handleItemChange(index, 'purpose', e.target.value)}
+                        type="text"
+                        error={showValidation && errors.items?.[index]?.purpose}
+                        required
+                        size="small"
+                        hideLabel
+                        maxLength={VALIDATION_RULES.PURPOSE.maxLength}
+                        className="w-full"
+                      />
+                    </div>
+
+                    {/* Unit Type */}
+                    <div>
+                      <FloatingInput
+                        value={item.unitType}
+                        onChange={(e) => handleItemChange(index, 'unitType', e.target.value)}
+                        type="text"
+                        size="small"
+                        hideLabel
+                        readOnly={!!item.partName}
+                        className="w-full"
+                      />
+                    </div>
+
+                    {/* Action - Delete Button */}
+                    <div className="flex items-center">
+                      {formData.items.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeItem(index)}
+                          className="w-8 h-8 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+                          title="Delete Row"
+                        >
+                          <XMarkIcon className="h-5 w-5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Remarks Section */}
+        <div className="mt-6 relative">
+          <FloatingInput
+            label="Remarks (Optional)"
+            name="remarks"
+            value={formData.remarks}
+            onChange={handleChange}
+            type="textarea"
+            error={errors.remarks}
+            size="medium"
+            rows={3}
+            placeholder="Enter any additional remarks or notes..."
+            maxLength={VALIDATION_RULES.REMARKS.maxLength}
+          />
+          {formData.remarks && (
+            <div className="absolute right-2 top-2 text-xs text-gray-400">
+              {formData.remarks.length}/{VALIDATION_RULES.REMARKS.maxLength}
+            </div>
+          )}
+        </div>
+
+        {/* Status (for editing only) */}
+        {purchaseRequest && (
+          <div className="mt-6">
+            <FloatingInput
+              label="Status"
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              type="select"
+              options={[
+                { value: 'pending', label: 'Pending' },
+                { value: 'approved', label: 'Approved' },
+                { value: 'rejected', label: 'Rejected' },
+                { value: 'completed', label: 'Completed' }
+              ]}
+              error={errors.status}
+              size="medium"
+            />
+          </div>
+        )}
+
+        {/* Validation summary */}
+        {showValidation && errors.items?.general && (
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center">
+              <InformationCircleIcon className="h-5 w-5 text-red-400 mr-2" />
+              <p className="text-sm text-red-600">{errors.items.general}</p>
+            </div>
           </div>
         )}
       </div>
-    </div>
 
-    {/* Remarks Section */}
-    <div className="mt-6 relative">
-      <FloatingInput
-        label="Remarks (Optional)"
-        name="remarks"
-        value={formData.remarks}
-        onChange={handleChange}
-        type="textarea"
-        error={errors.remarks}
-        size="medium"
-        rows={3}
-        placeholder="Enter any additional remarks or notes..."
-        maxLength={VALIDATION_RULES.REMARKS.maxLength}
-      />
-      {formData.remarks && (
-        <div className="absolute right-2 top-2 text-xs text-gray-400">
-          {formData.remarks.length}/{VALIDATION_RULES.REMARKS.maxLength}
-        </div>
-      )}
-    </div>
-
-    {/* Status (for editing only) */}
-    {purchaseRequest && (
-      <div className="mt-6">
-        <FloatingInput
-          label="Status"
-          name="status"
-          value={formData.status}
-          onChange={handleChange}
-          type="select"
-          options={[
-            { value: 'pending', label: 'Pending' },
-            { value: 'approved', label: 'Approved' },
-            { value: 'rejected', label: 'Rejected' },
-            { value: 'completed', label: 'Completed' }
-          ]}
-          error={errors.status}
-          size="medium"
-        />
-      </div>
-    )}
-
-    {/* Validation summary */}
-    {showValidation && errors.items?.general && (
-      <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-        <div className="flex items-center">
-          <InformationCircleIcon className="h-5 w-5 text-red-400 mr-2" />
-          <p className="text-sm text-red-600">{errors.items.general}</p>
+      {/* FIXED BOTTOM BUTTONS */}
+      <div className="flex-shrink-0 border-t border-gray-200 bg-white p-4">
+        <div className="flex justify-end space-x-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading || isSubmitting}
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 flex items-center"
+          >
+            {loading ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                {purchaseRequest ? 'Updating...' : 'Creating...'}
+              </>
+            ) : (
+              <>
+                <CheckCircleIcon className="h-4 w-4 mr-1" />
+                {purchaseRequest ? 'Update Purchase Requisition' : 'Create Purchase Requisition'}
+              </>
+            )}
+          </button>
         </div>
       </div>
-    )}
-  </div>
-
-  {/* FIXED BOTTOM BUTTONS */}
-  <div className="flex-shrink-0 border-t border-gray-200 bg-white p-4">
-    <div className="flex justify-end space-x-3">
-      <button
-        type="button"
-        onClick={onCancel}
-        className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-      >
-        Cancel
-      </button>
-      <button
-        type="submit"
-        disabled={loading || isSubmitting}
-        className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 flex items-center"
-      >
-        {loading ? (
-          <>
-            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            {purchaseRequest ? 'Updating...' : 'Creating...'}
-          </>
-        ) : (
-          <>
-            <CheckCircleIcon className="h-4 w-4 mr-1" />
-            {purchaseRequest ? 'Update Purchase Requisition' : 'Create Purchase Requisition'}
-          </>
-        )}
-      </button>
-    </div>
-  </div>
-</form>
+    </form>
   );
 };
 

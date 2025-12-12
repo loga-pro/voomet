@@ -500,7 +500,7 @@ const ProjectBudgetManagement = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Project Details
+                      Project Name
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Financial Year
@@ -535,11 +535,6 @@ const ProjectBudgetManagement = () => {
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-semibold text-gray-900">{budget.projectName}</div>
-                            <div className="text-sm text-gray-500">{budget.customerName}</div>
-                            <div className="text-xs text-gray-400 flex items-center">
-                              <MapPinIcon className="h-3 w-3 mr-1" />
-                              {budget.siteLocation}
-                            </div>
                           </div>
                         </div>
                       </td>

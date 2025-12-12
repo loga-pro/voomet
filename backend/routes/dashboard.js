@@ -60,12 +60,17 @@ router.get('/kpis', auth, async (req, res) => {
       }
     ]);
 
-    // Financial KPIs
-    const payments = await Payment.find();
-    const projects = await Project.find();
+    // Financial KPIs - Only include payments with saved data (at least one invoice)
+    const payments = await Payment.find({
+      $expr: { $gt: [{ $size: { $ifNull: ["$invoices", []] } }, 0] }
+    });
     
-    // Calculate total project value
-    const totalProjectValue = projects.reduce((sum, project) => sum + (project.totalProjectValue || 0), 0);
+    // Get unique projects from saved payments only (not from Project Master)
+    const uniqueProjects = [...new Set(payments.map(p => p.project))];
+    const totalProjects = uniqueProjects.length;
+    
+    // Calculate total project value from saved payment records only
+    const totalProjectValue = payments.reduce((sum, payment) => sum + (payment.projectCost || 0), 0);
     
     // Calculate payment received and pending
     const totalPaymentsReceived = payments.reduce((sum, payment) => {
@@ -157,7 +162,7 @@ router.get('/kpis', auth, async (req, res) => {
         postImplementation: projectStages.find(stage => stage._id === 'post_implementation')?.count || 0
       },
       financialKPIs: {
-        totalProjects: projects.length,
+        totalProjects: totalProjects,
         totalProjectValue,
         totalPaymentsReceived,
         totalPaymentsPending,

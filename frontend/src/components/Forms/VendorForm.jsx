@@ -554,6 +554,7 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
       </div>
 
       <div className="flex-shrink-0 border-t border-gray-200 bg-white px-6 py-4">
+        <p className="text-sm text-gray-500"> Please fill all required fields (*) </p>
         <div className="flex justify-end space-x-3">
           <button
             type="button"

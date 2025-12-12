@@ -421,7 +421,10 @@ const CustomerBoqManagement = () => {
   const handleEdit = async (item) => {
     try {
       const response = await boqAPI.getById(item._id);
-      setEditingItem(response.data);
+      // Handle both response.data and response.data.data structures
+      const boqData = response.data.data || response.data;
+      console.log('BOQ Data for edit:', boqData); // Debug log
+      setEditingItem(boqData);
       setShowModal(true);
     } catch (error) {
       console.error("Error fetching BOQ item for edit:", error);

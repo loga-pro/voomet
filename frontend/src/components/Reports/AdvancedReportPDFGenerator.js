@@ -20,7 +20,7 @@ const AdvancedReportPDFGenerator = ({ reportData, reportType, reportTitle, onClo
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [autoGenerate]);
+  }, [autoGenerate]); 
   
   const [companyInfo, setCompanyInfo] = useState({
     name: 'VOOMET INTERIORS',
