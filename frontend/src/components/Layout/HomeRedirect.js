@@ -25,7 +25,8 @@ const permissionRouteMap = [
   { permission: 'production_management', path: '/production-management' },
   { permission: 'reports', path: '/reports' },
     { permission: 'inhouse_partmaster', path: '/inhouse-part-master' },
-    { permission: 'stock_master', path: '/stock-master' },
+    { permission: 'receipts', path: '/receipts' },
+    { permission: 'dispatches', path: '/dispatches' },
 ];
 
 const HomeRedirect = () => {

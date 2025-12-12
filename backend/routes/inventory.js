@@ -33,6 +33,215 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// --- Receipts Routes ---
+
+// Get all receipts
+router.get('/receipts/all', auth, async (req, res) => {
+  try {
+    const items = await Inventory.find().select('receipts workCategory partName');
+    const allReceipts = items.flatMap(item => 
+      (item.receipts || []).map(r => ({
+        ...r.toObject(),
+        parentId: item._id,
+        workCategory: r.workCategory || item.workCategory,
+        partName: r.partName || item.partName
+      }))
+    );
+    allReceipts.sort((a, b) => new Date(b.date) - new Date(a.date));
+    res.json(allReceipts);
+  } catch (error) {
+    console.error('Error fetching all receipts:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Create receipt
+router.post('/receipts', auth, async (req, res) => {
+  try {
+    const { partName, workCategory } = req.body;
+    if (!partName || !workCategory) {
+      return res.status(400).json({ message: 'Part Name and Work Category are required' });
+    }
+
+    let inventory = await Inventory.findOne({ 
+      partName: { $regex: new RegExp(`^${partName}$`, 'i') },
+      workCategory: workCategory 
+    });
+
+    if (!inventory) {
+      // Create new inventory item if not exists
+      inventory = new Inventory({
+        partName,
+        workCategory,
+        customerVendorName: req.body.vendorName || 'New Vendor',
+        receipts: [req.body],
+        dispatches: []
+      });
+    } else {
+      inventory.receipts.push(req.body);
+    }
+
+    await inventory.save();
+    res.status(201).json(inventory);
+  } catch (error) {
+    console.error('Error creating receipt:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update receipt
+router.put('/receipts/:id', auth, async (req, res) => {
+  try {
+    const inventory = await Inventory.findOne({ "receipts._id": req.params.id });
+    if (!inventory) {
+      return res.status(404).json({ message: 'Receipt not found' });
+    }
+
+    const receipt = inventory.receipts.id(req.params.id);
+    if (!receipt) {
+        return res.status(404).json({ message: 'Receipt not found' });
+    }
+
+    // Update fields
+    Object.keys(req.body).forEach(key => {
+      if (key !== '_id' && key !== 'parentId') {
+        receipt[key] = req.body[key];
+      }
+    });
+
+    // Recalculate total value
+    const invoiceVal = parseFloat(receipt.invoiceValueWithoutGST) || 0;
+    const gstVal = parseFloat(receipt.gstValue) || 0;
+    const qty = parseFloat(receipt.quantity) || 0;
+    receipt.totalValue = (invoiceVal + gstVal) * qty;
+
+    await inventory.save();
+    res.json(receipt);
+  } catch (error) {
+    console.error('Error updating receipt:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Delete receipt
+router.delete('/receipts/:id', auth, async (req, res) => {
+  try {
+    const result = await Inventory.findOneAndUpdate(
+      { "receipts._id": req.params.id },
+      { $pull: { receipts: { _id: req.params.id } } },
+      { new: true }
+    );
+
+    if (!result) {
+      return res.status(404).json({ message: 'Receipt not found' });
+    }
+
+    res.json({ message: 'Receipt deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting receipt:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// --- Dispatches Routes ---
+
+// Get all dispatches
+router.get('/dispatches/all', auth, async (req, res) => {
+  try {
+    const items = await Inventory.find().select('dispatches workCategory partName');
+    const allDispatches = items.flatMap(item => 
+      (item.dispatches || []).map(d => ({
+        ...d.toObject(),
+        parentId: item._id,
+        workCategory: d.workCategory || item.workCategory,
+        partName: d.partName || item.partName
+      }))
+    );
+    allDispatches.sort((a, b) => new Date(b.date) - new Date(a.date));
+    res.json(allDispatches);
+  } catch (error) {
+    console.error('Error fetching all dispatches:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Create dispatch
+router.post('/dispatches', auth, async (req, res) => {
+  try {
+    const { partName, workCategory } = req.body;
+    
+    const inventory = await Inventory.findOne({ 
+      partName: { $regex: new RegExp(`^${partName}$`, 'i') },
+      workCategory: workCategory 
+    });
+
+    if (!inventory) {
+      return res.status(404).json({ message: 'Inventory item not found for this part and category. Cannot dispatch.' });
+    }
+
+    inventory.dispatches.push(req.body);
+    await inventory.save();
+    res.status(201).json(inventory);
+  } catch (error) {
+    console.error('Error creating dispatch:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update dispatch
+router.put('/dispatches/:id', auth, async (req, res) => {
+  try {
+    const inventory = await Inventory.findOne({ "dispatches._id": req.params.id });
+    if (!inventory) {
+      return res.status(404).json({ message: 'Dispatch not found' });
+    }
+
+    const dispatch = inventory.dispatches.id(req.params.id);
+    if (!dispatch) {
+        return res.status(404).json({ message: 'Dispatch not found' });
+    }
+
+    // Update fields
+    Object.keys(req.body).forEach(key => {
+      if (key !== '_id' && key !== 'parentId') {
+        dispatch[key] = req.body[key];
+      }
+    });
+
+    // Recalculate total value
+    const invoiceVal = parseFloat(dispatch.invoiceValueWithoutGST) || 0;
+    const gstVal = parseFloat(dispatch.gstValue) || 0;
+    const qty = parseFloat(dispatch.quantity) || 0;
+    dispatch.totalValue = (invoiceVal + gstVal) * qty;
+
+    await inventory.save();
+    res.json(dispatch);
+  } catch (error) {
+    console.error('Error updating dispatch:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Delete dispatch
+router.delete('/dispatches/:id', auth, async (req, res) => {
+  try {
+    const result = await Inventory.findOneAndUpdate(
+      { "dispatches._id": req.params.id },
+      { $pull: { dispatches: { _id: req.params.id } } },
+      { new: true }
+    );
+
+    if (!result) {
+      return res.status(404).json({ message: 'Dispatch not found' });
+    }
+
+    res.json({ message: 'Dispatch deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting dispatch:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get inventory item by ID
 router.get('/:id', auth, async (req, res) => {
   try {

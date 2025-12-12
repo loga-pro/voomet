@@ -316,6 +316,22 @@ export const productionAPI = {
   getByStatus: (status) => api.get(`/production/status/${status}`),
 };
 
+// Receipts API
+export const receiptsAPI = {
+  getAll: (filters) => api.get('/inventory/receipts/all', { params: filters }),
+  create: (data) => api.post('/inventory/receipts', data),
+  update: (id, data) => api.put(`/inventory/receipts/${id}`, data),
+  delete: (id) => api.delete(`/inventory/receipts/${id}`),
+};
+
+// Dispatches API
+export const dispatchesAPI = {
+  getAll: (filters) => api.get('/inventory/dispatches/all', { params: filters }),
+  create: (data) => api.post('/inventory/dispatches', data),
+  update: (id, data) => api.put(`/inventory/dispatches/${id}`, data),
+  delete: (id) => api.delete(`/inventory/dispatches/${id}`),
+};
+
 // Purchase Requests API
 export const purchaseRequestsAPI = {
   getAll: (filters) => api.get('/purchase-requests', { params: filters }).then(res => res.data.data || res.data),

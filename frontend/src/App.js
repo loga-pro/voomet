@@ -31,7 +31,10 @@ import InHouseBoqManagement from './pages/InHouseBoqManagement';
 import InhousePartMaster from './pages/InhousePartMaster';
 import InhouseMilestone from './pages/InhouseMilestone';
 import InhouseMilestoneForm from './components/Forms/InhouseMilestoneForm';
-import StockMaster from './pages/StockMaster';
+import ReceiptsPage from './pages/Receipts';
+import DispatchesPage from './pages/Dispatches';
+
+
 
 function App() {
   return (
@@ -123,11 +126,21 @@ function App() {
                 <InventoryManagement />
               </ProtectedRoute>
             } />
-            <Route path="stock-master" element={
-              <ProtectedRoute requiredPermissions={['stock_master']}>
-                <StockMaster />
+            
+            {/* New Receipts Routes */}
+            <Route path="receipts" element={
+              <ProtectedRoute requiredPermissions={['inventory_management']}>
+                <ReceiptsPage />
               </ProtectedRoute>
             } />
+         
+            {/* New Dispatches Routes */}
+            <Route path="dispatches" element={
+              <ProtectedRoute requiredPermissions={['inventory_management']}>
+                <DispatchesPage />
+              </ProtectedRoute>
+            } />
+
             <Route path="quality-management" element={
               <ProtectedRoute requiredPermissions={['quality_management']}>
                 <QualityManagement />
@@ -182,6 +195,9 @@ function App() {
             } />
             <Route path="test-pdf" element={<TestOptimizedPDF />} />
             <Route path="test-comprehensive-pdf" element={<PDFTestPage />} />
+            
+            {/* Catch-all route for undefined paths */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
         </Routes>
       </div>

@@ -84,6 +84,12 @@ const Sidebar = ({ isOpen, onClose }) => {
     'Material Request': (
       <TagIcon className="mr-3 h-4 w-4 flex-shrink-0 text-blue-300" />
     ),
+    'Receipts': (
+      <ClipboardDocumentListIcon className="mr-3 h-4 w-4 flex-shrink-0 text-blue-300" />
+    ),
+    'Dispatches': (
+      <TruckIcon className="mr-3 h-4 w-4 flex-shrink-0 text-blue-300" />
+    ),
   };
 
   // Updated menuItems with Production Management System as parent
@@ -173,17 +179,29 @@ const Sidebar = ({ isOpen, onClose }) => {
         },
       ],
     },
-    {
-      name: "Stock Master",
-      path: "/stock-master",
-      icon: CubeIcon,
-      permission: "stock_master",
-    },
+    
     {
       name: "Inventory Management",
-      path: "/inventory-management",
       icon: TruckIcon,
       permission: "inventory_management",
+      hasDropdown: true,
+      children: [
+        {
+          name: "Inventory List",
+          path: "/inventory-management",
+          permission: "inventory_management",
+        },
+        {
+          name: "Receipts",
+          path: "/receipts",
+          permission: "receipts",
+        },
+        {
+          name: "Dispatches",
+          path: "/dispatches",
+          permission: "dispatches",
+        }
+      ],
     },
     {
       name: "Quality Management",

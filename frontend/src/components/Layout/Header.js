@@ -36,7 +36,8 @@ const Header = ({ onMenuClick }) => {
       '/production-management': 'Production Entry System',
       '/reports': 'Report',
       '/inhouse-part-master': 'Inhouse Part Master',
-      '/stock-master': 'Stock Master'
+      '/receipts': 'Receipts',
+      '/dispatches': 'Dispatches',
     };
     
     // Check for milestone-tracking with ID

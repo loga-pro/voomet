@@ -8,6 +8,7 @@ const InventorySummaryTable = ({
   dispatches = [],
   onRowCategoryChange,
   onRowVendorChange,
+  onSave,
   readOnly = false
 }) => {
   // Helper function to calculate stock values for a specific work category and part name
@@ -24,36 +25,47 @@ const InventorySummaryTable = ({
     
     // Separate regular receipts (buy) from returns
     const regularReceipts = matchingReceipts.filter(r => r.receiptCategory !== 'return');
-    const returns = matchingReceipts.filter(r => r.receiptCategory === 'return');
+    const receiptReturns = matchingReceipts.filter(r => r.receiptCategory === 'return');
+    
+    // Separate regular dispatches from returns (returns from customer)
+    const regularDispatches = matchingDispatches.filter(d => d.dispatchCategory !== 'return');
+    const dispatchReturns = matchingDispatches.filter(d => d.dispatchCategory === 'return');
     
     // Calculate totals for regular receipts only (excluding returns)
     const regularReceiptsTotal = regularReceipts.reduce((sum, r) => sum + (r.totalValue || 0), 0);
     const regularReceiptsQty = regularReceipts.reduce((sum, r) => sum + (r.quantity || 0), 0);
     
-    // Calculate dispatch totals
-    const dispatchesTotal = matchingDispatches.reduce((sum, d) => sum + (d.totalValue || 0), 0);
-    const dispatchesQty = matchingDispatches.reduce((sum, d) => sum + (d.quantity || 0), 0);
+    // Calculate regular dispatch totals (excluding returns)
+    const regularDispatchesTotal = regularDispatches.reduce((sum, d) => sum + (d.totalValue || 0), 0);
+    const regularDispatchesQty = regularDispatches.reduce((sum, d) => sum + (d.quantity || 0), 0);
     
-    // Calculate return totals (separate from factory stock)
-    const returnsTotal = returns.reduce((sum, r) => sum + (r.totalValue || 0), 0);
-    const returnsQty = returns.reduce((sum, r) => sum + (r.quantity || 0), 0);
+    // Calculate return totals from both receipts and dispatches
+    const receiptReturnsTotal = receiptReturns.reduce((sum, r) => sum + (r.totalValue || 0), 0);
+    const receiptReturnsQty = receiptReturns.reduce((sum, r) => sum + (r.quantity || 0), 0);
+    
+    const dispatchReturnsTotal = dispatchReturns.reduce((sum, d) => sum + (d.totalValue || 0), 0);
+    const dispatchReturnsQty = dispatchReturns.reduce((sum, d) => sum + (d.quantity || 0), 0);
+    
+    // Total returns (from both receipts and dispatches)
+    const totalReturnsQty = receiptReturnsQty + dispatchReturnsQty;
+    const totalReturnsValue = receiptReturnsTotal + dispatchReturnsTotal;
     
     return {
-      // Stock at Factory: Only regular receipts minus dispatches (NO returns)
-      stockAtFactory: Math.max(0, regularReceiptsQty - dispatchesQty),
-      stockValueAtFactory: regularReceiptsTotal - dispatchesTotal,
+      // Stock at Factory: Regular receipts minus regular dispatches (NO returns)
+      stockAtFactory: Math.max(0, regularReceiptsQty - regularDispatchesQty),
+      stockValueAtFactory: regularReceiptsTotal - regularDispatchesTotal,
       
-      // Stock sent to customer
-      stockSentToCustomer: dispatchesQty,
-      stockValueSentToCustomer: dispatchesTotal,
+      // Stock sent to customer (only regular dispatches, not returns)
+      stockSentToCustomer: regularDispatchesQty,
+      stockValueSentToCustomer: regularDispatchesTotal,
       
-      // Returns tracked separately
-      stockReturnFromCustomer: returnsQty,
-      stockValueReturnFromCustomer: returnsTotal,
+      // Returns from customer (from both receipt returns and dispatch returns)
+      stockReturnFromCustomer: totalReturnsQty,
+      stockValueReturnFromCustomer: totalReturnsValue,
       
-      // Total stock: Factory stock + Returns (kept separate)
-      totalStock: Math.max(0, regularReceiptsQty - dispatchesQty) + returnsQty,
-      totalStockValue: (regularReceiptsTotal - dispatchesTotal) + returnsTotal
+      // Total stock: Factory stock + Returns
+      totalStock: Math.max(0, regularReceiptsQty - regularDispatchesQty) + totalReturnsQty,
+      totalStockValue: (regularReceiptsTotal - regularDispatchesTotal) + totalReturnsValue
     };
   };
 
@@ -104,6 +116,11 @@ const InventorySummaryTable = ({
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
               Total Stock value
             </th>
+            {!readOnly && (
+              <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 uppercase border border-gray-300">
+                Actions
+              </th>
+            )}
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
@@ -127,7 +144,7 @@ const InventorySummaryTable = ({
                     className="w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   >
                     <option value="In house">In house</option>
-                    <option value="Bought-out">Bought-out</option>
+                    <option value="Outsourced">Outsourced</option>
                   </select>
                 )}
               </td>
@@ -245,6 +262,16 @@ const InventorySummaryTable = ({
                   return `₹${stock.totalStockValue?.toFixed(2) || '0.00'}`;
                 })()}
               </td>
+              {!readOnly && (
+                <td className="px-4 py-3 text-center border border-gray-300">
+                  <button
+                    onClick={() => onSave(row)}
+                    className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                  >
+                    Save
+                  </button>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
