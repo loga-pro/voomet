@@ -87,18 +87,30 @@ const StockMaster = () => {
         
         // 4. Create Master Row Data
         const derivedRows = Array.from(combinations.values()).map((combo, index) => {
-          // Find if we have any saved preference for this combo
-          // We prioritize preferences that have actual values
-          const pref = savedPreferences.find(p => 
-            p.workCategory === combo.workCategory && p.partName === combo.partName
+          // Find existing inventory item for this combination
+          const existingItem = items.find(i => 
+             i.workCategory === combo.workCategory && i.partName === combo.partName
           );
+          
+          let category = 'In house';
+          let vendorNames = [];
+          let reOrderLevel = 0;
+
+          if (existingItem) {
+             reOrderLevel = existingItem.reOrderLevel || 0;
+             if (existingItem.rowData && existingItem.rowData.length > 0) {
+                category = existingItem.rowData[0].category || category;
+                vendorNames = existingItem.rowData[0].vendorNames || vendorNames;
+             }
+          }
           
           return {
             id: index + 1,
             workCategory: combo.workCategory,
             partName: combo.partName,
-            category: pref?.category || 'In house',
-            vendorNames: pref?.vendorNames || []
+            category: category,
+            vendorNames: vendorNames,
+            reOrderLevel: reOrderLevel
           };
         });
         

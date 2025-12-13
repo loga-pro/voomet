@@ -75,6 +75,7 @@ app.use('/api/purchase-requests', require('./routes/purchaseRequests'));
 app.use('/api/receipts', require('./routes/receipts'));
 app.use('/api/dispatches', require('./routes/dispatches'));
 
+app.use('/api/miscellaneous-expenditures', require('./routes/miscellaneousExpenditures'));
 // Static file serving for uploads
 app.use('/uploads', (req, res, next) => {
   res.header('Cache-Control', 'public, max-age=3600');

@@ -1004,7 +1004,7 @@ const InhouseMilestoneForm = ({ viewMode = false, milestone: milestoneProp, onSu
             <div
               className="table-container overflow-auto"
               style={{
-                maxHeight: '500px'
+                maxHeight: '300px'
               }}
             >
               <table className="min-w-[1000px] w-full divide-y divide-gray-200 table-fixed">

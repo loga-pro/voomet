@@ -2,6 +2,20 @@ import React, { useState, useEffect } from 'react';
 import FloatingInput from './FloatingInput';
 import { FaEye, FaTrash, FaEdit } from 'react-icons/fa';
 
+const formatDateForInput = (dateValue) => {
+  if (!dateValue) return '';
+  try {
+    const date = new Date(dateValue);
+    if (isNaN(date.getTime())) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  } catch {
+    return '';
+  }
+};
+
 const ReceiptForm = ({
   receiptData,
   onSubmit,
@@ -16,13 +30,14 @@ const ReceiptForm = ({
 }) => {
   const initialData = receiptData || {};
   const [formData, setFormData] = useState({
-    date: initialData.date || '',
+    date: formatDateForInput(initialData.date),
     receiptCategory: initialData.receiptCategory || 'buy',
     workCategory: initialData.workCategory || '',
     partName: initialData.partName || '',
-    vendorName: initialData.vendorName || '',
+    category: initialData.category || 'In house',
+    vendorNames: initialData.vendorNames || (initialData.vendorName ? [initialData.vendorName] : []),
     invoiceNo: initialData.invoiceNo || '',
-    invoiceDate: initialData.invoiceDate || '',
+    invoiceDate: formatDateForInput(initialData.invoiceDate),
     invoiceValueWithoutGST: initialData.invoiceValueWithoutGST || '',
     gstValue: initialData.gstValue || '',
     quantity: initialData.quantity || '',
@@ -60,6 +75,38 @@ const ReceiptForm = ({
       }
     }
   }, [formData.partName, parts]);
+
+  // Clear part name when work category changes
+  useEffect(() => {
+    if (formData.workCategory && formData.partName) {
+      const selectedPart = parts.find(p => p.partName === formData.partName);
+      if (selectedPart && selectedPart.scopeOfWork !== formData.workCategory) {
+        setFormData(prev => ({
+          ...prev,
+          partName: ''
+        }));
+      }
+    }
+  }, [formData.workCategory]);
+
+  const handleVendorChange = (vendorName) => {
+    setFormData(prev => {
+      const currentVendors = prev.vendorNames || [];
+      const isSelected = currentVendors.includes(vendorName);
+      
+      let newVendors;
+      if (isSelected) {
+        newVendors = currentVendors.filter(v => v !== vendorName);
+      } else {
+        newVendors = [...currentVendors, vendorName];
+      }
+      
+      return {
+        ...prev,
+        vendorNames: newVendors
+      };
+    });
+  };
 
   const handleInputChange = (e) => {
     const { name, value, type, files } = e.target;
@@ -141,19 +188,7 @@ const ReceiptForm = ({
     }
   };
 
-  const formatDateForInput = (dateValue) => {
-    if (!dateValue) return '';
-    try {
-      const date = new Date(dateValue);
-      if (isNaN(date.getTime())) return '';
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    } catch {
-      return '';
-    }
-  };
+
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -189,7 +224,10 @@ const ReceiptForm = ({
           value={formData.workCategory}
           onChange={handleInputChange}
           type="select"
-          options={workCategories.map(cat => ({ value: cat, label: cat }))}
+          options={workCategories.map(cat => ({ 
+            value: cat, 
+            label: cat.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+          }))}
         />
         
         <FloatingInput
@@ -198,18 +236,57 @@ const ReceiptForm = ({
           value={formData.partName}
           onChange={handleInputChange}
           type="select"
-          options={parts.map(p => ({ value: p.partName, label: p.partName }))}
+          options={parts
+            .filter(p => !formData.workCategory || p.scopeOfWork === formData.workCategory)
+            .map(p => ({ value: p.partName, label: p.partName }))}
           required
         />
         
         <FloatingInput
-          label="Vendor Name"
-          name="vendorName"
-          value={formData.vendorName}
+          label="Category"
+          name="category"
+          value={formData.category}
           onChange={handleInputChange}
           type="select"
-          options={vendors.map(v => ({ value: v.vendorName, label: v.vendorName }))}
+          options={[
+            { value: 'In house', label: 'In house' },
+            { value: 'Bought-out', label: 'Bought-out' }
+          ]}
         />
+
+        <div className="relative">
+          <label className="text-xs text-gray-500 absolute -top-2 left-2 bg-white px-1 z-10">
+            Vendor Names
+          </label>
+          <details className="w-full group">
+            <summary className="w-full h-[42px] px-3 py-2 border border-gray-300 rounded-md bg-white cursor-pointer flex items-center justify-between list-none">
+               <span className="truncate block text-sm text-gray-900">
+                 {formData.vendorNames && formData.vendorNames.length > 0
+                    ? formData.vendorNames.join(', ')
+                    : <span className="text-gray-400">Select vendors...</span>
+                  }
+               </span>
+               <span className="text-gray-400 text-xs">▼</span>
+            </summary>
+            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+               {vendors && vendors.length > 0 ? (
+                 vendors.map((vendor) => (
+                   <label key={vendor._id} className="flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.vendorNames?.includes(vendor.vendorName)}
+                        onChange={() => handleVendorChange(vendor.vendorName)}
+                        className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-900">{vendor.vendorName}</span>
+                   </label>
+                 ))
+               ) : (
+                 <div className="px-3 py-2 text-sm text-gray-500">No vendors available</div>
+               )}
+            </div>
+          </details>
+        </div>
         
         {formData.receiptCategory === 'buy' && (
           <>

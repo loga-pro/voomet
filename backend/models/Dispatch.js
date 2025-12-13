@@ -5,25 +5,25 @@ const dispatchSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
-  dispatchCategory: {
-    type: String,
-    enum: ['dispatch', 'return'],
-    default: 'dispatch'
-  },
   workCategory: {
     type: String,
-    maxlength: 30
+    required: true
   },
   partName: {
     type: String,
     required: true
   },
+  dispatchCategory: {
+    type: String,
+    enum: ['dispatch', 'return', 'reject'],
+    default: 'dispatch'
+  },
   customerName: {
-    type: String
+    type: String,
+    required: true
   },
   invoiceNo: {
-    type: String,
-    maxlength: 30
+    type: String
   },
   invoiceDate: {
     type: Date
@@ -38,34 +38,27 @@ const dispatchSchema = new mongoose.Schema({
   },
   quantity: {
     type: Number,
-    required: true,
-    min: 0,
-    max: 9999
+    required: true
   },
   unit: {
-    type: String
+    type: String,
+    default: ''
   },
   upload: {
-    type: String // Base64 encoded file or file path
+    type: String
   },
   reasonForRejection: {
-    type: String,
-    maxlength: 30
+    type: String
   },
   totalValue: {
     type: Number,
     default: 0
-  },
-  status: {
-    type: String,
-    enum: ['active', 'completed', 'cancelled', 'pending'],
-    default: 'active'
   }
 }, {
   timestamps: true
 });
 
-// Calculate total value before saving
+// Pre-save middleware to calculate total value
 dispatchSchema.pre('save', function(next) {
   if (this.invoiceValueWithoutGST && this.gstValue && this.quantity) {
     this.totalValue = (parseFloat(this.invoiceValueWithoutGST) + parseFloat(this.gstValue)) * parseFloat(this.quantity);

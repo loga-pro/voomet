@@ -39,6 +39,7 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
     "reports",
     "receipts",
     "dispatches",
+    "miscellaneous_expenditure"
   ];
 
   const roleOptions = [

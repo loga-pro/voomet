@@ -111,14 +111,17 @@ router.get('/:id', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
   try {
     // Clean arrays (backend-side guard)
+    // Clean arrays (backend-side guard)
     const projectExpenditures = cleanProjectExpenditures(req.body.projectExpenditures || []);
     const logisticExpenditures = cleanLogisticExpenditures(req.body.logisticExpenditures || []);
+    const miscellaneousExpenditures = req.body.miscellaneousExpenditures || [];
 
     const quotedPrice = toNumber(req.body.quotedPrice);
     const negotiatedPrice = toNumber(req.body.negotiatedPrice);
 
     const amountSpent = (projectExpenditures.reduce((s, x) => s + (x.totalPrice || 0), 0)
-      + logisticExpenditures.reduce((s, x) => s + (x.totalPrice || 0), 0));
+      + logisticExpenditures.reduce((s, x) => s + (x.totalPrice || 0), 0)
+      + miscellaneousExpenditures.reduce((s, x) => s + (toNumber(x.amount) || 0), 0));
 
     const netProfitLoss = negotiatedPrice - amountSpent;
 
@@ -134,6 +137,7 @@ router.post('/', auth, async (req, res) => {
       overallBusinessImpact: req.body.overallBusinessImpact || 'Medium',
       projectExpenditures,
       logisticExpenditures,
+      miscellaneousExpenditures,
       createdBy: req.user.id
     };
 
@@ -160,11 +164,15 @@ router.put('/:id', auth, async (req, res) => {
     const projectExpenditures = cleanProjectExpenditures(req.body.projectExpenditures || []);
     const logisticExpenditures = cleanLogisticExpenditures(req.body.logisticExpenditures || []);
 
+    const miscellaneousExpenditures = req.body.miscellaneousExpenditures || [];
+
     const quotedPrice = toNumber(req.body.quotedPrice);
     const negotiatedPrice = toNumber(req.body.negotiatedPrice);
 
+    // Calculate initial amountSpent (hook will also recalculate)
     const amountSpent = (projectExpenditures.reduce((s, x) => s + (x.totalPrice || 0), 0)
-      + logisticExpenditures.reduce((s, x) => s + (x.totalPrice || 0), 0));
+      + logisticExpenditures.reduce((s, x) => s + (x.totalPrice || 0), 0)
+      + miscellaneousExpenditures.reduce((s, x) => s + (toNumber(x.amount) || 0), 0));
 
     const netProfitLoss = negotiatedPrice - amountSpent;
 
@@ -179,7 +187,8 @@ router.put('/:id', auth, async (req, res) => {
       netProfitLoss,
       overallBusinessImpact: req.body.overallBusinessImpact || 'Medium',
       projectExpenditures,
-      logisticExpenditures
+      logisticExpenditures,
+      miscellaneousExpenditures
     };
 
     const updatedBudget = await ProjectBudget.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true })
@@ -305,48 +314,5 @@ router.get('/export/csv', auth, async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
-// Create project budget
-router.post('/', auth, async (req, res) => {
-  try {
-    console.log('Received project budget data:', req.body);
-    
-    // Validate required fields
-    const requiredFields = ['financialYear', 'projectName', 'customerName', 'siteLocation', 'quotedPrice', 'negotiatedPrice'];
-    const missingFields = requiredFields.filter(field => !req.body[field]);
-    
-    if (missingFields.length > 0) {
-      return res.status(400).json({ 
-        message: `Missing required fields: ${missingFields.join(', ')}`,
-        missingFields 
-      });
-    }
 
-    const budgetData = {
-      ...req.body,
-      createdBy: req.user.id
-    };
-
-    // Calculate amount spent from expenditures
-    const projectExpendituresTotal = budgetData.projectExpenditures?.reduce((sum, item) => sum + (parseFloat(item.totalPrice) || 0), 0) || 0;
-    const logisticExpendituresTotal = budgetData.logisticExpenditures?.reduce((sum, item) => sum + (parseFloat(item.totalPrice) || 0), 0) || 0;
-    budgetData.amountSpent = projectExpendituresTotal + logisticExpendituresTotal;
-
-    // Calculate net profit/loss
-    budgetData.netProfitLoss = (parseFloat(budgetData.negotiatedPrice) || 0) - budgetData.amountSpent;
-
-    console.log('Processed budget data:', budgetData);
-
-    const budget = new ProjectBudget(budgetData);
-    await budget.save();
-    
-    const populatedBudget = await ProjectBudget.findById(budget._id).populate('createdBy', 'name email');
-    res.status(201).json(populatedBudget);
-  } catch (error) {
-    console.error('Error creating project budget:', error);
-    res.status(400).json({ 
-      message: error.message,
-      details: error.errors 
-    });
-  }
-});
 module.exports = router;

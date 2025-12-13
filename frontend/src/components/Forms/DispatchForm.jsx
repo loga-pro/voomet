@@ -60,6 +60,29 @@ const DispatchForm = ({
     }
   }, [formData.partName, parts]);
 
+  // Clear part name when work category changes
+  useEffect(() => {
+    if (formData.workCategory && formData.partName) {
+      const selectedPart = parts.find(p => p.partName === formData.partName);
+      if (selectedPart && selectedPart.scopeOfWork !== formData.workCategory) {
+        setFormData(prev => ({
+          ...prev,
+          partName: ''
+        }));
+      }
+    }
+  }, [formData.workCategory]);
+
+  // Clear reason for rejection when dispatch category changes to dispatch
+  useEffect(() => {
+    if (formData.dispatchCategory === 'dispatch' && formData.reasonForRejection) {
+      setFormData(prev => ({
+        ...prev,
+        reasonForRejection: ''
+      }));
+    }
+  }, [formData.dispatchCategory, formData.reasonForRejection]);
+
   const handleInputChange = (e) => {
     const { name, value, type, files } = e.target;
     
@@ -178,7 +201,8 @@ const DispatchForm = ({
           type="select"
           options={[
             { value: 'dispatch', label: 'Dispatch' },
-            { value: 'return', label: 'Return' }
+            { value: 'return', label: 'Return' },
+            { value: 'reject', label: 'Reject' }
           ]}
         />
         
@@ -188,7 +212,10 @@ const DispatchForm = ({
           value={formData.workCategory}
           onChange={handleInputChange}
           type="select"
-          options={workCategories.map(cat => ({ value: cat, label: cat }))}
+          options={workCategories.map(cat => ({ 
+            value: cat, 
+            label: cat.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+          }))}
         />
         
         <FloatingInput
@@ -197,7 +224,9 @@ const DispatchForm = ({
           value={formData.partName}
           onChange={handleInputChange}
           type="select"
-          options={parts.map(p => ({ value: p.partName, label: p.partName }))}
+          options={parts
+            .filter(p => !formData.workCategory || p.scopeOfWork === formData.workCategory)
+            .map(p => ({ value: p.partName, label: p.partName }))}
           required
         />
         
@@ -240,17 +269,19 @@ const DispatchForm = ({
           accept=".pdf,.jpg,.jpeg,.png"
         />
         
-        <div className="md:col-span-2">
-          <FloatingInput
-            label="Reason for Rejection/Return"
-            name="reasonForRejection"
-            value={formData.reasonForRejection}
-            onChange={handleInputChange}
-            type="textarea"
-            rows={3}
-            maxLength={30}
-          />
-        </div>
+        {(formData.dispatchCategory === 'return' || formData.dispatchCategory === 'reject') && (
+          <div className="md:col-span-2">
+            <FloatingInput
+              label="Reason for Rejection/Return"
+              name="reasonForRejection"
+              value={formData.reasonForRejection}
+              onChange={handleInputChange}
+              type="textarea"
+              rows={3}
+              maxLength={30}
+            />
+          </div>
+        )}
       </div>
       
       <div className="flex gap-2 pt-4 border-t border-gray-200">

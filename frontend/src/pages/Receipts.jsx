@@ -91,7 +91,7 @@ const Receipts = () => {
       // Extract unique values for dropdowns
       const categories = [...new Set(receiptsData.map(r => r.receiptCategory))].filter(Boolean);
       const partNames = [...new Set(receiptsData.map(r => r.partName))].filter(Boolean);
-      const vendorNames = [...new Set(receiptsData.map(r => r.vendorName))].filter(Boolean);
+      const vendorNames = [...new Set(receiptsData.flatMap(r => r.vendorNames || (r.vendorName ? [r.vendorName] : [])))].filter(Boolean);
       
       // Get work categories from parts' scopeOfWork field
       const workCategories = [...new Set(partsData.map(p => p.scopeOfWork))].filter(Boolean);
@@ -130,6 +130,7 @@ const Receipts = () => {
 
     if (filters.vendorName) {
       filtered = filtered.filter(receipt => 
+        (receipt.vendorNames && receipt.vendorNames.includes(filters.vendorName)) ||
         receipt.vendorName === filters.vendorName
       );
     }
@@ -146,7 +147,7 @@ const Receipts = () => {
       filtered = filtered.filter(receipt => {
         const invoiceNo = receipt.invoiceNo?.toString().toLowerCase() || '';
         const partName = receipt.partName?.toString().toLowerCase() || '';
-        const vendorName = receipt.vendorName?.toString().toLowerCase() || '';
+        const vendorName = (receipt.vendorNames?.join(' ') || receipt.vendorName || '').toLowerCase();
         const workCategory = receipt.workCategory?.toString().toLowerCase() || '';
         const reasonForReturn = receipt.reasonForReturn?.toString().toLowerCase() || '';
         
@@ -222,7 +223,7 @@ const Receipts = () => {
       receipt.receiptCategory?.toUpperCase() || '',
       receipt.workCategory || '',
       receipt.partName || '',
-      receipt.vendorName || '',
+      receipt.vendorNames?.join(', ') || receipt.vendorName || '',
       receipt.invoiceNo || '',
       formatDate(receipt.invoiceDate),
       receipt.quantity || '0',
@@ -530,7 +531,9 @@ const Receipts = () => {
                             <div className="text-xs text-gray-500">{receipt.workCategory}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{receipt.vendorName}</div>
+                            <div className="text-sm text-gray-900">
+                              {receipt.vendorNames?.join(', ') || receipt.vendorName || '-'}
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
@@ -620,7 +623,7 @@ const Receipts = () => {
                         </div>
                         <h3 className="text-sm font-medium text-gray-900 truncate">{receipt.partName}</h3>
                         <p className="text-xs text-gray-500 truncate">
-                          {receipt.vendorName} • {formatDate(receipt.date)}
+                          {receipt.vendorNames?.join(', ') || receipt.vendorName || '-'} • {formatDate(receipt.date)}
                         </p>
                       </div>
                       <div className="flex space-x-2 ml-2">

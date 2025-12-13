@@ -89,11 +89,10 @@ const SpecificProjectReport = ({ project }) => {
     ];
 
   // Use real project phases based on stage and milestone data
-  const phases = project.milestoneData?.milestones?.map(m => m.name) ||
-    (project.stage?.includes('PLANNING') ? ['Planning', 'Design', 'Execution', 'Completion'] :
-      project.stage?.includes('PROGRESS') ? ['Planning', 'Design', 'Execution', 'Completion'] :
-        project.stage?.includes('COMPLETED') ? ['Planning', 'Design', 'Execution', 'Completion'] :
-          ['Phase 1', 'Phase 2', 'Phase 3', 'Phase 4']);
+  // Use real project phases based on stage and milestone data
+  const milestoneNames = project.milestoneData?.milestones?.map(m => m.name);
+  const phases = (milestoneNames && milestoneNames.length > 0) ? milestoneNames :
+    ['Planning', 'Design', 'Execution', 'Completion'];
 
   // Determine current phase based on stage and completion rate
   const currentPhaseIndex = project.stage?.includes('PLANNING') ? 0 :
@@ -511,9 +510,16 @@ const Reports = () => {
     return comprehensiveProjectData.filter(item => item.projectName === selectedProject);
   };
 
-  const getFilteredInventoryData = () => {
+  // Helper for comparisons - only filters by scope, ignores time period
+  const getScopeFilteredInventoryData = () => {
     if (!selectedScopeOfWork) return inventoryData;
     return inventoryData.filter(item => item.scopeOfWork === selectedScopeOfWork);
+  };
+
+  const getFilteredInventoryData = () => {
+    // Return all data filtered by scope, ignoring time period for the main list/stats
+    // to ensure the "Current Stock" view is always complete.
+    return getScopeFilteredInventoryData();
   };
 
   const getFilteredQualityData = () => {
@@ -839,14 +845,14 @@ const Reports = () => {
     const currentPeriod = getDateRangeForPeriod(selectedTimePeriod);
     const previousPeriod = getDateRangeForPeriod(selectedTimePeriod === 'thisYear' ? 'lastYear' : 'last3Months');
 
-    const currentValue = getFilteredInventoryData()
+    const currentValue = getScopeFilteredInventoryData()
       .filter(item => {
         const itemDate = new Date(item.createdAt || item.updatedAt || Date.now());
         return itemDate >= currentPeriod.start && itemDate <= currentPeriod.end;
       })
       .reduce((sum, item) => sum + ((item.partPrice || 0) * (item.cumulativeQuantityAtVoomet || 0)), 0);
 
-    const previousValue = getFilteredInventoryData()
+    const previousValue = getScopeFilteredInventoryData()
       .filter(item => {
         const itemDate = new Date(item.createdAt || item.updatedAt || Date.now());
         return itemDate >= previousPeriod.start && itemDate <= previousPeriod.end;

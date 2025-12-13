@@ -18,8 +18,14 @@ const receiptSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  vendorName: {
-    type: String
+  vendorNames: {
+    type: [String],
+    default: []
+  },
+  category: {
+    type: String,
+    enum: ['In house', 'Bought-out'],
+    default: 'In house'
   },
   invoiceNo: {
     type: String,

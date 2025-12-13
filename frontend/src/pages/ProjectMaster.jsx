@@ -383,7 +383,7 @@ const ProjectMaster = () => {
                     value={searchTerm}
                     onChange={(e) => handleSearchChange(e.target.value)}
                     className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="Search projects, customers, stages, values..."
+                    placeholder="Search projects, Clients, stages, values..."
                   />
                   {searchTerm && (
                     <button
@@ -461,7 +461,7 @@ const ProjectMaster = () => {
                     }
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
                   >
-                    <option value="">All Customers</option>
+                    <option value="">All Clients </option>
                     {uniqueCustomers.map((customer) => (
                       <option key={customer} value={customer}>
                         {customer}

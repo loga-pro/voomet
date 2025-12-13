@@ -192,7 +192,7 @@ router.post('/users', auth, async (req, res) => {
       'customer_master', 'project_master', 'vendor_master', 'customer_boq', 'inhouse_boq',
       'milestone_management', 'inhouse_milestone', 'inventory_management', 'quality_management', 
       'payment_master', 'project_budget', 'logistic_expenditure', 'project_expenditure', 'purchase_request', 
-      'production_management', 'reports', 'inhouse_partmaster', 'boq_management'
+      'production_management', 'reports', 'inhouse_partmaster', 'boq_management', 'miscellaneous_expenditure'
     ];
     
     // Filter permissions to only include valid ones
@@ -271,7 +271,7 @@ router.put('/users/:id', auth, async (req, res) => {
         'customer_master', 'project_master', 'vendor_master', 'customer_boq', 'inhouse_boq',
         'milestone_management', 'inhouse_milestone', 'inventory_management', 'quality_management', 
         'payment_master', 'project_budget', 'logistic_expenditure', 'project_expenditure', 'purchase_request',
-        'production_management', 'reports', 'inhouse_partmaster', 'boq_management'
+        'production_management', 'reports', 'inhouse_partmaster', 'boq_management', 'miscellaneous_expenditure'
       ];
       
       // Filter out invalid permissions and ensure it's an array

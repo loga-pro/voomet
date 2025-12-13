@@ -22,6 +22,16 @@ const logisticExpenditureSchema = new mongoose.Schema({
   totalPrice: { type: Number, required: true }
 }, { _id: false });
 
+// Embedded schema for miscellaneous expenditures within budget
+const miscellaneousExpenditureSchema = new mongoose.Schema({
+  date: { type: Date, required: true },
+  category: { type: String, required: true },
+  description: { type: String, required: true },
+  amount: { type: Number, required: true },
+  paymentMethod: { type: String, required: true },
+  expenditureRef: { type: mongoose.Schema.Types.ObjectId, ref: 'MiscellaneousExpenditure' }
+}, { _id: false });
+
 const projectBudgetSchema = new mongoose.Schema({
   financialYear: { type: String, required: true },
   projectName: { type: String, required: true },
@@ -34,6 +44,7 @@ const projectBudgetSchema = new mongoose.Schema({
   overallBusinessImpact: { type: String, enum: ['High', 'Medium', 'Low'], default: 'Medium' },
   projectExpenditures: { type: [projectExpenditureSchema], default: [] },
   logisticExpenditures: { type: [logisticExpenditureSchema], default: [] },
+  miscellaneousExpenditures: { type: [miscellaneousExpenditureSchema], default: [] },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });
 
@@ -48,8 +59,12 @@ projectBudgetSchema.pre('save', function(next) {
     const logisticTotal = (this.logisticExpenditures || [])
       .reduce((sum, item) => sum + (parseFloat(item.totalPrice) || 0), 0);
     
+    // Calculate total from miscellaneous expenditures
+    const miscellaneousTotal = (this.miscellaneousExpenditures || [])
+      .reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+    
     // Update amountSpent
-    this.amountSpent = projectTotal + logisticTotal;
+    this.amountSpent = projectTotal + logisticTotal + miscellaneousTotal;
     
     // Calculate net profit/loss only if there is actual spending
     // If amountSpent is 0, netProfitLoss should also be 0
@@ -58,6 +73,18 @@ projectBudgetSchema.pre('save', function(next) {
     } else {
       this.netProfitLoss = 0;
     }
+
+    // Calculate overallBusinessImpact based on netProfitLoss
+    if (this.amountSpent === 0) {
+      this.overallBusinessImpact = 'Medium';
+    } else if (this.netProfitLoss > 0) {
+      this.overallBusinessImpact = 'Low'; // Profit
+    } else if (this.netProfitLoss < 0) {
+      this.overallBusinessImpact = 'High'; // Loss
+    } else {
+      this.overallBusinessImpact = 'Medium'; // Break-even
+    }
+
   } catch (err) {
     console.error('Error calculating budget totals:', err);
   }
@@ -70,9 +97,10 @@ projectBudgetSchema.pre('findOneAndUpdate', function(next) {
     const update = this.getUpdate();
     
     // Check if we have expenditures in the update
-    if (update.projectExpenditures || update.logisticExpenditures || update.$set) {
+    if (update.projectExpenditures || update.logisticExpenditures || update.miscellaneousExpenditures || update.$set) {
       const projectExpenditures = update.projectExpenditures || update.$set?.projectExpenditures || [];
       const logisticExpenditures = update.logisticExpenditures || update.$set?.logisticExpenditures || [];
+      const miscellaneousExpenditures = update.miscellaneousExpenditures || update.$set?.miscellaneousExpenditures || [];
       const negotiatedPrice = update.negotiatedPrice || update.$set?.negotiatedPrice;
       
       // Calculate totals
@@ -80,29 +108,55 @@ projectBudgetSchema.pre('findOneAndUpdate', function(next) {
         .reduce((sum, item) => sum + (parseFloat(item.totalPrice) || 0), 0);
       const logisticTotal = (logisticExpenditures || [])
         .reduce((sum, item) => sum + (parseFloat(item.totalPrice) || 0), 0);
+      const miscellaneousTotal = (miscellaneousExpenditures || [])
+        .reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
       
-      const amountSpent = projectTotal + logisticTotal;
+      const amountSpent = projectTotal + logisticTotal + miscellaneousTotal;
+      let netProfitLoss = 0;
       
       // Set the calculated values in the update
       if (update.$set) {
         update.$set.amountSpent = amountSpent;
         if (negotiatedPrice !== undefined) {
-          // Only calculate netProfitLoss if there is actual spending
           if (amountSpent > 0) {
-            update.$set.netProfitLoss = negotiatedPrice - amountSpent;
+            netProfitLoss = negotiatedPrice - amountSpent;
+            update.$set.netProfitLoss = netProfitLoss;
           } else {
             update.$set.netProfitLoss = 0;
           }
         }
+        
+        // Calculate Business Impact
+        if (amountSpent === 0) {
+          update.$set.overallBusinessImpact = 'Medium';
+        } else if (netProfitLoss > 0) {
+          update.$set.overallBusinessImpact = 'Low';
+        } else if (netProfitLoss < 0) {
+          update.$set.overallBusinessImpact = 'High';
+        } else {
+          update.$set.overallBusinessImpact = 'Medium';
+        }
+
       } else {
         update.amountSpent = amountSpent;
         if (negotiatedPrice !== undefined) {
-          // Only calculate netProfitLoss if there is actual spending
           if (amountSpent > 0) {
-            update.netProfitLoss = negotiatedPrice - amountSpent;
+            netProfitLoss = negotiatedPrice - amountSpent;
+            update.netProfitLoss = netProfitLoss;
           } else {
             update.netProfitLoss = 0;
           }
+        }
+
+        // Calculate Business Impact
+        if (amountSpent === 0) {
+          update.overallBusinessImpact = 'Medium';
+        } else if (netProfitLoss > 0) {
+          update.overallBusinessImpact = 'Low';
+        } else if (netProfitLoss < 0) {
+          update.overallBusinessImpact = 'High';
+        } else {
+          update.overallBusinessImpact = 'Medium';
         }
       }
     }

@@ -1,5 +1,7 @@
 const express = require('express');
 const Inventory = require('../models/Inventory');
+const Receipt = require('../models/Receipt');
+const Dispatch = require('../models/Dispatch');
 const auth = require('../middleware/auth');
 const dailyEmailScheduler = require('../services/dailyEmailScheduler');
 const dailyReportAggregator = require('../services/dailyReportAggregator');
@@ -38,16 +40,7 @@ router.get('/', auth, async (req, res) => {
 // Get all receipts
 router.get('/receipts/all', auth, async (req, res) => {
   try {
-    const items = await Inventory.find().select('receipts workCategory partName');
-    const allReceipts = items.flatMap(item => 
-      (item.receipts || []).map(r => ({
-        ...r.toObject(),
-        parentId: item._id,
-        workCategory: r.workCategory || item.workCategory,
-        partName: r.partName || item.partName
-      }))
-    );
-    allReceipts.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const allReceipts = await Receipt.find().sort({ date: -1 });
     res.json(allReceipts);
   } catch (error) {
     console.error('Error fetching all receipts:', error);
@@ -58,11 +51,21 @@ router.get('/receipts/all', auth, async (req, res) => {
 // Create receipt
 router.post('/receipts', auth, async (req, res) => {
   try {
+    console.log('Creating receipt with data:', req.body);
+    
     const { partName, workCategory } = req.body;
     if (!partName || !workCategory) {
       return res.status(400).json({ message: 'Part Name and Work Category are required' });
     }
 
+    // Create the receipt in the Receipt collection
+    console.log('Step 1: Creating receipt document');
+    const receipt = new Receipt(req.body);
+    await receipt.save();
+    console.log('Receipt saved with ID:', receipt._id);
+
+    // Find or create inventory item
+    console.log('Step 2: Finding inventory item');
     let inventory = await Inventory.findOne({ 
       partName: { $regex: new RegExp(`^${partName}$`, 'i') },
       workCategory: workCategory 
@@ -70,52 +73,60 @@ router.post('/receipts', auth, async (req, res) => {
 
     if (!inventory) {
       // Create new inventory item if not exists
+      console.log('Step 3: Creating new inventory item');
       inventory = new Inventory({
         partName,
         workCategory,
         customerVendorName: req.body.vendorName || 'New Vendor',
-        receipts: [req.body],
+        receipts: [receipt._id],
         dispatches: []
       });
     } else {
-      inventory.receipts.push(req.body);
+      // Add receipt reference to existing inventory
+      console.log('Step 3: Adding receipt to existing inventory');
+      inventory.receipts.push(receipt._id);
     }
 
     await inventory.save();
-    res.status(201).json(inventory);
+    console.log('Inventory saved with ID:', inventory._id);
+    
+    // Recalculate inventory summary
+    console.log('Step 4: Recalculating inventory summary');
+    await Inventory.calculateSummary(inventory._id);
+    console.log('Summary calculated successfully');
+    
+    res.status(201).json(receipt);
   } catch (error) {
     console.error('Error creating receipt:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      message: 'Server error',
+      error: error.message,
+      details: error.stack 
+    });
   }
 });
 
 // Update receipt
 router.put('/receipts/:id', auth, async (req, res) => {
   try {
-    const inventory = await Inventory.findOne({ "receipts._id": req.params.id });
-    if (!inventory) {
+    // Update the receipt in the Receipt collection
+    const receipt = await Receipt.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    if (!receipt) {
       return res.status(404).json({ message: 'Receipt not found' });
     }
 
-    const receipt = inventory.receipts.id(req.params.id);
-    if (!receipt) {
-        return res.status(404).json({ message: 'Receipt not found' });
+    // Find inventory that contains this receipt and recalculate summary
+    const inventory = await Inventory.findOne({ receipts: req.params.id });
+    if (inventory) {
+      await Inventory.calculateSummary(inventory._id);
     }
 
-    // Update fields
-    Object.keys(req.body).forEach(key => {
-      if (key !== '_id' && key !== 'parentId') {
-        receipt[key] = req.body[key];
-      }
-    });
-
-    // Recalculate total value
-    const invoiceVal = parseFloat(receipt.invoiceValueWithoutGST) || 0;
-    const gstVal = parseFloat(receipt.gstValue) || 0;
-    const qty = parseFloat(receipt.quantity) || 0;
-    receipt.totalValue = (invoiceVal + gstVal) * qty;
-
-    await inventory.save();
     res.json(receipt);
   } catch (error) {
     console.error('Error updating receipt:', error);
@@ -126,14 +137,23 @@ router.put('/receipts/:id', auth, async (req, res) => {
 // Delete receipt
 router.delete('/receipts/:id', auth, async (req, res) => {
   try {
-    const result = await Inventory.findOneAndUpdate(
-      { "receipts._id": req.params.id },
-      { $pull: { receipts: { _id: req.params.id } } },
-      { new: true }
-    );
+    // Find inventory that contains this receipt
+    const inventory = await Inventory.findOne({ receipts: req.params.id });
+    
+    // Delete the receipt from the Receipt collection
+    const receipt = await Receipt.findByIdAndDelete(req.params.id);
 
-    if (!result) {
+    if (!receipt) {
       return res.status(404).json({ message: 'Receipt not found' });
+    }
+
+    // Remove receipt reference from inventory
+    if (inventory) {
+      inventory.receipts = inventory.receipts.filter(r => r.toString() !== req.params.id);
+      await inventory.save();
+      
+      // Recalculate inventory summary
+      await Inventory.calculateSummary(inventory._id);
     }
 
     res.json({ message: 'Receipt deleted successfully' });
@@ -148,16 +168,7 @@ router.delete('/receipts/:id', auth, async (req, res) => {
 // Get all dispatches
 router.get('/dispatches/all', auth, async (req, res) => {
   try {
-    const items = await Inventory.find().select('dispatches workCategory partName');
-    const allDispatches = items.flatMap(item => 
-      (item.dispatches || []).map(d => ({
-        ...d.toObject(),
-        parentId: item._id,
-        workCategory: d.workCategory || item.workCategory,
-        partName: d.partName || item.partName
-      }))
-    );
-    allDispatches.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const allDispatches = await Dispatch.find().sort({ date: -1 });
     res.json(allDispatches);
   } catch (error) {
     console.error('Error fetching all dispatches:', error);
@@ -168,53 +179,73 @@ router.get('/dispatches/all', auth, async (req, res) => {
 // Create dispatch
 router.post('/dispatches', auth, async (req, res) => {
   try {
+    console.log('Creating dispatch with data:', req.body);
+    
     const { partName, workCategory } = req.body;
     
+    // Create the dispatch in the Dispatch collection
+    console.log('Step 1: Creating dispatch document');
+    const dispatch = new Dispatch(req.body);
+    await dispatch.save();
+    console.log('Dispatch saved with ID:', dispatch._id);
+
+    // Find inventory item
+    console.log('Step 2: Finding inventory item');
     const inventory = await Inventory.findOne({ 
       partName: { $regex: new RegExp(`^${partName}$`, 'i') },
       workCategory: workCategory 
     });
 
     if (!inventory) {
+      // Delete the dispatch if inventory doesn't exist
+      console.log('Step 3: Inventory not found, deleting dispatch');
+      await Dispatch.findByIdAndDelete(dispatch._id);
       return res.status(404).json({ message: 'Inventory item not found for this part and category. Cannot dispatch.' });
     }
 
-    inventory.dispatches.push(req.body);
+    // Add dispatch reference to inventory
+    console.log('Step 3: Adding dispatch to existing inventory');
+    inventory.dispatches.push(dispatch._id);
     await inventory.save();
-    res.status(201).json(inventory);
+    console.log('Inventory saved with ID:', inventory._id);
+    
+    // Recalculate inventory summary
+    console.log('Step 4: Recalculating inventory summary');
+    await Inventory.calculateSummary(inventory._id);
+    console.log('Summary calculated successfully');
+    
+    res.status(201).json(dispatch);
   } catch (error) {
     console.error('Error creating dispatch:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      message: 'Server error',
+      error: error.message,
+      details: error.stack 
+    });
   }
 });
 
 // Update dispatch
 router.put('/dispatches/:id', auth, async (req, res) => {
   try {
-    const inventory = await Inventory.findOne({ "dispatches._id": req.params.id });
-    if (!inventory) {
+    // Update the dispatch in the Dispatch collection
+    const dispatch = await Dispatch.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    if (!dispatch) {
       return res.status(404).json({ message: 'Dispatch not found' });
     }
 
-    const dispatch = inventory.dispatches.id(req.params.id);
-    if (!dispatch) {
-        return res.status(404).json({ message: 'Dispatch not found' });
+    // Find inventory that contains this dispatch and recalculate summary
+    const inventory = await Inventory.findOne({ dispatches: req.params.id });
+    if (inventory) {
+      await Inventory.calculateSummary(inventory._id);
     }
 
-    // Update fields
-    Object.keys(req.body).forEach(key => {
-      if (key !== '_id' && key !== 'parentId') {
-        dispatch[key] = req.body[key];
-      }
-    });
-
-    // Recalculate total value
-    const invoiceVal = parseFloat(dispatch.invoiceValueWithoutGST) || 0;
-    const gstVal = parseFloat(dispatch.gstValue) || 0;
-    const qty = parseFloat(dispatch.quantity) || 0;
-    dispatch.totalValue = (invoiceVal + gstVal) * qty;
-
-    await inventory.save();
     res.json(dispatch);
   } catch (error) {
     console.error('Error updating dispatch:', error);
@@ -225,14 +256,23 @@ router.put('/dispatches/:id', auth, async (req, res) => {
 // Delete dispatch
 router.delete('/dispatches/:id', auth, async (req, res) => {
   try {
-    const result = await Inventory.findOneAndUpdate(
-      { "dispatches._id": req.params.id },
-      { $pull: { dispatches: { _id: req.params.id } } },
-      { new: true }
-    );
+    // Find inventory that contains this dispatch
+    const inventory = await Inventory.findOne({ dispatches: req.params.id });
+    
+    // Delete the dispatch from the Dispatch collection
+    const dispatch = await Dispatch.findByIdAndDelete(req.params.id);
 
-    if (!result) {
+    if (!dispatch) {
       return res.status(404).json({ message: 'Dispatch not found' });
+    }
+
+    // Remove dispatch reference from inventory
+    if (inventory) {
+      inventory.dispatches = inventory.dispatches.filter(d => d.toString() !== req.params.id);
+      await inventory.save();
+      
+      // Recalculate inventory summary
+      await Inventory.calculateSummary(inventory._id);
     }
 
     res.json({ message: 'Dispatch deleted successfully' });
@@ -245,7 +285,9 @@ router.delete('/dispatches/:id', auth, async (req, res) => {
 // Get inventory item by ID
 router.get('/:id', auth, async (req, res) => {
   try {
-    const inventoryItem = await Inventory.findById(req.params.id);
+    const inventoryItem = await Inventory.findById(req.params.id)
+      .populate('receipts')
+      .populate('dispatches');
     if (!inventoryItem) {
       return res.status(404).json({ message: 'Inventory item not found' });
     }
@@ -270,111 +312,52 @@ router.post('/', auth, async (req, res) => {
       });
     }
 
-    // Ensure receipts is an array
-    if (!Array.isArray(req.body.receipts)) {
-      req.body.receipts = [];
-    }
-
-    // Ensure dispatches is an array
-    if (!Array.isArray(req.body.dispatches)) {
-      req.body.dispatches = [];
-    }
+    // Ensure receipts and dispatches are arrays
+    const receiptsData = Array.isArray(req.body.receipts) ? req.body.receipts : [];
+    const dispatchesData = Array.isArray(req.body.dispatches) ? req.body.dispatches : [];
 
     // Ensure remarks is a string
     req.body.remarks = typeof req.body.remarks === 'string' ? req.body.remarks.trim() : '';
 
-    // Process receipts - preserve invoiceValueWithoutGST and gstValue
-    if (req.body.receipts && req.body.receipts.length > 0) {
-      req.body.receipts = req.body.receipts.map(receipt => {
-        const quantity = parseFloat(receipt.quantity);
-        const invoiceValueWithoutGST = parseFloat(receipt.invoiceValueWithoutGST);
-        const gstValue = parseFloat(receipt.gstValue);
-        const date = receipt.date ? new Date(receipt.date) : new Date();
-        const invoiceDate = receipt.invoiceDate ? new Date(receipt.invoiceDate) : null;
-        
-        const validDate = isNaN(date.getTime()) ? new Date() : date;
-        const validInvoiceDate = invoiceDate && !isNaN(invoiceDate.getTime()) ? invoiceDate : null;
-        const validInvoiceValue = isNaN(invoiceValueWithoutGST) || invoiceValueWithoutGST < 0 ? 0 : invoiceValueWithoutGST;
-        const validGstValue = isNaN(gstValue) || gstValue < 0 ? 0 : gstValue;
-        const validQuantity = isNaN(quantity) || quantity < 0 ? 0 : quantity;
-        const validUnit = receipt.unit && ['nos', 'meter', 'sq-feet', 'pcs', 'kg', 'liters'].includes(receipt.unit) 
-          ? receipt.unit 
-          : 'nos';
-        
-        // Calculate total value: (invoiceValue + GST) * quantity
-        const totalValue = (validInvoiceValue + validGstValue) * validQuantity;
-        
-        return {
-          date: validDate,
-          workCategory: receipt.workCategory || '',
-          partName: (receipt.partName || '').trim(),
-          receiptCategory: receipt.receiptCategory || 'buy',
-          vendorName: receipt.vendorName || receipt.customerVendorName || '',
-          invoiceNo: receipt.invoiceNo || '',
-          invoiceDate: validInvoiceDate,
-          invoiceValueWithoutGST: validInvoiceValue,
-          gstValue: validGstValue,
-          quantity: validQuantity,
-          unit: validUnit,
-          upload: receipt.upload || '',
-          reasonForReturn: receipt.reasonForReturn || '',
-          totalValue: totalValue
-        };
-      }).filter(receipt => 
-        receipt.partName && 
-        receipt.partName.trim() !== '' && 
-        receipt.quantity > 0
-      );
+    // Create receipts in Receipt collection
+    const receiptIds = [];
+    if (receiptsData.length > 0) {
+      for (const receiptData of receiptsData) {
+        // Validate and process receipt data
+        if (receiptData.partName && receiptData.partName.trim() !== '' && receiptData.quantity > 0) {
+          const receipt = new Receipt(receiptData);
+          await receipt.save();
+          receiptIds.push(receipt._id);
+        }
+      }
     }
 
-    // Process dispatches - preserve invoiceValueWithoutGST and gstValue
-    if (req.body.dispatches && req.body.dispatches.length > 0) {
-      req.body.dispatches = req.body.dispatches.map(dispatch => {
-        const quantity = parseFloat(dispatch.quantity);
-        const invoiceValueWithoutGST = parseFloat(dispatch.invoiceValueWithoutGST);
-        const gstValue = parseFloat(dispatch.gstValue);
-        const date = dispatch.date ? new Date(dispatch.date) : new Date();
-        const invoiceDate = dispatch.invoiceDate ? new Date(dispatch.invoiceDate) : null;
-        
-        const validDate = isNaN(date.getTime()) ? new Date() : date;
-        const validInvoiceDate = invoiceDate && !isNaN(invoiceDate.getTime()) ? invoiceDate : null;
-        const validInvoiceValue = isNaN(invoiceValueWithoutGST) || invoiceValueWithoutGST < 0 ? 0 : invoiceValueWithoutGST;
-        const validGstValue = isNaN(gstValue) || gstValue < 0 ? 0 : gstValue;
-        const validQuantity = isNaN(quantity) || quantity < 0 ? 0 : quantity;
-        const validUnit = dispatch.unit && ['nos', 'meter', 'sq-feet', 'pcs', 'kg', 'liters'].includes(dispatch.unit) 
-          ? dispatch.unit 
-          : 'nos';
-        
-        // Calculate total value: (invoiceValue + GST) * quantity
-        const totalValue = (validInvoiceValue + validGstValue) * validQuantity;
-        
-        return {
-          date: validDate,
-          workCategory: dispatch.workCategory || '',
-          partName: (dispatch.partName || '').trim(),
-          dispatchCategory: dispatch.dispatchCategory || 'dispatch',
-          customerName: dispatch.customerName || dispatch.customerVendorName || '',
-          invoiceNo: dispatch.invoiceNo || '',
-          invoiceDate: validInvoiceDate,
-          invoiceValueWithoutGST: validInvoiceValue,
-          gstValue: validGstValue,
-          quantity: validQuantity,
-          unit: validUnit,
-          upload: dispatch.upload || '',
-          reasonForRejection: dispatch.reasonForRejection || '',
-          totalValue: totalValue
-        };
-      }).filter(dispatch => 
-        dispatch.partName && 
-        dispatch.partName.trim() !== '' && 
-        dispatch.quantity > 0
-      );
+    // Create dispatches in Dispatch collection
+    const dispatchIds = [];
+    if (dispatchesData.length > 0) {
+      for (const dispatchData of dispatchesData) {
+        // Validate and process dispatch data
+        if (dispatchData.partName && dispatchData.partName.trim() !== '' && dispatchData.quantity > 0) {
+          const dispatch = new Dispatch(dispatchData);
+          await dispatch.save();
+          dispatchIds.push(dispatch._id);
+        }
+      }
     }
 
-    // Log the processed data before saving
-    console.log('Processed data before save:', JSON.stringify(req.body, null, 2));
-    
-    const inventoryItem = new Inventory(req.body);
+    // Create inventory with references
+    const inventoryData = {
+      customerVendorName: req.body.customerVendorName,
+      workCategory: req.body.workCategory,
+      partName: req.body.partName,
+      reOrderLevel: req.body.reOrderLevel || 0,
+      receipts: receiptIds,
+      dispatches: dispatchIds,
+      rowData: req.body.rowData || [],
+      remarks: req.body.remarks
+    };
+
+    const inventoryItem = new Inventory(inventoryData);
     
     // Validate before saving
     const validationError = inventoryItem.validateSync();
@@ -392,8 +375,17 @@ router.post('/', auth, async (req, res) => {
     if (!savedItem) {
       return res.status(400).json({ message: 'Failed to save inventory item' });
     }
+    
+    // Calculate summary values
+    await Inventory.calculateSummary(savedItem._id);
+    
+    // Fetch the updated inventory with populated receipts and dispatches
+    const populatedItem = await Inventory.findById(savedItem._id)
+      .populate('receipts')
+      .populate('dispatches');
+    
     console.log('Inventory item saved successfully:', savedItem._id);
-    res.status(201).json(savedItem);
+    res.status(201).json(populatedItem);
   } catch (error) {
     console.error('Error saving inventory item:', error);
     console.error('Error name:', error.name);
@@ -437,108 +429,37 @@ router.put('/:id', auth, async (req, res) => {
       });
     }
 
-    // Ensure arrays exist
-    req.body.receipts = Array.isArray(req.body.receipts) ? req.body.receipts : [];
-    req.body.dispatches = Array.isArray(req.body.dispatches) ? req.body.dispatches : [];
-
-    // Process receipts - preserve invoiceValueWithoutGST and gstValue
-    if (req.body.receipts && req.body.receipts.length > 0) {
-      req.body.receipts = req.body.receipts.map(receipt => {
-        const quantity = parseFloat(receipt.quantity);
-        const invoiceValueWithoutGST = parseFloat(receipt.invoiceValueWithoutGST);
-        const gstValue = parseFloat(receipt.gstValue);
-        const date = receipt.date ? new Date(receipt.date) : new Date();
-        const invoiceDate = receipt.invoiceDate ? new Date(receipt.invoiceDate) : null;
-        
-        const validDate = isNaN(date.getTime()) ? new Date() : date;
-        const validInvoiceDate = invoiceDate && !isNaN(invoiceDate.getTime()) ? invoiceDate : null;
-        const validInvoiceValue = isNaN(invoiceValueWithoutGST) || invoiceValueWithoutGST < 0 ? 0 : invoiceValueWithoutGST;
-        const validGstValue = isNaN(gstValue) || gstValue < 0 ? 0 : gstValue;
-        const validQuantity = isNaN(quantity) || quantity < 0 ? 0 : quantity;
-        const validUnit = receipt.unit && ['nos', 'meter', 'sq-feet', 'pcs', 'kg', 'liters'].includes(receipt.unit) 
-          ? receipt.unit 
-          : 'nos';
-        
-        // Calculate total value: (invoiceValue + GST) * quantity
-        const totalValue = (validInvoiceValue + validGstValue) * validQuantity;
-        
-        return {
-          date: validDate,
-          workCategory: receipt.workCategory || '',
-          partName: (receipt.partName || '').trim(),
-          receiptCategory: receipt.receiptCategory || 'buy',
-          vendorName: receipt.vendorName || receipt.customerVendorName || '',
-          invoiceNo: receipt.invoiceNo || '',
-          invoiceDate: validInvoiceDate,
-          invoiceValueWithoutGST: validInvoiceValue,
-          gstValue: validGstValue,
-          quantity: validQuantity,
-          unit: validUnit,
-          upload: receipt.upload || '',
-          reasonForReturn: receipt.reasonForReturn || '',
-          totalValue: totalValue
-        };
-      }).filter(receipt => 
-        receipt.partName && 
-        receipt.partName.trim() !== '' && 
-        receipt.quantity > 0
-      );
-    }
-
-    // Process dispatches - preserve invoiceValueWithoutGST and gstValue
-    if (req.body.dispatches && req.body.dispatches.length > 0) {
-      req.body.dispatches = req.body.dispatches.map(dispatch => {
-        const quantity = parseFloat(dispatch.quantity);
-        const invoiceValueWithoutGST = parseFloat(dispatch.invoiceValueWithoutGST);
-        const gstValue = parseFloat(dispatch.gstValue);
-        const date = dispatch.date ? new Date(dispatch.date) : new Date();
-        const invoiceDate = dispatch.invoiceDate ? new Date(dispatch.invoiceDate) : null;
-        
-        const validDate = isNaN(date.getTime()) ? new Date() : date;
-        const validInvoiceDate = invoiceDate && !isNaN(invoiceDate.getTime()) ? invoiceDate : null;
-        const validInvoiceValue = isNaN(invoiceValueWithoutGST) || invoiceValueWithoutGST < 0 ? 0 : invoiceValueWithoutGST;
-        const validGstValue = isNaN(gstValue) || gstValue < 0 ? 0 : gstValue;
-        const validQuantity = isNaN(quantity) || quantity < 0 ? 0 : quantity;
-        const validUnit = dispatch.unit && ['nos', 'meter', 'sq-feet', 'pcs', 'kg', 'liters'].includes(dispatch.unit) 
-          ? dispatch.unit 
-          : 'nos';
-        
-        // Calculate total value: (invoiceValue + GST) * quantity
-        const totalValue = (validInvoiceValue + validGstValue) * validQuantity;
-        
-        return {
-          date: validDate,
-          workCategory: dispatch.workCategory || '',
-          partName: (dispatch.partName || '').trim(),
-          dispatchCategory: dispatch.dispatchCategory || 'dispatch',
-          customerName: dispatch.customerName || dispatch.customerVendorName || '',
-          invoiceNo: dispatch.invoiceNo || '',
-          invoiceDate: validInvoiceDate,
-          invoiceValueWithoutGST: validInvoiceValue,
-          gstValue: validGstValue,
-          quantity: validQuantity,
-          unit: validUnit,
-          upload: dispatch.upload || '',
-          reasonForRejection: dispatch.reasonForRejection || '',
-          totalValue: totalValue
-        };
-      }).filter(dispatch => 
-        dispatch.partName && 
-        dispatch.partName.trim() !== '' && 
-        dispatch.quantity > 0
-      );
-    }
+    // Only update basic inventory fields
+    // Receipts and dispatches should be managed through their dedicated endpoints
+    const updateData = {
+      customerVendorName: req.body.customerVendorName,
+      workCategory: req.body.workCategory,
+      partName: req.body.partName,
+      reOrderLevel: req.body.reOrderLevel,
+      rowData: req.body.rowData,
+      remarks: req.body.remarks
+    };
 
     const inventoryItem = await Inventory.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       { new: true, runValidators: true }
-    );
+    ).populate('receipts').populate('dispatches');
+    
     if (!inventoryItem) {
       return res.status(404).json({ message: 'Inventory item not found' });
     }
+    
+    // Recalculate summary after update
+    await Inventory.calculateSummary(inventoryItem._id);
+    
+    // Fetch updated inventory with populated data
+    const updatedItem = await Inventory.findById(inventoryItem._id)
+      .populate('receipts')
+      .populate('dispatches');
+    
     console.log('Inventory item updated successfully:', inventoryItem._id);
-    res.json(inventoryItem);
+    res.json(updatedItem);
   } catch (error) {
     console.error('Error updating inventory item:', error);
     console.error('Request body:', req.body);

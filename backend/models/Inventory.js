@@ -1,89 +1,6 @@
 // models/Inventory.js
 const mongoose = require('mongoose');
 
-const receiptSchema = new mongoose.Schema({
-  date: {
-    type: Date,
-    required: true
-  },
-  workCategory: String,
-  partName: {
-    type: String,
-    required: true
-  },
-  receiptCategory: {
-    type: String,
-    enum: ['buy', 'return'],
-    default: 'buy'
-  },
-  vendorName: String,
-  invoiceNo: String,
-  invoiceDate: Date,
-  invoiceValueWithoutGST: {
-    type: Number,
-    default: 0
-  },
-  gstValue: {
-    type: Number,
-    default: 0
-  },
-  quantity: {
-    type: Number,
-    required: true
-  },
-  unit: {
-    type: String,
-    default: ''
-  },
-  upload: String,
-  reasonForReturn: String,
-  totalValue: {
-    type: Number,
-    default: 0
-  }
-}, { _id: false });
-
-const dispatchSchema = new mongoose.Schema({
-  date: {
-    type: Date,
-    required: true
-  },
-  workCategory: String,
-  partName: {
-    type: String,
-    required: true
-  },
-  dispatchCategory: {
-    type: String,
-    enum: ['dispatch', 'return']
-  },
-  customerName: String,
-  invoiceNo: String,
-  invoiceDate: Date,
-  invoiceValueWithoutGST: {
-    type: Number,
-    default: 0
-  },
-  gstValue: {
-    type: Number,
-    default: 0
-  },
-  quantity: {
-    type: Number,
-    required: true
-  },
-  unit: {
-    type: String,
-    default: ''
-  },
-  upload: String,
-  reasonForRejection: String,
-  totalValue: {
-    type: Number,
-    default: 0
-  }
-}, { _id: false });
-
 const inventorySchema = new mongoose.Schema({
   customerVendorName: {
     type: String,
@@ -100,9 +17,15 @@ const inventorySchema = new mongoose.Schema({
     default: 0
   },
   
-  // Receipts and Dispatches
-  receipts: [receiptSchema],
-  dispatches: [dispatchSchema],
+  // References to Receipt and Dispatch collections
+  receipts: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Receipt'
+  }],
+  dispatches: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Dispatch'
+  }],
   
   // Calculated summary fields
   stockAtFactory: {
@@ -166,52 +89,28 @@ const inventorySchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Helper function to calculate summary values
-function calculateSummaryValues(doc) {
-  // Separate regular receipts from returns
-  const regularReceipts = doc.receipts.filter(r => r.receiptCategory !== 'return');
-  const returns = doc.receipts.filter(r => r.receiptCategory === 'return');
-  
-  // Calculate totals for regular receipts only
-  const regularReceiptsTotal = regularReceipts.reduce((sum, r) => sum + (r.totalValue || 0), 0);
-  const regularReceiptsQty = regularReceipts.reduce((sum, r) => sum + (r.quantity || 0), 0);
-  
-  // Calculate dispatch totals
-  const dispatchesTotal = doc.dispatches.reduce((sum, d) => sum + (d.totalValue || 0), 0);
-  const dispatchesQty = doc.dispatches.reduce((sum, d) => sum + (d.quantity || 0), 0);
-  
-  // Calculate return totals
-  const returnsTotal = returns.reduce((sum, r) => sum + (r.totalValue || 0), 0);
-  const returnsQty = returns.reduce((sum, r) => sum + (r.quantity || 0), 0);
-  
-  // Stock at Factory: Only regular receipts minus dispatches (NO returns)
-  doc.stockAtFactory = Math.max(0, regularReceiptsQty - dispatchesQty);
-  doc.stockValueAtFactory = regularReceiptsTotal - dispatchesTotal;
-  doc.stockSentToCustomer = dispatchesQty;
-  doc.stockValueSentToCustomer = dispatchesTotal;
-  doc.stockReturnFromCustomer = returnsQty;
-  doc.totalStock = Math.max(0, regularReceiptsQty - dispatchesQty) + returnsQty;
-  doc.totalStockValue = (regularReceiptsTotal - dispatchesTotal) + returnsTotal;
-  doc.inventoryAtFactoryValue = regularReceiptsTotal - dispatchesTotal;
-  doc.inventoryAtCustomerEndValue = dispatchesTotal;
-  doc.inventoryReturnFromCustomerValue = returnsTotal;
-  doc.totalInventoryValue = regularReceiptsTotal + returnsTotal;
-}
-
-// Pre-save middleware to calculate summary values
-inventorySchema.pre('save', function(next) {
-  calculateSummaryValues(this);
-  next();
-});
-
-// Pre-update middleware to calculate summary values for findOneAndUpdate
-inventorySchema.pre('findOneAndUpdate', function(next) {
-  const update = this.getUpdate();
-  
-  // Only calculate if receipts or dispatches are being updated
-  if (update.receipts !== undefined || update.dispatches !== undefined) {
-    const receipts = update.receipts || [];
-    const dispatches = update.dispatches || [];
+// Static method to calculate and update summary values
+// This should be called after receipts and dispatches are populated
+inventorySchema.statics.calculateSummary = async function(inventoryId) {
+  try {
+    console.log('calculateSummary called for inventory:', inventoryId);
+    
+    const Receipt = mongoose.model('Receipt');
+    const Dispatch = mongoose.model('Dispatch');
+    
+    const inventory = await this.findById(inventoryId);
+    if (!inventory) {
+      console.log('Inventory not found:', inventoryId);
+      return null;
+    }
+    
+    console.log('Found inventory with receipts:', inventory.receipts.length, 'dispatches:', inventory.dispatches.length);
+    
+    // Get all receipts and dispatches for this inventory
+    const receipts = await Receipt.find({ _id: { $in: inventory.receipts } });
+    const dispatches = await Dispatch.find({ _id: { $in: inventory.dispatches } });
+    
+    console.log('Fetched receipts:', receipts.length, 'dispatches:', dispatches.length);
     
     // Separate regular receipts from returns
     const regularReceipts = receipts.filter(r => r.receiptCategory !== 'return');
@@ -229,23 +128,69 @@ inventorySchema.pre('findOneAndUpdate', function(next) {
     const returnsTotal = returns.reduce((sum, r) => sum + (r.totalValue || 0), 0);
     const returnsQty = returns.reduce((sum, r) => sum + (r.quantity || 0), 0);
     
-    // Update the calculated fields in the update object
-    this.set({
-      stockAtFactory: Math.max(0, regularReceiptsQty - dispatchesQty),
-      stockValueAtFactory: regularReceiptsTotal - dispatchesTotal,
-      stockSentToCustomer: dispatchesQty,
-      stockValueSentToCustomer: dispatchesTotal,
-      stockReturnFromCustomer: returnsQty,
-      totalStock: Math.max(0, regularReceiptsQty - dispatchesQty) + returnsQty,
-      totalStockValue: (regularReceiptsTotal - dispatchesTotal) + returnsTotal,
-      inventoryAtFactoryValue: regularReceiptsTotal - dispatchesTotal,
-      inventoryAtCustomerEndValue: dispatchesTotal,
-      inventoryReturnFromCustomerValue: returnsTotal,
-      totalInventoryValue: regularReceiptsTotal + returnsTotal
-    });
+    // Update inventory with calculated values
+    inventory.stockAtFactory = Math.max(0, regularReceiptsQty - dispatchesQty);
+    inventory.stockValueAtFactory = regularReceiptsTotal - dispatchesTotal;
+    inventory.stockSentToCustomer = dispatchesQty;
+    inventory.stockValueSentToCustomer = dispatchesTotal;
+    inventory.stockReturnFromCustomer = returnsQty;
+    inventory.totalStock = Math.max(0, regularReceiptsQty - dispatchesQty) + returnsQty;
+    inventory.totalStockValue = (regularReceiptsTotal - dispatchesTotal) + returnsTotal;
+    inventory.inventoryAtFactoryValue = regularReceiptsTotal - dispatchesTotal;
+    inventory.inventoryAtCustomerEndValue = dispatchesTotal;
+    inventory.inventoryReturnFromCustomerValue = returnsTotal;
+    inventory.totalInventoryValue = regularReceiptsTotal + returnsTotal;
+
+    // Update Row Data (Category & Vendors) based on receipts
+    const sortedReceipts = [...receipts].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    let latestCategory = 'In house';
+    let allVendorNames = [];
+
+    if (sortedReceipts.length > 0) {
+        // Use category from most recent receipt
+        latestCategory = sortedReceipts[0].category || 'In house';
+        
+        // Collect all unique vendors from all receipts
+        allVendorNames = [...new Set(receipts.flatMap(r => r.vendorNames || (r.vendorName ? [r.vendorName] : [])))].filter(Boolean);
+    }
+
+    if (!inventory.rowData || inventory.rowData.length === 0) {
+        inventory.rowData = [{
+            id: 1,
+            category: latestCategory,
+            vendorNames: allVendorNames
+        }];
+    } else {
+        inventory.rowData[0].category = latestCategory;
+        inventory.rowData[0].vendorNames = allVendorNames;
+    }
+    inventory.markModified('rowData');
+
+    // Update Re-order Level from Part Master
+    try {
+      const Part = mongoose.model('Part');
+      if (inventory.partName) {
+        const part = await Part.findOne({ 
+          partName: { $regex: new RegExp(`^${inventory.partName}$`, 'i') },
+          scopeOfWork: { $regex: new RegExp(`^${inventory.workCategory}$`, 'i') }
+        });
+        if (part) {
+          inventory.reOrderLevel = part.reorderLevel || 0;
+        }
+      }
+    } catch (err) {
+      console.log('Error fetching Part for reorder level:', err);
+    }
+    
+    console.log('Saving inventory with updated summary values');
+    await inventory.save();
+    console.log('Inventory summary saved successfully');
+    return inventory;
+  } catch (error) {
+    console.error('Error in calculateSummary:', error);
+    console.error('Error stack:', error.stack);
+    throw error;
   }
-  
-  next();
-});
+};
 
 module.exports = mongoose.model('Inventory', inventorySchema);

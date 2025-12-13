@@ -33,7 +33,7 @@ import InhouseMilestone from './pages/InhouseMilestone';
 import InhouseMilestoneForm from './components/Forms/InhouseMilestoneForm';
 import ReceiptsPage from './pages/Receipts';
 import DispatchesPage from './pages/Dispatches';
-
+import MiscellaneousExpenditures from './pages/MiscellaneousExpenditures';
 
 
 function App() {
@@ -170,6 +170,11 @@ function App() {
             <Route path="logistic-expenditures" element={
               <ProtectedRoute requiredPermissions={['logistic_expenditure']}>
                 <LogisticExpenditureManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="miscellaneous-expenditures" element={
+              <ProtectedRoute requiredPermissions={['miscellaneous_expenditure']}>
+                <MiscellaneousExpenditures />
               </ProtectedRoute>
             } />
             <Route path="production-management" element={

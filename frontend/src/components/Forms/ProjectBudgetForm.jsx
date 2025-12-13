@@ -403,17 +403,34 @@ const ProjectBudgetForm = ({ budget, onSubmit, onCancel, showNotification, showE
     const totalAmountSpent = projectExpendituresTotal + logisticExpendituresTotal;
     setFormData(prev => {
       const negotiated = parseFloat(prev.negotiatedPrice) || 0;
+      
+      // If editing an existing budget with miscellaneous expenditures,
+      // preserve the backend-calculated amountSpent (which includes miscellaneous)
+      // Only update if we're creating a new budget or the calculated total is different
+      const currentAmountSpent = parseFloat(prev.amountSpent) || 0;
+      const hasMiscellaneous = budget && budget.miscellaneousExpenditures && budget.miscellaneousExpenditures.length > 0;
+      
+      // Calculate miscellaneous total if available
+      const miscellaneousTotal = hasMiscellaneous
+        ? (budget.miscellaneousExpenditures || []).reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0)
+        : 0;
+      
+      const finalAmountSpent = hasMiscellaneous 
+        ? (totalAmountSpent + miscellaneousTotal).toFixed(2)
+        : totalAmountSpent.toFixed(2);
+      
       // Only calculate netProfitLoss if there is actual spending
-      const netProfitLoss = totalAmountSpent > 0 
-        ? (negotiated - totalAmountSpent).toFixed(2)
+      const netProfitLoss = parseFloat(finalAmountSpent) > 0 
+        ? (negotiated - parseFloat(finalAmountSpent)).toFixed(2)
         : '0.00';
+        
       return {
         ...prev,
-        amountSpent: totalAmountSpent.toFixed(2),
+        amountSpent: finalAmountSpent,
         netProfitLoss: netProfitLoss
       };
     });
-  }, [projectExpendituresTotal, logisticExpendituresTotal]);
+  }, [projectExpendituresTotal, logisticExpendituresTotal, budget]);
 
   // Popup management functions
   const openProjectPopup = () => {
@@ -605,8 +622,15 @@ const ProjectBudgetForm = ({ budget, onSubmit, onCancel, showNotification, showE
 
       // Calculate netProfitLoss - only if there is actual spending
       const negotiatedPrice = parseFloat(formData.negotiatedPrice) || 0;
-      const netProfitLoss = totalAmountSpent > 0 
-        ? negotiatedPrice - totalAmountSpent 
+      
+      // Include miscellaneous expenditures from the original budget in the calculation and submission
+      const miscellaneousExpenditures = (budget && budget.miscellaneousExpenditures) ? budget.miscellaneousExpenditures : [];
+      const miscellaneousTotal = miscellaneousExpenditures.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
+      
+      const realTotalAmountSpent = totalAmountSpent + miscellaneousTotal;
+      
+      const netProfitLoss = realTotalAmountSpent > 0 
+        ? negotiatedPrice - realTotalAmountSpent 
         : 0;
 
       const submitData = {
@@ -616,11 +640,12 @@ const ProjectBudgetForm = ({ budget, onSubmit, onCancel, showNotification, showE
         siteLocation: formData.siteLocation,
         quotedPrice: parseFloat(formData.quotedPrice) || 0,
         negotiatedPrice: negotiatedPrice,
-        amountSpent: totalAmountSpent,
+        amountSpent: realTotalAmountSpent,
         netProfitLoss: netProfitLoss,
-        overallBusinessImpact: totalAmountSpent === 0 ? 'Medium' : (netProfitLoss > 0.01 ? 'Low' : netProfitLoss < -0.01 ? 'High' : 'Medium'),
+        overallBusinessImpact: realTotalAmountSpent === 0 ? 'Medium' : (netProfitLoss > 0.01 ? 'Low' : netProfitLoss < -0.01 ? 'High' : 'Medium'),
         projectExpenditures: projectExpenditures,
-        logisticExpenditures: logisticExpenditures
+        logisticExpenditures: logisticExpenditures,
+        miscellaneousExpenditures: miscellaneousExpenditures // Include this so backend hooks can calculate correctly
       };
 
       await onSubmit(submitData);

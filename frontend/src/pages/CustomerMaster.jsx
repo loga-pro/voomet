@@ -267,7 +267,7 @@ const CustomerMaster = () => {
                     value={searchTerm}
                     onChange={(e) => handleSearchChange(e.target.value)}
                     className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="Search customers, emails, addresses..."
+                    placeholder="Search clients, emails, addresses..."
                   />
                   {searchTerm && (
                     <button
@@ -333,13 +333,13 @@ const CustomerMaster = () => {
             <div className="px-4 py-5 sm:p-6 bg-gray-50 border-b border-gray-200">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Client Name</label>
                   <select
                     value={filters.customerName}
                     onChange={(e) => handleFilterChange('customerName', e.target.value)}
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
                   >
-                    <option value="">All Customers</option>
+                    <option value="">All Clients</option>
                     {uniqueCustomerNames.map(name => (
                       <option key={name} value={name}>{name}</option>
                     ))}

@@ -60,15 +60,79 @@ router.get('/:id', auth, async (req, res) => {
 // Create new receipt
 router.post('/', auth, async (req, res) => {
   try {
+    console.log('Creating receipt with data:', req.body);
+    
     const receiptData = req.body;
+    const { partName, workCategory } = receiptData;
     
     // Calculate total value
     if (receiptData.invoiceValueWithoutGST && receiptData.gstValue && receiptData.quantity) {
       receiptData.totalValue = (parseFloat(receiptData.invoiceValueWithoutGST) + parseFloat(receiptData.gstValue)) * parseFloat(receiptData.quantity);
     }
     
+    console.log('Step 1: Creating receipt document');
     const receipt = new Receipt(receiptData);
     await receipt.save();
+    console.log('Receipt saved with ID:', receipt._id);
+    
+    // If partName and workCategory are provided, link to inventory
+    if (partName && workCategory) {
+      const Inventory = require('../models/Inventory');
+      
+      console.log('Step 2: Finding inventory item');
+      let inventory = await Inventory.findOne({ 
+        partName: { $regex: new RegExp(`^${partName}$`, 'i') },
+        workCategory: workCategory 
+      });
+      
+      if (!inventory) {
+        console.log('Step 3: Creating new inventory item');
+        inventory = new Inventory({
+          partName,
+          workCategory,
+          customerVendorName: (receiptData.vendorNames && receiptData.vendorNames[0]) || 'New Vendor',
+          receipts: [receipt._id],
+          dispatches: [],
+          rowData: [{
+            id: 1,
+            category: receiptData.category || 'In house',
+            vendorNames: receiptData.vendorNames || []
+          }]
+        });
+      } else {
+        console.log('Step 3: Adding receipt to existing inventory');
+        inventory.receipts.push(receipt._id);
+        
+        // Update rowData metadata
+        if (!inventory.rowData || inventory.rowData.length === 0) {
+           inventory.rowData = [{
+             id: 1,
+             category: receiptData.category || 'In house',
+             vendorNames: receiptData.vendorNames || []
+           }];
+        } else {
+           // Update category if provided
+           if (receiptData.category) {
+             inventory.rowData[0].category = receiptData.category;
+           }
+           // Merge vendor names
+           if (receiptData.vendorNames && receiptData.vendorNames.length > 0) {
+             const existingVendors = inventory.rowData[0].vendorNames || [];
+             const newVendors = [...new Set([...existingVendors, ...receiptData.vendorNames])];
+             inventory.rowData[0].vendorNames = newVendors;
+           }
+        }
+      }
+      
+      inventory.markModified('rowData');
+      await inventory.save();
+      console.log('Inventory saved with ID:', inventory._id);
+      
+      // Recalculate inventory summary
+      console.log('Step 4: Recalculating inventory summary');
+      await Inventory.calculateSummary(inventory._id);
+      console.log('Summary calculated successfully');
+    }
     
     res.status(201).json({
       success: true,
@@ -77,6 +141,7 @@ router.post('/', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating receipt:', error);
+    console.error('Error stack:', error.stack);
     res.status(400).json({
       success: false,
       message: 'Error creating receipt',
@@ -108,6 +173,13 @@ router.put('/:id', auth, async (req, res) => {
       });
     }
     
+    // Recalculate inventory summary if receipt is linked to inventory
+    const Inventory = require('../models/Inventory');
+    const inventory = await Inventory.findOne({ receipts: req.params.id });
+    if (inventory) {
+      await Inventory.calculateSummary(inventory._id);
+    }
+    
     res.json({
       success: true,
       message: 'Receipt updated successfully',
@@ -126,6 +198,10 @@ router.put('/:id', auth, async (req, res) => {
 // Delete receipt
 router.delete('/:id', auth, async (req, res) => {
   try {
+    // Find and remove receipt from inventory first
+    const Inventory = require('../models/Inventory');
+    const inventory = await Inventory.findOne({ receipts: req.params.id });
+    
     const receipt = await Receipt.findByIdAndDelete(req.params.id);
     
     if (!receipt) {
@@ -133,6 +209,13 @@ router.delete('/:id', auth, async (req, res) => {
         success: false,
         message: 'Receipt not found'
       });
+    }
+    
+    // Remove receipt reference from inventory and recalculate
+    if (inventory) {
+      inventory.receipts = inventory.receipts.filter(r => r.toString() !== req.params.id);
+      await inventory.save();
+      await Inventory.calculateSummary(inventory._id);
     }
     
     res.json({

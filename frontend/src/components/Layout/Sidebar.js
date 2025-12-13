@@ -248,6 +248,11 @@ const Sidebar = ({ isOpen, onClose }) => {
           path: "/logistic-expenditures",
           permission: "logistic_expenditure",
         },
+        {
+          name: "Miscellaneous Expenditures",
+          path: "/miscellaneous-expenditures",
+          permission: "miscellaneous_expenditure",
+        }
       ],
     },
     {

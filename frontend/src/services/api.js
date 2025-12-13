@@ -346,4 +346,59 @@ export const purchaseRequestsAPI = {
   exportCSV: (filters) => api.post('/purchase-requests/export/csv', { filters }),
 };
 
+// Miscellaneous Expenditures API
+export const miscellaneousExpendituresAPI = {
+  getAll: (filters) => api.get('/miscellaneous-expenditures', { params: filters }),
+  getById: (id) => api.get(`/miscellaneous-expenditures/${id}`),
+  create: (data) => {
+    const formData = new FormData();
+    
+    // Append all fields
+    Object.keys(data).forEach(key => {
+      if (key === 'expenses') {
+        formData.append(key, JSON.stringify(data[key]));
+      } else if (key === 'receipts') {
+        data[key].forEach((file, index) => {
+          formData.append('receipts', file);
+        });
+      } else {
+        formData.append(key, data[key]);
+      }
+    });
+    
+    return api.post('/miscellaneous-expenditures', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  },
+  update: (id, data) => {
+    const formData = new FormData();
+    
+    // Append all fields
+    Object.keys(data).forEach(key => {
+      if (key === 'expenses') {
+        formData.append(key, JSON.stringify(data[key]));
+      } else if (key === 'receipts') {
+        data[key].forEach((file, index) => {
+          formData.append('receipts', file);
+        });
+      } else {
+        formData.append(key, data[key]);
+      }
+    });
+    
+    return api.put(`/miscellaneous-expenditures/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  },
+  delete: (id) => api.delete(`/miscellaneous-expenditures/${id}`),
+  getFinancialYears: () => api.get('/miscellaneous-expenditures/financial-years'),
+  exportCSV: (filters) => api.post('/miscellaneous-expenditures/export/csv', { filters }, {
+    responseType: 'blob'
+  })
+};
+
 export default api;

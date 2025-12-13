@@ -290,21 +290,29 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       return sum + (parseFloat(item.totalPrice || 0));
     }, 0);
 
-    // Apply discount to items total only
+    // Final total without GST is now the fixed Gross Total
+    const finalTotalWithoutGST = itemsTotal;
+
+    // Apply discount
     let discountPercentage = parseFloat(data.discountPercentage || 0);
     if (isNaN(discountPercentage) || discountPercentage < 0) discountPercentage = 0;
     if (discountPercentage > 100) discountPercentage = 100;
 
     const discountAmount = itemsTotal * (discountPercentage / 100);
-    const finalTotalWithoutGST = Math.max(0, itemsTotal - discountAmount);
-
-    // Calculate GST on items total (after discount, before transportation)
-    const gstPercentage = parseFloat(data.gstPercentage || 0);
-    const gstAmount = finalTotalWithoutGST * (gstPercentage / 100);
     
-    // Add transportation charges to final total with GST
+    // Calculate Taxable Value (Items - Discount + Transportation)
+    const netItemsTotal = Math.max(0, itemsTotal - discountAmount);
     const transportationCharges = parseFloat(data.transportationCharges || 0);
-    const totalWithGST = finalTotalWithoutGST + gstAmount + transportationCharges;
+    
+    // Transportation included in GST calculation basis
+    const taxableValue = netItemsTotal + transportationCharges;
+
+    // Calculate GST on Taxable Value
+    const gstPercentage = parseFloat(data.gstPercentage || 0);
+    const gstAmount = taxableValue * (gstPercentage / 100);
+    
+    // Total with GST
+    const totalWithGST = taxableValue + gstAmount;
 
     return {
       items: updatedItems,

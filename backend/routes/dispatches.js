@@ -60,15 +60,45 @@ router.get('/:id', auth, async (req, res) => {
 // Create new dispatch
 router.post('/', auth, async (req, res) => {
   try {
+    console.log('Creating dispatch with data:', req.body);
+    
     const dispatchData = req.body;
+    const { partName, workCategory } = dispatchData;
     
     // Calculate total value
     if (dispatchData.invoiceValueWithoutGST && dispatchData.gstValue && dispatchData.quantity) {
       dispatchData.totalValue = (parseFloat(dispatchData.invoiceValueWithoutGST) + parseFloat(dispatchData.gstValue)) * parseFloat(dispatchData.quantity);
     }
     
+    console.log('Step 1: Creating dispatch document');
     const dispatch = new Dispatch(dispatchData);
     await dispatch.save();
+    console.log('Dispatch saved with ID:', dispatch._id);
+    
+    // If partName and workCategory are provided, link to inventory
+    if (partName && workCategory) {
+      const Inventory = require('../models/Inventory');
+      
+      console.log('Step 2: Finding inventory item');
+      let inventory = await Inventory.findOne({ 
+        partName: { $regex: new RegExp(`^${partName}$`, 'i') },
+        workCategory: workCategory 
+      });
+      
+      if (inventory) {
+        console.log('Step 3: Adding dispatch to existing inventory');
+        inventory.dispatches.push(dispatch._id);
+        await inventory.save();
+        console.log('Inventory saved with ID:', inventory._id);
+        
+        // Recalculate inventory summary
+        console.log('Step 4: Recalculating inventory summary');
+        await Inventory.calculateSummary(inventory._id);
+        console.log('Summary calculated successfully');
+      } else {
+        console.log('Step 3: No matching inventory found, dispatch created standalone');
+      }
+    }
     
     res.status(201).json({
       success: true,
@@ -77,6 +107,7 @@ router.post('/', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating dispatch:', error);
+    console.error('Error stack:', error.stack);
     res.status(400).json({
       success: false,
       message: 'Error creating dispatch',
@@ -108,6 +139,13 @@ router.put('/:id', auth, async (req, res) => {
       });
     }
     
+    // Recalculate inventory summary if dispatch is linked to inventory
+    const Inventory = require('../models/Inventory');
+    const inventory = await Inventory.findOne({ dispatches: req.params.id });
+    if (inventory) {
+      await Inventory.calculateSummary(inventory._id);
+    }
+    
     res.json({
       success: true,
       message: 'Dispatch updated successfully',
@@ -126,6 +164,10 @@ router.put('/:id', auth, async (req, res) => {
 // Delete dispatch
 router.delete('/:id', auth, async (req, res) => {
   try {
+    // Find and remove dispatch from inventory first
+    const Inventory = require('../models/Inventory');
+    const inventory = await Inventory.findOne({ dispatches: req.params.id });
+    
     const dispatch = await Dispatch.findByIdAndDelete(req.params.id);
     
     if (!dispatch) {
@@ -133,6 +175,13 @@ router.delete('/:id', auth, async (req, res) => {
         success: false,
         message: 'Dispatch not found'
       });
+    }
+    
+    // Remove dispatch reference from inventory and recalculate
+    if (inventory) {
+      inventory.dispatches = inventory.dispatches.filter(d => d.toString() !== req.params.id);
+      await inventory.save();
+      await Inventory.calculateSummary(inventory._id);
     }
     
     res.json({
