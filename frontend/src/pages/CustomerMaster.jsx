@@ -627,7 +627,6 @@ const CustomerMaster = () => {
       </Modal>
 
       {/* View Customer Modal */}
-   {/* View Customer Modal */}
 {selectedCustomer && (
   <Modal
     isOpen={!!selectedCustomer}

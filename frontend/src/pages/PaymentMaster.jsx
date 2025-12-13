@@ -47,7 +47,6 @@ const PaymentManagement = () => {
 
   useEffect(() => {
     fetchPayments();
-    fetchCustomers();
   }, []);
 
   useEffect(() => {
@@ -81,20 +80,19 @@ const PaymentManagement = () => {
         total
       });
       setCurrentPage(1); // Reset to first page when new data is fetched
+      
+      // Extract unique customers from saved payment records
+      const uniqueCustomers = [...new Set(list.map(payment => payment.customer))].filter(Boolean);
+      const customerOptions = uniqueCustomers.map(name => ({
+        _id: name,
+        customerName: name
+      }));
+      setCustomers(customerOptions);
     } catch (error) {
       console.error('Error fetching payments:', error);
       showError('Failed to fetch payments');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchCustomers = async () => {
-    try {
-      const response = await customersAPI.getAll();
-      setCustomers(response.data || []);
-    } catch (error) {
-      console.error('Error fetching customers:', error);
     }
   };
 

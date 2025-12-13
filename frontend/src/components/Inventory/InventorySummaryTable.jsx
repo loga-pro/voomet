@@ -79,56 +79,56 @@ const InventorySummaryTable = ({
   };
 
   return (
-    <div className="mt-6 overflow-x-auto">
+    <div className="mt-6 overflow-auto max-h-[600px] border border-gray-200 rounded-lg">
       <table className="min-w-full divide-y divide-gray-200 border border-gray-300">
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+            <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
               S.No
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+            <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
               Work Category
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+            <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
               Part Name
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+            <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
               Category
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+            <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
               Vendor Name
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+            <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
               Re-order level
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+            <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
               Stock at Factory
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+            <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
               Stock value at Factory
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+            <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
               Stock sent to Customer
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+            <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
               Stock value sent to Customer
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+            <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
               Stock return from Customer
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+            <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
               Stock value return from Customer
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+            <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
               Stock Reject
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+            <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
               Stock value Reject
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+            <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
               Total Stock
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300">
+            <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
               Total Stock value
             </th>
           </tr>

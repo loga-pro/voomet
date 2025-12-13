@@ -43,7 +43,6 @@ const VendorPaymentManagement = () => {
 
   useEffect(() => {
     fetchPayments();
-    fetchVendors();
   }, []);
 
   useEffect(() => {
@@ -63,20 +62,19 @@ const VendorPaymentManagement = () => {
       const list = response.payments || response.data || [];
       setPayments(list);
       setFilteredPayments(list);
+      
+      // Extract unique vendors from saved payment records
+      const uniqueVendors = [...new Set(list.map(payment => payment.vendor?.vendorName || payment.vendor))].filter(Boolean);
+      const vendorOptions = uniqueVendors.map(name => ({
+        _id: name,
+        vendorName: name
+      }));
+      setVendors(vendorOptions);
     } catch (error) {
       console.error('Error fetching payments:', error);
       showError('Failed to fetch payments');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchVendors = async () => {
-    try {
-      const response = await vendorsAPI.getAll();
-      setVendors(response.data || []);
-    } catch (error) {
-      console.error('Error fetching vendors:', error);
     }
   };
 

@@ -62,7 +62,6 @@ const ProjectExpenditureManagement = () => {
   // Initialize
   useEffect(() => {
     fetchExpenditures();
-    fetchMasterData();
   }, []);
 
   // Filter when data or filters change
@@ -104,9 +103,27 @@ const ProjectExpenditureManagement = () => {
       setExpenditures(data);
       setFilteredExpenditures(data);
       
-      // Extract unique financial years
+      // Extract unique financial years from saved expenditures
       const years = [...new Set(data.map(exp => exp.financialYear))].filter(Boolean).sort().reverse();
       setFinancialYears(years);
+      
+      // Extract unique customers from saved expenditures
+      const uniqueCustomers = [...new Set(data.map(exp => exp.customerName || exp.customer?.name))].filter(Boolean);
+      const customerOptions = uniqueCustomers.map(name => ({
+        _id: name,
+        name: name,
+        customerName: name
+      }));
+      setCustomers(customerOptions);
+      
+      // Extract unique projects from saved expenditures
+      const uniqueProjects = [...new Set(data.map(exp => exp.projectName || exp.project?.name))].filter(Boolean);
+      const projectOptions = uniqueProjects.map(name => ({
+        _id: name,
+        name: name,
+        projectName: name
+      }));
+      setProjects(projectOptions);
     } catch (error) {
       console.error('Error fetching expenditures:', error);
       showError('Failed to fetch expenditure records');
@@ -114,20 +131,6 @@ const ProjectExpenditureManagement = () => {
       setFilteredExpenditures([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchMasterData = async () => {
-    try {
-      // Fetch customers
-      const customersResponse = await customersAPI.getAll();
-      setCustomers(customersResponse.data || []);
-      
-      // Fetch projects
-      const projectsResponse = await projectsAPI.getAll();
-      setProjects(projectsResponse.data || []);
-    } catch (error) {
-      console.error('Error fetching master data:', error);
     }
   };
 

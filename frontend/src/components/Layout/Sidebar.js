@@ -2,38 +2,35 @@ import React, { useState } from "react";
 import { X, ChevronDown, ChevronRight } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
+// Lucide Icons (Beautiful + Modern)
 import {
-  HomeIcon,
-  UsersIcon,
-  KeyIcon,
-  CubeIcon,
-  BuildingStorefrontIcon,
-  ClipboardDocumentListIcon,
-  ChartBarIcon,
-  CogIcon,
-  TruckIcon,
-  ShieldCheckIcon,
-  CurrencyDollarIcon,
-  DocumentTextIcon,
-  CalculatorIcon,
-  ChartPieIcon,
-  MapPinIcon,
-  CheckCircleIcon,
-  CalendarIcon,
-  DocumentChartBarIcon,
-  BanknotesIcon,
-  BuildingOfficeIcon,
-  ClipboardDocumentCheckIcon,
-  ChartBarSquareIcon,
-  WrenchScrewdriverIcon,
-  TagIcon,
-} from "@heroicons/react/24/outline";
+  LayoutDashboard,
+  Users,
+  Key,
+  ClipboardList,
+  Building2,
+  Package,
+  ShoppingBag,
+  CalendarRange,
+  MapPin,
+  ClipboardCheck,
+  PiggyBank,
+  Calculator,
+  Truck,
+  Hammer,
+  Wrench,
+  FileText,
+  BarChart3,
+  Layers,
+  Tags,
+  Receipt,
+} from "lucide-react";
 
 const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
   const user = JSON.parse(sessionStorage.getItem("user") || "{}");
   const permissions = user.permissions || [];
-  const isAdmin = user.role === 'admin';
+  const isAdmin = user.role === "admin";
   const hasPermission = (perm) => isAdmin || permissions.includes(perm);
   const [openDropdown, setOpenDropdown] = useState(null);
 
@@ -43,122 +40,109 @@ const Sidebar = ({ isOpen, onClose }) => {
     setOpenDropdown(openDropdown === name ? null : name);
   };
 
+  // ::::::::::::::::::::::::::::::::::::::::::
+  //   Better, Cleaner, Modern Lucide Icons
+  // ::::::::::::::::::::::::::::::::::::::::::
+
   const DropdownIcons = {
-    'Plan Creation': (
-      <ClipboardDocumentListIcon className="mr-3 h-4 w-4 flex-shrink-0 text-blue-300" />
+    "Plan Creation": <ClipboardList className="mr-3 h-4 w-4 text-blue-300" />,
+    "Inhouse Milestone": <Building2 className="mr-3 h-4 w-4 text-blue-300" />,
+    "Milestone Tracking": <MapPin className="mr-3 h-4 w-4 text-blue-300" />,
+
+    "Customer Payment": <PiggyBank className="mr-3 h-4 w-4 text-blue-300" />,
+    "Vendor Payment": <PiggyBank className="mr-3 h-4 w-4 text-blue-300" />,
+
+    "Budget Overview": <BarChart3 className="mr-3 h-4 w-4 text-blue-300" />,
+    "Project Expenditures": (
+      <Calculator className="mr-3 h-4 w-4 text-blue-300" />
     ),
-    'Inhouse Milestone': (
-      <BuildingOfficeIcon className="mr-3 h-4 w-4 flex-shrink-0 text-blue-300" />
+    "Logistic Expenditures": <Truck className="mr-3 h-4 w-4 text-blue-300" />,
+
+    "Purchase Requisition": (
+      <ClipboardCheck className="mr-3 h-4 w-4 text-blue-300" />
     ),
-    'Milestone Tracking': (
-      <MapPinIcon className="mr-3 h-4 w-4 flex-shrink-0 text-blue-300" />
+    "Production Entry System": (
+      <Wrench className="mr-3 h-4 w-4 text-blue-300" />
     ),
-    'Customer Payment': (
-      <BanknotesIcon className="mr-3 h-4 w-4 flex-shrink-0 text-blue-300" />
-    ),
-    'Vendor Payment': (
-      <BanknotesIcon className="mr-3 h-4 w-4 flex-shrink-0 text-blue-300" />
-    ),
-    'Budget Overview': (
-      <ChartBarSquareIcon className="mr-3 h-4 w-4 flex-shrink-0 text-blue-300" />
-    ),
-    'Project Expenditures': (
-      <CalculatorIcon className="mr-3 h-4 w-4 flex-shrink-0 text-blue-300" />
-    ),
-    'Logistic Expenditures': (
-      <TruckIcon className="mr-3 h-4 w-4 flex-shrink-0 text-blue-300" />
-    ),
-    // New icons for Production Management System
-    'Purchase Requests': (
-      <ClipboardDocumentCheckIcon className="mr-3 h-4 w-4 flex-shrink-0 text-blue-300" />
-    ),
-    'Production Management': (
-      <WrenchScrewdriverIcon className="mr-3 h-4 w-4 flex-shrink-0 text-blue-300" />
-    ),
-    'Customer BOQ': (
-      <DocumentTextIcon className="mr-3 h-4 w-4 flex-shrink-0 text-blue-300" />
-    ),
-    'In-House BOQ': (
-      <BuildingOfficeIcon className="mr-3 h-4 w-4 flex-shrink-0 text-blue-300" />
-    ),
-    'Material Request': (
-      <TagIcon className="mr-3 h-4 w-4 flex-shrink-0 text-blue-300" />
-    ),
-    'Receipts': (
-      <ClipboardDocumentListIcon className="mr-3 h-4 w-4 flex-shrink-0 text-blue-300" />
-    ),
-    'Dispatches': (
-      <TruckIcon className="mr-3 h-4 w-4 flex-shrink-0 text-blue-300" />
-    ),
+
+    "Customer BOQ": <FileText className="mr-3 h-4 w-4 text-blue-300" />,
+    "In-House BOQ": <Building2 className="mr-3 h-4 w-4 text-blue-300" />,
+    Receipts: <Receipt className="mr-3 h-4 w-4 text-blue-300" />,
+    Dispatches: <Truck className="mr-3 h-4 w-4 text-blue-300" />,
   };
 
-  // Updated menuItems with Production Management System as parent
+  // ::::::::::::::::::::::::::::::::::::::::::
+  //                  MENU
+  // ::::::::::::::::::::::::::::::::::::::::::
+
   const menuItems = [
     {
       name: "Dashboard",
       path: "/dashboard",
-      icon: HomeIcon,
+      icon: LayoutDashboard,
       permission: "dashboard",
     },
     {
       name: "Employee Master",
       path: "/employee-master",
-      icon: UsersIcon,
+      icon: Users,
       permission: "employee_master",
     },
     {
       name: "Employee Access",
       path: "/employee-access",
-      icon: KeyIcon,
+      icon: Key,
       permission: "employee_access",
     },
-     {
+    {
       name: "Customer Master",
       path: "/customer-master",
-      icon: UsersIcon,
+      icon: Users,
       permission: "customer_master",
     },
-     {
+    {
       name: "Project Master",
       path: "/project-master",
-      icon: ClipboardDocumentListIcon,
+      icon: ClipboardList,
       permission: "project_master",
     },
     {
       name: "Vendor Master",
       path: "/vendor-master",
-      icon: BuildingStorefrontIcon,
+      icon: Building2,
       permission: "vendor_master",
     },
     {
       name: "Part Master",
       path: "/part-master",
-      icon: CubeIcon,
+      icon: Package,
       permission: "part_master",
     },
+
+    // :::::::::: BOQ Management ::::::::::
     {
       name: "BOQ Management",
-      // path: "/boq-management",
-      icon: ChartBarIcon,
-      permission: "customer_boq", // Base permission for dropdown visibility
+      icon: Layers,
+      permission: "customer_boq",
       hasDropdown: true,
       children: [
         {
-          name: 'Customer BOQ',
+          name: "Customer BOQ",
           path: "/customer-boq",
-          permission: 'customer_boq',
+          permission: "customer_boq",
         },
         {
-          name: 'In-House BOQ',
+          name: "In-House BOQ",
           path: "/inhouse-boq",
-          permission: 'inhouse_boq',
+          permission: "inhouse_boq",
         },
-
-      ]
+      ],
     },
+
+    // :::::::::: Milestone ::::::::::
     {
       name: "Milestone Management",
-      icon: CalendarIcon,
+      icon: CalendarRange,
       permission: "milestone_management",
       hasDropdown: true,
       children: [
@@ -179,10 +163,11 @@ const Sidebar = ({ isOpen, onClose }) => {
         },
       ],
     },
-    
+
+    // :::::::::: Inventory ::::::::::
     {
       name: "Inventory Management",
-      icon: TruckIcon,
+      icon: ShoppingBag,
       permission: "inventory_management",
       hasDropdown: true,
       children: [
@@ -200,18 +185,21 @@ const Sidebar = ({ isOpen, onClose }) => {
           name: "Dispatches",
           path: "/dispatches",
           permission: "dispatches",
-        }
+        },
       ],
     },
+
     {
       name: "Quality Management",
       path: "/quality-management",
-      icon: ShieldCheckIcon,
+      icon: ClipboardCheck,
       permission: "quality_management",
     },
+
+    // :::::::::: Payment ::::::::::
     {
       name: "Payment Master",
-      icon: CurrencyDollarIcon,
+      icon: PiggyBank,
       permission: "payment_master",
       hasDropdown: true,
       children: [
@@ -227,9 +215,11 @@ const Sidebar = ({ isOpen, onClose }) => {
         },
       ],
     },
+
+    // :::::::::: Budget ::::::::::
     {
       name: "Project Budget Management",
-      icon: CalculatorIcon,
+      icon: Calculator,
       permission: "project_budget",
       hasDropdown: true,
       children: [
@@ -252,12 +242,14 @@ const Sidebar = ({ isOpen, onClose }) => {
           name: "Miscellaneous Expenditures",
           path: "/miscellaneous-expenditures",
           permission: "miscellaneous_expenditure",
-        }
+        },
       ],
     },
+
+    // :::::::::: Production ::::::::::
     {
       name: "Production Management System",
-      icon: WrenchScrewdriverIcon,
+      icon: Hammer,
       permission: "purchase_request",
       hasDropdown: true,
       children: [
@@ -273,36 +265,30 @@ const Sidebar = ({ isOpen, onClose }) => {
         },
       ],
     },
+
     {
       name: "Reports",
       path: "/reports",
-      icon: DocumentTextIcon,
+      icon: FileText,
       permission: "reports",
     },
   ];
 
   const filteredMenuItems = menuItems
-    .map(item => {
+    .map((item) => {
       if (!item.hasDropdown) {
-        // Normal menu — check direct permission
         return hasPermission(item.permission) ? item : null;
       }
 
-      // Dropdown menu — filter its children based on permission
-      const allowedChildren = (item.children || []).filter(child =>
+      const allowedChildren = (item.children || []).filter((child) =>
         hasPermission(child.permission)
       );
 
-      if (allowedChildren.length === 0) {
-        return null; // Hide entire dropdown if no child allowed
-      }
+      if (allowedChildren.length === 0) return null;
 
-      return {
-        ...item,
-        children: allowedChildren, // Return only the allowed children
-      };
+      return { ...item, children: allowedChildren };
     })
-    .filter(Boolean); // Remove nulls
+    .filter(Boolean);
 
   const isItemActive = (item) => {
     if (item.path) return location.pathname === item.path;
@@ -312,6 +298,10 @@ const Sidebar = ({ isOpen, onClose }) => {
   };
 
   const isChildActive = (childPath) => location.pathname === childPath;
+
+  // ::::::::::::::::::::::::::::::::::::::::::
+  //              UI Rendering
+  // ::::::::::::::::::::::::::::::::::::::::::
 
   return (
     <>
@@ -323,17 +313,17 @@ const Sidebar = ({ isOpen, onClose }) => {
       )}
 
       <div
-        className={`
-        fixed inset-y-0 left-0 z-50 w-64 lg:w-56 bg-blue-800 shadow-lg flex flex-col transform transition-transform duration-300
-        lg:relative lg:translate-x-0
-        ${MOBILE_SIDEBAR_MODE === "toggle"
-            ? isOpen
-              ? "translate-x-0"
-              : "-translate-x-full"
-            : ""
-          }
-      `}
+        className={`fixed inset-y-0 left-0 z-50 w-64 lg:w-56 bg-blue-800 shadow-lg flex flex-col transform transition-transform duration-300
+          lg:relative lg:translate-x-0
+          ${
+            MOBILE_SIDEBAR_MODE === "toggle"
+              ? isOpen
+                ? "translate-x-0"
+                : "-translate-x-full"
+              : ""
+          }`}
       >
+        {/* Logo */}
         <div className="flex items-center justify-between p-4 border-b border-blue-700">
           <div className="text-center w-full">
             <img
@@ -351,17 +341,20 @@ const Sidebar = ({ isOpen, onClose }) => {
           </button>
         </div>
 
+        {/* MENU */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {filteredMenuItems.map((item) => (
             <div key={item.name}>
               {item.hasDropdown ? (
                 <>
+                  {/* Dropdown Button */}
                   <button
                     onClick={() => toggleDropdown(item.name)}
-                    className={`w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-lg transition-all ${isItemActive(item)
-                      ? "bg-blue-700 text-white"
-                      : "text-blue-100 hover:bg-blue-700 hover:text-white"
-                      }`}
+                    className={`w-full flex items-center justify-between px-3 py-3 text-sm font-medium rounded-lg transition-all ${
+                      isItemActive(item)
+                        ? "bg-blue-700 text-white"
+                        : "text-blue-100 hover:bg-blue-700 hover:text-white"
+                    }`}
                   >
                     <div className="flex items-center">
                       <item.icon className="mr-3 h-5 w-5" />
@@ -371,18 +364,13 @@ const Sidebar = ({ isOpen, onClose }) => {
                     </div>
 
                     {openDropdown === item.name ? (
-                      <ChevronDown
-                        className={`h-4 w-4 ${isItemActive(item) ? "text-white" : "text-blue-100"
-                          }`}
-                      />
+                      <ChevronDown className="h-4 w-4 text-white" />
                     ) : (
-                      <ChevronRight
-                        className={`h-4 w-4 ${isItemActive(item) ? "text-white" : "text-blue-100"
-                          }`}
-                      />
+                      <ChevronRight className="h-4 w-4 text-blue-100" />
                     )}
                   </button>
 
+                  {/* Dropdown Items */}
                   {openDropdown === item.name && (
                     <div className="ml-4 mt-1 mb-2 space-y-1 bg-blue-900/50 rounded-lg py-2 border-l-2 border-blue-600">
                       {item.children.map((child) => (
@@ -390,13 +378,14 @@ const Sidebar = ({ isOpen, onClose }) => {
                           key={child.path}
                           to={child.path}
                           onClick={onClose}
-                          className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-md mx-1 transition-all ${isChildActive(child.path)
-                            ? "bg-blue-600 text-white border-l-2 border-white"
-                            : "text-blue-100 hover:bg-blue-600 hover:text-white"
-                            }`}
+                          className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-md mx-1 transition-all ${
+                            isChildActive(child.path)
+                              ? "bg-blue-600 text-white border-l-2 border-white"
+                              : "text-blue-100 hover:bg-blue-600 hover:text-white"
+                          }`}
                         >
                           {DropdownIcons[child.name] || (
-                            <CheckCircleIcon className="mr-3 h-4 w-4 flex-shrink-0 text-blue-300" />
+                            <ClipboardCheck className="mr-3 h-4 w-4 text-blue-300" />
                           )}
 
                           <span className="whitespace-normal break-words text-left">
@@ -411,10 +400,11 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <Link
                   to={item.path}
                   onClick={onClose}
-                  className={`flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all ${isItemActive(item)
-                    ? "bg-blue-700 text-white"
-                    : "text-blue-100 hover:bg-blue-700 hover:text-white"
-                    }`}
+                  className={`flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all ${
+                    isItemActive(item)
+                      ? "bg-blue-700 text-white"
+                      : "text-blue-100 hover:bg-blue-700 hover:text-white"
+                  }`}
                 >
                   <item.icon className="mr-3 h-5 w-5" />
                   <span className="whitespace-normal break-words text-left">
@@ -425,6 +415,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             </div>
           ))}
 
+          {/* No Items */}
           {filteredMenuItems.length === 0 && (
             <div className="text-center py-8 text-blue-200 text-sm">
               No menu items available

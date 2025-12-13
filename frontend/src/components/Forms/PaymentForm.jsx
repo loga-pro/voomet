@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Building2, FileText, Plus, Trash2, Wallet } from 'lucide-react';
 import FloatingInput from './FloatingInput';
-import { customersAPI, paymentsAPI, projectsAPI } from '../../services/api';
+import { customersAPI, paymentsAPI, projectsAPI, boqAPI } from '../../services/api';
 
 const PaymentForm = ({ payment, onSubmit, onCancel }) => {
   const [activeTab, setActiveTab] = useState('project');
@@ -67,10 +67,54 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
 
   const fetchCustomers = async () => {
     try {
-      const response = await customersAPI.getAll();
-      setCustomers(response.data || []);
+      // Fetch all BOQ records to get unique customers
+      const boqResponse = await boqAPI.getAll();
+      
+      console.log('BOQ Response:', boqResponse);
+      console.log('BOQ Response data:', boqResponse.data);
+      
+      // Handle different response structures
+      let boqList = [];
+      if (boqResponse.data && boqResponse.data.data) {
+        // Response structure: { data: { data: [...] } }
+        boqList = boqResponse.data.data;
+      } else if (boqResponse.data && Array.isArray(boqResponse.data)) {
+        // Response structure: { data: [...] }
+        boqList = boqResponse.data;
+      } else if (Array.isArray(boqResponse)) {
+        // Direct array response
+        boqList = boqResponse;
+      }
+      
+      console.log('BOQ List:', boqList);
+      console.log('Is BOQ List an array?', Array.isArray(boqList));
+      
+      if (!Array.isArray(boqList)) {
+        console.error('BOQ List is not an array:', typeof boqList, boqList);
+        throw new Error('BOQ data is not in expected format');
+      }
+      
+      // Extract unique customer names from BOQ records
+      const uniqueCustomerNames = [...new Set(boqList.map(boq => boq.customer))].filter(Boolean);
+      
+      console.log('Customers with BOQ records:', uniqueCustomerNames);
+      
+      // Create customer objects for the dropdown
+      const customersWithBOQ = uniqueCustomerNames.map(name => ({
+        _id: name,
+        customerName: name
+      }));
+      
+      setCustomers(customersWithBOQ);
     } catch (error) {
-      console.error('Error fetching customers:', error);
+      console.error('Error fetching customers with BOQ:', error);
+      // Fallback to all customers if BOQ fetch fails
+      try {
+        const response = await customersAPI.getAll();
+        setCustomers(response.data || []);
+      } catch (fallbackError) {
+        console.error('Error fetching all customers:', fallbackError);
+      }
     }
   };
 
@@ -80,15 +124,105 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         setProjects([]);
         return [];
       }
-      const response = await projectsAPI.getAll({ customerName, stage: 'awarded' });
-      const projectsList = response.data || [];
-      setProjects(projectsList);
-      return projectsList;
+      
+      console.log('Fetching projects for customer:', customerName);
+      
+      // Fetch all projects for the customer
+      const projectsResponse = await projectsAPI.getAll({ customerName });
+      const allProjects = projectsResponse.data || [];
+      
+      console.log('All projects for customer:', allProjects);
+      
+      // Fetch BOQ records for this customer to filter projects
+      const boqResponse = await boqAPI.getAll({ customer: customerName });
+      
+      // Handle different response structures for BOQ
+      let boqList = [];
+      if (boqResponse.data && boqResponse.data.data) {
+        boqList = boqResponse.data.data;
+      } else if (boqResponse.data && Array.isArray(boqResponse.data)) {
+        boqList = boqResponse.data;
+      } else if (Array.isArray(boqResponse)) {
+        boqList = boqResponse;
+      }
+      
+      console.log('BOQ records for customer:', boqList);
+      
+      // Extract project names that have BOQ records
+      const projectNamesWithBOQ = boqList.map(boq => boq.projectName).filter(Boolean);
+      
+      console.log('Project names with BOQ:', projectNamesWithBOQ);
+      
+      // Filter projects to only show those with BOQ records
+      const projectsWithBOQ = allProjects.filter(project => 
+        projectNamesWithBOQ.includes(project.projectName)
+      );
+      
+      console.log('Filtered projects with BOQ:', projectsWithBOQ);
+      console.log('Number of projects with BOQ:', projectsWithBOQ.length);
+      
+      setProjects(projectsWithBOQ);
+      return projectsWithBOQ;
     } catch (error) {
       console.error('Error fetching projects:', error);
       setErrors(prev => ({ ...prev, submit: 'Failed to load projects for selected customer' }));
       setProjects([]);
       return [];
+    }
+  };
+
+  const fetchBOQData = async (customerName, projectName, selectedProject) => {
+    try {
+      if (!customerName || !projectName) {
+        console.log('Missing customer or project name for BOQ fetch');
+        return;
+      }
+
+      console.log('Fetching BOQ for customer:', customerName, 'project:', projectName);
+      
+      // Fetch BOQ data filtered by customer and project name
+      const response = await boqAPI.getAll({ customer: customerName });
+      const boqList = response.data || [];
+      
+      console.log('BOQ data received:', boqList);
+
+      // Find the BOQ that matches the project name
+      const projectBOQ = boqList.find(boq => 
+        boq.projectName === projectName || 
+        boq.projectName?.toLowerCase() === projectName?.toLowerCase()
+      );
+
+      console.log('Matching BOQ found:', projectBOQ);
+
+      if (projectBOQ) {
+        // Update form data with BOQ information
+        setFormData(prev => ({
+          ...prev,
+          project: selectedProject.projectName,
+          projectName: selectedProject.projectName,
+          projectCost: projectBOQ.totalWithGST || selectedProject.totalProjectValue || selectedProject.projectCost || '',
+          includeGST: projectBOQ.gstPercentage > 0,
+          gstPercentage: projectBOQ.gstPercentage || 18
+        }));
+      } else {
+        // No BOQ found, use project data
+        console.log('No BOQ found for project, using project data');
+        setFormData(prev => ({
+          ...prev,
+          project: selectedProject.projectName,
+          projectName: selectedProject.projectName,
+          projectCost: selectedProject.totalProjectValue || selectedProject.projectCost || ''
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching BOQ data:', error);
+      // Fall back to project data if BOQ fetch fails
+      setFormData(prev => ({
+        ...prev,
+        project: selectedProject.projectName,
+        projectName: selectedProject.projectName,
+        projectCost: selectedProject.totalProjectValue || selectedProject.projectCost || ''
+      }));
     }
   };
 
@@ -113,12 +247,8 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     if (name === 'project' && value) {
       const selectedProject = projects.find(p => p._id === value || p.projectName === value);
       if (selectedProject) {
-        setFormData(prev => ({
-          ...prev,
-          project: selectedProject.projectName,
-          projectName: selectedProject.projectName,
-          projectCost: selectedProject.totalProjectValue || selectedProject.projectCost || ''
-        }));
+        // Fetch BOQ data for the selected project
+        fetchBOQData(formData.customer, selectedProject.projectName, selectedProject);
       }
       return;
     }

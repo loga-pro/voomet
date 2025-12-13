@@ -37,8 +37,6 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
     "purchase_request",
     "production_management",
     "reports",
-    "receipts",
-    "dispatches",
     "miscellaneous_expenditure"
   ];
 

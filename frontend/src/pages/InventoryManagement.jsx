@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { inventoryAPI, vendorsAPI, receiptsAPI, dispatchesAPI } from '../services/api';
 import InventorySummaryTable from '../components/Inventory/InventorySummaryTable';
+import { Factory, Users, RotateCcw, Package } from 'lucide-react';
 
 const StockMaster = () => {
   const [inventoryItems, setInventoryItems] = useState([]);
@@ -213,6 +214,68 @@ const StockMaster = () => {
     }, 3000);
   };
 
+  const calculateStockForCombination = (workCategory, partName) => {
+    // Filter receipts for this combination
+    const matchingReceipts = allReceipts.filter(r => 
+      r.workCategory === workCategory && r.partName === partName
+    );
+    
+    // Filter dispatches for this combination
+    const matchingDispatches = allDispatches.filter(d => 
+      d.workCategory === workCategory && d.partName === partName
+    );
+    
+    // Separate regular receipts (buy) from returns
+    const regularReceipts = matchingReceipts.filter(r => r.receiptCategory !== 'return');
+    const receiptReturns = matchingReceipts.filter(r => r.receiptCategory === 'return');
+    
+    // Separate dispatches by category
+    const regularDispatches = matchingDispatches.filter(d => d.dispatchCategory === 'dispatch');
+    const dispatchReturns = matchingDispatches.filter(d => d.dispatchCategory === 'return');
+    const dispatchRejects = matchingDispatches.filter(d => d.dispatchCategory === 'reject');
+    
+    // Calculate totals for regular receipts only (excluding returns)
+    const regularReceiptsTotal = regularReceipts.reduce((sum, r) => sum + (r.totalValue || 0), 0);
+    
+    // Calculate regular dispatch totals (excluding returns and rejects)
+    const regularDispatchesTotal = regularDispatches.reduce((sum, d) => sum + (d.totalValue || 0), 0);
+    
+    // Calculate reject totals
+    const rejectsTotal = dispatchRejects.reduce((sum, d) => sum + (d.totalValue || 0), 0);
+    
+    // Calculate return totals from both receipts and dispatches
+    const receiptReturnsTotal = receiptReturns.reduce((sum, r) => sum + (r.totalValue || 0), 0);
+    const dispatchReturnsTotal = dispatchReturns.reduce((sum, d) => sum + (d.totalValue || 0), 0);
+    
+    const totalReturnsValue = receiptReturnsTotal + dispatchReturnsTotal;
+    
+    return {
+      stockValueAtFactory: regularReceiptsTotal - regularDispatchesTotal - rejectsTotal,
+      stockValueSentToCustomer: regularDispatchesTotal,
+      stockValueReturnFromCustomer: totalReturnsValue,
+      totalStockValue: (regularReceiptsTotal - regularDispatchesTotal - rejectsTotal) + totalReturnsValue
+    };
+  };
+
+  const calculateSummary = () => {
+    let totalFactoryValue = 0;
+    let totalCustomerValue = 0;
+    let totalReturnValue = 0;
+    let totalInventoryValue = 0;
+
+    masterRowData.forEach(row => {
+      const stock = calculateStockForCombination(row.workCategory, row.partName);
+      totalFactoryValue += stock.stockValueAtFactory || 0;
+      totalCustomerValue += stock.stockValueSentToCustomer || 0;
+      totalReturnValue += stock.stockValueReturnFromCustomer || 0;
+      totalInventoryValue += stock.totalStockValue || 0;
+    });
+
+    return { totalFactoryValue, totalCustomerValue, totalReturnValue, totalInventoryValue };
+  };
+
+  const summary = calculateSummary();
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -230,8 +293,10 @@ const StockMaster = () => {
   }
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="w-full mx-auto space-y-8">
+    
+    <div className="p-6 bg-gray-50">
+
+      <div className="w-full mx-auto space-y-6">
         {/* Notification */}
         {notification.show && (
           <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg ${
@@ -241,6 +306,52 @@ const StockMaster = () => {
           </div>
         )}
 
+  
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 flex items-center bg-gradient-to-br from-blue-50 to-white">
+            <div className="p-3 rounded-full bg-blue-100 mr-4">
+              <Factory className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">Inventory at Factory</p>
+              <p className="text-xl font-bold text-gray-900">₹{summary.totalFactoryValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 flex items-center bg-gradient-to-br from-purple-50 to-white">
+            <div className="p-3 rounded-full bg-purple-100 mr-4">
+              <Users className="h-6 w-6 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">Inventory at Customer End</p>
+              <p className="text-xl font-bold text-gray-900">₹{summary.totalCustomerValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 flex items-center bg-gradient-to-br from-orange-50 to-white">
+            <div className="p-3 rounded-full bg-orange-100 mr-4">
+              <RotateCcw className="h-6 w-6 text-orange-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">Inventory Return</p>
+              <p className="text-xl font-bold text-gray-900">₹{summary.totalReturnValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 flex items-center bg-gradient-to-br from-green-50 to-white">
+            <div className="p-3 rounded-full bg-green-100 mr-4">
+              <Package className="h-6 w-6 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">Total Inventory</p>
+              <p className="text-xl font-bold text-gray-900">₹{summary.totalInventoryValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Table */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -253,7 +364,6 @@ const StockMaster = () => {
               </span>
             </div>
           </div>
-
           {masterRowData.length === 0 ? (
             <div className="text-center py-10 text-gray-500 bg-gray-50 rounded-lg">
               <p>No stock data available.</p>

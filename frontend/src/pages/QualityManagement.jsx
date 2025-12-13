@@ -54,9 +54,6 @@ const QualityManagement = () => {
 
   useEffect(() => {
     fetchQualityIssues();
-    fetchCustomers();
-    fetchVendors();
-    fetchEmployees();
   }, []);
 
   useEffect(() => {
@@ -70,6 +67,22 @@ const QualityManagement = () => {
       const issues = response.data.qualityIssues || response.data || [];
       setQualityIssues(issues);
       setFilteredIssues(issues);
+      
+      // Extract unique customers from saved quality issues
+      const uniqueCustomers = [...new Set(issues.map(issue => issue.customer))].filter(Boolean);
+      const customerOptions = uniqueCustomers.map(name => ({
+        _id: name,
+        customerName: name
+      }));
+      setCustomers(customerOptions);
+      
+      // Extract unique vendors from saved quality issues (responsibility field)
+      const uniqueVendors = [...new Set(issues.map(issue => issue.responsibility))].filter(Boolean);
+      const vendorOptions = uniqueVendors.map(name => ({
+        _id: name,
+        vendorName: name
+      }));
+      setVendors(vendorOptions);
     } catch (error) {
       console.error('Error fetching quality issues:', error);
       showError('Failed to fetch quality issues');
@@ -78,32 +91,7 @@ const QualityManagement = () => {
     }
   };
 
-  const fetchCustomers = async () => {
-    try {
-      const response = await customersAPI.getAll();
-      setCustomers(response.data || []);
-    } catch (error) {
-      console.error('Error fetching customers:', error);
-    }
-  };
 
-  const fetchVendors = async () => {
-    try {
-      const response = await vendorsAPI.getAll();
-      setVendors(response.data || []);
-    } catch (error) {
-      console.error('Error fetching vendors:', error);
-    }
-  };
-
-  const fetchEmployees = async () => {
-    try {
-      const response = await employeesAPI.getAll();
-      setEmployees(response.data || []);
-    } catch (error) {
-      console.error('Error fetching employees:', error);
-    }
-  };
 
   const filterIssues = () => {
     let filtered = qualityIssues;

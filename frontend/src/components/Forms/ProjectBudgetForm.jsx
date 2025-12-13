@@ -117,9 +117,41 @@ const ProjectBudgetForm = ({ budget, onSubmit, onCancel, showNotification, showE
   const fetchProjects = async () => {
     try {
       setLoadingProjects(true);
-      const response = await projectsAPI.getAll();
-      const projectsData = response.data || [];
-      setProjects(projectsData);
+      
+      // Fetch all projects
+      const projectsResponse = await projectsAPI.getAll();
+      const allProjects = projectsResponse.data || [];
+      
+      console.log('All projects:', allProjects);
+      
+      // Fetch BOQ records to filter projects
+      const boqResponse = await boqAPI.getAll();
+      
+      // Handle different response structures for BOQ
+      let boqList = [];
+      if (boqResponse.data && boqResponse.data.data) {
+        boqList = boqResponse.data.data;
+      } else if (boqResponse.data && Array.isArray(boqResponse.data)) {
+        boqList = boqResponse.data;
+      } else if (Array.isArray(boqResponse)) {
+        boqList = boqResponse;
+      }
+      
+      console.log('BOQ records:', boqList);
+      
+      // Extract project names that have BOQ records
+      const projectNamesWithBOQ = boqList.map(boq => boq.projectName).filter(Boolean);
+      
+      console.log('Project names with BOQ:', projectNamesWithBOQ);
+      
+      // Filter projects to only show those with BOQ records
+      const projectsWithBOQ = allProjects.filter(project => 
+        projectNamesWithBOQ.includes(project.projectName)
+      );
+      
+      console.log('Filtered projects with BOQ:', projectsWithBOQ);
+      
+      setProjects(projectsWithBOQ);
     } catch (error) {
       console.error('Error fetching projects:', error);
       showError && showError('Failed to fetch projects');
@@ -257,8 +289,7 @@ const ProjectBudgetForm = ({ budget, onSubmit, onCancel, showNotification, showE
           // Set parts from BOQ items for dropdown
           setParts(matchingBOQ.items || []);
           setSelectedBoqProject(matchingBOQ);
-          
-          showNotification && showNotification('BOQ data loaded successfully! Parts and quoted price have been auto-populated.');
+
         } else {
           // No BOQ found, fetch parts from parts API
           try {

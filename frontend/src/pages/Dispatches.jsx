@@ -88,13 +88,13 @@ const Dispatches = () => {
       setParts(partsData);
       setCustomers(customersData);
       
-      // Extract unique values for dropdowns
+      // Extract unique values for dropdowns from saved dispatches only
       const categories = [...new Set(dispatchesData.map(d => d.dispatchCategory))].filter(Boolean);
       const partNames = [...new Set(dispatchesData.map(d => d.partName))].filter(Boolean);
       const customerNames = [...new Set(dispatchesData.map(d => d.customerName))].filter(Boolean);
       
-      // Get work categories from parts' scopeOfWork field
-      const workCategories = [...new Set(partsData.map(p => p.scopeOfWork))].filter(Boolean);
+      // Get work categories from saved dispatches only
+      const workCategories = [...new Set(dispatchesData.map(d => d.workCategory))].filter(Boolean);
       
       setUniqueCategories(categories);
       setUniquePartNames(partNames);

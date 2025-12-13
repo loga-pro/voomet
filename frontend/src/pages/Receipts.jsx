@@ -88,13 +88,13 @@ const Receipts = () => {
       setParts(partsData);
       setVendors(vendorsData);
       
-      // Extract unique values for dropdowns
+      // Extract unique values for dropdowns from saved receipts only
       const categories = [...new Set(receiptsData.map(r => r.receiptCategory))].filter(Boolean);
       const partNames = [...new Set(receiptsData.map(r => r.partName))].filter(Boolean);
       const vendorNames = [...new Set(receiptsData.flatMap(r => r.vendorNames || (r.vendorName ? [r.vendorName] : [])))].filter(Boolean);
       
-      // Get work categories from parts' scopeOfWork field
-      const workCategories = [...new Set(partsData.map(p => p.scopeOfWork))].filter(Boolean);
+      // Get work categories from saved receipts only
+      const workCategories = [...new Set(receiptsData.map(r => r.workCategory))].filter(Boolean);
       
       setUniqueCategories(categories);
       setUniquePartNames(partNames);
