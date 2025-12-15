@@ -946,7 +946,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
               Basic Information
             </h3>
 
-            {!boq && Object.keys(selectedProject).length > 0 && (
+            {!boq && (
               <div className="grid grid-cols-1 md:grid-cols-2 relative">
                 <FloatingInput
                   label="Selected Project"
@@ -1006,16 +1006,6 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
               )}
 
               {/* Project Name */}
-              {boq ? (
-                <FloatingInput
-                  label="Project Name"
-                  name="projectName"
-                  value={formData.projectName}
-                  readOnly
-                  error={errors.projectName}
-                  required
-                />
-              ) : (
               <FloatingInput
                 label="Project Name"
                 name="projectName"
@@ -1033,7 +1023,6 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                 required
                 disabled={!formData.customer || projects.length === 0}
               />
-              )}
 
               {/* Scope of Work */}
               <div className="relative">
@@ -1342,13 +1331,13 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                             Installment {index + 1}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              value={term.discount}
-                              onChange={(e) => handlePaymentTermChange(index, e.target.value)}
-                              onBlur={(e) => handlePaymentTermBlur(index, e.target.value)}
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={term.discount}
+                      onChange={(e) => handlePaymentTermChange(index, e.target.value)}
+                      onBlur={(e) => handlePaymentTermBlur(index, e.target.value)}
                               readOnly={isOriginalTerm}
                               className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2 border ${isOriginalTerm ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                               placeholder="0-100"
@@ -1361,33 +1350,33 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                             <div className="flex items-center space-x-2">
                               {/* Only show Add button on the last row and if total discount < 100 */}
                               {index === formData.paymentTerms.length - 1 && (
-                                <button
-                                  type="button"
-                                  onClick={addPaymentTerm}
-                                  disabled={formData.paymentTerms.length >= 5}
-                                  className={`p-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${formData.paymentTerms.length >= 5
-                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    : 'bg-primary-600 text-white hover:bg-primary-700'
-                                    }`}
+                    <button
+                      type="button"
+                      onClick={addPaymentTerm}
+                      disabled={formData.paymentTerms.length >= 5}
+                      className={`p-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${formData.paymentTerms.length >= 5
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-primary-600 text-white hover:bg-primary-700'
+                        }`}
                                   title="Add Installment"
-                                >
-                                  <PlusIcon />
-                                </button>
+                    >
+                      <PlusIcon />
+                    </button>
                               )}
 
-                              <button
-                                type="button"
-                                onClick={() => removePaymentTerm(index)}
+                    <button
+                      type="button"
+                      onClick={() => removePaymentTerm(index)}
                                 disabled={formData.paymentTerms.length <= 1 || isOriginalTerm}
                                 className={`p-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${formData.paymentTerms.length <= 1 || isOriginalTerm
-                                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                  : 'bg-red-600 text-white hover:bg-red-700'
-                                  }`}
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-red-600 text-white hover:bg-red-700'
+                        }`}
                                 title="Remove Installment"
-                              >
-                                <MinusIcon />
-                              </button>
-                            </div>
+                    >
+                      <MinusIcon />
+                    </button>
+                  </div>
                           </td>
                         </tr>
                       );
@@ -1409,7 +1398,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                     </tr>
                   </tfoot>
                 </table>
-              </div>
+                </div>
             </div>
           </div>
         </form>

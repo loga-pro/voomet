@@ -10,7 +10,7 @@ import { boqAPI, reportsAPI, projectsAPI, API_BASE_URL } from '../../services/ap
 import { CheckCircleIcon } from 'lucide-react';
 import EmailCompose from '../EmailCompose/emailCompose';
 
-const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true }) => {
+const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEstimateNumber = true }) => {
   console.log("boqData", boqData)
   const [companyLogo] = useState('/images/voomet-logo.png');
   const [companyInfo] = useState({
@@ -46,6 +46,13 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true }) => {
   const [emailStatus, setEmailStatus] = useState(null); // 'sending', 'success', 'error' 
   const [emailMessage, setEmailMessage] = useState('');
   const [emailCompose, setEmailCompose] = useState(false);
+
+  // Initialize custom estimate number from boqData
+  useEffect(() => {
+    if (boqData.estimateNumber) {
+      setCustomEstimateNumber(boqData.estimateNumber);
+    }
+  }, [boqData.estimateNumber]);
 
   // Fetch projects and find matching project name
   useEffect(() => {
@@ -98,6 +105,20 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true }) => {
     const newTerms = [...termsAndConditions];
     newTerms[index] = value;
     setTermsAndConditions(newTerms);
+  };
+
+  // Save custom estimate number to database
+  const handleEstimateNumberChange = async (value) => {
+    setCustomEstimateNumber(value);
+    
+    // Auto-save to database
+    if (boqData._id) {
+      try {
+        await boqAPI.update(boqData._id, { estimateNumber: value });
+      } catch (error) {
+        console.error('Error saving estimate number:', error);
+      }
+    }
   };
 
   const generatePDF = async () => {
@@ -438,23 +459,27 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true }) => {
 
         {/* Editable Controls */}
         <div className="p-4 bg-blue-50 border-b print:hidden">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Estimate Number Editor */}
-            <div>
-              <h3 className="font-semibold mb-3 text-blue-700">Estimate Number</h3>
-              <div className="flex items-center space-x-3">
-                <input
-                  type="text"
-                  value={customEstimateNumber}
-                  onChange={(e) => setCustomEstimateNumber(e.target.value)}
-                  placeholder="Leave empty for auto-generated number"
-                  className="flex-1 p-2 border rounded text-sm"
-                />
-                <span className="text-sm text-blue-600 whitespace-nowrap">
-                  Auto: {generateBOQCode()}
-                </span>
+          <div className={showEstimateNumber ? "grid grid-cols-1 md:grid-cols-2 gap-6" : "grid grid-cols-1"}>
+            {/* Estimate Number Editor - Only show if showEstimateNumber is true */}
+            {showEstimateNumber && (
+              <div>
+                <h3 className="font-semibold mb-3 text-blue-700">Estimate Number</h3>
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="text"
+                    value={customEstimateNumber}
+                    onChange={(e) => handleEstimateNumberChange(e.target.value)}
+                    placeholder="Leave empty for auto-generated number"
+                    className="flex-1 p-2 border rounded text-sm"
+                  />
+                  {!customEstimateNumber && (
+                    <span className="text-sm text-blue-600 whitespace-nowrap">
+                      Auto: {generateBOQCode()}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Terms & Conditions Editor */}
             <div>
@@ -569,10 +594,12 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true }) => {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <div className="flex">
-                        <span className="font-bold w-28 text-sm">ESTIMATE :</span>
-                        <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm font-mono">{boqCode}</span>
-                      </div>
+                      {showEstimateNumber && (
+                        <div className="flex">
+                          <span className="font-bold w-28 text-sm">ESTIMATE :</span>
+                          <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm font-mono">{boqCode}</span>
+                        </div>
+                      )}
                       <div className="flex">
                         <span className="font-bold w-28 text-sm">DATE:</span>
                         <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm">{currentDate}</span>

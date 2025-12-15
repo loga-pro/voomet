@@ -660,201 +660,196 @@ const CustomerBoqManagement = () => {
           {/* BOQ Table */}
           <div className="overflow-hidden">
             {/* Desktop Table View */}
-            <div className="hidden sm:block">
-              <div className="max-h-[60vh] overflow-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50 sticky top-0 z-10">
-                    <tr>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Client Name
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Project
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Scope
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        View Items
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Total Price
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Discount %
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Discount Amount
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        GST Price
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        (Total - Discount) + GST
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {currentItems.length > 0 ? (
-                      currentItems.map((boq) => {
-                        const stats = calculateItemStats(boq.items);
-                        return (
-                          <tr
-                            key={boq._id}
-                            className="hover:bg-gray-50 transition-colors duration-150"
-                          >
-                            {/* Customer & Project Column */}
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center">
-                                <div className="ml-4">
-                                  <div className="text-sm font-medium text-gray-900">
-                                    {boq.customer}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
+<div className="hidden sm:block">
+  <div className="max-h-[60vh] overflow-auto">
+    <table className="min-w-full divide-y divide-gray-200">
+      <thead className="bg-gray-50 sticky top-0 z-10">
+        <tr>
+          <th
+            scope="col"
+            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Client Name
+          </th>
+          <th
+            scope="col"
+            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Project
+          </th>
+          <th
+            scope="col"
+            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Scope
+          </th>
+          <th
+            scope="col"
+            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            View Items
+          </th>
+          <th
+            scope="col"
+            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Total Price
+          </th>
+          <th
+            scope="col"
+            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Discount %
+          </th>
+          <th
+            scope="col"
+            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Discount Amount
+          </th>
+          <th
+            scope="col"
+            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            GST Price
+          </th>
+          <th
+            scope="col"
+            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            (Total - Discount) + GST
+          </th>
+          <th
+            scope="col"
+            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Actions
+          </th>
+        </tr>
+      </thead>
+      <tbody className="bg-white divide-y divide-gray-200">
+        {currentItems.length > 0 ? (
+          currentItems.map((boq) => {
+            return (
+              <tr
+                key={boq._id}
+                className="hover:bg-gray-50 transition-colors duration-150"
+              >
+                {/* Customer & Project Column */}
+                <td className="px-4 py-4 text-center">
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="text-sm font-medium text-gray-900">
+                      {boq.customer}
+                    </div>
+                  </div>
+                </td>
 
-                            {/* Project Name Column */}
-                            <td className="px-6 py-4">
-                              <div className="text-sm text-gray-900">
-                                {boq.projectName}
-                              </div>
-                            </td>
+                {/* Project Name Column */}
+                <td className="px-4 py-4 text-center">
+                  <div className="text-sm text-gray-900">
+                    {boq.projectName}
+                  </div>
+                </td>
 
-                            <td className="px-6 py-4">
-                              <div className="text-sm text-gray-900">
-                                {formatScopeDisplay(boq.scopeOfWork)}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-left">
-                              <button
-                                onClick={() => handleShowItems(boq._id)}
-                                className="text-blue-600 hover:text-blue-900 transition-colors duration-150"
-                                title="View Items"
-                              >
-                                <EyeIcon className="h-5 w-5" />
-                              </button>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right">
-                              <div className="space-y-2">
-                                <div className="text-green-700 font-bold text-lg">
-                                  ₹{boq.finalTotalWithoutGST?.toLocaleString('en-IN')}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right">
-                              <div className="text-sm text-gray-900 font-semibold">
-                                {boq.discountPercentage}%
-                              </div>
-                            </td>
+                <td className="px-4 py-4 text-center">
+                  <div className="text-sm text-gray-900 max-w-xs mx-auto line-clamp-2">
+                    {formatScopeDisplay(boq.scopeOfWork)}
+                  </div>
+                </td>
+                
+                <td className="px-4 py-4 text-center">
+                  <button
+                    onClick={() => handleShowItems(boq._id)}
+                    className="inline-flex items-center justify-center text-blue-600 hover:text-blue-900 transition-colors duration-150"
+                    title="View Items"
+                  >
+                    <EyeIcon className="h-5 w-5" />
+                  </button>
+                </td>
+                
+                <td className="px-4 py-4 text-center">
+                  <div className="text-green-700 font-bold">
+                    ₹{boq.finalTotalWithoutGST?.toLocaleString('en-IN')}
+                  </div>
+                </td>
+                
+                <td className="px-4 py-4 text-center">
+                  <div className="text-sm text-gray-900 font-semibold">
+                    {boq.discountPercentage || 0}%
+                  </div>
+                </td>
 
-                            <td className="px-6 py-4 whitespace-nowrap text-right">
-                              <div className="text-sm text-red-600 font-bold">
-                                ₹{(boq.discountAmount || 0).toLocaleString('en-IN')}
-                              </div>
-                            </td>
+                <td className="px-4 py-4 text-center">
+                  <div className="text-sm text-red-600 font-bold">
+                    ₹{(boq.discountAmount || 0).toLocaleString('en-IN')}
+                  </div>
+                </td>
 
-                            <td className="px-6 py-4 whitespace-nowrap text-right">
-                              <div className="space-y-2">
-                                <div className="text-green-700 font-bold text-lg">
-                                  ₹{((boq.totalWithGST - (boq.finalTotalWithoutGST - (boq.discountAmount || 0))) || 0).toLocaleString('en-IN')}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right">
-                              <div className="space-y-2">
-                                <div className="text-green-700 font-bold text-lg">
-                                  ₹{(boq.totalWithGST || 0)?.toLocaleString('en-IN')}
-                                </div>
-                              </div>
-                            </td>
+                <td className="px-4 py-4 text-center">
+                  <div className="text-green-700 font-bold">
+                    ₹{((boq.totalWithGST - (boq.finalTotalWithoutGST - (boq.discountAmount || 0))) || 0).toLocaleString('en-IN')}
+                  </div>
+                </td>
+                
+                <td className="px-4 py-4 text-center">
+                  <div className="text-green-700 font-bold">
+                    ₹{(boq.totalWithGST || 0)?.toLocaleString('en-IN')}
+                  </div>
+                </td>
 
-                            {/* Actions Column */}
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <div className="flex justify-end space-x-2">
-                                <button
-                                  onClick={() => handleView(boq)}
-                                  className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
-                                  title="View"
-                                >
-                                  <EyeIcon className="h-5 w-5" />
-                                </button>
-                                <button
-                                  onClick={() => handleEdit(boq)}
-                                  className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
-                                  title="Edit"
-                                >
-                                  <PencilSquareIcon className="h-5 w-5" />
-                                </button>
-                                <button
-                                  onClick={() => handleAdvancedPDFPreview(boq)}
-                                  className="text-purple-600 hover:text-purple-900 p-1 transition-colors duration-150"
-                                  title="Generate PDF"
-                                >
-                                  <DocumentArrowDownIcon className="h-5 w-5" />
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(boq)}
-                                  className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
-                                  title="Delete"
-                                >
-                                  <TrashIcon className="h-5 w-5" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan="10"
-                          className="px-6 py-8 text-center text-gray-500"
-                        >
-                          {Object.values(filters).some((val) => val !== "") ||
-                            searchTerm
-                            ? "No BOQ items found matching your filters."
-                            : "No BOQ items found."}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                {/* Actions Column */}
+                <td className="px-4 py-4 text-center">
+                  <div className="flex justify-center space-x-2">
+                    <button
+                      onClick={() => handleView(boq)}
+                      className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
+                      title="View"
+                    >
+                      <EyeIcon className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => handleEdit(boq)}
+                      className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
+                      title="Edit"
+                    >
+                      <PencilSquareIcon className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => handleAdvancedPDFPreview(boq)}
+                      className="text-purple-600 hover:text-purple-900 p-1 transition-colors duration-150"
+                      title="Generate PDF"
+                    >
+                      <DocumentArrowDownIcon className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(boq)}
+                      className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
+                      title="Delete"
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })
+        ) : (
+          <tr>
+            <td
+              colSpan="10"
+              className="px-6 py-8 text-center text-gray-500"
+            >
+              {Object.values(filters).some((val) => val !== "") ||
+                searchTerm
+                ? "No BOQ items found matching your filters."
+                : "No BOQ items found."}
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+</div>
 
             {/* Mobile Card View */}
             <div className="sm:hidden">
@@ -1204,55 +1199,50 @@ const CustomerBoqManagement = () => {
         {selectedItem.items && selectedItem.items.length > 0 ? (
           <div className="px-6 py-5">
             {/* Items Table */}
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Part Name
-                    </th>
-                    <th className="text-left py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Units
-                    </th>
-                    <th className="text-right py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Unit Price
-                    </th>
-                    <th className="text-right py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Total
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedItem.items.map((item, index) => (
-                    <tr key={index} className="border-b border-gray-100">
-                      <td className="py-3 text-sm text-gray-900">
-                        <div>
-                          <div className="font-medium">{item.partName || item.itemDescription || "Unnamed Item"}</div>
-                          {item.partNumber && (
-                            <div className="text-xs text-gray-500 mt-0.5">Part #: {item.partNumber}</div>
-                          )}
-                          {item.itemDescription && item.itemDescription !== item.partName && (
-                            <div className="text-xs text-gray-600 mt-0.5">{item.itemDescription}</div>
-                          )}
-                          {item.remarks && (
-                            <div className="text-xs text-gray-500 mt-1 italic">{item.remarks}</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3 text-sm text-gray-900">
-                        {item.numberOfUnits || item.quantity || 0} {item.unitType || item.unit || ""}
-                      </td>
-                      <td className="py-3 text-sm text-gray-900 text-right">
-                        {formatCurrency(item.unitPrice || 0)}
-                      </td>
-                      <td className="py-3 text-sm font-semibold text-gray-900 text-right">
-                        {formatCurrency(item.totalPrice || 0)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {/* View Modal Table */}
+<div className="overflow-x-auto">
+  <table className="min-w-full">
+    <thead>
+      <tr className="border-b border-gray-200">
+        <th className="text-center py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          Part Name
+        </th>
+        <th className="text-center py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          Units
+        </th>
+        <th className="text-center py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          Unit Price
+        </th>
+        <th className="text-center py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          Total
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {selectedItem.items.map((item, index) => (
+        <tr key={index} className="border-b border-gray-100">
+          <td className="py-3 text-sm text-gray-900 text-center">
+            <div>
+              <div className="font-medium">{item.partName || item.itemDescription || "Unnamed Item"}</div>
+              {item.partNumber && (
+                <div className="text-xs text-gray-500 mt-0.5">Part #: {item.partNumber}</div>
+              )}
             </div>
+          </td>
+          <td className="py-3 text-sm text-gray-900 text-center">
+            {item.numberOfUnits || item.quantity || 0} {item.unitType || item.unit || ""}
+          </td>
+          <td className="py-3 text-sm text-gray-900 text-center">
+            {formatCurrency(item.unitPrice || 0)}
+          </td>
+          <td className="py-3 text-sm font-semibold text-gray-900 text-center">
+            {formatCurrency(item.totalPrice || 0)}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
               
             {/* Financial Summary - Right Aligned */}
             <div className="mt-6 pt-4 border-t border-gray-200">
@@ -1399,111 +1389,112 @@ const CustomerBoqManagement = () => {
       </Modal>
 
       {/* Items Modal */}
-      <Modal
-        isOpen={showItemsModal}
-        onClose={() => setShowItemsModal(false)}
-        title="Items List"
-        size="xl"
-      >
-        {selectedQuote && selectedQuote.items && selectedQuote.items.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Part Name
-                  </th>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Units
-                  </th>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Unit Price
-                  </th>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {selectedQuote.items.map((item, index) => (
-                  <tr key={item._id || index} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                      {item.partName}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                      {item.numberOfUnits} {item.unitType}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                      ₹{item.unitPrice?.toLocaleString('en-IN')}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                      ₹{item.totalPrice?.toLocaleString('en-IN')}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="bg-gray-50">
-                <tr>
-                  <td colSpan="3" className="px-4 py-3 text-sm font-medium text-gray-900 text-right">
-                    Subtotal:
-                  </td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                    ₹{selectedQuote.finalTotalWithoutGST?.toLocaleString('en-IN')}
-                  </td>
-                </tr>
-                <tr>
-                  <td colSpan="3" className="px-4 py-3 text-sm font-medium text-gray-900 text-right">
-                    Discount ({selectedQuote.discountPercentage}%):
-                  </td>
-                  <td className="px-4 py-3 text-sm font-medium text-red-600">
-                    - ₹{(selectedQuote.discountAmount || 0).toLocaleString('en-IN')}
-                  </td>
-                </tr>
-                {selectedQuote.transportationCharges > 0 && (
-                  <tr>
-                    <td colSpan="3" className="px-4 py-3 text-sm text-gray-900 text-right">
-                      Transportation:
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      ₹{selectedQuote.transportationCharges?.toLocaleString('en-IN')}
-                    </td>
-                  </tr>
-                )}
+      {/* Items Modal */}
+<Modal
+  isOpen={showItemsModal}
+  onClose={() => setShowItemsModal(false)}
+  title="Items List"
+  size="xl"
+>
+  {selectedQuote && selectedQuote.items && selectedQuote.items.length > 0 ? (
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Part Name
+            </th>
+            <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Units
+            </th>
+            <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Unit Price
+            </th>
+            <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Total
+            </th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {selectedQuote.items.map((item, index) => (
+            <tr key={item._id || index} className="hover:bg-gray-50">
+              <td className="px-4 py-3 text-center text-sm text-gray-900">
+                {item.partName}
+              </td>
+              <td className="px-4 py-3 text-center text-sm text-gray-900">
+                {item.numberOfUnits} {item.unitType}
+              </td>
+              <td className="px-4 py-3 text-center text-sm text-gray-900">
+                ₹{item.unitPrice?.toLocaleString('en-IN')}
+              </td>
+              <td className="px-4 py-3 text-center text-sm font-medium text-gray-900">
+                ₹{item.totalPrice?.toLocaleString('en-IN')}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot className="bg-gray-50">
+          <tr>
+            <td colSpan="3" className="px-4 py-3 text-sm font-medium text-gray-900 text-center">
+              Subtotal:
+            </td>
+            <td className="px-4 py-3 text-sm font-medium text-gray-900 text-center">
+              ₹{selectedQuote.finalTotalWithoutGST?.toLocaleString('en-IN')}
+            </td>
+          </tr>
+          <tr>
+            <td colSpan="3" className="px-4 py-3 text-sm font-medium text-gray-900 text-center">
+              Discount ({selectedQuote.discountPercentage}%):
+            </td>
+            <td className="px-4 py-3 text-sm font-medium text-red-600 text-center">
+              - ₹{(selectedQuote.discountAmount || 0).toLocaleString('en-IN')}
+            </td>
+          </tr>
+          {selectedQuote.transportationCharges > 0 && (
+            <tr>
+              <td colSpan="3" className="px-4 py-3 text-sm text-gray-900 text-center">
+                Transportation:
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-900 text-center">
+                ₹{selectedQuote.transportationCharges?.toLocaleString('en-IN')}
+              </td>
+            </tr>
+          )}
 
-                <tr className="border-t border-gray-300">
-                  <td colSpan="3" className="px-4 py-3 text-sm font-medium text-gray-900 text-right">
-                  </td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                    ₹{((selectedQuote.finalTotalWithoutGST - selectedQuote.discountAmount || 0) || 0).toLocaleString('en-IN')}
-                  </td>
-                </tr>
+          <tr className="border-t border-gray-300">
+            <td colSpan="3" className="px-4 py-3 text-sm font-medium text-gray-900 text-center">
+            </td>
+            <td className="px-4 py-3 text-sm font-medium text-gray-900 text-center">
+              ₹{((selectedQuote.finalTotalWithoutGST - selectedQuote.discountAmount || 0) || 0).toLocaleString('en-IN')}
+            </td>
+          </tr>
 
-                <tr>
-                  <td colSpan="3" className="px-4 py-3 text-sm font-medium text-gray-900 text-right">
-                    GST ({selectedQuote.gstPercentage}%):
-                  </td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                    ₹{((selectedQuote.totalWithGST - selectedQuote.finalTotalWithoutGST) || 0).toLocaleString('en-IN')}
-                  </td>
-                </tr>
+          <tr>
+            <td colSpan="3" className="px-4 py-3 text-sm font-medium text-gray-900 text-center">
+              GST ({selectedQuote.gstPercentage}%):
+            </td>
+            <td className="px-4 py-3 text-sm font-medium text-gray-900 text-center">
+              ₹{((selectedQuote.totalWithGST - selectedQuote.finalTotalWithoutGST) || 0).toLocaleString('en-IN')}
+            </td>
+          </tr>
 
-                <tr className="border-t border-gray-300">
-                  <td colSpan="3" className="px-4 py-3 text-sm font-bold text-gray-900 text-right">
-                    Grand Total (After Discount):
-                  </td>
-                  <td className="px-4 py-3 text-sm font-bold text-green-700">
-                    ₹{(selectedQuote.totalWithGST - (selectedQuote.discountAmount || 0)).toLocaleString('en-IN')}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-8 text-gray-500">
-            No items found
-          </div>
-        )}
-      </Modal>
+          <tr className="border-t border-gray-300">
+            <td colSpan="3" className="px-4 py-3 text-sm font-bold text-gray-900 text-center">
+              Grand Total (After Discount):
+            </td>
+            <td className="px-4 py-3 text-sm font-bold text-green-700 text-center">
+              ₹{(selectedQuote.totalWithGST - (selectedQuote.discountAmount || 0)).toLocaleString('en-IN')}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  ) : (
+    <div className="text-center py-8 text-gray-500">
+      No items found
+    </div>
+  )}
+</Modal>
     </div>
   );
 };

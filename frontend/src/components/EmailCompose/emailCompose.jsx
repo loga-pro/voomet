@@ -74,7 +74,7 @@ const emailTemplate = ({ title, reportType, data }) => {
   </p>
 
   <p style="margin: 0 0 20px 0; line-height: 1.6;">
-    Please find the attachment  report.
+    Please find the attached report.
   </p>
 
   <p style="margin: 0 0 5px 0;">

@@ -108,7 +108,11 @@ const boqSchema = new mongoose.Schema({
       type: Number,
       min: 1
     }
-  }]
+  }],
+  estimateNumber: {
+    type: String,
+    trim: true
+  }
 }, {
   timestamps: true,
   toJSON: { virtuals: true },

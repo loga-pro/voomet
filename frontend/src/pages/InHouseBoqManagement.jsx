@@ -1116,6 +1116,7 @@ const InHouseBoqManagement = () => {
           boqData={pdfBOQData}
           onClose={() => setShowAdvancedPDF(false)}
           hasInOffice={false}
+          showEstimateNumber={false}
         />
       )}
 
