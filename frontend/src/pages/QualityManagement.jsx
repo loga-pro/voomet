@@ -755,201 +755,204 @@ const QualityManagement = () => {
           )}
         </div>
 
-       <Modal
+        <Modal
   isOpen={showModal || !!viewingIssue}
   onClose={() => {
     setShowModal(false);
     setEditingIssue(null);
     setViewingIssue(null);
   }}
-  title={
-    viewingIssue 
-      ? 'Quality Issue Details' 
-      : editingIssue 
-      ? 'Edit Quality Issue' 
-      : 'Add Quality Issue'
-  }
+  title={viewingIssue ? 'Quality Issue Details' : editingIssue ? 'Edit Quality Issue' : 'Add Quality Issue'}
   size="lg"
+  className="font-sans"
 >
   {viewingIssue ? (
-    <div className="space-y-0 bg-gray-50 rounded-lg">
-      {/* Fixed Header Section */}
-      <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-6 sticky top-0 z-20 shadow-lg">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex-shrink-0 h-12 w-12 bg-white/20 rounded-lg flex items-center justify-center shadow-lg border border-white/30">
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-t-lg">
+        <div className="flex items-center space-x-4">
+          <div className="flex-shrink-0">
+            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center border border-white/30">
               <DocumentTextIcon className="h-6 w-6 text-white" />
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-white">{viewingIssue.customer}</h2>
-              <p className="text-blue-100 text-sm mt-1">{Array.isArray(viewingIssue.scopeOfWork) ? viewingIssue.scopeOfWork.join(', ') : viewingIssue.scopeOfWork}</p>
-            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border border-white/30 ${
-              viewingIssue.status === 'open' ? 'bg-yellow-500/20 text-yellow-100' :
-              viewingIssue.status === 'in progress' ? 'bg-blue-500/20 text-blue-100' :
-              viewingIssue.status === 'resolved' ? 'bg-green-500/20 text-green-100' :
-              'bg-gray-500/20 text-gray-100'
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl font-bold text-white truncate">{viewingIssue.customer}</h2>
+            <p className="text-blue-100 text-sm truncate">
+              {Array.isArray(viewingIssue.scopeOfWork) ? viewingIssue.scopeOfWork.join(', ') : viewingIssue.scopeOfWork}
+            </p>
+          </div>
+          <div className="flex flex-col items-end space-y-2">
+            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
+              viewingIssue.status === 'open' ? 'bg-yellow-500 text-white' :
+              viewingIssue.status === 'in progress' ? 'bg-blue-500 text-white' :
+              viewingIssue.status === 'resolved' ? 'bg-green-500 text-white' :
+              'bg-gray-500 text-white'
             }`}>
-              {viewingIssue.status?.charAt(0).toUpperCase() + viewingIssue.status?.slice(1)}
+              {viewingIssue.status?.toUpperCase()}
             </span>
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white/20 text-white border border-white/30 capitalize">
+            <span className="text-white text-sm capitalize">
               {viewingIssue.category}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Scrollable Content */}
-      <div className="max-h-[60vh] overflow-y-auto p-6 space-y-6">
-        {/* Key Information Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Left Column */}
+        <div className="space-y-6">
           {/* Basic Information */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-            <div className="flex items-center mb-4">
-              <div className="bg-blue-100 p-2 rounded-lg">
-                <UserIcon className="w-5 h-5 text-blue-600" />
-              </div>
-              <h3 className="ml-3 text-lg font-semibold text-gray-900">Basic Information</h3>
-            </div>
-            <div className="space-y-4">
+          <div className="space-y-3">
+            <h3 className="font-semibold text-gray-900 flex items-center">
+              <DocumentTextIcon className="h-5 w-5 mr-2 text-blue-600" />
+              Basic Information
+            </h3>
+            
+            <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Client Name</label>
-                <p className="text-sm text-gray-900 font-medium bg-blue-50 px-3 py-2 rounded-lg border border-blue-100">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Client</label>
+                <div className="text-sm text-gray-900 p-2 rounded bg-blue-50 border border-blue-100">
                   {viewingIssue.customer}
-                </p>
+                </div>
               </div>
+              
               <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Scope of Work</label>
-                <p className="text-sm text-gray-900 font-medium bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Scope of Work</label>
+                <div className="text-sm text-gray-900 p-2 rounded bg-gray-50 border border-gray-200">
                   {Array.isArray(viewingIssue.scopeOfWork) ? viewingIssue.scopeOfWork.join(', ') : viewingIssue.scopeOfWork}
-                </p>
+                </div>
               </div>
+              
               <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Category</label>
-                <p className="text-sm text-gray-900 font-medium bg-purple-50 px-3 py-2 rounded-lg border border-purple-100 capitalize">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Category</label>
+                <div className="text-sm text-gray-900 p-2 rounded bg-purple-50 border border-purple-100 capitalize">
                   {viewingIssue.category}
-                </p>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Assignment & Timeline */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-            <div className="flex items-center mb-4">
-              <div className="bg-green-100 p-2 rounded-lg">
-                <UserGroupIcon className="w-5 h-5 text-green-600" />
-              </div>
-              <h3 className="ml-3 text-lg font-semibold text-gray-900">Assignment & Timeline</h3>
-            </div>
-            <div className="space-y-4">
+          {/* Assignment Details */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-gray-900 flex items-center">
+              <UserGroupIcon className="h-5 w-5 mr-2 text-green-600" />
+              Assignment
+            </h3>
+            
+            <div className="space-y-3">
               {viewingIssue.personType && (
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Person Type</label>
-                  <p className="text-sm text-gray-900 font-medium bg-indigo-50 px-3 py-2 rounded-lg border border-indigo-100 capitalize">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Person Type</label>
+                  <div className="text-sm text-gray-900 p-2 rounded bg-indigo-50 border border-indigo-100 capitalize">
                     {viewingIssue.personType}
-                  </p>
+                  </div>
                 </div>
               )}
+              
               <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Responsible Person</label>
-                <p className="text-sm text-gray-900 font-medium bg-green-50 px-3 py-2 rounded-lg border border-green-100">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Responsible</label>
+                <div className="text-sm text-gray-900 p-2 rounded bg-green-50 border border-green-100">
                   {viewingIssue.responsibility}
-                </p>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Status</label>
-                <p className={`text-sm font-medium px-3 py-2 rounded-lg border capitalize ${
-                  viewingIssue.status === 'open' ? 'bg-yellow-50 text-yellow-800 border-yellow-200' :
-                  viewingIssue.status === 'in progress' ? 'bg-blue-50 text-blue-800 border-blue-200' :
-                  viewingIssue.status === 'resolved' ? 'bg-green-50 text-green-800 border-green-200' :
-                  'bg-gray-50 text-gray-800 border-gray-200'
-                }`}>
-                  {viewingIssue.status}
-                </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Detailed Information */}
+        {/* Right Column */}
         <div className="space-y-6">
-          {/* Open Issues */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-            <div className="flex items-center mb-4">
-              <div className="bg-red-100 p-2 rounded-lg">
-                <ExclamationTriangleIcon className="w-5 h-5 text-red-600" />
+          {/* Status Card */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-gray-900 flex items-center">
+              <ExclamationTriangleIcon className="h-5 w-5 mr-2 text-yellow-600" />
+              Status
+            </h3>
+            
+            <div className={`p-4 rounded-lg border ${
+              viewingIssue.status === 'open' ? 'bg-yellow-50 border-yellow-200' :
+              viewingIssue.status === 'in progress' ? 'bg-blue-50 border-blue-200' :
+              viewingIssue.status === 'resolved' ? 'bg-green-50 border-green-200' :
+              'bg-gray-50 border-gray-200'
+            }`}>
+              <div className="text-center">
+                <div className={`text-lg font-bold mb-1 ${
+                  viewingIssue.status === 'open' ? 'text-yellow-700' :
+                  viewingIssue.status === 'in progress' ? 'text-blue-700' :
+                  viewingIssue.status === 'resolved' ? 'text-green-700' :
+                  'text-gray-700'
+                }`}>
+                  {viewingIssue.status?.toUpperCase()}
+                </div>
+                <div className="text-xs text-gray-600">
+                  Quality Issue Status
+                </div>
               </div>
-              <h3 className="ml-3 text-lg font-semibold text-gray-900">Open Issues</h3>
             </div>
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          </div>
+
+          {/* Open Issues Card */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-gray-900 flex items-center">
+              <ExclamationTriangleIcon className="h-5 w-5 mr-2 text-red-600" />
+              Open Issues
+            </h3>
+            
+            <div className="p-3 rounded bg-red-50 border border-red-200">
               <p className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">
                 {viewingIssue.openIssues}
               </p>
             </div>
           </div>
 
-          {/* Scope Details */}
-          {viewingIssue.scopeOfWorkText && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-              <div className="flex items-center mb-4">
-                <div className="bg-indigo-100 p-2 rounded-lg">
-                  <DocumentMagnifyingGlassIcon className="w-5 h-5 text-indigo-600" />
+          {/* Additional Info (if any) */}
+          {(viewingIssue.scopeOfWorkText || viewingIssue.remarks) && (
+            <div className="space-y-3">
+          
+              
+              {viewingIssue.scopeOfWorkText && (
+                <div className="mb-3">
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Scope Details</label>
+                  <div className="text-sm text-gray-900 p-3 rounded bg-gray-50 border border-gray-200 whitespace-pre-wrap">
+                    {viewingIssue.scopeOfWorkText}
+                  </div>
                 </div>
-                <h3 className="ml-3 text-lg font-semibold text-gray-900">Scope Details</h3>
-              </div>
-              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-                <p className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">
-                  {viewingIssue.scopeOfWorkText}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Remarks */}
-          {viewingIssue.remarks && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-              <div className="flex items-center mb-4">
-                <div className="bg-amber-100 p-2 rounded-lg">
-                  <ChatBubbleLeftRightIcon className="w-5 h-5 text-amber-600" />
+              )}
+              
+              {viewingIssue.remarks && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Remarks</label>
+                  <div className="text-sm text-gray-900 p-3 rounded bg-amber-50 border border-amber-200 whitespace-pre-wrap">
+                    {viewingIssue.remarks}
+                  </div>
                 </div>
-                <h3 className="ml-3 text-lg font-semibold text-gray-900">Remarks</h3>
-              </div>
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <p className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">
-                  {viewingIssue.remarks}
-                </p>
-              </div>
+              )}
             </div>
           )}
         </div>
+      </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-          <button
-            onClick={() => {
-              setShowModal(false);
-              setViewingIssue(null);
-            }}
-            className="px-6 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-sm"
-          >
-            Close
-          </button>
-          <button
-            onClick={() => {
-              // Set the current viewing issue as the editing issue
-              setEditingIssue(viewingIssue);
-              // Clear the viewing issue to switch to edit mode
-              setViewingIssue(null);
-              // Keep the modal open for editing
-              setShowModal(true);
-            }}
-            className="px-6 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-sm"
-          >
-            Edit Issue
-          </button>
-        </div>
+      {/* Action Buttons */}
+      <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+        <button
+          onClick={() => {
+            setShowModal(false);
+            setViewingIssue(null);
+          }}
+          className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+        >
+          Close
+        </button>
+        <button
+          onClick={() => {
+            setEditingIssue(viewingIssue);
+            setViewingIssue(null);
+            setShowModal(true);
+          }}
+          className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+        >
+          Edit Issue
+        </button>
       </div>
     </div>
   ) : (

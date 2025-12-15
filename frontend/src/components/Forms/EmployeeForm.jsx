@@ -52,7 +52,7 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
 
   // Define required fields for each tab
   const tabRequiredFields = {
-    personal: ['name', 'email', 'phone', 'aadhar'],
+    personal: ['name', 'email', 'phone', 'aadhar', 'gender'], // Added 'gender' here
     professional: ['pan'],
     bank: []
   };
@@ -638,12 +638,13 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
                   />
 
                   <FloatingInput
-                    label="Gender"
+                    label="Gender "
                     name="gender"
                     type="select"
                     value={formData.gender}
                     onChange={handleChange}
                     onBlur={handleBlur}
+                    error={errors.gender}
                     options={[
                       { value: '', label: 'Select Gender' },
                       { value: 'Male', label: 'Male' },

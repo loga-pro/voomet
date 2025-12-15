@@ -305,7 +305,10 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      // showError('Please fix all validation errors before submitting.');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -330,8 +333,10 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
           await syncVendorNameToPayments(originalVendorName, submitData.vendorName);
           await syncVendorNameToQuality(originalVendorName, submitData.vendorName);
         }
+        showSuccess('Vendor updated successfully!');
       } else {
         await vendorsAPI.create(submitData);
+        showSuccess('Vendor created successfully!');
       }
 
       onSubmit();
@@ -344,11 +349,14 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
           const fieldName = errorData.field;
           fieldErrors[fieldName] = errorData.message;
           setErrors(prev => ({ ...prev, ...fieldErrors }));
+          showError(errorData.message);
         } else {
           setErrors(prev => ({ ...prev, submit: errorData.message }));
+          showError(errorData.message);
         }
       } else {
         setErrors(prev => ({ ...prev, submit: 'An error occurred. Please try again.' }));
+        showError('An error occurred. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -554,7 +562,6 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
       </div>
 
       <div className="flex-shrink-0 border-t border-gray-200 bg-white px-6 py-4">
-        <p className="text-sm text-gray-500"> Please fill all required fields (*) </p>
         <div className="flex justify-end space-x-3">
           <button
             type="button"
@@ -565,7 +572,7 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
           </button>
           <button
             type="submit"
-            disabled={loading || !isFormComplete()}
+            disabled={loading}
             onClick={handleSubmit}
             className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >

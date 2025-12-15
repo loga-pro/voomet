@@ -627,7 +627,7 @@ const CustomerMaster = () => {
       </Modal>
 
       {/* View Customer Modal */}
-{selectedCustomer && (
+         {selectedCustomer && (
   <Modal
     isOpen={!!selectedCustomer}
     onClose={() => setSelectedCustomer(null)}
@@ -635,203 +635,122 @@ const CustomerMaster = () => {
     size="lg"
     className="font-sans"
   >
-    <div className="space-y-0">
-      {/* Fixed Header Section */}
-      <div className="bg-white border-b border-gray-200 pb-4 sticky top-0 z-10">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="flex-shrink-0">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <UserGroupIcon className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">{selectedCustomer.customerName}</h2>
-            </div>
+    <div className="space-y-6">
+      {/* Customer Header */}
+      <div className="flex items-center space-x-4 pb-4 border-b border-gray-200">
+        <div className="flex-shrink-0">
+          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+            <UserGroupIcon className="h-6 w-6 text-blue-600" />
           </div>
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">{selectedCustomer.customerName}</h2>
+          <p className="text-gray-600 text-sm">{selectedCustomer.customerEmail}</p>
         </div>
       </div>
 
-      {/* Scrollable Content */}
-      <div className="max-h-[60vh] overflow-y-auto space-y-6 pt-4">
-        {/* Main Information Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Main Grid - 2 columns */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Left Column */}
+        <div className="space-y-6">
           {/* Contact Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+          <div className="space-y-3">
+            <h3 className="font-semibold text-gray-900 flex items-center">
               <DocumentTextIcon className="h-5 w-5 mr-2 text-blue-600" />
-              Contact Information
+              Contact Info
             </h3>
             
             <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Client Name</label>
-                <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md border border-gray-200">
-                  {selectedCustomer.customerName}
-                </div>
-              </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Client Email</label>
-                <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md border border-gray-200 flex items-center">
-                  <EnvelopeIcon className="h-4 w-4 mr-2 text-gray-400" />
-                  {selectedCustomer.customerEmail}
-                </div>
-              </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Invoice Email</label>
-                <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md border border-gray-200 flex items-center">
-                  <EnvelopeOpenIcon className="h-4 w-4 mr-2 text-gray-400" />
-                  {selectedCustomer.invoiceEmail || 'Not specified'}
+              {selectedCustomer.invoiceEmail && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Invoice Email</label>
+                  <div className="flex items-center text-sm text-gray-900">
+                    <EnvelopeOpenIcon className="h-4 w-4 mr-2 text-gray-400" />
+                    {selectedCustomer.invoiceEmail}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
           {/* Location Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-              <MapPinIcon className="h-5 w-5 mr-2 text-green-600" />
-              Location
-            </h3>
-            
+          {(selectedCustomer.city || selectedCustomer.state) && (
             <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">City</label>
-                <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md border border-gray-200">
-                  {selectedCustomer.city || 'Not specified'}
-                </div>
-              </div>
+              <h3 className="font-semibold text-gray-900 flex items-center">
+                <MapPinIcon className="h-5 w-5 mr-2 text-green-600" />
+                Location
+              </h3>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">State</label>
-                <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md border border-gray-200">
-                  {selectedCustomer.state || 'Not specified'}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Address Information */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-            <MapPinIcon className="h-5 w-5 mr-2 text-red-600" />
-            Billing Address
-          </h3>
-          
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Street Address</label>
-                <div className="text-sm text-gray-900">
-                  {selectedCustomer.address || 'Not specified'}
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">City</label>
-                <div className="text-sm text-gray-900">
-                  {selectedCustomer.city || 'Not specified'}
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">State/Province</label>
-                <div className="text-sm text-gray-900">
-                  {selectedCustomer.state || 'Not specified'}
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">ZIP/Postal Code</label>
-                <div className="text-sm text-gray-900">
-                  {selectedCustomer.zipCode || 'Not specified'}
-                </div>
-              </div>
-              
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-500 mb-1">Country</label>
-                <div className="text-sm text-gray-900">
-                  {selectedCustomer.country || 'Not specified'}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Awarded Projects */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-            <TrophyIcon className="h-5 w-5 mr-2 text-amber-600" />
-            Awarded Projects
-          </h3>
-          
-          {getProjectsForCustomer(selectedCustomer.customerName).length > 0 ? (
-            <div className="space-y-3">
-              {getProjectsForCustomer(selectedCustomer.customerName).map((project) => (
-                <div 
-                  key={project._id} 
-                  className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 p-4 rounded-lg hover:shadow-md transition-all duration-200"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                        <FolderIcon className="h-4 w-4 text-green-600" />
-                      </div>
-                      <span className="font-semibold text-gray-900">{project.projectName}</span>
-                    </div>
-                    <span className="text-green-700 font-bold bg-white px-3 py-1 rounded-md text-sm border border-green-200">
-                      ₹{project.totalProjectValue?.toLocaleString() || '0'}
-                    </span>
+              <div className="space-y-2">
+                {selectedCustomer.city && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">City</label>
+                    <div className="text-sm text-gray-900">{selectedCustomer.city}</div>
                   </div>
-                  <div className="flex justify-between items-center text-xs text-green-700 mt-2">
-                    <div className="flex items-center space-x-4">
-                      <span className="flex items-center">
-                        <CalendarIcon className="h-3 w-3 mr-1" />
-                        Awarded on {new Date(project.awardDate || project.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <span className="font-medium bg-green-100 px-2 py-1 rounded">
-                      {project.stage?.replace('_', ' ').toUpperCase() || 'N/A'}
-                    </span>
+                )}
+                
+                {selectedCustomer.state && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">State</label>
+                    <div className="text-sm text-gray-900">{selectedCustomer.state}</div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-              <FolderOpenIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-sm text-gray-500 font-medium">No awarded projects for this customer</p>
-              <p className="text-xs text-gray-400 mt-1">Projects awarded to this customer will appear here</p>
+                )}
+              </div>
             </div>
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 pb-2">
-          <button
-            onClick={() => {
-              // Close the view modal
-              setSelectedCustomer(null);
-              // Set the customer for editing
-              setEditingCustomer(selectedCustomer);
-              // Open the edit modal
-              setShowModal(true);
-            }}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-          >
-            <PencilSquareIcon className="h-4 w-4 mr-2" />
-            Edit Customer
-          </button>
-          <button
-            onClick={() => setSelectedCustomer(null)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-          >
-            Close
-          </button>
+        {/* Right Column */}
+        <div className="space-y-6">
+          {/* Address Information */}
+          {selectedCustomer.address && (
+            <div className="space-y-3">
+              <h3 className="font-semibold text-gray-900 flex items-center">
+                <MapPinIcon className="h-5 w-5 mr-2 text-red-600" />
+                Address
+              </h3>
+              
+              <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+                <div className="space-y-2 text-sm">
+                  <div className="font-medium text-gray-900">{selectedCustomer.address}</div>
+                  <div className="text-gray-700">
+                    {selectedCustomer.city && `${selectedCustomer.city}, `}
+                    {selectedCustomer.state && `${selectedCustomer.state}`}
+                    {selectedCustomer.zipCode && ` ${selectedCustomer.zipCode}`}
+                  </div>
+                  {selectedCustomer.country && (
+                    <div className="text-gray-700">{selectedCustomer.country}</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
+      </div>
+
+  
+
+      {/* Action Buttons */}
+      <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+        <button
+          onClick={() => {
+            setSelectedCustomer(null);
+            setEditingCustomer(selectedCustomer);
+            setShowModal(true);
+          }}
+          className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+        >
+          <PencilSquareIcon className="h-4 w-4 mr-2" />
+          Edit Customer
+        </button>
+        <button
+          onClick={() => setSelectedCustomer(null)}
+          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+        >
+          Close
+        </button>
       </div>
     </div>
   </Modal>

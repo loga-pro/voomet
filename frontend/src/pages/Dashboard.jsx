@@ -188,7 +188,7 @@ const Dashboard = () => {
     { id: 'vendor-payment-overdue', title: 'Payment Overdue', value: kpis.vendorPaymentKPIs?.paymentOverdue || 0, icon: ExclamationTriangleIcon, color: 'bg-red-500' }
   ];
 
-  // Inventory KPI cards - Enhanced with stock status categories
+  // Inventory KPI cards
   const inventoryKPIs = [
     { 
       id: 'total-items', 
@@ -213,7 +213,7 @@ const Dashboard = () => {
     }
   ];
 
-  // Inventory Status Summary - Stock health indicators
+  // Inventory Status Summary
   const inventoryStatusKPIs = [
     { 
       id: 'low-stock-items', 
@@ -253,7 +253,7 @@ const Dashboard = () => {
     { id: 'resolution-rate', title: 'Resolution Rate', value: `${kpis.qualityKPIs.totalIssues ? Math.round(((kpis.qualityKPIs.closedIssues || 0) / kpis.qualityKPIs.totalIssues) * 100) : 0}%`, icon: ShieldCheckIcon, color: 'bg-green-500' }
   ];
 
-  // Enhanced KPI Card with gradient background - clickable to show project details
+  // Enhanced KPI Card with gradient background
   const GradientKpiCard = ({ id, title, value, icon: Icon, gradient, description }) => {
     return (
       <div
@@ -305,7 +305,7 @@ const Dashboard = () => {
   };
 
   const FinancialBox = ({ title, icon: Icon, gradient, kpis, statusKpis }) => (
-    <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden h-full">
       {/* Header */}
       <div className={`bg-gradient-to-r ${gradient} text-white p-3 sm:p-4`}>
         <div className="flex items-center">
@@ -337,7 +337,8 @@ const Dashboard = () => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8">
-      <div className="sticky top-0 z-20 bg-gray-50">
+      {/* Project Status Overview - Top Row */}
+      <div>
         <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">Project Status Overview</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
           {projectKPIs.map((kpi, index) => (
@@ -346,54 +347,57 @@ const Dashboard = () => {
         </div>
       </div>
 
-
+      {/* Profit Loss Summary */}
       <ProfitLossSummary />
 
-      {/* Financial Overview - Two Box Structure */}
+      {/* Combined Financial & Operations Overview - Single Wide Row */}
       <div>
-        <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">Financial Overview</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          {/* Customer Payments Box */}
-          <FinancialBox
-            title="Customer Payments"
-            icon={UserGroupIcon}
-            gradient="from-blue-500 to-blue-600"
-            kpis={customerPaymentKPIs}
-            statusKpis={customerStatusKPIs}
-          />
+        <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">Business Overview</h2>
+        
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 sm:gap-6">
+          {/* Column 1: Customer Payments */}
+          <div className="xl:col-span-1">
+            <FinancialBox
+              title="Customer Payments"
+              icon={UserGroupIcon}
+              gradient="from-blue-500 to-blue-600"
+              kpis={customerPaymentKPIs}
+              statusKpis={customerStatusKPIs}
+            />
+          </div>
 
-          {/* Vendor Payments Box */}
-          <FinancialBox
-            title="Vendor Payments"
-            icon={BuildingStorefrontIcon}
-            gradient="from-green-500 to-green-600"
-            kpis={vendorPaymentKPIs}
-            statusKpis={vendorStatusKPIs}
-          />
-        </div>
-      </div>
+          {/* Column 2: Vendor Payments */}
+          <div className="xl:col-span-1">
+            <FinancialBox
+              title="Vendor Payments"
+              icon={BuildingStorefrontIcon}
+              gradient="from-green-500 to-green-600"
+              kpis={vendorPaymentKPIs}
+              statusKpis={vendorStatusKPIs}
+            />
+          </div>
 
-      {/* Inventory & Quality Control - Two Box Structure */}
-      <div>
-        <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">Operations Overview</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          {/* Inventory Box */}
-          <FinancialBox
-            title="Inventory Management"
-            icon={CubeIcon}
-            gradient="from-purple-500 to-purple-600"
-            kpis={inventoryKPIs}
-            statusKpis={inventoryStatusKPIs}
-          />
+          {/* Column 3: Inventory Management */}
+          <div className="xl:col-span-1">
+            <FinancialBox
+              title="Inventory Management"
+              icon={CubeIcon}
+              gradient="from-purple-500 to-purple-600"
+              kpis={inventoryKPIs}
+              statusKpis={inventoryStatusKPIs}
+            />
+          </div>
 
-          {/* Quality Control Box */}
-          <FinancialBox
-            title="Quality Control"
-            icon={ShieldCheckIcon}
-            gradient="from-orange-500 to-orange-600"
-            kpis={qualityKPIs}
-            statusKpis={qualityStatusKPIs}
-          />
+          {/* Column 4: Quality Control */}
+          <div className="xl:col-span-1">
+            <FinancialBox
+              title="Quality Control"
+              icon={ShieldCheckIcon}
+              gradient="from-orange-500 to-orange-600"
+              kpis={qualityKPIs}
+              statusKpis={qualityStatusKPIs}
+            />
+          </div>
         </div>
       </div>
 
@@ -407,6 +411,5 @@ const Dashboard = () => {
     </div>
   );
 };
-
 
 export default Dashboard;

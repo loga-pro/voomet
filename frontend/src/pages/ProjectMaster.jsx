@@ -77,7 +77,7 @@ const ProjectMaster = () => {
     }
   };
 
-  // NEW: Improved helper function specifically for Fire and safety formatting
+  // Helper function specifically for Fire and safety formatting
   const formatScopeItem = (scope) => {
     if (typeof scope !== 'string') return String(scope);
     
@@ -92,7 +92,7 @@ const ProjectMaster = () => {
       });
   };
 
-  // UPDATED: Helper function for displaying scope of work items
+  // Helper function for displaying scope of work items
   const formatScopeOfWork = (scopeArray) => {
     if (!scopeArray || !Array.isArray(scopeArray)) return ["—"];
 
@@ -177,36 +177,47 @@ const ProjectMaster = () => {
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   const exportToCSV = () => {
-  const headers = [
-    "Customer Name",
-    "Project Name",
-    "Enquiry Date",
+    const escapeCSV = (cell) => {
+      if (cell === null || cell === undefined) return '';
+      const stringCell = String(cell);
+      // Escape quotes and wrap in quotes if contains comma or quote
+      if (stringCell.includes(',') || stringCell.includes('"') || stringCell.includes('\n')) {
+        return `"${stringCell.replace(/"/g, '""')}"`;
+      }
+      return stringCell;
+    };
+
+    const headers = [
+      "Customer Name",
+      "Project Name",
+      "Enquiry Date",
       "Stage",
-    "Project Value (In Rupees)",
-    "Scope of Work",
-  ];
-  const csvData = filteredProjects.map((project) => [
-    project.customerName,
-    project.projectName,
-    new Date(project.enquiryDate).toLocaleDateString(),
-    project.stage,
-    `${project.totalProjectValue.toFixed(2)}`,
-    formatScopeOfWork(project.scopeOfWork).join("; "),
-  ]);
+      "Project Value (In Rupees)",
+      "Scope of Work",
+    ];
+    
+    const csvData = filteredProjects.map((project) => [
+      escapeCSV(project.customerName),
+      escapeCSV(project.projectName),
+      escapeCSV(new Date(project.enquiryDate).toLocaleDateString()),
+      escapeCSV(project.stage.replace(/_/g, " ").toUpperCase()), // Fixed stage formatting
+      escapeCSV(project.totalProjectValue.toFixed(2)),
+      escapeCSV(formatScopeOfWork(project.scopeOfWork).join("; ")),
+    ]);
 
-  const csvContent = [
-    headers.join(","),
-    ...csvData.map((row) => row.join(",")),
-  ].join("\n");
+    const csvContent = [
+      headers.join(","),
+      ...csvData.map((row) => row.join(",")),
+    ].join("\n");
 
-  const blob = new Blob([csvContent], { type: "text/csv" });
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "projects.csv";
-  link.click();
-  window.URL.revokeObjectURL(url);
-};
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "projects.csv";
+    link.click();
+    window.URL.revokeObjectURL(url);
+  };
 
   const handleView = (project) => {
     setSelectedProject(project);
@@ -221,12 +232,32 @@ const ProjectMaster = () => {
   const handleViewHistory = async (project) => {
     try {
       const response = await projectsAPI.getHistory(project._id);
-      setProjectHistory(response.data);
+      
+      // Filter out duplicate entries where old and new values are the same
+      const filteredHistory = response.data.filter((change, index, array) => {
+        if (change.field === "created") return true; // Always show creation
+        
+        // Skip if old and new values are identical
+        if (JSON.stringify(change.oldValue) === JSON.stringify(change.newValue)) {
+          return false;
+        }
+        
+        // For dates, compare as timestamps
+        if (change.field === "enquiryDate") {
+          const oldDate = new Date(change.oldValue).getTime();
+          const newDate = new Date(change.newValue).getTime();
+          return oldDate !== newDate;
+        }
+        
+        return true;
+      });
+      
+      setProjectHistory(filteredHistory);
       setSelectedProject(project);
       setHistoryModal(true);
     } catch (error) {
       console.error("Error fetching project history:", error);
-      showSuccess("Error loading project history");
+      showError("Error loading project history");
     }
   };
 
@@ -283,7 +314,7 @@ const ProjectMaster = () => {
     );
   };
 
-  // IMPROVED: Helper function to format values based on field type
+  // Helper function to format values based on field type
   const formatValue = (value, field) => {
     if (value === null || value === undefined || value === "") {
       return "—";
@@ -294,7 +325,12 @@ const ProjectMaster = () => {
     }
 
     if (field === "enquiryDate") {
-      return new Date(value).toLocaleDateString();
+      // Ensure consistent date formatting
+      try {
+        return new Date(value).toLocaleDateString('en-GB'); // DD/MM/YYYY format
+      } catch (error) {
+        return String(value);
+      }
     }
 
     if (field === "scopeOfWork" && Array.isArray(value)) {
@@ -314,7 +350,11 @@ const ProjectMaster = () => {
     }
 
     if (typeof value === "object") {
-      return JSON.stringify(value);
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return String(value);
+      }
     }
 
     return String(value);
@@ -1004,7 +1044,6 @@ const ProjectMaster = () => {
             {projectHistory.length > 0 ? (
               <div className="overflow-hidden">
                 <div className="max-h-[70vh] overflow-auto">
-                  {/* UPDATED HISTORY TABLE WITH SEGREGATED COLUMNS */}
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50 sticky top-0 z-10">
                       <tr>
@@ -1033,6 +1072,11 @@ const ProjectMaster = () => {
                       {projectHistory.map((change, index) => {
                         const isCreation = change.field === "created";
                         const changedField = change.field;
+                        
+                        // Skip rows where old and new values are the same (except for creation)
+                        if (!isCreation && JSON.stringify(change.oldValue) === JSON.stringify(change.newValue)) {
+                          return null;
+                        }
 
                         return (
                           <tr
@@ -1102,18 +1146,15 @@ const ProjectMaster = () => {
                               {isCreation ? (
                                 <div className="space-y-1">
                                   {(() => {
-                                    // Handle case where newValue might be a stringified JSON
                                     let newValueObj = change.newValue;
                                     if (typeof newValueObj === 'string') {
                                       try {
                                         newValueObj = JSON.parse(newValueObj);
                                       } catch (e) {
-                                        // If parsing fails, display the string as-is
                                         return <div className="text-sm text-gray-900">{newValueObj}</div>;
                                       }
                                     }
                                     
-                                    // Now render the object entries
                                     if (typeof newValueObj === 'object' && newValueObj !== null) {
                                       return Object.entries(newValueObj).map(([key, value]) => (
                                         <div key={key} className="text-sm">
@@ -1131,7 +1172,9 @@ const ProjectMaster = () => {
                                   })()}
                                 </div>
                               ) : (
-                                <div className="text-sm font-medium text-gray-900">
+                                <div className={`text-sm font-medium ${
+                                  change.oldValue !== change.newValue ? 'text-green-600' : 'text-gray-900'
+                                }`}>
                                   {formatValue(change.newValue, changedField)}
                                 </div>
                               )}

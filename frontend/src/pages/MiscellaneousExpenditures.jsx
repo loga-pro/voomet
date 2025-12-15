@@ -38,7 +38,6 @@ const MiscellaneousExpenditureManagement = () => {
     financialYear: '',
     customer: '',
     project: '',
-    status: '',
     search: ''
   });
   const [showFilters, setShowFilters] = useState(false);
@@ -131,9 +130,6 @@ const MiscellaneousExpenditureManagement = () => {
       );
     }
 
-    if (filters.status) {
-      filtered = filtered.filter(exp => exp.status === filters.status);
-    }
 
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
@@ -163,7 +159,6 @@ const MiscellaneousExpenditureManagement = () => {
       financialYear: '',
       customer: '',
       project: '',
-      status: '',
       search: ''
     });
   };
@@ -256,16 +251,6 @@ const MiscellaneousExpenditureManagement = () => {
     }
   };
 
-  const getStatusColor = (status) => {
-    const colors = {
-      'Draft': 'bg-gray-100 text-gray-800',
-      'Submitted': 'bg-blue-100 text-blue-800',
-      'Approved': 'bg-green-100 text-green-800',
-      'Rejected': 'bg-red-100 text-red-800',
-      'Paid': 'bg-purple-100 text-purple-800'
-    };
-    return colors[status] || 'bg-gray-100 text-gray-800';
-  };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -408,22 +393,6 @@ const MiscellaneousExpenditureManagement = () => {
                       ))}
                     </select>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select
-                      value={filters.status}
-                      onChange={(e) => handleFilterChange('status', e.target.value)}
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
-                    >
-                      <option value="">All Status</option>
-                      <option value="Draft">Draft</option>
-                      <option value="Submitted">Submitted</option>
-                      <option value="Approved">Approved</option>
-                      <option value="Rejected">Rejected</option>
-                      <option value="Paid">Paid</option>
-                    </select>
-                  </div>
                 </div>
               </div>
             )}
@@ -451,12 +420,6 @@ const MiscellaneousExpenditureManagement = () => {
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Total Amount
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Created Date
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
@@ -490,16 +453,6 @@ const MiscellaneousExpenditureManagement = () => {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-semibold text-gray-900">
                               ₹{expenditure.totalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(expenditure.status)}`}>
-                              {expenditure.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">
-                              {formatDate(expenditure.createdAt)}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -593,12 +546,6 @@ const MiscellaneousExpenditureManagement = () => {
                         <span className="font-medium">Total:</span> 
                         <span className="ml-1 font-semibold">
                           ₹{expenditure.totalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium">Status:</span>
-                        <span className={`ml-1 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusColor(expenditure.status)}`}>
-                          {expenditure.status}
                         </span>
                       </div>
                     </div>
@@ -719,14 +666,7 @@ const MiscellaneousExpenditureManagement = () => {
                     <label className="block text-sm font-medium text-gray-700">Project</label>
                     <p className="mt-1 text-sm text-gray-900">{viewingExpenditure.projectName || viewingExpenditure.project?.name}</p>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Status</label>
-                    <p className="mt-1">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(viewingExpenditure.status)}`}>
-                        {viewingExpenditure.status}
-                      </span>
-                    </p>
-                  </div>
+                 
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Total Amount</label>
                     <p className="mt-1 text-lg font-semibold text-gray-900">

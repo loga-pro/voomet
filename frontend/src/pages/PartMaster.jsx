@@ -667,14 +667,6 @@ const PartMaster = () => {
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-xl font-semibold text-gray-800">{selectedPart.partName}</h2>
-                <div className="mt-1 flex items-center space-x-2">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${categoryColors[selectedPart.category] || 'bg-gray-100 text-gray-800'}`}>
-                    {selectedPart.category.replace('_', ' ').toUpperCase()}
-                  </span>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${unitTypeColors[selectedPart.unitType] || 'bg-gray-100 text-gray-800'}`}>
-                    {selectedPart.unitType.toUpperCase()}
-                  </span>
-                </div>
               </div>
               <div className="text-right">
                 <p className="text-sm text-gray-500">Part Price</p>

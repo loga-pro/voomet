@@ -95,21 +95,6 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
         }
         break;
         
-      // If we had email or phone fields, we would validate them here
-      // Example for email field:
-      // case 'email':
-      //   if (value && !/^\S+@\S+\.\S+$/.test(value)) {
-      //     error = 'Please enter a valid email address';
-      //   }
-      //   break;
-        
-      // Example for phone field:
-      // case 'phone':
-      //   if (value && !/^\d{10}$/.test(value)) {
-      //     error = 'Phone number must be exactly 10 digits';
-      //   }
-      //   break;
-        
       default:
         break;
     }
@@ -376,6 +361,11 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
       scopeOfWork: newScopeOfWork
     }));
     
+    // Mark scopeOfWork as touched
+    if (!touchedFields.scopeOfWork) {
+      setTouchedFields(prev => ({ ...prev, scopeOfWork: true }));
+    }
+    
     // Validate scope in real-time
     const fieldError = validateField('scopeOfWork', newScopeOfWork);
     if (fieldError) {
@@ -412,6 +402,8 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
     e.preventDefault();
   
     if (!validateForm()) {
+      // Show error notification if validation fails
+      showError('Please fix all validation errors before submitting.');
       return;
     }
 
@@ -425,38 +417,57 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
 
       if (project) {
         await projectsAPI.update(project._id, submitData);
+        showSuccess('Project updated successfully!');
       } else {
         await projectsAPI.create(submitData);
+        showSuccess('Project created successfully!');
       }
       
+      // Call onSubmit callback to close modal or navigate
       onSubmit();
     } catch (error) {
       if (error.response?.data?.message) {
         setErrors({ submit: error.response.data.message });
+        showError(error.response.data.message);
       } else {
         setErrors({ submit: 'An error occurred. Please try again.' });
+        showError('An error occurred. Please try again.');
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // Helper function to check if form is complete and valid
+  // SIMPLIFIED - Helper function to check if form is complete and valid
   const isFormComplete = () => {
-    const requiredFields = [
-      'projectName',
-      'customerId',
-      'enquiryDate',
-      'stage',
-      'totalProjectValue',
-      'scopeOfWork'
-    ];
+    // Check if all required fields have values
+    const hasProjectName = formData.projectName && formData.projectName.trim() !== '';
+    const hasCustomerId = formData.customerId && formData.customerId.trim() !== '';
+    const hasEnquiryDate = formData.enquiryDate && formData.enquiryDate.trim() !== '';
+    const hasStage = formData.stage && formData.stage.trim() !== '';
+    const hasTotalProjectValue = formData.totalProjectValue && formData.totalProjectValue.toString().trim() !== '';
+    const hasScopeOfWork = formData.scopeOfWork.length > 0;
     
-    return requiredFields.every(field => {
-      const value = formData[field];
-      const error = validateField(field, value);
-      return !error && value && (field !== 'scopeOfWork' || value.length > 0);
+    // Check if there are any validation errors
+    const hasErrors = Object.keys(errors).some(key => 
+      errors[key] && errors[key] !== '' && 
+      ['projectName', 'customerId', 'enquiryDate', 'stage', 'totalProjectValue', 'scopeOfWork'].includes(key)
+    );
+    
+    console.log('Form completion check:', {
+      hasProjectName,
+      hasCustomerId,
+      hasEnquiryDate,
+      hasStage,
+      hasTotalProjectValue,
+      hasScopeOfWork,
+      hasErrors,
+      formData,
+      errors
     });
+    
+    return hasProjectName && hasCustomerId && hasEnquiryDate && hasStage && 
+           hasTotalProjectValue && hasScopeOfWork && !hasErrors;
   };
 
   // Determine button text and disabled states
@@ -556,6 +567,7 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
                   error={errors.customerId}
                   required
                   disabled={!!project}
+                  placeholder="Select customer"
                 />
               </div>
             </div>
@@ -570,6 +582,7 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
                 onBlur={handleBlur}
                 error={errors.enquiryDate}
                 required
+                placeholder="Select date"
               />
 
               <FloatingInput
@@ -582,7 +595,7 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
                 options={stageOptions}
                 error={errors.stage}
                 required
-
+                placeholder="Select stage"
               />
             </div>
 
@@ -626,23 +639,8 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
                   </button>
                 ))}
               </div>
-              {formData.scopeOfWork.length > 0 && (
-                <div className="mt-3">
-                  <p className="text-sm text-gray-600 font-medium">Selected ({formData.scopeOfWork.length}):</p>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {formData.scopeOfWork.map(scope => (
-                      <span
-                        key={scope}
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
-                      >
-                        {formatScopeName(scope)}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {!errors.scopeOfWork && touchedFields.scopeOfWork && (
-                <p className="mt-2 text-sm text-gray-500">Select at least one scope of work</p>
+              {!errors.scopeOfWork && touchedFields.scopeOfWork && formData.scopeOfWork.length === 0 && (
+                <p className="mt-2 text-sm text-red-500">Please select at least one scope of work</p>
               )}
             </div>
           </div>
@@ -651,7 +649,6 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
 
       {/* Fixed Action Buttons */}
       <div className="flex-shrink-0 border-t border-gray-200 pt-4 mt-4">
-        <p className="text-sm text-gray-500"> Please fill all required fields (*) </p>
         <div className="flex justify-end space-x-3">
           <button
             type="button"
@@ -663,7 +660,7 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
           <button
             type="submit"
             onClick={handleSubmit}
-            disabled={loading || !isFormComplete()}
+            disabled={loading}
             className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
           >
             {submitButtonText}

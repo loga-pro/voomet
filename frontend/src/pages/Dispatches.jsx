@@ -213,8 +213,7 @@ const Dispatches = () => {
   const exportToCSV = () => {
     const headers = [
       'Date', 'Dispatch Category', 'Work Category', 'Part Name', 'Customer Name',
-      'Invoice No', 'Invoice Date', 'Quantity', 'Unit', 
-      'Invoice Value', 'GST Value', 'Total Value', 'Status'
+       'Quantity', 'Unit'
     ];
     
     const csvData = filteredDispatches.map(dispatch => [
@@ -787,7 +786,7 @@ const Dispatches = () => {
             {/* Header */}
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-gray-800">Dispatch #{selectedDispatch.invoiceNo || 'N/A'}</h2>
+                <h2 className="text-xl font-semibold text-gray-800">Dispatch</h2>
                 <div className="mt-1 flex items-center space-x-2">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${categoryColors[selectedDispatch.dispatchCategory] || 'bg-gray-100 text-gray-800'}`}>
                     {selectedDispatch.dispatchCategory?.toUpperCase()}
@@ -818,11 +817,7 @@ const Dispatches = () => {
                   <p className="text-sm text-gray-900 font-medium">{formatDate(selectedDispatch.date)}</p>
                 </div>
                 
-                <div className="space-y-1">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Invoice Date</h4>
-                  <p className="text-sm text-gray-900 font-medium">{formatDate(selectedDispatch.invoiceDate)}</p>
-                </div>
-                
+             
                 <div className="space-y-1">
                   <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Part Name</h4>
                   <p className="text-sm text-gray-900 font-medium">{selectedDispatch.partName}</p>
@@ -843,31 +838,6 @@ const Dispatches = () => {
                   <p className="text-sm text-gray-900 font-medium">
                     {selectedDispatch.quantity} {selectedDispatch.unit}
                   </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Financial Information Card */}
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
-              <h3 className="text-md font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                <BanknotesIcon className="h-5 w-5 mr-2 text-green-500" />
-                Financial Details
-              </h3>
-              
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Invoice Value (without GST):</span>
-                  <span className="font-medium">{formatCurrency(selectedDispatch.invoiceValueWithoutGST || 0)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">GST Value (18%):</span>
-                  <span className="font-medium">{formatCurrency(selectedDispatch.gstValue || 0)}</span>
-                </div>
-                <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                  <span className="text-sm font-semibold text-gray-700">Total Value:</span>
-                  <span className="text-lg font-bold text-green-600">
-                    {formatCurrency(selectedDispatch.totalValue || 0)}
-                  </span>
                 </div>
               </div>
             </div>

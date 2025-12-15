@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { customersAPI, projectsAPI } from '../../services/api';
 import FloatingInput from './FloatingInput'; 
+import useNotification from '../../hooks/useNotification';
 
 const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) => {
   const [formData, setFormData] = useState({
@@ -19,6 +20,7 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [selectedProjects, setSelectedProjects] = useState([]);
   const [touchedFields, setTouchedFields] = useState({});
+  const { showSuccess, showError } = useNotification();
 
   useEffect(() => {
     fetchRelevantProjects();
@@ -251,7 +253,7 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
   const validateForm = () => {
     const newErrors = {};
     const fieldsToValidate = [
-      'clientName',
+      'customerName',
       'customerEmail',
       'invoiceEmail',
       'address',
@@ -276,21 +278,28 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      showError('Please fix all validation errors before submitting.');
+      return;
+    }
 
     setLoading(true);
     try {
       if (customer) {
         await customersAPI.update(customer._id, formData);
+        showSuccess('Customer updated successfully!');
       } else {
         await customersAPI.create(formData);
+        showSuccess('Customer created successfully!');
       }
       onSubmit();
     } catch (error) {
       if (error.response?.data?.message) {
         setErrors({ submit: error.response.data.message });
+        showError(error.response.data.message);
       } else {
         setErrors({ submit: 'An error occurred. Please try again.' });
+        showError('An error occurred. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -459,7 +468,6 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
 
       {/* Fixed Action Buttons */}
       <div className="flex-shrink-0 border-t border-gray-200 pt-4 mt-4">
-        <p className="text-sm text-gray-500"> Please fill all required fields (*) </p>
         <div className="flex justify-end space-x-3">
           <button
             type="button"
@@ -471,7 +479,7 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
           <button
             type="submit"
             onClick={handleSubmit}
-            disabled={loading || !isFormComplete()}
+            disabled={loading}
             className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
           >
             {loading ? 'Saving...' : customer ? 'Update Customer' : 'Create Customer'}

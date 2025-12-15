@@ -10,7 +10,9 @@ import {
   TrashIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  BuildingOfficeIcon,
+  CreditCardIcon
 } from '@heroicons/react/24/outline';
 import PaymentForm from '../components/Forms/VpaymentForm';
 import Modal from '../components/Modals/Modal';
@@ -655,80 +657,162 @@ const VendorPaymentManagement = () => {
 
         {/* Rest of your modals remain the same */}
         <Modal
-          isOpen={showModal || !!viewingPayment}
-          onClose={() => {
-            setShowModal(false);
-            setEditingPayment(null);
-            setViewingPayment(null);
-          }}
-          title={
-            viewingPayment
-              ? 'Payment Details'
-              : editingPayment
-                ? 'Edit Payment'
-                : 'Add Payment'
-          }
-          size="lg"
-        >
-          {viewingPayment ? (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Vendor</label>
-                  <p className="mt-1 text-sm text-gray-900">{viewingPayment.vendor?.vendorName || viewingPayment.vendor}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Vendor GST Number</label>
-                  <p className="mt-1 text-sm text-gray-900">{viewingPayment.vendorGstNumber}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Vendor Account Number</label>
-                  <p className="mt-1 text-sm text-gray-900">{viewingPayment.vendorAccountNumber}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Total Invoice Raised</label>
-                  <p className="mt-1 text-sm text-gray-900">₹{viewingPayment.totalInvoiceRaised?.toFixed(2)?.toLocaleString()}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Total Payments</label>
-                  <p className="mt-1 text-sm text-gray-900">₹{viewingPayment.totalPayments?.toFixed(2)?.toLocaleString()}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Balance Amount</label>
-                  <p className="mt-1 text-sm text-gray-900">₹{viewingPayment.balanceAmount?.toFixed(2)?.toLocaleString()}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Status</label>
-                  <p className="mt-1 text-sm text-gray-900 capitalize">{viewingPayment.status}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Invoices Count</label>
-                  <p className="mt-1 text-sm text-gray-900">{viewingPayment.invoices?.length || 0}</p>
-                </div>
-              </div>
-              <div className="flex justify-end pt-4">
-                <button
-                  onClick={() => {
-                    setShowModal(false);
-                    setViewingPayment(null);
-                  }}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                >
-                  Close
-                </button>
+  isOpen={showModal || !!viewingPayment}
+  onClose={() => {
+    setShowModal(false);
+    setEditingPayment(null);
+    setViewingPayment(null);
+  }}
+  title={viewingPayment ? 'Vendor Payment Details' : editingPayment ? 'Edit Payment' : 'Add Payment'}
+  size="lg"
+  className="font-sans"
+>
+  {viewingPayment ? (
+    <div className="space-y-6">
+
+      {/* Main Grid - 2 columns */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Left Column - Vendor Details */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-gray-900 flex items-center">
+            <BuildingOfficeIcon className="h-5 w-5 mr-2 text-blue-600" />
+            Vendor Information
+          </h3>
+          
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Vendor Name</label>
+              <div className="text-sm text-gray-900 bg-blue-50 p-2 rounded border border-blue-100">
+                {viewingPayment.vendor?.vendorName || viewingPayment.vendor}
               </div>
             </div>
-          ) : (
-            <PaymentForm
-              payment={editingPayment}
-              onSubmit={handleFormSubmit}
-              onCancel={() => {
+            
+            {viewingPayment.vendorGstNumber && (
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">GST Number</label>
+                <div className="text-sm font-mono text-gray-900 bg-gray-50 p-2 rounded border border-gray-200">
+                  {viewingPayment.vendorGstNumber}
+                </div>
+              </div>
+            )}
+            
+            {viewingPayment.vendorAccountNumber && (
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Account Number</label>
+                <div className="text-sm font-mono text-gray-900 bg-gray-50 p-2 rounded border border-gray-200">
+                  {viewingPayment.vendorAccountNumber}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column - Payment Summary */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-gray-900 flex items-center">
+            <CreditCardIcon className="h-5 w-5 mr-2 text-green-600" />
+            Payment Summary
+          </h3>
+          
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Invoices Raised</label>
+              <div className="flex justify-between items-center text-sm bg-gray-50 p-2 rounded border border-gray-200">
+                <span className="text-gray-700">Total</span>
+                <span className="font-semibold text-gray-900">
+                  ₹{viewingPayment.totalInvoiceRaised?.toFixed(2)?.toLocaleString()}
+                </span>
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Payments Made</label>
+              <div className="flex justify-between items-center text-sm bg-green-50 p-2 rounded border border-green-100">
+                <span className="text-gray-700">Total Paid</span>
+                <span className="font-semibold text-green-700">
+                  ₹{viewingPayment.totalPayments?.toFixed(2)?.toLocaleString()}
+                </span>
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Balance Amount</label>
+              <div className="flex justify-between items-center text-sm bg-amber-50 p-2 rounded border border-amber-100">
+                <span className="text-gray-700">Pending</span>
+                <span className="font-bold text-amber-700">
+                  ₹{viewingPayment.balanceAmount?.toFixed(2)?.toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Section - Status & Actions */}
+      <div className="pt-4 border-t border-gray-200">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Status Card */}
+          <div>
+            <h3 className="font-semibold text-gray-900 mb-3">Payment Status</h3>
+            <div className={`p-3 rounded-lg border ${
+              viewingPayment.status === 'paid' ? 'bg-green-50 border-green-200 text-green-700' :
+              viewingPayment.status === 'pending' ? 'bg-yellow-50 border-yellow-200 text-yellow-700' :
+              viewingPayment.status === 'overdue' ? 'bg-red-50 border-red-200 text-red-700' :
+              'bg-gray-50 border-gray-200 text-gray-700'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-medium capitalize">{viewingPayment.status}</span>
+                  <div className="text-xs text-gray-600 mt-1">
+                    {viewingPayment.invoices?.length || 0} invoice(s)
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-lg font-bold">
+                    ₹{viewingPayment.totalInvoiceRaised?.toFixed(2)?.toLocaleString()}
+                  </div>
+                  <div className="text-xs text-gray-600">Total Raised</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end items-center space-x-3">
+            <button
+              onClick={() => {
                 setShowModal(false);
-                setEditingPayment(null);
+                setViewingPayment(null);
               }}
-            />
-          )}
-        </Modal>
+              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            >
+              Close
+            </button>
+            <button
+              onClick={() => {
+                setEditingPayment(viewingPayment);
+                setViewingPayment(null);
+                setShowModal(true);
+              }}
+              className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+            >
+              Edit Payment
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : (
+    <PaymentForm
+      payment={editingPayment}
+      onSubmit={handleFormSubmit}
+      onCancel={() => {
+        setShowModal(false);
+        setEditingPayment(null);
+      }}
+    />
+  )}
+</Modal>
 
         {/* Delete Confirmation Modal */}
         <Modal

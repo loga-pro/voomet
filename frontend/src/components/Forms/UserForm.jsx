@@ -20,10 +20,10 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
     "dashboard",
     "employee_master",
     "employee_access",
-    "part_master",
     "customer_master",
     "project_master",
     "vendor_master",
+    "part_master",
     'customer_boq',
     'inhouse_boq',
     "milestone_management",
@@ -33,11 +33,12 @@ const UserForm = ({ user, onSubmit, onCancel }) => {
     "payment_master",
     "project_budget",
     "logistic_expenditure",
+    "miscellaneous_expenditure",
     "project_expenditure",
     "purchase_request",
     "production_management",
     "reports",
-    "miscellaneous_expenditure"
+
   ];
 
   const roleOptions = [
