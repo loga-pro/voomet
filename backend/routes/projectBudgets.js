@@ -110,7 +110,19 @@ router.get('/:id', auth, async (req, res) => {
 // POST /api/project-budgets
 router.post('/', auth, async (req, res) => {
   try {
-    // Clean arrays (backend-side guard)
+    // Check for duplicate project budget (same project name and financial year)
+    const existingBudget = await ProjectBudget.findOne({
+      projectName: req.body.projectName,
+      financialYear: req.body.financialYear
+    });
+
+    if (existingBudget) {
+      return res.status(409).json({ 
+        message: `A budget for project "${req.body.projectName}" already exists for financial year ${req.body.financialYear}. Please edit the existing budget instead of creating a duplicate.`,
+        existingBudgetId: existingBudget._id
+      });
+    }
+
     // Clean arrays (backend-side guard)
     const projectExpenditures = cleanProjectExpenditures(req.body.projectExpenditures || []);
     const logisticExpenditures = cleanLogisticExpenditures(req.body.logisticExpenditures || []);
@@ -161,6 +173,20 @@ router.post('/', auth, async (req, res) => {
 // PUT /api/project-budgets/:id
 router.put('/:id', auth, async (req, res) => {
   try {
+    // Check for duplicate project budget (excluding the current budget being updated)
+    const existingBudget = await ProjectBudget.findOne({
+      _id: { $ne: req.params.id },
+      projectName: req.body.projectName,
+      financialYear: req.body.financialYear
+    });
+
+    if (existingBudget) {
+      return res.status(409).json({ 
+        message: `A budget for project "${req.body.projectName}" already exists for financial year ${req.body.financialYear}. Cannot update to create a duplicate.`,
+        existingBudgetId: existingBudget._id
+      });
+    }
+
     const projectExpenditures = cleanProjectExpenditures(req.body.projectExpenditures || []);
     const logisticExpenditures = cleanLogisticExpenditures(req.body.logisticExpenditures || []);
 

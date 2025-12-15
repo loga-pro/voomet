@@ -48,6 +48,10 @@ const projectBudgetSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });
 
+// Create a compound unique index to prevent duplicate budgets for the same project and financial year
+projectBudgetSchema.index({ projectName: 1, financialYear: 1 }, { unique: true });
+
+
 // Calculate amountSpent and net profit/loss before saving
 projectBudgetSchema.pre('save', function(next) {
   try {
