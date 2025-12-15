@@ -10,7 +10,7 @@ import { boqAPI, reportsAPI, projectsAPI, API_BASE_URL } from '../../services/ap
 import { CheckCircleIcon } from 'lucide-react';
 import EmailCompose from '../EmailCompose/emailCompose';
 
-const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEstimateNumber = true }) => {
+const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEstimateNumber = true, showEditableControls = true }) => {
   console.log("boqData", boqData)
   const [companyLogo] = useState('/images/voomet-logo.png');
   const [companyInfo] = useState({
@@ -54,6 +54,13 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
     }
   }, [boqData.estimateNumber]);
 
+  // Initialize terms and conditions from boqData
+  useEffect(() => {
+    if (boqData.termsAndConditions && boqData.termsAndConditions.length > 0) {
+      setTermsAndConditions(boqData.termsAndConditions);
+    }
+  }, [boqData.termsAndConditions]);
+
   // Fetch projects and find matching project name
   useEffect(() => {
     const fetchProjects = async () => {
@@ -91,20 +98,48 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
     return `VOO/${randomNum}/${day}${month}${year}`;
   };
 
-  const addTerm = () => {
-    setTermsAndConditions([...termsAndConditions, "• New term..."]);
+  const addTerm = async () => {
+    const newTerms = [...termsAndConditions, "• New term..."];
+    setTermsAndConditions(newTerms);
+    
+    // Auto-save to database
+    if (boqData._id) {
+      try {
+        await boqAPI.update(boqData._id, { termsAndConditions: newTerms });
+      } catch (error) {
+        console.error('Error saving terms and conditions:', error);
+      }
+    }
   };
 
-  const removeTerm = (index) => {
+  const removeTerm = async (index) => {
     const newTerms = [...termsAndConditions];
     newTerms.splice(index, 1);
     setTermsAndConditions(newTerms);
+    
+    // Auto-save to database
+    if (boqData._id) {
+      try {
+        await boqAPI.update(boqData._id, { termsAndConditions: newTerms });
+      } catch (error) {
+        console.error('Error saving terms and conditions:', error);
+      }
+    }
   };
 
-  const updateTerm = (index, value) => {
+  const updateTerm = async (index, value) => {
     const newTerms = [...termsAndConditions];
     newTerms[index] = value;
     setTermsAndConditions(newTerms);
+    
+    // Auto-save to database
+    if (boqData._id) {
+      try {
+        await boqAPI.update(boqData._id, { termsAndConditions: newTerms });
+      } catch (error) {
+        console.error('Error saving terms and conditions:', error);
+      }
+    }
   };
 
   // Save custom estimate number to database
@@ -457,62 +492,64 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
           </div>
         </div>
 
-        {/* Editable Controls */}
-        <div className="p-4 bg-blue-50 border-b print:hidden">
-          <div className={showEstimateNumber ? "grid grid-cols-1 md:grid-cols-2 gap-6" : "grid grid-cols-1"}>
-            {/* Estimate Number Editor - Only show if showEstimateNumber is true */}
-            {showEstimateNumber && (
-              <div>
-                <h3 className="font-semibold mb-3 text-blue-700">Estimate Number</h3>
-                <div className="flex items-center space-x-3">
-                  <input
-                    type="text"
-                    value={customEstimateNumber}
-                    onChange={(e) => handleEstimateNumberChange(e.target.value)}
-                    placeholder="Leave empty for auto-generated number"
-                    className="flex-1 p-2 border rounded text-sm"
-                  />
-                  {!customEstimateNumber && (
-                    <span className="text-sm text-blue-600 whitespace-nowrap">
-                      Auto: {generateBOQCode()}
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Terms & Conditions Editor */}
-            <div>
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-semibold text-blue-700">Terms & Conditions</h3>
-                <button
-                  onClick={addTerm}
-                  className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
-                >
-                  Add Term
-                </button>
-              </div>
-              <div className="space-y-2 max-h-40 overflow-y-auto">
-                {termsAndConditions.map((term, index) => (
-                  <div key={index} className="flex items-center space-x-2">
+        {/* Editable Controls - Only show if showEditableControls is true */}
+        {showEditableControls && (
+          <div className="p-4 bg-blue-50 border-b print:hidden">
+            <div className={showEstimateNumber ? "grid grid-cols-1 md:grid-cols-2 gap-6" : "grid grid-cols-1"}>
+              {/* Estimate Number Editor - Only show if showEstimateNumber is true */}
+              {showEstimateNumber && (
+                <div>
+                  <h3 className="font-semibold mb-3 text-blue-700">Estimate Number</h3>
+                  <div className="flex items-center space-x-3">
                     <input
                       type="text"
-                      value={term}
-                      onChange={(e) => updateTerm(index, e.target.value)}
+                      value={customEstimateNumber}
+                      onChange={(e) => handleEstimateNumberChange(e.target.value)}
+                      placeholder="Leave empty for auto-generated number"
                       className="flex-1 p-2 border rounded text-sm"
                     />
-                    <button
-                      onClick={() => removeTerm(index)}
-                      className="bg-red-600 hover:bg-red-700 text-white p-1 rounded"
-                    >
-                      <XMarkIcon className="h-4 w-4" />
-                    </button>
+                    {!customEstimateNumber && (
+                      <span className="text-sm text-blue-600 whitespace-nowrap">
+                        Auto: {generateBOQCode()}
+                      </span>
+                    )}
                   </div>
-                ))}
+                </div>
+              )}
+
+              {/* Terms & Conditions Editor */}
+              <div>
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-semibold text-blue-700">Terms & Conditions</h3>
+                  <button
+                    onClick={addTerm}
+                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
+                  >
+                    Add Term
+                  </button>
+                </div>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {termsAndConditions.map((term, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={term}
+                        onChange={(e) => updateTerm(index, e.target.value)}
+                        className="flex-1 p-2 border rounded text-sm"
+                      />
+                      <button
+                        onClick={() => removeTerm(index)}
+                        className="bg-red-600 hover:bg-red-700 text-white p-1 rounded"
+                      >
+                        <XMarkIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* PDF Content */}
         <div className="flex-1 overflow-auto bg-blue-100 p-4">
@@ -594,12 +631,10 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                       </div>
                     </div>
                     <div className="space-y-2">
-                      {showEstimateNumber && (
-                        <div className="flex">
-                          <span className="font-bold w-28 text-sm">ESTIMATE :</span>
-                          <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm font-mono">{boqCode}</span>
-                        </div>
-                      )}
+                      <div className="flex">
+                        <span className="font-bold w-28 text-sm">ESTIMATE :</span>
+                        <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm font-mono">{boqCode}</span>
+                      </div>
                       <div className="flex">
                         <span className="font-bold w-28 text-sm">DATE:</span>
                         <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm">{currentDate}</span>
