@@ -781,13 +781,7 @@ const MilestoneTracking = () => {
               </div>
 
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-                <button
-                  onClick={exportToCSV}
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
-                  Export CSV
-                </button>
+               
 
                 <button
                   onClick={() => setShowFilters(!showFilters)}
@@ -804,7 +798,7 @@ const MilestoneTracking = () => {
                     </span>
                   )}
                 </button>
-
+                  
                 {Object.values(filters).some(Boolean) && (
                   <button
                     onClick={clearFilters}
@@ -814,6 +808,14 @@ const MilestoneTracking = () => {
                     Clear
                   </button>
                 )}
+
+                 <button
+                  onClick={exportToCSV}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
+                  Export CSV
+                </button>
               </div>
             </div>
           </div>

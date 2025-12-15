@@ -168,7 +168,6 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
           { key: 'projectName', displayName: 'Project Name' },
           { key: 'startDate', displayName: 'Start Date' },
           { key: 'endDate', displayName: 'End Date' },
-          { key: 'projectStatus', displayName: 'Status' }
         ]
       },
       payment: {
@@ -563,13 +562,13 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                         key={index}
                         style={{
                           border: '1px solid #9ca3af',
-                          padding: '8px 6px',
+                          padding: '6px 4px',
                           textAlign: 'left',
                           fontWeight: 'bold',
                           color: '#374151',
+                          fontSize: '9px',
                           whiteSpace: 'normal',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
+                          wordWrap: 'break-word'
                         }}
                       >
                         {header.displayName}
@@ -588,11 +587,11 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                           key={colIndex}
                           style={{
                             border: '1px solid #d1d5db',
-                            padding: '6px',
+                            padding: '5px 4px',
+                            fontSize: '9px',
                             whiteSpace: 'normal',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            wordBreak: 'break-word'
+                            wordWrap: 'break-word',
+                            verticalAlign: 'top'
                           }}
                         >
                           {row[header.key]}
@@ -726,7 +725,10 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                             <td style={{
                               border: '1px solid #d1d5db',
                               padding: '4px',
-                              fontSize: '9px'
+                              fontSize: '9px',
+                              whiteSpace: 'normal',
+                              wordWrap: 'break-word',
+                              verticalAlign: 'top'
                             }}>
                               {task.task || '-'}
                             </td>
@@ -736,7 +738,7 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                               fontSize: '9px',
                               textAlign: 'center'
                             }}>
-                              {task.duration || 0} days
+                              {task.duration || 0} day
                             </td>
                             <td style={{
                               border: '1px solid #d1d5db',
@@ -758,7 +760,9 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                               border: '1px solid #d1d5db',
                               padding: '4px',
                               fontSize: '9px',
-                              whiteSpace: 'nowrap'
+                              whiteSpace: 'normal',
+                              wordWrap: 'break-word',
+                              verticalAlign: 'top'
                             }}>
                               {task.responsiblePerson || '-'}
                             </td>
