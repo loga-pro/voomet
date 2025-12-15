@@ -22,6 +22,11 @@ const MinusIcon = () => (
   </svg>
 );
 
+// Helper function to get allowed file types in words
+const getAllowedFileTypesText = () => {
+  return "Images (JPEG, PNG, GIF, BMP, WebP, SVG, TIFF) and PDF files";
+};
+
 const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItems }) => {
   const [formData, setFormData] = useState({
     customer: '',
@@ -183,6 +188,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
         : [{ discount: '', Installment: 1 }]
     };
 
+    console.log('BOQForm: Setting formData with projectName =', finalFormData.projectName);
     setFormData(finalFormData);
     setIsInitialLoad(false);
   }, [boq]);
@@ -426,11 +432,11 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
         // If no scopes selected or item's part doesn't match any selected scope
         const itemPart = newFilteredParts.find(p => p.partName === item.partName);
         if (!itemPart) {
-          return {
-            ...item,
-            partName: '',
-            unitType: '',
-            unitPrice: ''
+      return {
+          ...item,
+          partName: '',
+          unitType: '',
+          unitPrice: ''
           };
         }
         return item;
@@ -492,11 +498,11 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     const file = e.target.files && e.target.files[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      showLocalNotification('File size must be less than 5MB', 'error');
+      showLocalNotification(`File size must be less than 5MB. Allowed: ${getAllowedFileTypesText()}`, 'error');
       return;
     }
     if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
-      showLocalNotification('Only images and PDF files are allowed', 'error');
+      showLocalNotification(`Only ${getAllowedFileTypesText()} are allowed`, 'error');
       return;
     }
     const updatedItems = [...formData.items];
@@ -529,9 +535,11 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
 
   const handleFileUpload = (index, file) => {
     const isImage = file.type.startsWith('image/');
-    if (!isImage) {
+    const isPDF = file.type === 'application/pdf';
+    
+    if (!isImage && !isPDF) {
       showLocalNotification(
-        'You can only upload image files!',
+        `You can only upload ${getAllowedFileTypesText()}!`,
         "error"
       );
       return false;
@@ -540,7 +548,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     const isLt5M = file.size / 1024 / 1024 < 5;
     if (!isLt5M) {
       showLocalNotification(
-        'Image must be smaller than 5MB!',
+        'File must be smaller than 5MB!',
         "error"
       );
       return false;
@@ -790,6 +798,24 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       if (onSubmit) onSubmit();
     } catch (error) {
       console.error('Error submitting BOQ:', error);
+      
+      // Handle duplicate BOQ error (409 Conflict)
+      if (error.response?.status === 409) {
+        const duplicateMessage = `A BOQ already exists for "${formData.customer}" and project "${formData.projectName}". Please use a different customer or project name combination.`;
+        setErrors(prev => ({ 
+          ...prev, 
+          submit: duplicateMessage,
+          customer: 'Duplicate combination',
+          projectName: 'Duplicate combination'
+        }));
+        if (showError) {
+          showError(duplicateMessage);
+        } else {
+          showLocalNotification(duplicateMessage, 'error');
+        }
+        return;
+      }
+      
       const errorMessage = error.response?.data?.message || 'An error occurred. Please try again.';
       setErrors(prev => ({ ...prev, submit: errorMessage }));
       if (showError) {
@@ -990,23 +1016,23 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                   required
                 />
               ) : (
-                <FloatingInput
-                  label="Project Name"
-                  name="projectName"
-                  value={formData.projectName}
-                  onChange={handleChange}
-                  error={errors.projectName}
-                  type="select"
-                  options={[
-                    { value: '', label: 'Select Project' },
-                    ...projects.map(project => ({
-                      value: project.projectName,
-                      label: project.projectName
-                    }))
-                  ]}
-                  required
-                  disabled={!formData.customer || projects.length === 0}
-                />
+              <FloatingInput
+                label="Project Name"
+                name="projectName"
+                value={formData.projectName}
+                onChange={handleChange}
+                error={errors.projectName}
+                type="select"
+                options={[
+                  { value: '', label: 'Select Project' },
+                  ...projects.map(project => ({
+                    value: project.projectName,
+                    label: project.projectName
+                  }))
+                ]}
+                required
+                disabled={!formData.customer || projects.length === 0}
+              />
               )}
 
               {/* Scope of Work */}
@@ -1091,8 +1117,8 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                       options={
                         formData.scopeOfWork && formData.scopeOfWork.length > 0
                           ? [{ value: '', label: 'Select Part' }, ...filteredParts.map(part => ({
-                              value: part.partName,
-                              label: `${part.partName}`
+                        value: part.partName,
+                        label: `${part.partName}`
                             }))]
                           : [{ value: '', label: 'Select Scope of Work first' }]
                       }
@@ -1148,14 +1174,22 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
 
 
                     <div className="md:col-span-2">
-                      <Upload {...createUploadProps(index)}>
+                      <Upload 
+                        {...createUploadProps(index)}
+                        accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.svg,.tiff,.pdf"
+                      >
                         <Button
                           icon={<UploadOutlined />}
                           className="w-full"
+                          title={`Upload ${getAllowedFileTypesText()}, Max 5MB`}
                         >
-                          {item.image ? item.image.name : 'Click to Upload Image'}
+                          {item.image ? item.image.name : 'Click to Upload File'}
                         </Button>
                       </Upload>
+
+                      <p className="mt-1 text-xs text-gray-500">
+                        Allowed: {getAllowedFileTypesText()}, Max size: 5MB
+                      </p>
 
                       {item.image && (
                         <div className="mt-2 text-sm text-gray-600">

@@ -592,8 +592,8 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true }) => {
                       <tr className="bg-blue-200">
                         <th className="border border-blue-800 p-2 font-bold text-left">DESCRIPTION</th>
                         <th className="border border-blue-800 p-2 font-bold text-center">SPECIFICATION</th>
-                        <th className="border border-blue-800 p-2 font-bold text-center">QTY</th>
-                        <th className="border border-blue-800 p-2 font-bold text-center">UNIT</th>
+                        <th className="border border-blue-800 p-2 font-bold text-center">QUANTITY</th>
+                        <th className="border border-blue-800 p-2 font-bold text-center">UNIT TYPE</th>
                         {hasInOffice && <>
                           <th className="border border-blue-800 p-2 font-bold text-center">RATE (₹)</th>
                           <th className="border border-blue-800 p-2 font-bold text-center">AMOUNT (₹)</th>

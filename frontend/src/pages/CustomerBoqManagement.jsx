@@ -359,7 +359,7 @@ const CustomerBoqManagement = () => {
         "Customer",
         "Scope of Work",
         "Part Name",
-        "Number of Units",
+        "QUANTITY",
         "Unit Type",
         "Unit Price (IN RUPEES)",
         "Item Total Price (IN RUPEES)",

@@ -109,6 +109,26 @@ router.post('/', auth, upload.any(), async (req, res) => {
 
     const boqData = { ...req.body };
 
+    // Check for duplicate BOQ (same customer + project name)
+    if (boqData.customer && boqData.projectName) {
+      const existingBOQ = await BOQ.findOne({
+        customer: boqData.customer,
+        projectName: boqData.projectName
+      });
+
+      if (existingBOQ) {
+        return res.status(409).json({
+          message: 'A BOQ already exists for this customer and project combination',
+          error: 'Duplicate BOQ entry',
+          details: {
+            customer: boqData.customer,
+            projectName: boqData.projectName,
+            existingBOQId: existingBOQ._id
+          }
+        });
+      }
+    }
+
     // Parse scopeOfWork if it's a string
     if (typeof boqData.scopeOfWork === 'string') {
       boqData.scopeOfWork = boqData.scopeOfWork.split(',');
@@ -176,6 +196,16 @@ router.post('/', auth, upload.any(), async (req, res) => {
     res.status(201).json(transformedItem);
   } catch (error) {
     console.error('Error creating BOQ item:', error);
+    
+    // Handle MongoDB duplicate key error
+    if (error.code === 11000) {
+      return res.status(409).json({
+        message: 'A BOQ already exists for this customer and project combination',
+        error: 'Duplicate BOQ entry',
+        details: error.keyValue
+      });
+    }
+    
     res.status(500).json({
       message: 'Server error',
       error: error.message,
@@ -193,6 +223,27 @@ router.put('/:id', auth, upload.any(), async (req, res) => {
     console.log('Updating BOQ item:', req.params.id, 'with data:', req.body);
 
     const updateData = { ...req.body };
+
+    // Check for duplicate BOQ if customer or projectName is being updated
+    if (updateData.customer && updateData.projectName) {
+      const existingBOQ = await BOQ.findOne({
+        customer: updateData.customer,
+        projectName: updateData.projectName,
+        _id: { $ne: req.params.id } // Exclude the current BOQ being updated
+      });
+
+      if (existingBOQ) {
+        return res.status(409).json({
+          message: 'A BOQ already exists for this customer and project combination',
+          error: 'Duplicate BOQ entry',
+          details: {
+            customer: updateData.customer,
+            projectName: updateData.projectName,
+            existingBOQId: existingBOQ._id
+          }
+        });
+      }
+    }
 
     // Parse scopeOfWork if it's a string
     if (typeof updateData.scopeOfWork === 'string') {
@@ -257,6 +308,16 @@ router.put('/:id', auth, upload.any(), async (req, res) => {
     res.json(transformedItem);
   } catch (error) {
     console.error('Error updating BOQ item:', error);
+    
+    // Handle MongoDB duplicate key error
+    if (error.code === 11000) {
+      return res.status(409).json({
+        message: 'A BOQ already exists for this customer and project combination',
+        error: 'Duplicate BOQ entry',
+        details: error.keyValue
+      });
+    }
+    
     res.status(500).json({
       message: 'Server error',
       error: error.message,

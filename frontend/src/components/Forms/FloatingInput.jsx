@@ -194,12 +194,12 @@ const FloatingInput = ({
             onBlur={() => setIsFocused(false)}
             max={type === 'date' && !props.max ? '9999-12-31' : props.max}
             className={`block w-full ${currentSize.input} text-gray-900 
-              bg-white rounded border
+              ${props.readOnly ? 'bg-gray-50' : 'bg-white'} rounded border
               ${type === 'date' ? 'pr-6' : 
                 type === 'password' ? 'pr-8' : ''}
               ${error ? 'border-red-500' : isFocused ? 'border-blue-500' : 'border-gray-300'} 
               focus:outline-none focus:border-blue-500 transition-all duration-200
-              ${props.disabled ? 'cursor-default' : ''}
+              ${props.disabled || props.readOnly ? 'cursor-default' : ''}
               ${type === 'date' ? '[&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-1 [&::-webkit-calendar-picker-indicator]:w-3 [&::-webkit-calendar-picker-indicator]:h-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer' : ''}`}
           />
           <label

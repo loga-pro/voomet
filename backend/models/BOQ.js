@@ -115,6 +115,9 @@ const boqSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
+// Compound unique index on customer and projectName
+// This ensures that each customer can only have one BOQ per project
+boqSchema.index({ customer: 1, projectName: 1 }, { unique: true });
 
 // Virtual for item description (compatibility)
 boqSchema.virtual('itemDescription').get(function () {
