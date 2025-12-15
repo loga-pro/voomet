@@ -111,11 +111,21 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
     const reportConfigs = {
       inventory: {
         headers: [
-          { key: 'scopeOfWork', displayName: 'Scope of Work' },
+          { key: 'workCategory', displayName: 'Work Category' },
           { key: 'partName', displayName: 'Part Name' },
-          { key: 'partPrice', displayName: 'Part Price (₹)' },
-          { key: 'cumulativeQuantityAtVoomet', displayName: 'Cumulative Quantity' },
-          { key: 'dateOfReceipt', displayName: 'Date of Receipt' }
+          { key: 'category', displayName: 'Category' },
+          { key: 'vendorName', displayName: 'Vendor Name' },
+          { key: 'reOrderLevel', displayName: 'Re-order Level' },
+          { key: 'stockAtFactory', displayName: 'Stock at Factory' },
+          { key: 'stockValueAtFactory', displayName: 'Stock Value at Factory (₹)' },
+          { key: 'stockSentToCustomer', displayName: 'Stock Sent to Customer' },
+          { key: 'stockValueSentToCustomer', displayName: 'Stock Value Sent to Customer (₹)' },
+          { key: 'stockReturnFromCustomer', displayName: 'Stock Return from Customer' },
+          { key: 'stockValueReturnFromCustomer', displayName: 'Stock Value Return from Customer (₹)' },
+          { key: 'stockReject', displayName: 'Stock Reject' },
+          { key: 'stockValueReject', displayName: 'Stock Value Reject (₹)' },
+          { key: 'totalStock', displayName: 'Total Stock' },
+          { key: 'totalStockValue', displayName: 'Total Stock Value (₹)' }
         ]
       },
       quality: {
@@ -188,13 +198,26 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
         // Handle alternative field names for different report types
         if (!value && value !== 0) {
           const altKeys = {
-            scopeOfWork: ['scopeOfWork', 'scope_of_work'],
+            workCategory: ['workCategory', 'scopeOfWork', 'scope_of_work'],
+            scopeOfWork: ['scopeOfWork', 'workCategory', 'scope_of_work'],
             partName: ['partName', 'part_name'],
             partPrice: ['partPrice', 'part_price', 'price'],
+            category: ['category', 'type'],
+            vendorName: ['vendorName', 'customerVendorName', 'vendor', 'vendorNames'],
+            reOrderLevel: ['reOrderLevel', 're_order_level', 'reorder_level'],
+            stockAtFactory: ['stockAtFactory', 'stock_at_factory'],
+            stockValueAtFactory: ['stockValueAtFactory', 'stock_value_at_factory'],
+            stockSentToCustomer: ['stockSentToCustomer', 'stock_sent_to_customer'],
+            stockValueSentToCustomer: ['stockValueSentToCustomer', 'stock_value_sent_to_customer'],
+            stockReturnFromCustomer: ['stockReturnFromCustomer', 'stock_return_from_customer'],
+            stockValueReturnFromCustomer: ['stockValueReturnFromCustomer', 'stock_value_return_from_customer'],
+            stockReject: ['stockReject', 'stock_reject', 'stockRejected'],
+            stockValueReject: ['stockValueReject', 'stock_value_reject', 'stockValueRejected'],
+            totalStock: ['totalStock', 'total_stock'],
+            totalStockValue: ['totalStockValue', 'total_stock_value'],
             cumulativeQuantityAtVoomet: ['cumulativeQuantityAtVoomet', 'cumulative_quantity', 'quantity'],
             dateOfReceipt: ['dateOfReceipt', 'date_of_receipt', 'receiptDate'],
             customer: ['customer', 'customerName', 'clientName'],
-            category: ['category', 'type'],
             status: ['status', 'state'],
             responsibility: ['responsibility', 'assignedTo'],
             createdAt: ['createdAt', 'created_at', 'dateCreated'],
@@ -209,7 +232,6 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
             totalProjectValue: ['totalProjectValue', 'totalValue', 'projectValue'],
             invoiceRaised: ['invoiceRaised', 'totalInvoiceRaised', 'totalInvoice', 'invoiceAmount'],
             paymentReceived: ['paymentReceived', 'totalPaymentReceived', 'payments', 'paidAmount'],
-            balanceAmount: ['balanceAmount', 'balance', 'remainingAmount'],
             taskCompleted: ['taskCompleted', 'taskCompletion', 'completedTasks'],
             milestoneCompletion: ['milestoneCompletion', 'milestoneCompletionRate', 'completionRate'],
             enquiryDate: ['enquiryDate', 'enquiry_date', 'startDate'],
@@ -237,8 +259,22 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
           } else {
             value = '-';
           }
-        } else if (key === 'scopeOfWork' && value) {
+        } else if ((key === 'scopeOfWork' || key === 'workCategory') && value) {
           value = value.replace(/_/g, ' ').toUpperCase();
+        } else if (key === 'vendorName') {
+          // Handle vendorName which might be an array or in rowData
+          if (Array.isArray(value)) {
+            value = value.join(', ');
+          } else if (!value && item.rowData?.[0]?.vendorNames) {
+            value = Array.isArray(item.rowData[0].vendorNames)
+              ? item.rowData[0].vendorNames.join(', ')
+              : item.rowData[0].vendorNames;
+          } else if (!value) {
+            value = item.customerVendorName || '-';
+          }
+        } else if (key === 'category' && !value) {
+          // Try to get category from rowData
+          value = item.rowData?.[0]?.category || '-';
         } else if (key === 'taskCompleted') {
           // Format task completion as "completed/total"
           if (value && typeof value === 'string' && value.includes('/')) {
@@ -258,7 +294,8 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
         } else if (typeof value === 'boolean') {
           value = value ? 'Yes' : 'No';
         } else {
-          value = value || '-';
+          // Handle 0 values properly - only use '-' for null/undefined
+          value = (value !== null && value !== undefined) ? value : '-';
         }
 
         row[key] = value;

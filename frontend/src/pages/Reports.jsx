@@ -366,10 +366,10 @@ const Reports = () => {
   };
 
   const processInventoryChartData = (inventory) => {
-    // Group by scope of work
+    // Group by work category
     const scopeCounts = inventory.reduce((acc, item) => {
-      const scope = item.scopeOfWork || 'Unknown';
-      acc[scope] = (acc[scope] || 0) + (item.cumulativeQuantityAtVoomet || 0);
+      const scope = item.workCategory || item.scopeOfWork || 'Unknown';
+      acc[scope] = (acc[scope] || 0) + (item.totalStock || item.cumulativeQuantityAtVoomet || 0);
       return acc;
     }, {});
 
@@ -490,7 +490,7 @@ const Reports = () => {
   };
 
   const getUniqueScopeOfWork = () => {
-    const scopes = inventoryData.map(item => item.scopeOfWork).filter(Boolean);
+    const scopes = inventoryData.map(item => item.workCategory || item.scopeOfWork).filter(Boolean);
     return [...new Set(scopes)].sort();
   };
 
@@ -513,13 +513,76 @@ const Reports = () => {
   // Helper for comparisons - only filters by scope, ignores time period
   const getScopeFilteredInventoryData = () => {
     if (!selectedScopeOfWork) return inventoryData;
-    return inventoryData.filter(item => item.scopeOfWork === selectedScopeOfWork);
+    return inventoryData.filter(item => (item.workCategory || item.scopeOfWork) === selectedScopeOfWork);
   };
 
   const getFilteredInventoryData = () => {
     // Return all data filtered by scope, ignoring time period for the main list/stats
     // to ensure the "Current Stock" view is always complete.
     return getScopeFilteredInventoryData();
+  };
+
+  // Process inventory data to add calculated stock fields for reports/PDF
+  const getProcessedInventoryData = () => {
+    const filteredData = getFilteredInventoryData();
+
+    return filteredData.map(item => {
+      // Calculate stock values from receipts and dispatches
+      const receipts = item.receipts || [];
+      const dispatches = item.dispatches || [];
+
+      // Separate regular receipts from returns
+      // If receiptCategory is not set or is 'buy', treat as regular receipt
+      const regularReceipts = receipts.filter(r => !r.receiptCategory || r.receiptCategory === 'buy' || r.receiptCategory === 'receipt');
+      const receiptReturns = receipts.filter(r => r.receiptCategory === 'return');
+
+      // Separate dispatches by category
+      const regularDispatches = dispatches.filter(d => d.dispatchCategory === 'dispatch');
+      const dispatchReturns = dispatches.filter(d => d.dispatchCategory === 'return');
+      const dispatchRejects = dispatches.filter(d => d.dispatchCategory === 'reject');
+
+      // Calculate quantities
+      const regularReceiptsQty = regularReceipts.reduce((sum, r) => sum + (parseFloat(r.quantity) || 0), 0);
+      const regularDispatchesQty = regularDispatches.reduce((sum, d) => sum + (parseFloat(d.quantity) || 0), 0);
+      const rejectsQty = dispatchRejects.reduce((sum, d) => sum + (parseFloat(d.quantity) || 0), 0);
+      const receiptReturnsQty = receiptReturns.reduce((sum, r) => sum + (parseFloat(r.quantity) || 0), 0);
+      const dispatchReturnsQty = dispatchReturns.reduce((sum, d) => sum + (parseFloat(d.quantity) || 0), 0);
+      const totalReturnsQty = receiptReturnsQty + dispatchReturnsQty;
+
+      // Calculate values
+      const regularReceiptsTotal = regularReceipts.reduce((sum, r) => sum + (parseFloat(r.totalValue) || 0), 0);
+      const regularDispatchesTotal = regularDispatches.reduce((sum, d) => sum + (parseFloat(d.totalValue) || 0), 0);
+      const rejectsTotal = dispatchRejects.reduce((sum, d) => sum + (parseFloat(d.totalValue) || 0), 0);
+      const receiptReturnsTotal = receiptReturns.reduce((sum, r) => sum + (parseFloat(r.totalValue) || 0), 0);
+      const dispatchReturnsTotal = dispatchReturns.reduce((sum, d) => sum + (parseFloat(d.totalValue) || 0), 0);
+      const totalReturnsValue = receiptReturnsTotal + dispatchReturnsTotal;
+
+      // Extract vendor name and category from rowData if available
+      const vendorName = item.rowData?.[0]?.vendorNames
+        ? (Array.isArray(item.rowData[0].vendorNames)
+          ? item.rowData[0].vendorNames.join(', ')
+          : item.rowData[0].vendorNames)
+        : (item.customerVendorName || item.vendorName || '');
+
+      const category = item.rowData?.[0]?.category || item.category || '';
+
+      return {
+        ...item,
+        vendorName: vendorName,
+        category: category,
+        // Use existing values from API or default to 0
+        stockAtFactory: item.stockAtFactory ?? 0,
+        stockValueAtFactory: item.stockValueAtFactory ?? 0,
+        stockSentToCustomer: item.stockSentToCustomer ?? 0,
+        stockValueSentToCustomer: item.stockValueSentToCustomer ?? 0,
+        stockReject: item.stockReject ?? item.stockRejected ?? 0,
+        stockValueReject: item.stockValueReject ?? item.stockValueRejected ?? 0,
+        stockReturnFromCustomer: item.stockReturnFromCustomer ?? 0,
+        stockValueReturnFromCustomer: item.stockValueReturnFromCustomer ?? item.inventoryReturnFromCustomerValue ?? 0,
+        totalStock: item.totalStock ?? 0,
+        totalStockValue: item.totalStockValue ?? 0
+      };
+    });
   };
 
   const getFilteredQualityData = () => {
@@ -536,12 +599,15 @@ const Reports = () => {
   const processFilteredInventoryChartData = () => {
     const filteredData = getFilteredInventoryData();
     const scopeData = filteredData.reduce((acc, item) => {
-      const scope = item.scopeOfWork || 'Unknown';
-      acc[scope] = (acc[scope] || 0) + (item.cumulativeQuantityAtVoomet || 0);
+      const scope = item.workCategory || item.scopeOfWork || 'Unknown';
+      acc[scope] = (acc[scope] || 0) + (item.totalStock || item.cumulativeQuantityAtVoomet || 0);
       return acc;
     }, {});
 
-    return Object.entries(scopeData).map(([name, value]) => ({ name, value }));
+    return Object.entries(scopeData)
+      .map(([name, value]) => ({ name: name.replace('_', ' ').toUpperCase(), value }))
+      .filter(item => item.value > 0)
+      .sort((a, b) => b.value - a.value);
   };
 
   const processFilteredQualityChartData = () => {
@@ -615,30 +681,22 @@ const Reports = () => {
 
     return filteredData
       .map(item => {
-        // Calculate total receipts (incoming quantity)
-        const totalReceipts = item.receipts?.reduce((sum, receipt) =>
-          sum + (parseFloat(receipt.quantity) || 0), 0) || 0;
+        // Use existing stock data from API
+        // Quantity = Current Stock = stockAtFactory
+        const currentStock = item.stockAtFactory || 0;
 
-        // Calculate total dispatches (outgoing quantity)
-        const totalDispatches = item.dispatches?.reduce((sum, dispatch) =>
-          sum + (parseFloat(dispatch.quantity) || 0), 0) || 0;
-
-        // Calculate total returns (returned quantity)
-        const totalReturns = item.returns?.reduce((sum, returnItem) =>
-          sum + (parseFloat(returnItem.quantity) || 0), 0) || 0;
-
-        // Current stock = receipts + returns - dispatches
-        const currentStock = totalReceipts + totalReturns - totalDispatches;
+        // Quantity dispatched = stockSentToCustomer
+        const dispatched = item.stockSentToCustomer || 0;
 
         return {
           name: typeof item.partName === 'string' ? item.partName.substring(0, 15) : "Unknown",
           Quantity: currentStock,
-          'Quantity dispatched': totalDispatches,
+          'Quantity dispatched': dispatched,
           partPrice: item.partPrice || 0
         };
       })
       .filter(item => item.Quantity > 0 || item['Quantity dispatched'] > 0) // Only show items with activity
-      .sort((a, b) => b.Quantity - a.Quantity) // Sort by current quantity
+      .sort((a, b) => b.Quantity - a.Quantity) // Sort by Quantity (Current Stock)
       .slice(0, 10); // Top 10 items
   };
 
@@ -967,20 +1025,64 @@ const Reports = () => {
             <h3 className="text-lg font-semibold text-gray-900">Inventory Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <p className="text-sm font-medium text-gray-500">Scope of Work</p>
-                <p className="text-sm text-gray-900">{data.scopeOfWork?.replace('_', ' ').toUpperCase() || 'N/A'}</p>
+                <p className="text-sm font-medium text-gray-500">Work Category</p>
+                <p className="text-sm text-gray-900">{(data.workCategory || data.scopeOfWork)?.replace('_', ' ').toUpperCase() || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Part Name</p>
                 <p className="text-sm text-gray-900">{data.partName || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">Part Price</p>
-                <p className="text-sm text-gray-900">₹{data.partPrice?.toLocaleString() || '0'}</p>
+                <p className="text-sm font-medium text-gray-500">Category</p>
+                <p className="text-sm text-gray-900">{data.rowData?.[0]?.category || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">Cumulative Quantity</p>
-                <p className="text-sm text-gray-900">{data.cumulativeQuantityAtVoomet || 0}</p>
+                <p className="text-sm font-medium text-gray-500">Vendor Name</p>
+                <p className="text-sm text-gray-900">{data.rowData?.[0]?.vendorNames?.join(', ') || data.customerVendorName || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Re-order level</p>
+                <p className="text-sm text-gray-900">{data.reOrderLevel || 0}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Stock at Factory</p>
+                <p className="text-sm text-gray-900">{data.stockAtFactory || 0}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Stock value at Factory</p>
+                <p className="text-sm text-gray-900">₹{(data.stockValueAtFactory || 0).toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Stock sent to Customer</p>
+                <p className="text-sm text-gray-900">{data.stockSentToCustomer || 0}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Stock value sent to Customer</p>
+                <p className="text-sm text-gray-900">₹{(data.stockValueSentToCustomer || 0).toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Stock return from Customer</p>
+                <p className="text-sm text-gray-900">{data.stockReturnFromCustomer || 0}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Stock value return from Customer</p>
+                <p className="text-sm text-gray-900">₹{(data.stockValueReturnFromCustomer || data.inventoryReturnFromCustomerValue || 0).toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Stock Reject</p>
+                <p className="text-sm text-gray-900">{data.stockReject || 0}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Stock value Reject</p>
+                <p className="text-sm text-gray-900">₹{(data.stockValueReject || 0).toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Total Stock</p>
+                <p className="text-sm text-gray-900">{data.totalStock || 0}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Total Stock value</p>
+                <p className="text-sm text-gray-900">₹{(data.totalStockValue || 0).toLocaleString()}</p>
               </div>
             </div>
           </div>
@@ -1543,11 +1645,21 @@ const Reports = () => {
     title: 'Inventory Reports',
     data: inventoryData,
     columns: [
-      { header: 'Scope of Work', accessor: row => row.scopeOfWork?.replace('_', ' ').toUpperCase() || 'N/A' },
+      { header: 'Work Category', accessor: row => (row.workCategory || row.scopeOfWork)?.replace('_', ' ').toUpperCase() || 'N/A' },
       { header: 'Part Name', accessor: 'partName' },
-      { header: 'Part Price (₹)', accessor: row => `₹${row.partPrice?.toLocaleString() || '0'}` },
-      { header: 'Cumulative Quantity', accessor: 'cumulativeQuantityAtVoomet' },
-      { header: 'Date of Receipt', accessor: row => row.dateOfReceipt ? new Date(row.dateOfReceipt).toLocaleDateString() : 'N/A' },
+      { header: 'Category', accessor: row => row.rowData?.[0]?.category || 'N/A' },
+      { header: 'Vendor Name', accessor: row => row.rowData?.[0]?.vendorNames?.join(', ') || row.customerVendorName || 'N/A' },
+      { header: 'Re-order level', accessor: row => row.reOrderLevel || 0 },
+      { header: 'Stock at Factory', accessor: row => row.stockAtFactory || 0 },
+      { header: 'Stock value at Factory', accessor: row => `₹${(row.stockValueAtFactory || 0).toLocaleString()}` },
+      { header: 'Stock sent to Customer', accessor: row => row.stockSentToCustomer || 0 },
+      { header: 'Stock value sent to Customer', accessor: row => `₹${(row.stockValueSentToCustomer || 0).toLocaleString()}` },
+      { header: 'Stock return from Customer', accessor: row => row.stockReturnFromCustomer || 0 },
+      { header: 'Stock value return from Customer', accessor: row => `₹${(row.stockValueReturnFromCustomer || row.inventoryReturnFromCustomerValue || 0).toLocaleString()}` },
+      { header: 'Stock Reject', accessor: row => row.stockReject || 0 },
+      { header: 'Stock value Reject', accessor: row => `₹${(row.stockValueReject || 0).toLocaleString()}` },
+      { header: 'Total Stock', accessor: row => row.totalStock || 0 },
+      { header: 'Total Stock value', accessor: row => `₹${(row.totalStockValue || 0).toLocaleString()}` },
       {
         header: 'Actions',
         accessor: (row) => (
@@ -1634,7 +1746,7 @@ const Reports = () => {
       case 'inventory':
         return {
           ...inventoryReportConfig,
-          data: getFilteredInventoryData()
+          data: getProcessedInventoryData() // Use processed data with calculated stock fields
         };
       case 'quality':
         return {
@@ -2385,10 +2497,10 @@ const Reports = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-white p-4 rounded-lg border border-gray-300">
                 <p className="text-sm text-gray-600">Total inventory value</p>
-                <p className="text-2xl font-bold text-gray-900">₹{getFilteredInventoryData().reduce((sum, item) => sum + ((item.partPrice || 0) * (item.cumulativeQuantityAtVoomet || 0)), 0).toLocaleString()}</p>
+                <p className="text-2xl font-bold text-gray-900">₹{getFilteredInventoryData().reduce((sum, item) => sum + (item.totalStockValue || (item.partPrice || 0) * (item.cumulativeQuantityAtVoomet || 0)), 0).toLocaleString()}</p>
               </div>
               <div className="bg-white p-4 rounded-lg border border-gray-300">
-                <p className="text-sm text-gray-600">Total scope of work</p>
+                <p className="text-sm text-gray-600">Total work categories</p>
                 <p className="text-2xl font-bold text-gray-900">{getUniqueScopeOfWork().length}</p>
               </div>
               <div className="bg-white p-4 rounded-lg border border-gray-300">
@@ -2396,8 +2508,8 @@ const Reports = () => {
                 <p className="text-2xl font-bold text-gray-900">{getFilteredInventoryData().length}</p>
               </div>
               <div className="bg-white p-4 rounded-lg border border-gray-300">
-                <p className="text-sm text-gray-600">Current Stock</p>
-                <p className="text-2xl font-bold text-gray-900">{getFilteredInventoryData().reduce((sum, item) => sum + (item.cumulativeQuantityAtVoomet || 0), 0)}</p>
+                <p className="text-sm text-gray-600">Total Stock</p>
+                <p className="text-2xl font-bold text-gray-900">{getFilteredInventoryData().reduce((sum, item) => sum + (item.totalStock || item.cumulativeQuantityAtVoomet || 0), 0)}</p>
               </div>
             </div>
 
@@ -2421,11 +2533,12 @@ const Reports = () => {
 
               {/* Product Dispatched (%) Pie Chart */}
               <div>
-                <h3 className="text-lg font-semibold mb-4">Product Dispatched (%) (Top 5 Scopes)</h3>
+                <h3 className="text-lg font-semibold mb-4">Product Distribution (%) (Top 5 Work Categories)</h3>
                 <ResponsiveContainer width="100%" height={300}>
+                  {processFilteredInventoryChartData().slice(0, 5).length > 0 ? (
                   <PieChart>
                     <Pie
-                      data={processFilteredInventoryChartData().slice(0, 5)} // Using your real data (by scope)
+                        data={processFilteredInventoryChartData().slice(0, 5)}
                       dataKey="value"
                       nameKey="name"
                       cx="50%"
@@ -2435,12 +2548,18 @@ const Reports = () => {
                       labelLine={false}
                       label={({ name, percent }) => `${name.substring(0, 8)} ${(percent * 100).toFixed(0)}%`}
                     >
-                      {COLORS.map((color, index) => (
-                        <Cell key={`cell-${index}`} fill={color} />
+                        {processFilteredInventoryChartData().slice(0, 5).map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #d1d5db', color: '#374151' }} />
+                      <Legend />
                   </PieChart>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-500">
+                      No data available
+                    </div>
+                  )}
                 </ResponsiveContainer>
               </div>
             </div>
@@ -2610,9 +2729,9 @@ const Reports = () => {
           handlePreview={(handlePdfAttach, setPreviewLoading) => handleDownloadPdfForEmailCompose(activeReportConfig.data, handlePdfAttach, setPreviewLoading)}
           emailapiTrigger={emailapiTrigger}
           emailMeta={{
-            title : activeReportConfig.title,
-            reportType : activeReport,
-            data :  activeReportConfig.data,
+            title: activeReportConfig.title,
+            reportType: activeReport,
+            data: activeReportConfig.data,
             defaultSubject: `${activeReportConfig.title}`
           }}
         />

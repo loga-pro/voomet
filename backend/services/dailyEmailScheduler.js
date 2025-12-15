@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const emailService = require('./emailService');
 const pdfReportGenerator = require('./pdfReportGenerator');
 const dailyReportAggregator = require('./dailyReportAggregator');
+const Inventory = require('../models/Inventory');
 
 class DailyEmailScheduler {
   
@@ -27,7 +28,7 @@ class DailyEmailScheduler {
   }
   
   scheduleDailyReport(schedule = this.defaultSchedule) {
-    console.log(`Scheduling daily inventory report for: ${schedule}`);
+    console.log(`Scheduling daily inventory report for: ${schedule} `);
     
     // Stop existing job if any
     this.stopJob('daily-inventory-report');
@@ -63,7 +64,7 @@ class DailyEmailScheduler {
       }
 
       // Generate the HTML content and Subject
-      const subject = `Daily Inventory Report - ${reportData.date}`;
+      const subject = `Daily Inventory Report - ${reportData.date} `;
       const htmlContent = this.generateDailyEmailContent(reportData);
       
       // Send email to each recipient
@@ -79,12 +80,43 @@ class DailyEmailScheduler {
           );
           results.push({ email: email.trim(), result: sendResult });
         } catch (err) {
-          console.error(`Failed to send to ${email.trim()}:`, err);
+          console.error(`Failed to send to ${email.trim()}: `, err);
           results.push({ email: email.trim(), result: { success: false, error: err.message || 'Unknown error' } });
         }
       }
       
       console.log(`Daily inventory report send attempts: ${results.length}`);
+
+      // Check for low stock items and send alert
+      try {
+        console.log('Checking for low stock items for reorder alert...');
+
+        const lowStockItems = await Inventory.find({
+          $expr: {
+            $and: [
+              { $gt: ["$reOrderLevel", 0] },
+              { $lte: ["$stockAtFactory", "$reOrderLevel"] }
+            ]
+          }
+        });
+
+        if (lowStockItems.length > 0) {
+          console.log(`Found ${lowStockItems.length} items needing reorder. Sending alert...`);
+
+          for (const email of recipientEmails) {
+            try {
+              await emailService.sendReorderAlert(email.trim(), lowStockItems);
+              console.log(`Reorder alert sent to ${email.trim()}`);
+            } catch (err) {
+              console.error(`Failed to send reorder alert to ${email.trim()}:`, err);
+            }
+          }
+        } else {
+          console.log('No items found needing reorder.');
+        }
+      } catch (alertErr) {
+        console.error('Error in reorder alert check:', alertErr);
+      }
       return {
         success: results.every(r => r.result && r.result.success),
         reportDate: reportData.date,
@@ -129,7 +161,7 @@ class DailyEmailScheduler {
       for (const email of recipientEmails) {
         const result = await emailService.sendInventoryReport(
           email.trim(),
-          `Weekly Inventory Report - ${weeklyReport.weekStart} to ${weeklyReport.weekEnd}`,
+          `Weekly Inventory Report - ${weeklyReport.weekStart} to ${weeklyReport.weekEnd} `,
           this.generateWeeklyEmailContent(weeklyReport),
           pdfBuffer
         );
@@ -139,7 +171,7 @@ class DailyEmailScheduler {
       console.log(`Weekly inventory report sent successfully to ${results.length} recipients`);
       return {
         success: true,
-        week: `${weeklyReport.weekStart} to ${weeklyReport.weekEnd}`,
+        week: `${weeklyReport.weekStart} to ${weeklyReport.weekEnd} `,
         recipients: results,
         summary: {
           totalReceipts: weeklyReport.summary.totalReceipts,
@@ -172,7 +204,7 @@ class DailyEmailScheduler {
     const avgDailyReceipts = Math.round(totalReceipts / 7);
     
     return `
-<body style="margin: 0; padding: 0; background-color: #f4f7f6; font-family: ${fontFamily};">
+  < body style = "margin: 0; padding: 0; background-color: #f4f7f6; font-family: ${fontFamily};" >
   <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #f4f7f6;">
     <tr>
       <td align="center" style="padding: 20px 0;">
@@ -230,7 +262,7 @@ class DailyEmailScheduler {
       </td>
     </tr>
   </table>
-</body>
+</body >
     `;
   }
 
@@ -244,7 +276,7 @@ class DailyEmailScheduler {
     const netChangeSign = reportData.netChange > 0 ? '+' : '';
 
     return `
-<body style="margin: 0; padding: 0; background-color: #f4f7f6; font-family: ${fontFamily};">
+  < body style = "margin: 0; padding: 0; background-color: #f4f7f6; font-family: ${fontFamily};" >
   <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #f4f7f6;">
     <tr>
       <td align="center" style="padding: 20px 0;">
@@ -265,19 +297,19 @@ class DailyEmailScheduler {
               <table width="100%" border="0" cellpadding="0" cellspacing="0" style="text-align: center;">
                 <tr>
                   <td style="padding: 15px 10px; border-bottom: 2px solid #28a745;">
-                    <h3 style="margin: 0 0 10px 0; font-family: ${fontFamily}; color: #343a40; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">📥 Receipts</h3>
+                      <h3 style="margin: 0 0 10px 0; font-family: ${fontFamily}; color: #343a40; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">� Stock at Factory</h3>
                     <p style="font-size: 32px; font-weight: bold; margin: 0; font-family: ${fontFamily}; color: #28a745;">${reportData.totalReceipts}</p>
                   </td>
                   
                   <td width="20" style="width: 20px;"></td>                   
                   <td style="padding: 15px 10px; border-bottom: 2px solid #ffc107;">
-                    <h3 style="margin: 0 0 10px 0; font-family: ${fontFamily}; color: #343a40; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">📤 Dispatches</h3>
+                      <h3 style="margin: 0 0 10px 0; font-family: ${fontFamily}; color: #343a40; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">� Stock Sent</h3>
                     <p style="font-size: 32px; font-weight: bold; margin: 0; font-family: ${fontFamily}; color: #ffc107;">${reportData.totalDispatches}</p>
                   </td>
 
                   <td width="20" style="width: 20px;"></td>                   
                   <td style="padding: 15px 10px; border-bottom: 2px solid #dc3545;">
-                    <h3 style="margin: 0 0 10px 0; font-family: ${fontFamily}; color: #343a40; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">🔄 Returns</h3>
+                      <h3 style="margin: 0 0 10px 0; font-family: ${fontFamily}; color: #343a40; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">🔄 Stock Returns</h3>
                     <p style="font-size: 32px; font-weight: bold; margin: 0; font-family: ${fontFamily}; color: #dc3545;">${reportData.totalReturns}</p>
                   </td>
                 </tr>
@@ -315,7 +347,7 @@ class DailyEmailScheduler {
       </td>
     </tr>
   </table>
-</body>
+</body >
     `;
   }
   
@@ -335,14 +367,14 @@ class DailyEmailScheduler {
     if (job) {
       job.stop();
       this.scheduledJobs.delete(jobName);
-      console.log(`Stopped job: ${jobName}`);
+      console.log(`Stopped job: ${jobName} `);
     }
   }
   
   stopAllJobs() {
     this.scheduledJobs.forEach((job, name) => {
       job.stop();
-      console.log(`Stopped job: ${name}`);
+      console.log(`Stopped job: ${name} `);
     });
     this.scheduledJobs.clear();
   }

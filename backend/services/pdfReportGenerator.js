@@ -35,13 +35,13 @@ class PDFReportGenerator {
     
     // Arrow shaft
     const shaftWidth = size * 0.3;
-    doc.roundedRect(x - shaftWidth/2, y + size * 0.3, shaftWidth, size * 0.7, 1, 1, 'F');
+    doc.roundedRect(x - shaftWidth / 2, y + size * 0.3, shaftWidth, size * 0.7, 1, 1, 'F');
     
     // Arrow head (triangle)
     doc.triangle(
       x, y,                           // Top point
-      x - size/2, y + size * 0.4,    // Bottom left
-      x + size/2, y + size * 0.4,    // Bottom right
+      x - size / 2, y + size * 0.4,    // Bottom left
+      x + size / 2, y + size * 0.4,    // Bottom right
       'F'
     );
   }
@@ -54,13 +54,13 @@ class PDFReportGenerator {
     
     // Arrow shaft
     const shaftWidth = size * 0.3;
-    doc.roundedRect(x - shaftWidth/2, y, shaftWidth, size * 0.7, 1, 1, 'F');
+    doc.roundedRect(x - shaftWidth / 2, y, shaftWidth, size * 0.7, 1, 1, 'F');
     
     // Arrow head (triangle pointing down)
     doc.triangle(
       x, y + size,                    // Bottom point
-      x - size/2, y + size * 0.6,    // Top left
-      x + size/2, y + size * 0.6,    // Top right
+      x - size / 2, y + size * 0.6,    // Top left
+      x + size / 2, y + size * 0.6,    // Top right
       'F'
     );
   }
@@ -119,9 +119,9 @@ class PDFReportGenerator {
     const spacing = size * 0.12;
     
     // Three bars with different heights
-    doc.roundedRect(x - size/2, y + size * 0.4, barWidth, size * 0.6, 1, 1, 'F');
-    doc.roundedRect(x - barWidth/2, y, barWidth, size, 1, 1, 'F');
-    doc.roundedRect(x + spacing + barWidth/2, y + size * 0.25, barWidth, size * 0.75, 1, 1, 'F');
+    doc.roundedRect(x - size / 2, y + size * 0.4, barWidth, size * 0.6, 1, 1, 'F');
+    doc.roundedRect(x - barWidth / 2, y, barWidth, size, 1, 1, 'F');
+    doc.roundedRect(x + spacing + barWidth / 2, y + size * 0.25, barWidth, size * 0.75, 1, 1, 'F');
   }
 
   /**
@@ -214,7 +214,7 @@ class PDFReportGenerator {
     doc.roundedRect(x, y, 3, height, 4, 4, 'F');
     
     // Icon background - subtle circle
-    const iconX = x + width/2;
+    const iconX = x + width / 2;
     const iconY = y + 14;
     doc.setFillColor(...colors.bg);
     doc.circle(iconX, iconY, 9, 'F');
@@ -327,7 +327,7 @@ class PDFReportGenerator {
         doc.setFont('helvetica', 'bold');
         const valueText = item.value.toString();
         const textWidth = doc.getTextWidth(valueText);
-        doc.text(valueText, barX + (barWidth - textWidth) / 2, barY + barHeight/2 + 2);
+        doc.text(valueText, barX + (barWidth - textWidth) / 2, barY + barHeight / 2 + 2);
       } else if (item.value > 0) {
         doc.setFontSize(8);
         doc.setTextColor(...COLORS.textPrimary);
@@ -369,7 +369,7 @@ class PDFReportGenerator {
     doc.setFontSize(10);
     doc.setTextColor(...COLORS.textSecondary);
     doc.setFont('helvetica', 'normal');
-    doc.text(label, x + 8, y + height/2 - 8);
+    doc.text(label, x + 8, y + height / 2 - 8);
     
     // Large value
     doc.setFontSize(32);
@@ -384,7 +384,7 @@ class PDFReportGenerator {
     }
     
     const valueWidth = doc.getTextWidth(valueText);
-    doc.text(valueText, x + (width - valueWidth) / 2, y + height/2 + 10);
+    doc.text(valueText, x + (width - valueWidth) / 2, y + height / 2 + 10);
     
     // Sublabel
     if (sublabel) {
@@ -526,12 +526,12 @@ class PDFReportGenerator {
       
       // Decorative dots
       doc.setFillColor(...COLORS.accent);
-      doc.circle(pageWidth/2 - 12, footerY - 2, 1, 'F');
-      doc.circle(pageWidth/2 + 12, footerY - 2, 1, 'F');
+      doc.circle(pageWidth / 2 - 12, footerY - 2, 1, 'F');
+      doc.circle(pageWidth / 2 + 12, footerY - 2, 1, 'F');
       
       const pageText = `${i} / ${pageCount}`;
       const pageTextWidth = doc.getTextWidth(pageText);
-      doc.text(pageText, pageWidth/2 - pageTextWidth/2, footerY);
+      doc.text(pageText, pageWidth / 2 - pageTextWidth / 2, footerY);
     }
   }
 
@@ -872,12 +872,13 @@ class PDFReportGenerator {
     
     let currentY = 62;
     
-    // Daily Summary Metrics Cards
+    // Daily Summary Metrics Cards - Row 1
     const cardWidth = 44;
     const cardHeight = 38;
     const cardSpacing = 4;
     const startX = 15;
     
+    // Row 1: Receipts, Dispatches, Returns
     this._addModernMetricCard(
       doc, startX, currentY, cardWidth, cardHeight,
       'TOTAL RECEIPTS', safeTotalReceipts, 'up',
@@ -896,8 +897,18 @@ class PDFReportGenerator {
       { main: COLORS.danger, bg: COLORS.dangerBg }
     );
     
+    // Row 2: Rejects, Net Change
+    currentY += cardHeight + 8;
+
+    const safeTotalRejects = reportData.totalRejects || 0;
     this._addModernMetricCard(
-      doc, startX + (cardWidth + cardSpacing) * 3, currentY, cardWidth, cardHeight,
+      doc, startX, currentY, cardWidth, cardHeight,
+      'TOTAL REJECTS', safeTotalRejects, 'down',
+      { main: COLORS.primary, bg: COLORS.border }
+    );
+
+    this._addModernMetricCard(
+      doc, startX + cardWidth + cardSpacing, currentY, cardWidth, cardHeight,
       'NET CHANGE', safeNetChange, 'chart',
       { main: COLORS.info, bg: COLORS.infoBg }
     );
@@ -915,49 +926,55 @@ class PDFReportGenerator {
       // Daily Activity Info Panel
       this._addModernInfoPanel(
         doc, 15, currentY, 90, 58,
-        'Daily Activity Summary',
-        `${safeItems.length} items with activity`,
-        `Total inventory value: ₹${this._formatCurrencyValue(totalValue)}`
+        'Activity Summary',
+        `${safeItems.length} Items`,
+        `Total Value: ₹${this._formatCurrencyValue(totalValue)}`
       );
       
       // Activity Distribution Chart
       const chartData = [
-        { label: 'Receipts', value: safeTotalReceipts, color: COLORS.success },
-        { label: 'Dispatches', value: safeTotalDispatches, color: COLORS.warning },
-        { label: 'Returns', value: safeTotalReturns, color: COLORS.danger }
+        { label: 'Stock', value: safeTotalReceipts, color: COLORS.success },
+        { label: 'Sent', value: safeTotalDispatches, color: COLORS.warning },
+        { label: 'Returns', value: safeTotalReturns, color: COLORS.danger },
+        { label: 'Rejects', value: safeTotalRejects, color: COLORS.primary }
       ];
       
-      this._addModernBarChart(doc, 110, currentY, 85, 58, chartData, 'Daily Activity Distribution');
+      this._addModernBarChart(doc, 110, currentY, 85, 58, chartData, 'Inventory Distribution');
       
       currentY += 68;
       
       // Items Activity Table
       const tableData = safeItems.map(item => {
         const itemValue = item.cumulativePriceValue || 0;
-        const itemNetChange = (item.dailyReceipts || 0) - (item.dailyDispatches || 0) + (item.dailyReturns || 0);
+        // Net calculation: Stock + Sent - Returns (Conceptual Check)
+        // Actually for the "Net" column in a stock report, what does it mean?
+        // Maybe just Total Stock? Or Net Change for the day (which is 0 if no logs)?
+        // Let's explicitly show 0 if undefined.
+        const itemNetChange = (item.dailyReceipts || 0) - (item.dailyDispatches || 0) + (item.dailyReturns || 0); // Kept logic but values are Stock now
+
         return [
-          item.scopeOfWork || 'N/A',
+          (item.scopeOfWork || 'N/A').replace('_', ' ').toUpperCase(),
           item.partName || 'N/A',
-          (item.dailyReceipts || 0).toString(),
-          (item.dailyDispatches || 0).toString(),
-          (item.dailyReturns || 0).toString(),
-          itemNetChange.toString(),
-          (item.currentStock || 0).toString(),
+          (item.dailyReceipts || 0).toString(),    // Stock at Factory
+          (item.dailyDispatches || 0).toString(),  // Sent
+          (item.dailyReturns || 0).toString(),     // Return
+          (item.dailyRejects || 0).toString(),     // Reject
+          (item.currentStock || 0).toString(),     // Total Stock
           `₹${this._formatCurrencyValue(itemValue)}`
         ];
       });
       
-      const head = ['Scope', 'Part Name', 'Rec', 'Disp', 'Ret', 'Net', 'Stock', 'Value'];
+      const head = ['Scope', 'Part Name', 'Stock', 'Sent', 'Returns', 'Rejects', 'Total', 'Value'];
       
-      currentY = this._addUltraModernTable(doc, head, tableData, currentY, 'Daily Item Activity', {
+      currentY = this._addUltraModernTable(doc, head, tableData, currentY, 'Daily Inventory Status', {
         columnStyles: {
-          0: { cellWidth: 25, halign: 'left', valign: 'middle' },
-          1: { cellWidth: 30, halign: 'left', valign: 'middle' },
-          2: { cellWidth: 15, halign: 'center', valign: 'middle', textColor: COLORS.success, fontStyle: 'bold' },
-          3: { cellWidth: 15, halign: 'center', valign: 'middle', textColor: COLORS.warning, fontStyle: 'bold' },
+          0: { cellWidth: 30, halign: 'left', valign: 'middle', fontSize: 7 },
+          1: { cellWidth: 45, halign: 'left', valign: 'middle', fontSize: 7 },
+          2: { cellWidth: 13, halign: 'center', valign: 'middle', textColor: COLORS.success, fontStyle: 'bold' },
+          3: { cellWidth: 13, halign: 'center', valign: 'middle', textColor: COLORS.warning, fontStyle: 'bold' },
           4: { cellWidth: 15, halign: 'center', valign: 'middle', textColor: COLORS.danger, fontStyle: 'bold' },
-          5: { cellWidth: 15, halign: 'center', valign: 'middle', textColor: COLORS.info, fontStyle: 'bold' },
-          6: { cellWidth: 15, halign: 'center', valign: 'middle' },
+          5: { cellWidth: 15, halign: 'center', valign: 'middle', textColor: COLORS.textSecondary, fontStyle: 'bold' },
+          6: { cellWidth: 13, halign: 'center', valign: 'middle', fontStyle: 'bold' },
           7: { cellWidth: 20, halign: 'right', valign: 'middle', fontStyle: 'bold' }
         }
       });

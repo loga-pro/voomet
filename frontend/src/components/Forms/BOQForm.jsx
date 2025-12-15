@@ -40,6 +40,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     finalTotalWithoutGST: '0',
     discountPercentage: '0',
     discountAmount: '0.00',
+    totalAfterDiscount: '0.00',
     transportationCharges: '0',
     gstPercentage: '18',
     totalWithGST: '0',
@@ -167,6 +168,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       // Correct discount fields
       discountPercentage: String(boq.discountPercentage || '0'),
       discountAmount: String(boq.discountAmount || '0'),
+      totalAfterDiscount: String(Math.max(0, parseFloat(boq.finalTotalWithoutGST || 0) - parseFloat(boq.discountAmount || 0)).toFixed(2)),
 
       finalTotalWithoutGST: String(boq.finalTotalWithoutGST || '0'),
       transportationCharges: String(boq.transportationCharges || '0'),
@@ -317,6 +319,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     return {
       items: updatedItems,
       discountAmount: isNaN(discountAmount) ? '0.00' : discountAmount.toFixed(2),
+      totalAfterDiscount: isNaN(netItemsTotal) ? '0.00' : netItemsTotal.toFixed(2),
       finalTotalWithoutGST: isNaN(finalTotalWithoutGST) ? '0.00' : finalTotalWithoutGST.toFixed(2),
       totalWithGST: isNaN(totalWithGST) ? '0.00' : totalWithGST.toFixed(2)
     };
@@ -331,6 +334,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
           ...prev,
           items: calculated.items,
           discountAmount: calculated.discountAmount,
+          totalAfterDiscount: calculated.totalAfterDiscount,
           finalTotalWithoutGST: calculated.finalTotalWithoutGST,
           totalWithGST: calculated.totalWithGST
         };
@@ -849,6 +853,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
 
       discountPercentage: String(project.discountPercentage || '0'),
       discountAmount: String(project.discountAmount || '0'),
+      totalAfterDiscount: String(Math.max(0, parseFloat(project.finalTotalWithoutGST || 0) - parseFloat(project.discountAmount || 0)).toFixed(2)),
 
       finalTotalWithoutGST: String(project.finalTotalWithoutGST || '0'),
       transportationCharges: String(project.transportationCharges || '0'),
@@ -888,6 +893,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       finalTotalWithoutGST: '0',
       discountPercentage: '0',
       discountAmount: '0.00',
+      totalAfterDiscount: '0.00',
       transportationCharges: '0',
       gstPercentage: '18',
       totalWithGST: '0',
@@ -1170,7 +1176,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
               Financial Summary
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
               <FloatingInput
                 label="Final Total without GST (₹)"
                 name="finalTotalWithoutGST"
@@ -1206,6 +1212,18 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                 min="0"
                 readOnly
                 className="bg-gray-100"
+              />
+
+              <FloatingInput
+                label="Total after Discount (₹)"
+                name="totalAfterDiscount"
+                value={formData.totalAfterDiscount}
+                onChange={handleChange}
+                type="number"
+                step="0.01"
+                min="0"
+                readOnly
+                className="bg-gray-100 font-semibold text-primary-700"
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg mt-4">

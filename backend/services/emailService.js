@@ -44,7 +44,7 @@ console.log('📧 Creating transporter with config:', {
 const transporter = nodemailer.createTransport(smtpConfig);
 
 // Verify connection on startup with better error handling
-transporter.verify(function(error, success) {
+transporter.verify(function (error, success) {
   if (error) {
     console.log('❌ SMTP connection failed:', error.message);
     console.log('💡 Troubleshooting tips:');
@@ -312,11 +312,59 @@ async function sendBOQReport(toEmail, boqData, pdfBuffer) {
   return await sendMail(mailOptions);
 }
 
+async function sendReorderAlert(toEmail, items) {
+  const itemsHtml = items.map(item => `
+    <tr>
+      <td style="padding: 12px; border-bottom: 1px solid #eee;">${item.scopeOfWork || item.workCategory || 'N/A'}</td>
+      <td style="padding: 12px; border-bottom: 1px solid #eee;">${item.partName}</td>
+      <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center; color: #dc3545; font-weight: bold;">${item.stockAtFactory || 0}</td>
+      <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center; color: #666;">${item.reOrderLevel}</td>
+    </tr>
+  `).join('');
+
+  const mailOptions = {
+    from: process.env.SMTP_FROM || `"Voomet" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject: `🚨 Stock Reorder Alert - ${items.length} Items Low on Stock`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #ffc107;">
+          <h2 style="color: #856404; margin: 0 0 10px 0;">Action Required: Low Stock Alert</h2>
+          <p style="color: #856404; margin: 0;">The following items have reached or dropped below their re-order level.</p>
+        </div>
+        
+        <table width="100%" style="border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr style="background-color: #f8f9fa;">
+              <th style="padding: 12px; text-align: left; color: #333; border-bottom: 2px solid #ddd;">Scope</th>
+              <th style="padding: 12px; text-align: left; color: #333; border-bottom: 2px solid #ddd;">Part Name</th>
+              <th style="padding: 12px; text-align: center; color: #333; border-bottom: 2px solid #ddd;">Stock</th>
+              <th style="padding: 12px; text-align: center; color: #333; border-bottom: 2px solid #ddd;">Re-Order</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+        
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px;">
+          <p style="color: #666; font-size: 12px; margin: 0;">
+            Automated alert from Voomet Inventory Management System.
+          </p>
+        </div>
+      </div>
+    `
+  };
+
+  return await sendMail(mailOptions);
+}
+
 module.exports = {
   sendDailyInventoryReport,
   sendInventoryReport,
   sendTestEmail,
   sendMilestoneReport,
   sendBOQReport,
+  sendReorderAlert,
   transporter
 };

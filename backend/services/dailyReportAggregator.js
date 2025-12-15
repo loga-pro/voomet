@@ -17,58 +17,39 @@ class DailyReportAggregator {
       let totalReceipts = 0;
       let totalDispatches = 0;
       let totalReturns = 0;
+      let totalRejects = 0;
       const detailedItems = [];
       
       allItems.forEach(item => {
-        let dailyReceipts = 0;
-        let dailyDispatches = 0;
-        let dailyReturns = 0;
-        
-        // Calculate daily receipts
-        if (item.receipts && item.receipts.length > 0) {
-          dailyReceipts = item.receipts
-            .filter(receipt => {
-              const receiptDate = moment(receipt.date);
-              return receiptDate.isBetween(startOfDay, endOfDay, null, '[]');
-            })
-            .reduce((sum, receipt) => sum + (receipt.quantity || 0), 0);
-        }
-        
-        // Calculate daily dispatches
-        if (item.dispatches && item.dispatches.length > 0) {
-          dailyDispatches = item.dispatches
-            .filter(dispatch => {
-              const dispatchDate = moment(dispatch.date);
-              return dispatchDate.isBetween(startOfDay, endOfDay, null, '[]');
-            })
-            .reduce((sum, dispatch) => sum + (dispatch.quantity || 0), 0);
-        }
-        
-        // Calculate daily returns
-        if (item.returns && item.returns.length > 0) {
-          dailyReturns = item.returns
-            .filter(returnItem => {
-              const returnDate = moment(returnItem.date);
-              return returnDate.isBetween(startOfDay, endOfDay, null, '[]');
-            })
-            .reduce((sum, returnItem) => sum + (returnItem.quantity || 0), 0);
-        }
-        
-        // Only include items that had activity on this day
-        if (dailyReceipts > 0 || dailyDispatches > 0 || dailyReturns > 0) {
-          totalReceipts += dailyReceipts;
-          totalDispatches += dailyDispatches;
-          totalReturns += dailyReturns;
+        // Use reliable pre-calculated stock fields (Current Status)
+        // This ensures data is shown even if movement logs are empty
+        const stockAtFactory = item.stockAtFactory || 0;
+        const stockSent = item.stockSentToCustomer || 0;
+        const stockReturns = item.stockReturnFromCustomer || 0;
+        const stockRejects = item.stockReject || item.stockRejected || 0;
+
+        // Use totalStock if available, otherwise calculate or use cumulativeQuantityAtVoomet
+        const currentStock = item.totalStock || (stockAtFactory + stockReturns);
+
+        // Include items that have any stock data
+        if (stockAtFactory > 0 || stockSent > 0 || stockReturns > 0 || stockRejects > 0 || currentStock > 0 || (item.cumulativeQuantityAtVoomet && item.cumulativeQuantityAtVoomet > 0)) {
+
+          // Accumulate totals (We are now summing STOCK LEVELS, not daily movements)
+          totalReceipts += stockAtFactory;
+          totalDispatches += stockSent;
+          totalReturns += stockReturns;
+          totalRejects += stockRejects;
           
           detailedItems.push({
-            scopeOfWork: item.scopeOfWork,
+            scopeOfWork: item.scopeOfWork || item.workCategory || 'N/A',
             partName: item.partName,
             partPrice: item.partPrice,
-            dailyReceipts,
-            dailyDispatches,
-            dailyReturns,
-            currentStock: item.cumulativeQuantityAtVoomet,
-            cumulativePriceValue: item.cumulativePriceValue
+            dailyReceipts: stockAtFactory,      // Mapping Stock at Factory to this field (Current Stock)
+            dailyDispatches: stockSent,         // Mapping Stock Sent to this field
+            dailyReturns: stockReturns,
+            dailyRejects: stockRejects,         // Add Rejects
+            currentStock: currentStock || item.cumulativeQuantityAtVoomet || 0,
+            cumulativePriceValue: item.cumulativePriceValue || ((item.stockValueAtFactory || 0) + (item.stockValueSentToCustomer || 0))
           });
         }
       });
@@ -78,7 +59,8 @@ class DailyReportAggregator {
         totalReceipts,
         totalDispatches,
         totalReturns,
-        netChange: totalReceipts - totalDispatches + totalReturns,
+        totalRejects,
+        netChange: totalReceipts - totalDispatches + totalReturns, // Note: Rejects usually don't count towards net 'stock change' in same way or do they?
         items: detailedItems,
         reportPeriod: {
           start: startOfDay,

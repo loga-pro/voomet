@@ -48,6 +48,18 @@ const inventorySchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  stockValueReturnFromCustomer: {
+    type: Number,
+    default: 0
+  },
+  stockReject: {
+    type: Number,
+    default: 0
+  },
+  stockValueReject: {
+    type: Number,
+    default: 0
+  },
   totalStock: {
     type: Number,
     default: 0
@@ -116,30 +128,46 @@ inventorySchema.statics.calculateSummary = async function(inventoryId) {
     const regularReceipts = receipts.filter(r => r.receiptCategory !== 'return');
     const returns = receipts.filter(r => r.receiptCategory === 'return');
     
+    // Separate dispatches by category
+    const regularDispatches = dispatches.filter(d => d.dispatchCategory === 'dispatch');
+    const dispatchReturns = dispatches.filter(d => d.dispatchCategory === 'return');
+    const dispatchRejects = dispatches.filter(d => d.dispatchCategory === 'reject');
+    
     // Calculate totals for regular receipts only
     const regularReceiptsTotal = regularReceipts.reduce((sum, r) => sum + (r.totalValue || 0), 0);
     const regularReceiptsQty = regularReceipts.reduce((sum, r) => sum + (r.quantity || 0), 0);
     
-    // Calculate dispatch totals
-    const dispatchesTotal = dispatches.reduce((sum, d) => sum + (d.totalValue || 0), 0);
-    const dispatchesQty = dispatches.reduce((sum, d) => sum + (d.quantity || 0), 0);
+    // Calculate regular dispatch totals (excluding returns and rejects)
+    const regularDispatchesTotal = regularDispatches.reduce((sum, d) => sum + (d.totalValue || 0), 0);
+    const regularDispatchesQty = regularDispatches.reduce((sum, d) => sum + (d.quantity || 0), 0);
     
-    // Calculate return totals
-    const returnsTotal = returns.reduce((sum, r) => sum + (r.totalValue || 0), 0);
-    const returnsQty = returns.reduce((sum, r) => sum + (r.quantity || 0), 0);
+    // Calculate reject totals
+    const rejectsTotal = dispatchRejects.reduce((sum, d) => sum + (d.totalValue || 0), 0);
+    const rejectsQty = dispatchRejects.reduce((sum, d) => sum + (d.quantity || 0), 0);
+    
+    // Calculate return totals from both receipts and dispatches
+    const receiptReturnsTotal = returns.reduce((sum, r) => sum + (r.totalValue || 0), 0);
+    const receiptReturnsQty = returns.reduce((sum, r) => sum + (r.quantity || 0), 0);
+    const dispatchReturnsTotal = dispatchReturns.reduce((sum, d) => sum + (d.totalValue || 0), 0);
+    const dispatchReturnsQty = dispatchReturns.reduce((sum, d) => sum + (d.quantity || 0), 0);
+    const totalReturnsQty = receiptReturnsQty + dispatchReturnsQty;
+    const totalReturnsValue = receiptReturnsTotal + dispatchReturnsTotal;
     
     // Update inventory with calculated values
-    inventory.stockAtFactory = Math.max(0, regularReceiptsQty - dispatchesQty);
-    inventory.stockValueAtFactory = regularReceiptsTotal - dispatchesTotal;
-    inventory.stockSentToCustomer = dispatchesQty;
-    inventory.stockValueSentToCustomer = dispatchesTotal;
-    inventory.stockReturnFromCustomer = returnsQty;
-    inventory.totalStock = Math.max(0, regularReceiptsQty - dispatchesQty) + returnsQty;
-    inventory.totalStockValue = (regularReceiptsTotal - dispatchesTotal) + returnsTotal;
-    inventory.inventoryAtFactoryValue = regularReceiptsTotal - dispatchesTotal;
-    inventory.inventoryAtCustomerEndValue = dispatchesTotal;
-    inventory.inventoryReturnFromCustomerValue = returnsTotal;
-    inventory.totalInventoryValue = regularReceiptsTotal + returnsTotal;
+    inventory.stockAtFactory = Math.max(0, regularReceiptsQty - regularDispatchesQty - rejectsQty);
+    inventory.stockValueAtFactory = regularReceiptsTotal - regularDispatchesTotal - rejectsTotal;
+    inventory.stockSentToCustomer = regularDispatchesQty;
+    inventory.stockValueSentToCustomer = regularDispatchesTotal;
+    inventory.stockReturnFromCustomer = totalReturnsQty;
+    inventory.stockValueReturnFromCustomer = totalReturnsValue;
+    inventory.stockReject = rejectsQty;
+    inventory.stockValueReject = rejectsTotal;
+    inventory.totalStock = Math.max(0, regularReceiptsQty - regularDispatchesQty - rejectsQty) + totalReturnsQty;
+    inventory.totalStockValue = (regularReceiptsTotal - regularDispatchesTotal - rejectsTotal) + totalReturnsValue;
+    inventory.inventoryAtFactoryValue = regularReceiptsTotal - regularDispatchesTotal - rejectsTotal;
+    inventory.inventoryAtCustomerEndValue = regularDispatchesTotal;
+    inventory.inventoryReturnFromCustomerValue = totalReturnsValue;
+    inventory.totalInventoryValue = regularReceiptsTotal + totalReturnsValue;
 
     // Update Row Data (Category & Vendors) based on receipts
     const sortedReceipts = [...receipts].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
