@@ -1089,6 +1089,14 @@ const Reports = () => {
                 <p className="text-sm text-gray-900">₹{(data.stockValueReturnFromCustomer || data.inventoryReturnFromCustomerValue || 0).toLocaleString()}</p>
               </div>
               <div>
+                <p className="text-sm font-medium text-gray-500">Stock Return to Vendor</p>
+                <p className="text-sm text-gray-900">{data.stockReturnToVendor || 0}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Stock value Return to Vendor</p>
+                <p className="text-sm text-gray-900">₹{(data.stockValueReturnToVendor || 0).toLocaleString()}</p>
+              </div>
+              <div>
                 <p className="text-sm font-medium text-gray-500">Stock Reject</p>
                 <p className="text-sm text-gray-900">{data.stockReject || 0}</p>
               </div>

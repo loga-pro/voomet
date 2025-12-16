@@ -52,6 +52,14 @@ const inventorySchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  stockReturnToVendor: {
+    type: Number,
+    default: 0
+  },
+  stockValueReturnToVendor: {
+    type: Number,
+    default: 0
+  },
   stockReject: {
     type: Number,
     default: 0
@@ -145,28 +153,42 @@ inventorySchema.statics.calculateSummary = async function(inventoryId) {
     const rejectsTotal = dispatchRejects.reduce((sum, d) => sum + (d.totalValue || 0), 0);
     const rejectsQty = dispatchRejects.reduce((sum, d) => sum + (d.quantity || 0), 0);
     
-    // Calculate return totals from both receipts and dispatches
+    // Calculate return totals separately
+    // Receipt returns = Stock Return to Vendor
     const receiptReturnsTotal = returns.reduce((sum, r) => sum + (r.totalValue || 0), 0);
     const receiptReturnsQty = returns.reduce((sum, r) => sum + (r.quantity || 0), 0);
+    
+    // Dispatch returns = Stock Return from Customer
     const dispatchReturnsTotal = dispatchReturns.reduce((sum, d) => sum + (d.totalValue || 0), 0);
     const dispatchReturnsQty = dispatchReturns.reduce((sum, d) => sum + (d.quantity || 0), 0);
+    
+    // Total returns for overall stock calculation
     const totalReturnsQty = receiptReturnsQty + dispatchReturnsQty;
     const totalReturnsValue = receiptReturnsTotal + dispatchReturnsTotal;
     
     // Update inventory with calculated values
-    inventory.stockAtFactory = Math.max(0, regularReceiptsQty - regularDispatchesQty - rejectsQty);
-    inventory.stockValueAtFactory = regularReceiptsTotal - regularDispatchesTotal - rejectsTotal;
+    // Stock at Factory: Regular receipts - Regular dispatches - Rejects - Returns to Vendor
+    inventory.stockAtFactory = Math.max(0, regularReceiptsQty - regularDispatchesQty - rejectsQty - receiptReturnsQty);
+    inventory.stockValueAtFactory = regularReceiptsTotal - regularDispatchesTotal - rejectsTotal - receiptReturnsTotal;
     inventory.stockSentToCustomer = regularDispatchesQty;
     inventory.stockValueSentToCustomer = regularDispatchesTotal;
-    inventory.stockReturnFromCustomer = totalReturnsQty;
-    inventory.stockValueReturnFromCustomer = totalReturnsValue;
+    
+    // Stock Return from Customer (dispatch returns only)
+    inventory.stockReturnFromCustomer = dispatchReturnsQty;
+    inventory.stockValueReturnFromCustomer = dispatchReturnsTotal;
+    
+    // Stock Return to Vendor (receipt returns only)
+    inventory.stockReturnToVendor = receiptReturnsQty;
+    inventory.stockValueReturnToVendor = receiptReturnsTotal;
+    
     inventory.stockReject = rejectsQty;
     inventory.stockValueReject = rejectsTotal;
-    inventory.totalStock = Math.max(0, regularReceiptsQty - regularDispatchesQty - rejectsQty) + totalReturnsQty;
-    inventory.totalStockValue = (regularReceiptsTotal - regularDispatchesTotal - rejectsTotal) + totalReturnsValue;
-    inventory.inventoryAtFactoryValue = regularReceiptsTotal - regularDispatchesTotal - rejectsTotal;
+    // Total Stock: Factory stock + Returns from Customer (returns to vendor already subtracted from factory stock)
+    inventory.totalStock = Math.max(0, regularReceiptsQty - regularDispatchesQty - rejectsQty - receiptReturnsQty) + dispatchReturnsQty;
+    inventory.totalStockValue = (regularReceiptsTotal - regularDispatchesTotal - rejectsTotal - receiptReturnsTotal) + dispatchReturnsTotal;
+    inventory.inventoryAtFactoryValue = regularReceiptsTotal - regularDispatchesTotal - rejectsTotal - receiptReturnsTotal;
     inventory.inventoryAtCustomerEndValue = regularDispatchesTotal;
-    inventory.inventoryReturnFromCustomerValue = totalReturnsValue;
+    inventory.inventoryReturnFromCustomerValue = dispatchReturnsTotal;
     inventory.totalInventoryValue = regularReceiptsTotal + totalReturnsValue;
 
     // Update Row Data (Category & Vendors) based on receipts

@@ -179,12 +179,12 @@ const Sidebar = ({ isOpen, onClose }) => {
         {
           name: "Receipts",
           path: "/receipts",
-          permission: "receipts",
+          permission: "inventory_management",
         },
         {
           name: "Dispatches",
           path: "/dispatches",
-          permission: "dispatches",
+          permission: "inventory_management",
         },
       ],
     },

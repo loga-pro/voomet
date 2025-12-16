@@ -297,7 +297,6 @@ const Dashboard = () => {
   const StatusKpiCard = ({ id, title, value, icon: Icon, color }) => {
     return (
       <div className="bg-gray-50 rounded-lg p-2 sm:p-3 text-center hover:bg-gray-100 transition-colors">
-        <Icon className={`h-4 w-4 sm:h-5 sm:w-5 mx-auto ${color.replace('bg-', 'text-')}`} />
         <p className="text-xs text-gray-600 mt-1">{title}</p>
         <p className="text-sm sm:text-lg font-bold text-gray-900">{value}</p>
       </div>
@@ -309,7 +308,6 @@ const Dashboard = () => {
       {/* Header */}
       <div className={`bg-gradient-to-r ${gradient} text-white p-3 sm:p-4`}>
         <div className="flex items-center">
-          <Icon className="h-5 w-5 sm:h-6 sm:w-6 mr-2" />
           <h3 className="text-base sm:text-lg font-semibold">{title}</h3>
         </div>
       </div>
@@ -359,7 +357,6 @@ const Dashboard = () => {
           <div className="xl:col-span-1">
             <FinancialBox
               title="Customer Payments"
-              icon={UserGroupIcon}
               gradient="from-blue-500 to-blue-600"
               kpis={customerPaymentKPIs}
               statusKpis={customerStatusKPIs}
@@ -370,7 +367,6 @@ const Dashboard = () => {
           <div className="xl:col-span-1">
             <FinancialBox
               title="Vendor Payments"
-              icon={BuildingStorefrontIcon}
               gradient="from-green-500 to-green-600"
               kpis={vendorPaymentKPIs}
               statusKpis={vendorStatusKPIs}
@@ -381,7 +377,6 @@ const Dashboard = () => {
           <div className="xl:col-span-1">
             <FinancialBox
               title="Inventory Management"
-              icon={CubeIcon}
               gradient="from-purple-500 to-purple-600"
               kpis={inventoryKPIs}
               statusKpis={inventoryStatusKPIs}
@@ -392,7 +387,6 @@ const Dashboard = () => {
           <div className="xl:col-span-1">
             <FinancialBox
               title="Quality Control"
-              icon={ShieldCheckIcon}
               gradient="from-orange-500 to-orange-600"
               kpis={qualityKPIs}
               statusKpis={qualityStatusKPIs}

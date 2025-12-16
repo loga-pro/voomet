@@ -44,21 +44,23 @@ const InventorySummaryTable = ({
     const rejectsTotal = dispatchRejects.reduce((sum, d) => sum + (d.totalValue || 0), 0);
     const rejectsQty = dispatchRejects.reduce((sum, d) => sum + (d.quantity || 0), 0);
     
-    // Calculate return totals from both receipts and dispatches
+    // Calculate return totals separately
+    // Receipt returns = Stock Return to Vendor
     const receiptReturnsTotal = receiptReturns.reduce((sum, r) => sum + (r.totalValue || 0), 0);
     const receiptReturnsQty = receiptReturns.reduce((sum, r) => sum + (r.quantity || 0), 0);
     
+    // Dispatch returns = Stock Return from Customer
     const dispatchReturnsTotal = dispatchReturns.reduce((sum, d) => sum + (d.totalValue || 0), 0);
     const dispatchReturnsQty = dispatchReturns.reduce((sum, d) => sum + (d.quantity || 0), 0);
     
-    // Total returns (from both receipts and dispatches)
+    // Total returns for overall stock calculation
     const totalReturnsQty = receiptReturnsQty + dispatchReturnsQty;
     const totalReturnsValue = receiptReturnsTotal + dispatchReturnsTotal;
     
     return {
-      // Stock at Factory: Regular receipts minus regular dispatches minus rejects (NO returns)
-      stockAtFactory: Math.max(0, regularReceiptsQty - regularDispatchesQty - rejectsQty),
-      stockValueAtFactory: regularReceiptsTotal - regularDispatchesTotal - rejectsTotal,
+      // Stock at Factory: Regular receipts minus regular dispatches minus rejects minus returns to vendor
+      stockAtFactory: Math.max(0, regularReceiptsQty - regularDispatchesQty - rejectsQty - receiptReturnsQty),
+      stockValueAtFactory: regularReceiptsTotal - regularDispatchesTotal - rejectsTotal - receiptReturnsTotal,
       
       // Stock sent to customer (only regular dispatches, not returns or rejects)
       stockSentToCustomer: regularDispatchesQty,
@@ -68,13 +70,17 @@ const InventorySummaryTable = ({
       stockRejected: rejectsQty,
       stockValueRejected: rejectsTotal,
       
-      // Returns from customer (from both receipt returns and dispatch returns)
-      stockReturnFromCustomer: totalReturnsQty,
-      stockValueReturnFromCustomer: totalReturnsValue,
+      // Returns from customer (dispatch returns only)
+      stockReturnFromCustomer: dispatchReturnsQty,
+      stockValueReturnFromCustomer: dispatchReturnsTotal,
       
-      // Total stock: Factory stock + Returns (rejects are not counted in total)
-      totalStock: Math.max(0, regularReceiptsQty - regularDispatchesQty - rejectsQty) + totalReturnsQty,
-      totalStockValue: (regularReceiptsTotal - regularDispatchesTotal - rejectsTotal) + totalReturnsValue
+      // Returns to vendor (receipt returns only)
+      stockReturnToVendor: receiptReturnsQty,
+      stockValueReturnToVendor: receiptReturnsTotal,
+      
+      // Total stock: Factory stock + Returns from Customer (returns to vendor already subtracted)
+      totalStock: Math.max(0, regularReceiptsQty - regularDispatchesQty - rejectsQty - receiptReturnsQty) + dispatchReturnsQty,
+      totalStockValue: (regularReceiptsTotal - regularDispatchesTotal - rejectsTotal - receiptReturnsTotal) + dispatchReturnsTotal
     };
   };
 
@@ -118,6 +124,12 @@ const InventorySummaryTable = ({
             </th>
             <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
               Stock value return from Customer
+            </th>
+            <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
+              Stock Return to Vendor
+            </th>
+            <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
+              Stock value Return to Vendor
             </th>
             <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
               Stock Reject
@@ -198,6 +210,18 @@ const InventorySummaryTable = ({
                 {(() => {
                   const stock = calculateStockForCombination(row.workCategory, row.partName);
                   return `₹${stock.stockValueReturnFromCustomer?.toFixed(2) || '0.00'}`;
+                })()}
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">
+                {(() => {
+                  const stock = calculateStockForCombination(row.workCategory, row.partName);
+                  return stock.stockReturnToVendor || '0';
+                })()}
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">
+                {(() => {
+                  const stock = calculateStockForCombination(row.workCategory, row.partName);
+                  return `₹${stock.stockValueReturnToVendor?.toFixed(2) || '0.00'}`;
                 })()}
               </td>
               <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">

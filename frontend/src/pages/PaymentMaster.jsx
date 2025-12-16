@@ -13,9 +13,11 @@ import {
   CreditCardIcon,
   FolderIcon,
   CurrencyRupeeIcon,
+  DocumentTextIcon,
 
 } from '@heroicons/react/24/outline';
 import PaymentForm from '../components/Forms/PaymentForm';
+import ProformaInvoice from '../components/ProformaInvoice/Invoice';
 import Modal from '../components/Modals/Modal';
 import Notification from '../components/Notifications/Notification';
 import useNotification from '../hooks/useNotification';
@@ -28,6 +30,8 @@ const PaymentManagement = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingPayment, setEditingPayment] = useState(null);
   const [viewingPayment, setViewingPayment] = useState(null);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [invoiceData, setInvoiceData] = useState(null);
   const [filters, setFilters] = useState({
     customer: '',
     projectName: '',
@@ -186,6 +190,11 @@ const PaymentManagement = () => {
   const handleDelete = (id) => {
     setPaymentToDelete(id);
     setShowDeleteModal(true);
+  };
+
+  const handleGenerateInvoice = (payment) => {
+    setInvoiceData(payment);
+    setShowInvoiceModal(true);
   };
 
   const confirmDelete = async () => {
@@ -455,6 +464,13 @@ const PaymentManagement = () => {
                       <EyeIcon className="h-5 w-5" />
                     </button>
                     <button
+                      onClick={() => handleGenerateInvoice(payment)}
+                      className="text-green-600 hover:text-green-900 p-1 transition-colors duration-150"
+                      title="Generate Invoice PDF"
+                    >
+                      <DocumentTextIcon className="h-5 w-5" />
+                    </button>
+                    <button
                       onClick={() => handleEdit(payment)}
                       className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
                       title="Edit"
@@ -504,6 +520,13 @@ const PaymentManagement = () => {
                 title="View Details"
               >
                 <EyeIcon className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => handleGenerateInvoice(payment)}
+                className="text-green-600 hover:text-green-900 p-1 transition-colors duration-150"
+                title="Generate Invoice PDF"
+              >
+                <DocumentTextIcon className="h-4 w-4" />
               </button>
               <button
                 onClick={() => handleEdit(payment)}
@@ -756,6 +779,15 @@ const PaymentManagement = () => {
             </button>
             <button
               onClick={() => {
+                setInvoiceData(viewingPayment);
+                setShowInvoiceModal(true);
+              }}
+              className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+            >
+              Generate Invoice
+            </button>
+            <button
+              onClick={() => {
                 setEditingPayment(viewingPayment);
                 setViewingPayment(null);
                 setShowModal(true);
@@ -812,6 +844,21 @@ const PaymentManagement = () => {
               </button>
             </div>
           </div>
+        </Modal>
+
+        {/* Invoice Modal */}
+        <Modal
+          isOpen={showInvoiceModal}
+          onClose={() => {
+            setShowInvoiceModal(false);
+            setInvoiceData(null);
+          }}
+          title="Proforma Invoice"
+          size="xl"
+        >
+          {invoiceData && (
+            <ProformaInvoice invoiceData={invoiceData} />
+          )}
         </Modal>
       </div>
     </div>

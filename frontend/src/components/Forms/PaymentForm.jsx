@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, FileText, Plus, Trash2, Wallet } from 'lucide-react';
+import { Building2, FileText, Plus, Trash2, Wallet, Truck } from 'lucide-react';
 import FloatingInput from './FloatingInput';
 import { customersAPI, paymentsAPI, projectsAPI, boqAPI } from '../../services/api';
 
@@ -26,9 +26,67 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     { value: 'final', label: 'Final Payment' }
   ];
 
+  const dispatchedThroughOptions = [
+    { value: '', label: 'Select Option' },
+    { value: 'road', label: 'By Road' },
+    { value: 'rail', label: 'By Rail' },
+    { value: 'air', label: 'By Air' },
+    { value: 'courier', label: 'Courier' },
+    { value: 'hand_delivery', label: 'Hand Delivery' },
+    { value: 'other', label: 'Other' }
+  ];
+
+  const destinationOptions = [
+    { value: '', label: 'Select Destination' },
+    { value: 'factory', label: 'Factory' },
+    { value: 'site', label: 'Site' },
+    { value: 'warehouse', label: 'Warehouse' },
+    { value: 'office', label: 'Office' },
+    { value: 'other', label: 'Other' }
+  ];
+
+  const termsForDeliveryOptions = [
+    { value: '', label: 'Select Terms' },
+    { value: 'ex_works', label: 'Ex Works' },
+    { value: 'fob', label: 'FOB' },
+    { value: 'cif', label: 'CIF' },
+    { value: 'door_delivery', label: 'Door Delivery' },
+    { value: 'installation_included', label: 'Installation Included' },
+    { value: 'as_per_order', label: 'As per Order' }
+  ];
+
+  // Helper function to convert ISO date to yyyy-MM-dd format
+  const formatDateForInput = (dateValue) => {
+    if (!dateValue) return new Date().toISOString().split('T')[0];
+    
+    try {
+      const date = new Date(dateValue);
+      if (isNaN(date.getTime())) {
+        return new Date().toISOString().split('T')[0];
+      }
+      return date.toISOString().split('T')[0];
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return new Date().toISOString().split('T')[0];
+    }
+  };
+
   useEffect(() => {
     fetchCustomers();
     if (payment) {
+      // Convert dates in invoices and payments to yyyy-MM-dd format
+      const formattedInvoices = (payment.invoices || []).map((invoice, index) => ({
+        ...invoice,
+        id: invoice.id || invoice._id || `invoice-${Date.now()}-${index}`,
+        invoiceDate: formatDateForInput(invoice.invoiceDate)
+      }));
+
+      const formattedPayments = (payment.payments || []).map((pmt, index) => ({
+        ...pmt,
+        id: pmt.id || pmt._id || `payment-${Date.now()}-${index}`,
+        paymentDate: formatDateForInput(pmt.paymentDate || pmt.date)
+      }));
+
       setFormData({
         customer: payment.customer || '',
         project: payment.project || '',
@@ -37,8 +95,8 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         paymentType: payment.paymentType || 'advance',
         includeGST: payment.includeGST || false,
         gstPercentage: payment.gstPercentage || 18,
-        invoices: payment.invoices || [],
-        payments: payment.payments || []
+        invoices: formattedInvoices,
+        payments: formattedPayments
       });
       if (payment.customer) {
         fetchProjects(payment.customer);
@@ -295,8 +353,6 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       newErrors.gstPercentage = 'Valid GST percentage is required';
     }
 
-    // Invoices and payments are now optional - no validation required
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -313,7 +369,19 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
           invoiceNumber: '',
           invoiceValue: '',
           invoiceDate: new Date().toISOString().split('T')[0],
-          paymentType: 'advance'
+          paymentType: 'advance',
+          voucherNo: '',
+          buyersRef: '',
+          dispatchedThrough: '',
+          destination: '',
+          termsForDelivery: '',
+          hsnSac: '',
+          cgst: '',
+          sgst: '',
+          roundOff: '',
+          cgstAmount: 0,
+          sgstAmount: 0,
+          totalWithTax: 0
         }
       ]
     }));
@@ -327,11 +395,38 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
   };
 
   const updateInvoice = (index, field, value) => {
+    const updatedInvoices = [...formData.invoices];
+    updatedInvoices[index] = { ...updatedInvoices[index], [field]: value };
+    
+    // Get the current invoice after the field update
+    const invoice = updatedInvoices[index];
+    
+    // Calculate tax amounts whenever invoice value, cgst%, sgst%, or roundOff changes
+    if (field === 'invoiceValue' || field === 'cgst' || field === 'sgst' || field === 'roundOff' || field === 'hsnSac') {
+      const invoiceValue = parseFloat(invoice.invoiceValue) || 0;
+      const cgstRate = parseFloat(invoice.cgst) || 9; // Default to 9% if empty
+      const sgstRate = parseFloat(invoice.sgst) || 9; // Default to 9% if empty
+      const roundOff = parseFloat(invoice.roundOff) || 0;
+      
+      // Calculate tax amounts
+      const cgstAmount = (invoiceValue * cgstRate) / 100;
+      const sgstAmount = (invoiceValue * sgstRate) / 100;
+      const totalWithTax = invoiceValue + cgstAmount + sgstAmount + roundOff;
+      
+      // Update the invoice with calculated values
+      updatedInvoices[index] = {
+        ...updatedInvoices[index],
+        cgst: cgstRate.toString(),
+        sgst: sgstRate.toString(),
+        cgstAmount,
+        sgstAmount,
+        totalWithTax
+      };
+    }
+    
     setFormData(prev => ({
       ...prev,
-      invoices: prev.invoices.map((inv, i) => 
-        i === index ? { ...inv, [field]: value } : inv
-      )
+      invoices: updatedInvoices
     }));
   };
 
@@ -394,7 +489,19 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         invoiceNumber: invoice.invoiceNumber?.trim() || undefined,
         invoiceValue: invoice.invoiceValue ? parseFloat(invoice.invoiceValue) : undefined,
         invoiceDate: invoice.invoiceDate || undefined,
-        paymentType: invoice.paymentType?.trim() || 'advance'
+        paymentType: invoice.paymentType?.trim() || 'advance',
+        voucherNo: invoice.voucherNo?.trim() || undefined,
+        buyersRef: invoice.buyersRef?.trim() || undefined,
+        dispatchedThrough: invoice.dispatchedThrough?.trim() || undefined,
+        destination: invoice.destination?.trim() || undefined,
+        termsForDelivery: invoice.termsForDelivery?.trim() || undefined,
+        hsnSac: invoice.hsnSac?.trim() || undefined,
+        cgst: invoice.cgst ? parseFloat(invoice.cgst) : undefined,
+        sgst: invoice.sgst ? parseFloat(invoice.sgst) : undefined,
+        roundOff: invoice.roundOff ? parseFloat(invoice.roundOff) : undefined,
+        cgstAmount: invoice.cgstAmount ? parseFloat(invoice.cgstAmount) : 0,
+        sgstAmount: invoice.sgstAmount ? parseFloat(invoice.sgstAmount) : 0,
+        totalWithTax: invoice.totalWithTax ? parseFloat(invoice.totalWithTax) : invoice.invoiceValue
       })).filter(invoice => invoice.invoiceNumber), // Remove empty invoices
       payments: formData.payments.map(payment => ({
         ...payment,
@@ -406,13 +513,12 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         paymentType: payment.paymentType?.trim() || 'advance',
         remarks: payment.remarks?.trim() || undefined
       })).filter(payment => {
-        // Only require amount to be present (transactionId is optional)
         const isValid = payment.amount && payment.amount > 0;
         if (!isValid) {
           console.log('Filtering out payment (missing or invalid amount):', payment);
         }
         return isValid;
-      }) // Remove empty payments
+      })
     };
 
     console.log('Number of payments after filtering:', cleanedData.payments.length);
@@ -445,8 +551,6 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
 
   return (
     <div className="h-full flex flex-col max-h-[80vh] min-h-[600px]">
-
-
       {/* Tabs */}
       <div className="flex-shrink-0 border-b border-gray-200">
         <div className="flex">
@@ -657,7 +761,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
 
                       {/* Invoice Details */}
                       <div className="p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                           <FloatingInput
                             label="Invoice Number"
                             name="invoiceNumber"
@@ -693,6 +797,119 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                             error={errors[`invoiceDate_${invoiceIndex}`]}
                             required
                           />
+                        </div>
+
+                        {/* Voucher and Buyer's Reference */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <FloatingInput
+                            label="Voucher No"
+                            name="voucherNo"
+                            value={invoice.voucherNo}
+                            onChange={(e) => updateInvoice(invoiceIndex, 'voucherNo', e.target.value)}
+                          />
+                          <FloatingInput
+                            label="Buyer's Ref / Order No"
+                            name="buyersRef"
+                            value={invoice.buyersRef}
+                            onChange={(e) => updateInvoice(invoiceIndex, 'buyersRef', e.target.value)}
+                          />
+                        </div>
+
+                        {/* Delivery Information */}
+                        <div className="flex items-center gap-2 mb-4 text-gray-700">
+                          <Truck size={18} />
+                          <span className="font-medium">Delivery Information</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                          <FloatingInput
+                            label="Dispatched Through"
+                            name="dispatchedThrough"
+                            type="select"
+                            value={invoice.dispatchedThrough}
+                            onChange={(e) => updateInvoice(invoiceIndex, 'dispatchedThrough', e.target.value)}
+                            options={dispatchedThroughOptions}
+                          />
+                          <FloatingInput
+                            label="Destination"
+                            name="destination"
+                            type="select"
+                            value={invoice.destination}
+                            onChange={(e) => updateInvoice(invoiceIndex, 'destination', e.target.value)}
+                            options={destinationOptions}
+                          />
+                          <FloatingInput
+                            label="Terms for Delivery"
+                            name="termsForDelivery"
+                            type="select"
+                            value={invoice.termsForDelivery}
+                            onChange={(e) => updateInvoice(invoiceIndex, 'termsForDelivery', e.target.value)}
+                            options={termsForDeliveryOptions}
+                          />
+                        </div>
+
+                        {/* Tax Information */}
+                        <div className="bg-white rounded-lg p-4 border border-gray-200 mb-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <FileText size={18} className="text-blue-600" />
+                            <span className="font-semibold text-gray-800">Tax Information</span>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                            <FloatingInput
+                              label="HSN/SAC Code"
+                              name="hsnSac"
+                              value={invoice.hsnSac}
+                              onChange={(e) => updateInvoice(invoiceIndex, 'hsnSac', e.target.value)}
+  
+                            />
+                            <FloatingInput
+                              label="CGST %"
+                              name="cgst"
+                              type="number"
+                              value={invoice.cgst}
+                              onChange={(e) => updateInvoice(invoiceIndex, 'cgst', e.target.value)}
+                            />
+                            <FloatingInput
+                              label="SGST %"
+                              name="sgst"
+                              type="number"
+                              value={invoice.sgst}
+                              onChange={(e) => updateInvoice(invoiceIndex, 'sgst', e.target.value)}
+
+                            />
+                            <FloatingInput
+                              label="Round Off (₹)"
+                              name="roundOff"
+                              type="number"
+                              value={invoice.roundOff}
+                              onChange={(e) => updateInvoice(invoiceIndex, 'roundOff', e.target.value)}
+                            />
+                          </div>
+
+                          {/* Calculated Tax Amounts */}
+                          {invoice.invoiceValue && (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                              <div className="text-center">
+                                <p className="text-sm text-gray-600">CGST Amount</p>
+                                <p className="text-lg font-semibold text-blue-600">
+                                  ₹{(invoice.cgstAmount || 0).toFixed(2)}
+                                </p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-sm text-gray-600">SGST Amount</p>
+                                <p className="text-lg font-semibold text-green-600">
+                                  ₹{(invoice.sgstAmount || 0).toFixed(2)}
+                                </p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-sm text-gray-600">Total with Tax</p>
+                                <p className="text-lg font-bold text-purple-600">
+                                  ₹{(invoice.totalWithTax || invoice.invoiceValue || 0).toFixed(2)}
+                                </p>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

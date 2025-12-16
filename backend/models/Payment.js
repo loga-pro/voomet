@@ -49,6 +49,54 @@ const paymentSchema = new mongoose.Schema({
     invoiceDate: {
       type: Date,
       default: Date.now
+    },
+    voucherNo: {
+      type: String,
+      trim: true
+    },
+    buyersRef: {
+      type: String,
+      trim: true
+    },
+    dispatchedThrough: {
+      type: String,
+      trim: true
+    },
+    destination: {
+      type: String,
+      trim: true
+    },
+    termsForDelivery: {
+      type: String,
+      trim: true
+    },
+    hsnSac: {
+      type: String,
+      trim: true
+    },
+    cgst: {
+      type: Number,
+      default: 0
+    },
+    sgst: {
+      type: Number,
+      default: 0
+    },
+    roundOff: {
+      type: Number,
+      default: 0
+    },
+    cgstAmount: {
+      type: Number,
+      default: 0
+    },
+    sgstAmount: {
+      type: Number,
+      default: 0
+    },
+    totalWithTax: {
+      type: Number,
+      default: 0
     }
   }],
   payments: [{

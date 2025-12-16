@@ -133,7 +133,19 @@ router.post('/', auth, async (req, res) => {
         invoiceNumber: invoice.invoiceNumber,
         invoiceValue: parseFloat(invoice.invoiceValue) || 0,
         invoiceDate: invoice.invoiceDate ? new Date(invoice.invoiceDate) : new Date(),
-        paymentType: invoice.paymentType || 'advance'
+        paymentType: invoice.paymentType || 'advance',
+        voucherNo: invoice.voucherNo || '',
+        buyersRef: invoice.buyersRef || '',
+        dispatchedThrough: invoice.dispatchedThrough || '',
+        destination: invoice.destination || '',
+        termsForDelivery: invoice.termsForDelivery || '',
+        hsnSac: invoice.hsnSac || '',
+        cgst: parseFloat(invoice.cgst) || 0,
+        sgst: parseFloat(invoice.sgst) || 0,
+        roundOff: parseFloat(invoice.roundOff) || 0,
+        cgstAmount: parseFloat(invoice.cgstAmount) || 0,
+        sgstAmount: parseFloat(invoice.sgstAmount) || 0,
+        totalWithTax: parseFloat(invoice.totalWithTax) || 0
       })),
       payments: (payments || []).map(payment => ({
         transactionId: payment.transactionId,
@@ -199,7 +211,19 @@ router.put('/:id', auth, async (req, res) => {
         invoiceNumber: invoice.invoiceNumber,
         invoiceValue: parseFloat(invoice.invoiceValue) || 0,
         invoiceDate: invoice.invoiceDate ? new Date(invoice.invoiceDate) : new Date(),
-        paymentType: invoice.paymentType || 'advance'
+        paymentType: invoice.paymentType || 'advance',
+        voucherNo: invoice.voucherNo || '',
+        buyersRef: invoice.buyersRef || '',
+        dispatchedThrough: invoice.dispatchedThrough || '',
+        destination: invoice.destination || '',
+        termsForDelivery: invoice.termsForDelivery || '',
+        hsnSac: invoice.hsnSac || '',
+        cgst: parseFloat(invoice.cgst) || 0,
+        sgst: parseFloat(invoice.sgst) || 0,
+        roundOff: parseFloat(invoice.roundOff) || 0,
+        cgstAmount: parseFloat(invoice.cgstAmount) || 0,
+        sgstAmount: parseFloat(invoice.sgstAmount) || 0,
+        totalWithTax: parseFloat(invoice.totalWithTax) || 0
       })),
       payments: (payments || []).map(payment => ({
         transactionId: payment.transactionId,
