@@ -172,7 +172,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       hasDropdown: true,
       children: [
         {
-          name: "Inventory List",
+          name: "Inventory Summary",
           path: "/inventory-management",
           permission: "inventory_management",
         },

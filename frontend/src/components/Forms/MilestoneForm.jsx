@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { projectsAPI, milestonesAPI, inhouseMilestonesAPI, customersAPI, reportsAPI } from '../../services/api';
 import FloatingInput from './FloatingInput';
-import { Tooltip, Modal, Button, Alert, Card, InputNumber, Slider, Tag, message } from 'antd';
+import { Tooltip, Modal, Button, Alert, Card, InputNumber, Slider, Tag, message, Row, Col, Divider } from 'antd';
 import {
   DeleteOutlined,
   PlusOutlined,
@@ -48,7 +48,7 @@ const MilestoneForm = ({ milestone, onSuccess, onCancel, viewMode = false, onEma
   const [totalDuration, setTotalDuration] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Check screen size for minor UI tweaks (button size etc.)
+  // Check screen size for responsive design
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -765,198 +765,139 @@ const MilestoneForm = ({ milestone, onSuccess, onCancel, viewMode = false, onEma
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
-      {/* Optional mobile header (just for looks) */}
-      {isMobile && (
-        <div className="lg:hidden p-3 border-b bg-white">
-          {/* Add mobile header content here if needed */}
-        </div>
-      )}
+      {/* Make the entire form scrollable */}
+      <form onSubmit={handleSubmit} className="flex-1 overflow-auto">
+        <div className="p-3 md:p-4 lg:p-6">
+          {errors.submit && (
+            <Alert
+              message="Error"
+              description={errors.submit}
+              type="error"
+              showIcon
+              className="mb-4"
+              closable
+              onClose={() => setErrors(prev => ({ ...prev, submit: null }))}
+            />
+          )}
+          
+          {/* Compact Form Header - Similar to your image */}
+          <Card size="small" className="shadow-sm mb-4">
+  <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
 
-      <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
-        {errors.submit && (
-          <Alert
-            message="Error"
-            description={errors.submit}
-            type="error"
-            showIcon
-            className="mb-3 md:mb-4"
-            closable
-            onClose={() => setErrors(prev => ({ ...prev, submit: null }))}
-          />
-        )}
-        
-        {/* Main content area - scrollable */}
-        <div className="flex-1 overflow-auto p-3 md:p-4 lg:p-6">
-          {/* Top Cards Section in a responsive row */}
-          <div className="flex flex-col lg:flex-row gap-3 md:gap-4 mb-6">
-            {/* Basic Information Card */}
-            <Card
-              title={<span className="text-sm md:text-base">Basic Information</span>}
-              size="small"
-              className="shadow-sm flex-1"
-            >
-              <div className="space-y-3 md:space-y-4">
-                {milestone ? (
-                  <>
-                    <FloatingInput
-                      label="Client Name"
-                      value={formData.customer}
-                      readOnly
-                      error={errors.customer}
-                      required
-                      prefix={<UserOutlined className="text-gray-400" />}
-                      size={isMobile ? 'small' : 'middle'}
-                    />
-                    <FloatingInput
-                      label="Project Name"
-                      value={formData.projectName}
-                      readOnly
-                      error={errors.projectName}
-                      required
-                      prefix={<ProjectOutlined className="text-gray-400" />}
-                      size={isMobile ? 'small' : 'middle'}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <FloatingInput
-                      label={customersLoading ? 'Loading Clients...' : 'Client Name'}
-                      value={formData.customer}
-                      onChange={e =>
-                        setFormData(prev => ({
-                          ...prev,
-                          customer: e.target.value,
-                          projectName: ''
-                        }))
-                      }
-                      error={errors.customer}
-                      type="select"
-                      options={customers.map(c => ({
-                        value: c.customerName,
-                        label: c.customerName
-                      }))}
-                      loading={customersLoading}
-                      required
-                      disabled={viewMode || customersLoading}
-                      size={isMobile ? 'small' : 'middle'}
-                    />
-                    <FloatingInput
-                      label="Project Name"
-                      value={formData.projectName}
-                      onChange={e =>
-                        setFormData(prev => ({
-                          ...prev,
-                          projectName: e.target.value
-                        }))
-                      }
-                      error={errors.projectName}
-                      type="select"
-                      options={filteredProjects.map(p => ({
-                        value: p.projectName,
-                        label: p.projectName
-                      }))}
-                      required
-                      disabled={viewMode || !formData.customer}
-                      size={isMobile ? 'small' : 'middle'}
-                    />
-                  </>
-                )}
+    <FloatingInput
+      label="Client Name"
+      type="select"
+      size="small"
+      value={formData.customer}
+      onChange={e =>
+        setFormData(prev => ({
+          ...prev,
+          customer: e.target.value,
+          projectName: ''
+        }))
+      }
+      options={customers.map(c => ({
+        value: c.customerName,
+        label: c.customerName
+      }))}
+      error={errors.customer}
+      required
+      disabled={viewMode}
+    />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                  <FloatingInput
-                    label="Start Date"
-                    type="date"
-                    value={formData.startDate}
-                    onChange={e => {
-                      setFormData(prev => ({ ...prev, startDate: e.target.value }));
-                      if (e.target.value && formData.tasks.length > 0) {
-                        updateTaskDates(e.target.value);
-                      }
-                    }}
-                    error={errors.startDate}
-                    required
-                    disabled={viewMode}
-                    size={isMobile ? 'small' : 'middle'}
-                  />
+    <FloatingInput
+      label="Project Name"
+      type="select"
+      size="small"
+      value={formData.projectName}
+      onChange={e =>
+        setFormData(prev => ({
+          ...prev,
+          projectName: e.target.value
+        }))
+      }
+      options={filteredProjects.map(p => ({
+        value: p.projectName,
+        label: p.projectName
+      }))}
+      error={errors.projectName}
+      required
+      disabled={!formData.customer || viewMode}
+    />
 
-                  <FloatingInput
-                    label="End Date"
-                    type="date"
-                    value={formData.endDate}
-                    readOnly
-                    size={isMobile ? 'small' : 'middle'}
-                  />
-                </div>
-              </div>
-            </Card>
+    <FloatingInput
+      label="Email ID"
+      size="small"
+      value={formData.emailId}
+      readOnly
+      disabled
+      required
+    />
 
-            {/* Contact Information Card */}
-            <Card
-              title={<span className="text-sm md:text-base">Contact Information</span>}
-              size="small"
-              className="shadow-sm flex-1"
-            >
-              <div className="space-y-3 md:space-y-4">
-                <FloatingInput
-                  label="Email ID "
-                  value={formData.emailId}
-                  readOnly
-                  error={errors.emailId}
-                  required
-                  prefix={<MailOutlined className="text-gray-400" />}
-                  size={isMobile ? 'small' : 'middle'}
-                />
-              </div>
-            </Card>
+    <FloatingInput
+      label="Start Date"
+      type="date"
+      size="small"
+      value={formData.startDate}
+      onChange={e => {
+        setFormData(prev => ({ ...prev, startDate: e.target.value }));
+        if (e.target.value && formData.tasks.length > 0) {
+          updateTaskDates(e.target.value);
+        }
+      }}
+      error={errors.startDate}
+      required
+      disabled={viewMode}
+    />
 
-            {/* Project Flexibility Card */}
-            <Card
-              title={<span className="text-sm md:text-base">Project Flexibility</span>}
-              size="small"
-              className="shadow-sm flex-1"
-            >
-              <div className="space-y-3 md:space-y-4">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs md:text-sm font-medium text-gray-700">
-                      Timeline Flexibility
-                    </span>
-                    <Tag color="blue">{formData.flexibilityPercentage}%</Tag>
-                  </div>
-                  <Slider
-                    min={0}
-                    max={100}
-                    value={formData.flexibilityPercentage}
-                    onChange={handleFlexibilityChange}
-                    disabled={viewMode || !formData.startDate || formData.tasks.length === 0}
-                    tooltip={{
-                      formatter: value => `${value}% increase`
-                    }}
-                  />
-                  <p className="text-xs text-gray-500 mt-2">
-                    Adjusts project timeline by adding days proportionally to all tasks
-                  </p>
-                </div>
+   <FloatingInput
+  label="End Date"
+  type="date"
+  size="small"
+  value={formData.endDate}
+  readOnly
+  disabled
+/>
 
-                {flexibilitySummary && (
-                  <Alert
-                    message="Flexibility Applied"
-                    description={`${flexibilitySummary.totalDaysAdded} days added across ${flexibilitySummary.distribution.length} tasks`}
-                    type="success"
-                    showIcon
-                    action={
-                      <Button size="small" type="text" onClick={() => setShowFlexibilityModal(true)}>
-                        Details
-                      </Button>
-                    }
-                  />
-                )}
-              </div>
-            </Card>
-          </div>
+
+  </div>
+</Card>
+
+
+          {/* Project Flexibility Section */}
+<Card size="small" className="shadow-sm mb-4">
+  <div className="flex flex-col gap-2">
+
+    <div className="flex justify-between items-center">
+      <span className="text-xs font-medium text-gray-700">
+        Timeline Flexibility
+      </span>
+
+      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+        {formData.flexibilityPercentage}%
+      </span>
+    </div>
+
+    <Slider
+      min={0}
+      max={100}
+      value={formData.flexibilityPercentage}
+      onChange={handleFlexibilityChange}
+      disabled={viewMode || !formData.startDate || formData.tasks.length === 0}
+      tooltip={{ formatter: v => `${v}%` }}
+      className="mt-1"
+    />
+
+    <p className="text-[11px] text-gray-500 leading-tight">
+      Adjusts project timeline by adding days proportionally to all tasks
+    </p>
+
+  </div>
+</Card>
+
 
           {/* Tasks Table Section */}
-          <div className="bg-white rounded-lg border overflow-hidden">
+          <div className="bg-white rounded-lg border overflow-hidden mb-8">
             <div className="flex justify-between items-center p-4 border-b">
               <div>
                 <h3 className="text-base md:text-lg font-semibold text-gray-900">
@@ -987,15 +928,7 @@ const MilestoneForm = ({ milestone, onSuccess, onCancel, viewMode = false, onEma
               }}
             >
               <table className="min-w-[900px] w-full divide-y divide-gray-200 table-fixed">
-                <colgroup>
-                  <col className="w-[18%]" /> {/* Phase */}
-                  <col className="w-[30%]" /> {/* Task */}
-                  <col className="w-[10%]" /> {/* Duration */}
-                  <col className="w-[16%]" /> {/* Responsible */}
-                  <col className="w-[8%]" /> {/* Start Date */}
-                  <col className="w-[8%]" /> {/* End Date */}
-                  {!viewMode && <col className="w-[4%]" />} {/* Actions */}
-                </colgroup>
+                <colgroup><col className="w-[18%]" /><col className="w-[30%]" /><col className="w-[10%]" /><col className="w-[16%]" /><col className="w-[8%]" /><col className="w-[8%]" />{!viewMode && <col className="w-[4%]" />}</colgroup>
 
                 <thead className="bg-gray-50">
                   <tr>
@@ -1218,33 +1151,33 @@ const MilestoneForm = ({ milestone, onSuccess, onCancel, viewMode = false, onEma
               </table>
             </div>
           </div>
-        </div>
 
-        {/* Bottom Actions - Positioned at the very bottom */}
-        {!viewMode && (
-          <div className="mt-auto border-t border-gray-200 bg-white p-4">
-            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
-              <Button
-                onClick={onCancel}
-                disabled={loading}
-                size={isMobile ? 'small' : 'default'}
-                className="w-full sm:w-auto"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={loading}
-                icon={<CheckCircleOutlined />}
-                size={isMobile ? 'small' : 'default'}
-                className="w-full sm:w-auto"
-              >
-                {milestone ? 'Update Milestone' : 'Create Milestone'}
-              </Button>
+          {/* Bottom Actions */}
+          {!viewMode && (
+            <div className="border-t border-gray-200 bg-white rounded-lg p-4 mb-6">
+              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
+                <Button
+                  onClick={onCancel}
+                  disabled={loading}
+                  size={isMobile ? 'small' : 'default'}
+                  className="w-full sm:w-auto"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={loading}
+                  icon={<CheckCircleOutlined />}
+                  size={isMobile ? 'small' : 'default'}
+                  className="w-full sm:w-auto"
+                >
+                  {milestone ? 'Update Milestone' : 'Create Milestone'}
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </form>
 
       {/* Flexibility Modal */}

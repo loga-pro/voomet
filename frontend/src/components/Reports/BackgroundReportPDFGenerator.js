@@ -130,12 +130,11 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
       },
       quality: {
         headers: [
-          { key: 'customer', displayName: 'Customer' },
+          { key: 'customer', displayName: 'Client Name' },
           { key: 'scopeOfWork', displayName: 'Scope of Work' },
           { key: 'category', displayName: 'Category' },
           { key: 'status', displayName: 'Status' },
           { key: 'responsibility', displayName: 'Responsibility' },
-          { key: 'createdAt', displayName: 'Created Date' }
         ]
       },
       vendor: {
@@ -150,7 +149,7 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
       },
       'project-comprehensive': {
         headers: [
-          { key: 'customerName', displayName: 'Customer Name' },
+          { key: 'customerName', displayName: 'Client Name' },
           { key: 'projectName', displayName: 'Project Name' },
           { key: 'stage', displayName: 'Stage' },
           { key: 'totalProjectValue', displayName: 'Total Value (₹)' },
@@ -164,7 +163,7 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
       },
       milestone: {
         headers: [
-          { key: 'customer', displayName: 'Customer' },
+          { key: 'customer', displayName: 'Client Name' },
           { key: 'projectName', displayName: 'Project Name' },
           { key: 'startDate', displayName: 'Start Date' },
           { key: 'endDate', displayName: 'End Date' },
@@ -172,7 +171,7 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
       },
       payment: {
         headers: [
-          { key: 'customer', displayName: 'Customer' },
+          { key: 'customer', displayName: 'Client Name' },
           { key: 'projectName', displayName: 'Project Name' },
           { key: 'projectCost', displayName: 'Project Cost (₹)' },
           { key: 'totalInvoiceRaised', displayName: 'Total Invoice Raised (₹)' },
@@ -258,12 +257,15 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
           } else {
             value = '-';
           }
-        } else if ((key === 'scopeOfWork' || key === 'workCategory') && value) {
+        } else if ((key === 'scopeOfWork' || key === 'workCategory') && value && typeof value === 'string') {
           value = value.replace(/_/g, ' ').toUpperCase();
-        } else if (key === 'vendorName') {
-          // Handle vendorName which might be an array or in rowData
-          if (Array.isArray(value)) {
-            value = value.join(', ');
+        } else if (key === 'vendorName' || key === 'vendor') {
+          // Handle vendorName which might be an array, object, or in rowData
+          if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            // If it's an object (like vendor details), extract the name
+            value = value.vendorName || value.name || '-';
+          } else if (Array.isArray(value)) {
+            value = value.map(v => typeof v === 'object' ? (v.vendorName || v.name || v) : v).join(', ');
           } else if (!value && item.rowData?.[0]?.vendorNames) {
             value = Array.isArray(item.rowData[0].vendorNames)
               ? item.rowData[0].vendorNames.join(', ')
@@ -292,9 +294,45 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
           }
         } else if (typeof value === 'boolean') {
           value = value ? 'Yes' : 'No';
+        } else if (typeof value === 'object' && value !== null) {
+          // Handle any remaining objects by converting to string or extracting name
+          if (value.name) {
+            value = value.name;
+          } else if (value.vendorName) {
+            value = value.vendorName;
+          } else if (value.toString && value.toString() !== '[object Object]') {
+            value = value.toString();
+          } else {
+            value = '-';
+          }
         } else {
           // Handle 0 values properly - only use '-' for null/undefined
           value = (value !== null && value !== undefined) ? value : '-';
+        }
+
+        // Final safety check: ensure we never assign an object to a table cell
+        if (typeof value === 'object' && value !== null) {
+          console.warn(`Object value detected for key "${key}":`, value);
+          
+          // Try to extract meaningful data from the object
+          if (Array.isArray(value)) {
+            // Handle arrays
+            value = value.map(v => {
+              if (typeof v === 'object' && v !== null) {
+                return v.vendorName || v.name || v._id || JSON.stringify(v);
+              }
+              return v;
+            }).join(', ');
+          } else {
+            // Handle objects - try multiple common fields
+            value = value.vendorName || value.name || value._id || 
+                   (value.toString && value.toString() !== '[object Object]' ? value.toString() : JSON.stringify(value));
+          }
+        }
+
+        // Extra safety: ensure the final value is a primitive
+        if (typeof value === 'object' && value !== null) {
+          value = String(value);
         }
 
         row[key] = value;
@@ -319,8 +357,8 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
       const jsPDF = (await import('jspdf')).default;
       const html2canvas = (await import('html2canvas')).default;
 
-      // const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdf = new jsPDF('l', 'mm', 'a3');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      // const pdf = new jsPDF('l', 'mm', 'a3');
       const element = contentRef.current;
 
       // Wait a bit for content to render properly
@@ -344,8 +382,7 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
       });
 
       const imgData = canvas.toDataURL('image/png', 1.0);
-      // const imgWidth = 210; // A4 width in mm
-      const imgWidth = 420; //A#
+      const imgWidth = 210; // A4 width in mm
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
 
@@ -401,15 +438,15 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
       <div
         ref={contentRef}
         style={{
-          // width: '210mm', // A4
-          // minHeight: '297mm', // A4
-          width: '420mm', // A3 LandScape
-          minHeight: '297mm', // A3 LandScape
+          width: '210mm', // A4
+          minHeight: '297mm', // A4
+          // width: '420mm', 
+          // minHeight: '297mm',
           fontFamily: 'Arial, sans-serif',
-          fontSize: '12px',
-          lineHeight: '1.4',
+          fontSize: '10px',
+          lineHeight: '1.3',
           margin: '0 auto',
-          padding: '15mm',
+          padding: '10mm',
           boxSizing: 'border-box',
           backgroundColor: '#ffffff'
         }}
@@ -419,8 +456,8 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'flex-start',
-          marginBottom: '20px',
-          paddingBottom: '10px',
+          marginBottom: '12px',
+          paddingBottom: '6px',
           borderBottom: '2px solid #1f2937'
         }}>
           {/* Left: Company Logo */}
@@ -430,9 +467,9 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                 src={companyLogo}
                 alt="Company Logo"
                 style={{
-                  height: '60px',
+                  height: '50px',
                   width: 'auto',
-                  maxWidth: '120px',
+                  maxWidth: '100px',
                   objectFit: 'contain',
                   imageRendering: 'crisp-edges'
                 }}
@@ -461,10 +498,10 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
           {/* Center: Company Name and Info */}
           <div style={{ textAlign: 'center', flex: 1, margin: '0 20px' }}>
             <h1 style={{
-              fontSize: '24px',
+              fontSize: '20px',
               fontWeight: 'bold',
               color: '#111827',
-              margin: '0 0 5px 0'
+              margin: '0 0 4px 0'
             }}>
               {companyInfo.name}
             </h1>
@@ -490,14 +527,14 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
         </div>
 
         {/* Report Title and Info */}
-        <div style={{ marginBottom: '20px' }}>
+        <div style={{ marginBottom: '12px' }}>
           <h2 style={{
-            fontSize: '18px',
+            fontSize: '15px',
             fontWeight: 'bold',
             color: '#1f2937',
-            marginBottom: '15px',
+            marginBottom: '10px',
             textAlign: 'center',
-            paddingBottom: '8px',
+            paddingBottom: '6px',
             borderBottom: '1px solid #d1d5db'
           }}>
             {reportTitle}
@@ -533,12 +570,12 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
 
         {/* Report Data Table */}
         {rows.length > 0 ? (
-          <div style={{ marginBottom: '25px' }}>
+          <div style={{ marginBottom: '15px' }}>
             <h3 style={{
-              fontSize: '16px',
+              fontSize: '13px',
               fontWeight: 'bold',
               color: '#1f2937',
-              marginBottom: '12px'
+              marginBottom: '8px'
             }}>
               {reportType === 'inventory' ? 'Inventory Details' :
                 reportType === 'quality' ? 'Quality Details' :
@@ -562,11 +599,11 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                         key={index}
                         style={{
                           border: '1px solid #9ca3af',
-                          padding: '6px 4px',
+                          padding: '4px 3px',
                           textAlign: 'left',
                           fontWeight: 'bold',
                           color: '#374151',
-                          fontSize: '9px',
+                          fontSize: '8px',
                           whiteSpace: 'normal',
                           wordWrap: 'break-word'
                         }}
@@ -587,8 +624,8 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                           key={colIndex}
                           style={{
                             border: '1px solid #d1d5db',
-                            padding: '5px 4px',
-                            fontSize: '9px',
+                            padding: '4px 3px',
+                            fontSize: '8px',
                             whiteSpace: 'normal',
                             wordWrap: 'break-word',
                             verticalAlign: 'top'
@@ -617,13 +654,13 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
 
         {/* Project Tasks Section - Only for milestone reports */}
         {reportType === 'milestone' && reportData.some(item => item.tasks && item.tasks.length > 0) && (
-          <div style={{ marginTop: '25px' }}>
+          <div style={{ marginTop: '15px' }}>
             <h3 style={{
-              fontSize: '16px',
+              fontSize: '13px',
               fontWeight: 'bold',
               color: '#1f2937',
-              marginBottom: '12px',
-              paddingBottom: '8px',
+              marginBottom: '8px',
+              paddingBottom: '6px',
               borderBottom: '1px solid #d1d5db'
             }}>
               Project Tasks
@@ -632,12 +669,12 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
               if (!item.tasks || item.tasks.length === 0) return null;
 
               return (
-                <div key={itemIndex} style={{ marginBottom: '20px' }}>
+                <div key={itemIndex} style={{ marginBottom: '12px' }}>
                   <h4 style={{
-                    fontSize: '14px',
+                    fontSize: '11px',
                     fontWeight: 'bold',
                     color: '#374151',
-                    marginBottom: '8px'
+                    marginBottom: '6px'
                   }}>
                     {item.projectName || item.name || `Project ${itemIndex + 1}`}
                   </h4>
@@ -654,57 +691,69 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                         <tr style={{ backgroundColor: '#e5e7eb' }}>
                           <th style={{
                             border: '1px solid #9ca3af',
-                            padding: '6px 4px',
+                            padding: '3px 2px',
                             textAlign: 'left',
                             fontWeight: 'bold',
                             color: '#374151',
-                            whiteSpace: 'nowrap',
-                            width: '15%'
+                            fontSize: '8px',
+                            whiteSpace: 'normal',
+                            wordWrap: 'break-word',
+                            width: '14%'
                           }}>Phase</th>
                           <th style={{
                             border: '1px solid #9ca3af',
-                            padding: '6px 4px',
+                            padding: '3px 2px',
                             textAlign: 'left',
                             fontWeight: 'bold',
                             color: '#374151',
-                            whiteSpace: 'nowrap',
-                            width: '25%'
+                            fontSize: '8px',
+                            whiteSpace: 'normal',
+                            wordWrap: 'break-word',
+                            width: '28%'
                           }}>Task</th>
                           <th style={{
                             border: '1px solid #9ca3af',
-                            padding: '6px 4px',
+                            padding: '3px 2px',
                             textAlign: 'left',
                             fontWeight: 'bold',
                             color: '#374151',
-                            whiteSpace: 'nowrap',
-                            width: '12%'
+                            fontSize: '8px',
+                            whiteSpace: 'normal',
+                            wordWrap: 'break-word',
+                            width: '10%'
                           }}>Duration</th>
                           <th style={{
                             border: '1px solid #9ca3af',
-                            padding: '6px 4px',
+                            padding: '3px 2px',
                             textAlign: 'left',
                             fontWeight: 'bold',
                             color: '#374151',
-                            whiteSpace: 'nowrap',
-                            width: '18%'
+                            fontSize: '8px',
+                            whiteSpace: 'normal',
+                            wordWrap: 'break-word',
+                            width: '14%'
                           }}>Start Date</th>
                           <th style={{
                             border: '1px solid #9ca3af',
-                            padding: '6px 4px',
+                            padding: '3px 2px',
                             textAlign: 'left',
                             fontWeight: 'bold',
                             color: '#374151',
-                            whiteSpace: 'nowrap',
-                            width: '18%'
+                            fontSize: '8px',
+                            whiteSpace: 'normal',
+                            wordWrap: 'break-word',
+                            width: '14%'
                           }}>End Date</th>
                           <th style={{
                             border: '1px solid #9ca3af',
-                            padding: '6px 4px',
+                            padding: '3px 2px',
                             textAlign: 'left',
                             fontWeight: 'bold',
                             color: '#374151',
-                            whiteSpace: 'nowrap',
-                            width: '12%'
+                            fontSize: '8px',
+                            whiteSpace: 'normal',
+                            wordWrap: 'break-word',
+                            width: '20%'
                           }}>Responsible Person</th>
                         </tr>
                       </thead>
@@ -716,16 +765,18 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                           >
                             <td style={{
                               border: '1px solid #d1d5db',
-                              padding: '4px',
-                              fontSize: '9px',
-                              whiteSpace: 'nowrap'
+                              padding: '3px 2px',
+                              fontSize: '8px',
+                              whiteSpace: 'normal',
+                              wordWrap: 'break-word',
+                              verticalAlign: 'top'
                             }}>
                               {task.phase || '-'}
                             </td>
                             <td style={{
                               border: '1px solid #d1d5db',
-                              padding: '4px',
-                              fontSize: '9px',
+                              padding: '3px 2px',
+                              fontSize: '8px',
                               whiteSpace: 'normal',
                               wordWrap: 'break-word',
                               verticalAlign: 'top'
@@ -734,32 +785,33 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                             </td>
                             <td style={{
                               border: '1px solid #d1d5db',
-                              padding: '4px',
-                              fontSize: '9px',
-                              textAlign: 'center'
+                              padding: '3px 2px',
+                              fontSize: '8px',
+                              textAlign: 'center',
+                              whiteSpace: 'nowrap'
                             }}>
-                              {task.duration || 0} day
+                              {task.duration || 0} day{task.duration !== 1 ? 's' : ''}
                             </td>
                             <td style={{
                               border: '1px solid #d1d5db',
-                              padding: '4px',
-                              fontSize: '9px',
+                              padding: '3px 2px',
+                              fontSize: '8px',
                               whiteSpace: 'nowrap'
                             }}>
                               {task.startDate ? new Date(task.startDate).toLocaleDateString('en-IN') : '-'}
                             </td>
                             <td style={{
                               border: '1px solid #d1d5db',
-                              padding: '4px',
-                              fontSize: '9px',
+                              padding: '3px 2px',
+                              fontSize: '8px',
                               whiteSpace: 'nowrap'
                             }}>
                               {task.endDate ? new Date(task.endDate).toLocaleDateString('en-IN') : '-'}
                             </td>
                             <td style={{
                               border: '1px solid #d1d5db',
-                              padding: '4px',
-                              fontSize: '9px',
+                              padding: '3px 2px',
+                              fontSize: '8px',
                               whiteSpace: 'normal',
                               wordWrap: 'break-word',
                               verticalAlign: 'top'

@@ -429,7 +429,10 @@ const Reports = () => {
 
   const processVendorPaymentChartData = (vendorPayments) => {
     const vendorTotals = vendorPayments.reduce((acc, payment) => {
-      const vendor = payment.vendor || 'Unknown Vendor';
+      // Handle vendor as either string or object
+      const vendor = typeof payment.vendor === 'string' 
+        ? payment.vendor 
+        : (payment.vendor?.vendorName || 'Unknown Vendor');
       acc[vendor] = (acc[vendor] || 0) + (payment.totalPayments || 0);
       return acc;
     }, {});
@@ -500,7 +503,15 @@ const Reports = () => {
   };
 
   const getUniqueVendors = () => {
-    const vendors = vendorPaymentData.map(item => item.vendor).filter(Boolean);
+    const vendors = vendorPaymentData.map(item => {
+      // Handle vendor as either string or object
+      if (typeof item.vendor === 'string') {
+        return item.vendor;
+      } else if (item.vendor?.vendorName) {
+        return item.vendor.vendorName;
+      }
+      return null;
+    }).filter(Boolean);
     return [...new Set(vendors)].sort();
   };
 
@@ -592,7 +603,13 @@ const Reports = () => {
 
   const getFilteredVendorPaymentData = () => {
     if (!selectedVendor) return vendorPaymentData;
-    return vendorPaymentData.filter(item => item.vendor === selectedVendor);
+    return vendorPaymentData.filter(item => {
+      // Handle vendor as either string or object
+      const vendorName = typeof item.vendor === 'string' 
+        ? item.vendor 
+        : (item.vendor?.vendorName || '');
+      return vendorName === selectedVendor;
+    });
   };
 
   // Process chart data from filtered datasets
@@ -624,7 +641,10 @@ const Reports = () => {
   const processFilteredVendorPaymentChartData = () => {
     const filteredData = getFilteredVendorPaymentData();
     const vendorTotals = filteredData.reduce((acc, item) => {
-      const vendor = item.vendor || 'Unknown';
+      // Handle vendor as either string or object
+      const vendor = typeof item.vendor === 'string' 
+        ? item.vendor 
+        : (item.vendor?.vendorName || 'Unknown');
       acc[vendor] = (acc[vendor] || 0) + (item.totalPayments || 0);
       return acc;
     }, {});
@@ -1094,7 +1114,7 @@ const Reports = () => {
             <h3 className="text-lg font-semibold text-gray-900">Quality Issue Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <p className="text-sm font-medium text-gray-500">Customer</p>
+                <p className="text-sm font-medium text-gray-500">Client Name</p>
                 <p className="text-sm text-gray-900">{data.customer || 'N/A'}</p>
               </div>
               <div>
@@ -1124,11 +1144,11 @@ const Reports = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm font-medium text-gray-500">Vendor</p>
-                <p className="text-sm text-gray-900">{data.vendor || 'N/A'}</p>
+                <p className="text-sm text-gray-900">{typeof data.vendor === 'string' ? data.vendor : (data.vendor?.vendorName || 'N/A')}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">GST Number</p>
-                <p className="text-sm text-gray-900">{data.vendorGstNumber || 'N/A'}</p>
+                <p className="text-sm text-gray-900">{typeof data.vendor === 'string' ? 'N/A' : (data.vendor?.gstNumber || 'N/A')}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Total Invoice Raised</p>
@@ -1683,7 +1703,7 @@ const Reports = () => {
     title: 'Quality Reports',
     data: qualityData,
     columns: [
-      { header: 'Customer', accessor: 'customer' },
+      { header: 'Client Name', accessor: 'customer' },
       { header: 'Scope of Work', accessor: 'scopeOfWork' },
       { header: 'Category', accessor: 'category' },
       { header: 'Status', accessor: 'status' },
@@ -1712,8 +1732,8 @@ const Reports = () => {
     title: 'Vendor Payment Reports',
     data: vendorPaymentData,
     columns: [
-      { header: 'Vendor', accessor: 'vendor' },
-      { header: 'GST Number', accessor: 'vendorGstNumber' },
+      { header: 'Vendor', accessor: (row) => typeof row.vendor === 'string' ? row.vendor : (row.vendor?.vendorName || 'Unknown') },
+      { header: 'GST Number', accessor: (row) => typeof row.vendor === 'string' ? 'N/A' : (row.vendor?.gstNumber || 'N/A') },
       { header: 'Total Invoice Raised (₹)', accessor: row => `₹${row.totalInvoiceRaised?.toLocaleString() || '0'}` },
       { header: 'Total Payments (₹)', accessor: row => `₹${row.totalPayments?.toLocaleString() || '0'}` },
       { header: 'Balance (₹)', accessor: row => `₹${row.balanceAmount?.toLocaleString() || '0'}` },

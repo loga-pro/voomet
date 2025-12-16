@@ -126,10 +126,10 @@ const InventorySummaryTable = ({
               Stock value Reject
             </th>
             <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
-              Total Stock
+              Total Stock (After Return)
             </th>
             <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
-              Total Stock value
+              Total Stock value (After Return)
             </th>
           </tr>
         </thead>
