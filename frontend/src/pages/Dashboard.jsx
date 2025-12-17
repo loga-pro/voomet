@@ -194,7 +194,7 @@ const Dashboard = () => {
     },
     {
       id: 'total-project-value',
-      title: 'Total Project Value (₹)',
+      title: 'Total Invoice Raised (₹)',
       value: kpis.financialKPIs.totalProjectValue.toLocaleString('en-IN'),
       icon: BanknotesIcon,
       color: 'bg-green-500'

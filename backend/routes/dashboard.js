@@ -69,19 +69,45 @@ router.get('/kpis', auth, async (req, res) => {
     const uniqueProjects = [...new Set(payments.map(p => p.project))];
     const totalProjects = uniqueProjects.length;
     
-    // Calculate total project value from saved payment records only
-    const totalProjectValue = payments.reduce((sum, payment) => sum + (payment.projectCost || 0), 0);
+    // Calculate total invoice raised from saved payment records only
+    const totalInvoiceRaised = payments.reduce((sum, payment) => {
+      return sum + (payment.totalInvoiceRaised || 0);
+    }, 0);
     
     // Calculate payment received and pending
     const totalPaymentsReceived = payments.reduce((sum, payment) => {
       return sum + (payment.totalPayments || 0);
     }, 0);
     
-    const totalInvoiceRaised = payments.reduce((sum, payment) => {
-      return sum + (payment.totalInvoiceRaised || 0);
-    }, 0);
-    
     const totalPaymentsPending = totalInvoiceRaised - totalPaymentsReceived;
+
+    // Calculate payment status counts based on invoice date + 30 days
+    const currentDate = new Date();
+    const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
+    
+    let paymentCompleted = 0;
+    let paymentPending = 0;
+    let paymentOverdue = 0;
+    
+    payments.forEach(payment => {
+      // Check if payment is fully paid
+      if (payment.balanceAmount === 0 || payment.status === 'paid') {
+        paymentCompleted++;
+      } else {
+        // Check if any invoice is overdue (older than 30 days)
+        const hasOverdueInvoice = payment.invoices && payment.invoices.length > 0 && payment.invoices.some(invoice => {
+          const invoiceDate = new Date(invoice.invoiceDate);
+          const daysSinceInvoice = currentDate - invoiceDate;
+          return daysSinceInvoice > thirtyDaysInMs;
+        });
+        
+        if (hasOverdueInvoice) {
+          paymentOverdue++;
+        } else {
+          paymentPending++;
+        }
+      }
+    });
 
     // Vendor Payment KPIs
     const vendorPayments = await VendorPayment.find();
@@ -99,10 +125,10 @@ router.get('/kpis', auth, async (req, res) => {
       return sum + (payment.balanceAmount || 0);
     }, 0);
     
-    // Payment Completed - based on status 'paid'
-    const paymentCompleted = vendorPayments.filter(payment => payment.status === 'paid').length;
-    const paymentPending = vendorPayments.filter(payment => payment.status === 'pending').length;
-    const paymentOverdue = vendorPayments.filter(payment => payment.status === 'overdue').length;
+    // Vendor Payment Completed - based on status 'paid'
+    const vendorPaymentCompleted = vendorPayments.filter(payment => payment.status === 'paid').length;
+    const vendorPaymentPending = vendorPayments.filter(payment => payment.status === 'pending').length;
+    const vendorPaymentOverdue = vendorPayments.filter(payment => payment.status === 'overdue').length;
 
     // Inventory KPIs - Enhanced calculations matching InventoryManagement.jsx
     const inventoryItems = await Inventory.find();
@@ -168,21 +194,21 @@ router.get('/kpis', auth, async (req, res) => {
       },
       financialKPIs: {
         totalProjects: totalProjects,
-        totalProjectValue,
+        totalProjectValue: totalInvoiceRaised,
         totalPaymentsReceived,
         totalPaymentsPending,
-        paymentCompleted: payments.filter(p => p.status === 'paid').length,
-        paymentPending: payments.filter(p => p.status === 'pending').length,
-        paymentOverdue: payments.filter(p => p.status === 'overdue').length
+        paymentCompleted,
+        paymentPending,
+        paymentOverdue
       },
       vendorPaymentKPIs: {
         totalVendors: vendorPayments.length,
         totalVendorPayments,
         totalVendorInvoiceRaised,
         totalVendorPaymentsPending,
-        paymentCompleted,
-        paymentPending,
-        paymentOverdue
+        paymentCompleted: vendorPaymentCompleted,
+        paymentPending: vendorPaymentPending,
+        paymentOverdue: vendorPaymentOverdue
       },
       inventoryKPIs: {
         totalItems,

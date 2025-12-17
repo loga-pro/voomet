@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { partsAPI, vendorsAPI } from '../../services/api';
-import FloatingInput from './FloatingInput'; 
+import FloatingInput from './FloatingInput';
 
 const PartForm = ({ part, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -27,7 +27,7 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
   ];
 
   const categoryOptions = [
-    { value: 'inhouse', label: 'Inhouse' },   
+    { value: 'inhouse', label: 'Inhouse' },
     { value: 'out_sourced', label: 'Out Sourced' },
     { value: 'bought_out', label: 'Bought Out' }
   ];
@@ -73,7 +73,7 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     if (name === 'partPrice') {
       // Allow empty string or validate 8 digits and 2 decimals (max 99999999.99)
       if (value === '' || /^\d{0,8}(\.\d{0,2})?$/.test(value)) {
@@ -91,9 +91,9 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
         }));
       }
     } else if (name === 'partName') {
-      // Allow up to 25 characters with alphabets and spaces only (no numbers or special characters)
-      // Only allow letters (a-z, A-Z) and spaces
-      if (value.length <= 25 && /^[a-zA-Z\s]*$/.test(value)) {
+      // Allow up to 25 characters with alphabets, numbers, and spaces (no special characters)
+      // Only allow letters (a-z, A-Z), numbers (0-9), and spaces
+      if (value.length <= 25 && /^[a-zA-Z0-9\s]*$/.test(value)) {
         setFormData(prev => ({
           ...prev,
           [name]: value
@@ -139,16 +139,14 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
     }
 
     // Validate vendor name for outsource and bought out categories
-    if ((formData.category === 'out_sourced' || formData.category === 'bought_out') && 
-        (!formData.vendorName || !formData.vendorName.trim())) {
+    if ((formData.category === 'out_sourced' || formData.category === 'bought_out') &&
+      (!formData.vendorName || !formData.vendorName.trim())) {
       newErrors.vendorName = 'Vendor name is required for outsource and bought out categories';
     }
 
     if (!formData.partName.trim()) {
       newErrors.partName = 'Part name is required';
-    } else if (/\d/.test(formData.partName)) {
-      newErrors.partName = 'Part name should not contain numbers';
-    } else if (/[^a-zA-Z\s]/.test(formData.partName)) {
+    } else if (/[^a-zA-Z0-9\s]/.test(formData.partName)) {
       newErrors.partName = 'Part name should not contain special characters';
     } else if (formData.partName.length > 25) {
       newErrors.partName = 'Part name cannot exceed 25 characters';
@@ -176,16 +174,16 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
         const existingPartName = existingPart.partName.toLowerCase();
         const existingCategory = existingPart.category;
         const existingScopeOfWork = existingPart.scopeOfWork;
-        
+
         // Case-insensitive comparison for all three fields
-        const isSamePart = existingPartName === trimmedPartName && 
-                          existingCategory === formData.category &&
-                          existingScopeOfWork === formData.scopeOfWork;
-        
+        const isSamePart = existingPartName === trimmedPartName &&
+          existingCategory === formData.category &&
+          existingScopeOfWork === formData.scopeOfWork;
+
         // If editing, exclude the current part from duplicate check
         return part ? (isSamePart && existingPart._id !== part._id) : isSamePart;
       });
-      
+
       if (duplicateExists) {
         newErrors.partName = 'A part with this name, category, and scope of work already exists';
       }
@@ -197,7 +195,7 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setLoading(true);
@@ -207,7 +205,7 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
       if (!token) {
         throw new Error('No authentication token found. Please log in again.');
       }
-      
+
       // Clean up the data before submission
       const submitData = {
         scopeOfWork: formData.scopeOfWork,
@@ -236,7 +234,7 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
       console.error('Error status:', error.response?.status);
       console.error('Error message:', error.response?.data?.message);
       console.error('Error errors object:', error.response?.data?.errors);
-      
+
       if (error.response?.data?.errors) {
         // Handle validation errors from backend
         const backendErrors = {};
@@ -273,7 +271,7 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
         error={errors.scopeOfWork}
         required
       />
-      
+
       <FloatingInput
         label="Category"
         name="category"
@@ -309,7 +307,7 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
         required
       />
 
-      
+
 
       <FloatingInput
         label="Unit Type"

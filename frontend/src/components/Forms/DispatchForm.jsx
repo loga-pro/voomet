@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import FloatingInput from './FloatingInput';
+import { FaTrash, FaPlus } from 'react-icons/fa';
 
 const DispatchForm = ({
   dispatchData = {},
@@ -14,64 +15,54 @@ const DispatchForm = ({
   dispatchIndex = null
 }) => {
   const initialData = dispatchData || {};
+  
+  // State for individual line items
+  const [lineItems, setLineItems] = useState(
+    initialData.lineItems?.length > 0 
+      ? initialData.lineItems 
+      : [{
+          workCategory: '',
+          partName: '',
+          unit: '',
+          quantity: '',
+          priceWithoutGST: '',
+          gstPercentage: 18,
+          gstAmount: '',
+          total: ''
+        }]
+  );
+  
   const [formData, setFormData] = useState({
     date: initialData.date || '',
     dispatchCategory: initialData.dispatchCategory || 'dispatch',
-    workCategory: initialData.workCategory || '',
-    partName: initialData.partName || '',
     customerName: initialData.customerName || '',
-    invoiceNo: initialData.invoiceNo || '',
-    invoiceDate: initialData.invoiceDate || '',
-    invoiceValueWithoutGST: initialData.invoiceValueWithoutGST || '',
-    gstValue: initialData.gstValue || '',
-    quantity: initialData.quantity || '',
-    unit: initialData.unit || '',
+    dispatchNo: initialData.dispatchNo || initialData.invoiceNo || '',
+    dispatchDate: initialData.dispatchDate || initialData.invoiceDate || '',
     upload: initialData.upload || '',
     reasonForRejection: initialData.reasonForRejection || '',
   });
 
-  // Auto-calculate GST when invoice value changes
+  // Calculate totals for line items
   useEffect(() => {
-    if (formData.invoiceValueWithoutGST) {
-      const invoiceValue = parseFloat(formData.invoiceValueWithoutGST) || 0;
-      const gstValue = invoiceValue * 0.18;
-      setFormData(prev => ({
-        ...prev,
-        gstValue: gstValue.toFixed(2)
-      }));
+    const updatedItems = lineItems.map(item => {
+      const price = parseFloat(item.priceWithoutGST) || 0;
+      const quantity = parseFloat(item.quantity) || 0;
+      const gstPercentage = parseFloat(item.gstPercentage) || 18;
+      const gstAmount = (price * (gstPercentage / 100)) * quantity;
+      const total = (price * quantity) + gstAmount;
+      
+      return {
+        ...item,
+        gstAmount: gstAmount.toFixed(2),
+        total: total.toFixed(2)
+      };
+    });
+    
+    // Only update if there are changes to avoid infinite loop
+    if (JSON.stringify(updatedItems) !== JSON.stringify(lineItems)) {
+      setLineItems(updatedItems);
     }
-  }, [formData.invoiceValueWithoutGST]);
-
-  // Auto-fill unit, price, and work category when part is selected
-  useEffect(() => {
-    if (formData.partName) {
-      const selectedPart = parts.find(p => p.partName === formData.partName);
-      if (selectedPart) {
-        const invoiceValue = selectedPart.partPrice || 0;
-        const gstValue = invoiceValue * 0.18;
-        setFormData(prev => ({
-          ...prev,
-          workCategory: selectedPart.scopeOfWork || '',
-          invoiceValueWithoutGST: invoiceValue,
-          gstValue: gstValue.toFixed(2),
-          unit: selectedPart.unitType || ''
-        }));
-      }
-    }
-  }, [formData.partName, parts]);
-
-  // Clear part name when work category changes
-  useEffect(() => {
-    if (formData.workCategory && formData.partName) {
-      const selectedPart = parts.find(p => p.partName === formData.partName);
-      if (selectedPart && selectedPart.scopeOfWork !== formData.workCategory) {
-        setFormData(prev => ({
-          ...prev,
-          partName: ''
-        }));
-      }
-    }
-  }, [formData.workCategory]);
+  }, [lineItems.map(item => `${item.priceWithoutGST}-${item.quantity}-${item.gstPercentage}`).join('|')]);
 
   // Clear reason for rejection when dispatch category changes to dispatch
   useEffect(() => {
@@ -82,6 +73,22 @@ const DispatchForm = ({
       }));
     }
   }, [formData.dispatchCategory, formData.reasonForRejection]);
+
+  // Auto-fill unit, price, and work category when part is selected for each line item
+  const handlePartChange = (index, partName) => {
+    const selectedPart = parts.find(p => p.partName === partName);
+    if (selectedPart) {
+      const newLineItems = [...lineItems];
+      newLineItems[index] = {
+        ...newLineItems[index],
+        partName,
+        workCategory: selectedPart.scopeOfWork || '',
+        unit: selectedPart.unitType || '',
+        priceWithoutGST: selectedPart.partPrice || ''
+      };
+      setLineItems(newLineItems);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value, type, files } = e.target;
@@ -107,13 +114,22 @@ const DispatchForm = ({
     }
     
     // Validate text fields (max 30 characters)
-    if (['invoiceNo', 'reasonForRejection', 'workCategory'].includes(name) && value.length > 30) {
+    if (['dispatchNo', 'reasonForRejection'].includes(name) && value.length > 30) {
       showError?.('Maximum 30 characters allowed');
       return;
     }
     
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'number' ? parseFloat(value) || 0 : value
+    }));
+  };
+
+  const handleLineItemChange = (index, field, value) => {
+    const newLineItems = [...lineItems];
+    
     // Validate quantity (max 4 digits)
-    if (name === 'quantity') {
+    if (field === 'quantity') {
       const numericValue = value.replace(/[^0-9]/g, '');
       if (numericValue.length > 4) {
         showError?.('Maximum 4 digits allowed for quantity');
@@ -124,29 +140,85 @@ const DispatchForm = ({
         showError?.('Quantity cannot exceed 9999');
         return;
       }
-      setFormData(prev => ({ ...prev, [name]: numericValue }));
-      return;
+      newLineItems[index][field] = numericValue;
+    } 
+    // Validate price (max 10 digits with 2 decimals)
+    else if (field === 'priceWithoutGST') {
+      const decimalValue = value.replace(/[^0-9.]/g, '');
+      const parts = decimalValue.split('.');
+      if (parts[0].length > 10) {
+        showError?.('Maximum 10 digits before decimal');
+        return;
+      }
+      if (parts[1] && parts[1].length > 2) {
+        showError?.('Maximum 2 decimal places');
+        return;
+      }
+      newLineItems[index][field] = decimalValue;
+    }
+    // Validate GST percentage (0-100)
+    else if (field === 'gstPercentage') {
+      const numValue = parseFloat(value) || 0;
+      if (numValue < 0 || numValue > 100) {
+        showError?.('GST percentage must be between 0 and 100');
+        return;
+      }
+      newLineItems[index][field] = value;
+    }
+    else {
+      newLineItems[index][field] = value;
     }
     
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'number' ? parseFloat(value) || 0 : value
-    }));
+    setLineItems(newLineItems);
+  };
+
+  const addLineItem = () => {
+    setLineItems([
+      ...lineItems,
+      {
+        workCategory: '',
+        partName: '',
+        unit: '',
+        quantity: '',
+        priceWithoutGST: '',
+        gstPercentage: 18,
+        gstAmount: '',
+        total: ''
+      }
+    ]);
+  };
+
+  const removeLineItem = (index) => {
+    if (lineItems.length > 1) {
+      const newLineItems = lineItems.filter((_, i) => i !== index);
+      setLineItems(newLineItems);
+    } else {
+      showError?.('At least one line item is required');
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.date || !formData.partName || !formData.quantity) {
+    if (!formData.date || !formData.dispatchNo || formData.dispatchNo.trim() === '') {
       showError?.('Please fill all required fields');
+      return;
+    }
+
+    // Validate all line items
+    const hasEmptyFields = lineItems.some(item => 
+      !item.workCategory || !item.partName || !item.quantity || !item.priceWithoutGST
+    );
+    
+    if (hasEmptyFields) {
+      showError?.('Please fill all required fields in line items');
       return;
     }
 
     const dispatch = {
       ...formData,
-      totalValue: ((parseFloat(formData.invoiceValueWithoutGST) || 0) + 
-                  (parseFloat(formData.gstValue) || 0)) * 
-                  (parseFloat(formData.quantity) || 1)
+      lineItems,
+      totalValue: lineItems.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0)
     };
     
     try {
@@ -207,30 +279,6 @@ const DispatchForm = ({
         />
         
         <FloatingInput
-          label="Work Category"
-          name="workCategory"
-          value={formData.workCategory}
-          onChange={handleInputChange}
-          type="select"
-          options={workCategories.map(cat => ({ 
-            value: cat, 
-            label: cat.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
-          }))}
-        />
-        
-        <FloatingInput
-          label="Part Name "
-          name="partName"
-          value={formData.partName}
-          onChange={handleInputChange}
-          type="select"
-          options={parts
-            .filter(p => !formData.workCategory || p.scopeOfWork === formData.workCategory)
-            .map(p => ({ value: p.partName, label: p.partName }))}
-          required
-        />
-        
-        <FloatingInput
           label="Customer Name"
           name="customerName"
           value={formData.customerName}
@@ -238,26 +286,22 @@ const DispatchForm = ({
           type="select"
           options={customers.map(c => ({ value: c.customerName, label: c.customerName }))}
         />
-
-       
+        
         <FloatingInput
-          label="Quantity "
-          name="quantity"
-          value={formData.quantity}
+          label="Dispatch No "
+          name="dispatchNo"
+          value={formData.dispatchNo}
           onChange={handleInputChange}
-          type="number"
-          min="0"
-          max="9999"
-          step="1"
+          maxLength={30}
           required
         />
         
         <FloatingInput
-          label="Unit"
-          name="unit"
-          value={formData.unit}
+          label="Dispatch Date"
+          name="dispatchDate"
+          value={formatDateForInput(formData.dispatchDate)}
           onChange={handleInputChange}
-          disabled
+          type="date"
         />
         
         <FloatingInput
@@ -283,6 +327,155 @@ const DispatchForm = ({
           </div>
         )}
       </div>
+
+      {/* Line Items Section - Only show when dispatch number is entered */}
+      {formData.dispatchNo && formData.dispatchNo.trim() !== '' && (
+        <div className="mt-6 pt-6 border-t border-gray-200">
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="text-md font-semibold text-gray-900">Dispatch Items</h4>
+            <button
+              type="button"
+              onClick={addLineItem}
+              className="flex items-center gap-2 px-3 py-2 bg-orange-600 text-white text-sm rounded-md hover:bg-orange-700"
+            >
+              <FaPlus /> Add Item
+            </button>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white border border-gray-300">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Work Category</th>
+                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Part Name</th>
+                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Unit</th>
+                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
+                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Price without GST (₹)</th>
+                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">GST %</th>
+                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">GST Amount (₹)</th>
+                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Total (₹)</th>
+                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lineItems.map((item, index) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="py-2 px-3 border-b">
+                      <select
+                        value={item.workCategory}
+                        onChange={(e) => handleLineItemChange(index, 'workCategory', e.target.value)}
+                        className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        required
+                      >
+                        <option value="">Select Work Category</option>
+                        {workCategories.map(cat => (
+                          <option key={cat} value={cat}>
+                            {cat.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="py-2 px-3 border-b">
+                      <select
+                        value={item.partName}
+                        onChange={(e) => handlePartChange(index, e.target.value)}
+                        className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        required
+                      >
+                        <option value="">Select Part</option>
+                        {parts
+                          .filter(p => !item.workCategory || p.scopeOfWork === item.workCategory)
+                          .map(p => (
+                            <option key={p._id} value={p.partName}>
+                              {p.partName}
+                            </option>
+                          ))}
+                      </select>
+                    </td>
+                    <td className="py-2 px-3 border-b">
+                      <input
+                        type="text"
+                        value={item.unit}
+                        readOnly
+                        className="w-full text-sm bg-gray-50 border border-gray-300 rounded px-2 py-1"
+                      />
+                    </td>
+                    <td className="py-2 px-3 border-b">
+                      <input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => handleLineItemChange(index, 'quantity', e.target.value)}
+                        min="0"
+                        max="9999"
+                        step="1"
+                        className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        required
+                      />
+                    </td>
+                    <td className="py-2 px-3 border-b">
+                      <input
+                        type="number"
+                        value={item.priceWithoutGST}
+                        onChange={(e) => handleLineItemChange(index, 'priceWithoutGST', e.target.value)}
+                        min="0"
+                        step="0.01"
+                        className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        required
+                      />
+                    </td>
+                    <td className="py-2 px-3 border-b">
+                      <input
+                        type="number"
+                        value={item.gstPercentage}
+                        onChange={(e) => handleLineItemChange(index, 'gstPercentage', e.target.value)}
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </td>
+                    <td className="py-2 px-3 border-b">
+                      <input
+                        type="text"
+                        value={item.gstAmount}
+                        readOnly
+                        className="w-full text-sm bg-gray-50 border border-gray-300 rounded px-2 py-1"
+                      />
+                    </td>
+                    <td className="py-2 px-3 border-b">
+                      <input
+                        type="text"
+                        value={item.total}
+                        readOnly
+                        className="w-full text-sm bg-gray-50 border border-gray-300 rounded px-2 py-1 font-medium"
+                      />
+                    </td>
+                    <td className="py-2 px-3 border-b">
+                      <button
+                        type="button"
+                        onClick={() => removeLineItem(index)}
+                        className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
+                        disabled={lineItems.length <= 1}
+                      >
+                        <FaTrash />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-gray-50">
+                  <td colSpan="7" className="py-2 px-3 text-right font-medium">Grand Total:</td>
+                  <td className="py-2 px-3 font-bold text-orange-600">
+                    ₹{lineItems.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0).toFixed(2)}
+                  </td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
       
       <div className="flex gap-2 pt-4 border-t border-gray-200">
         <button

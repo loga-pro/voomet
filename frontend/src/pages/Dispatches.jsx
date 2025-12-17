@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  PlusIcon, 
-  MagnifyingGlassIcon, 
+import {
+  PlusIcon,
+  MagnifyingGlassIcon,
   FunnelIcon,
   XMarkIcon,
   ArrowUpTrayIcon,
@@ -78,24 +78,24 @@ const Dispatches = () => {
         partsAPI.getAll(),
         customersAPI.getAll()
       ]);
-      
+
       // Handle nested response structure
       const dispatchesData = dispatchesRes.data?.data || dispatchesRes.data || [];
       const partsData = partsRes.data || [];
       const customersData = customersRes.data || [];
-      
+
       setDispatches(dispatchesData);
       setParts(partsData);
       setCustomers(customersData);
-      
+
       // Extract unique values for dropdowns from saved dispatches only
       const categories = [...new Set(dispatchesData.map(d => d.dispatchCategory))].filter(Boolean);
       const partNames = [...new Set(dispatchesData.map(d => d.partName))].filter(Boolean);
       const customerNames = [...new Set(dispatchesData.map(d => d.customerName))].filter(Boolean);
-      
-      // Get work categories from saved dispatches only
-      const workCategories = [...new Set(dispatchesData.map(d => d.workCategory))].filter(Boolean);
-      
+
+      // Get work categories from parts master data to show all available categories
+      const workCategories = [...new Set(partsData.map(p => p.scopeOfWork))].filter(Boolean);
+
       setUniqueCategories(categories);
       setUniquePartNames(partNames);
       setUniqueCustomers(customerNames);
@@ -117,25 +117,25 @@ const Dispatches = () => {
 
     // Apply dropdown filters
     if (filters.dispatchCategory) {
-      filtered = filtered.filter(dispatch => 
+      filtered = filtered.filter(dispatch =>
         dispatch.dispatchCategory === filters.dispatchCategory
       );
     }
 
     if (filters.partName) {
-      filtered = filtered.filter(dispatch => 
+      filtered = filtered.filter(dispatch =>
         dispatch.partName === filters.partName
       );
     }
 
     if (filters.customerName) {
-      filtered = filtered.filter(dispatch => 
+      filtered = filtered.filter(dispatch =>
         dispatch.customerName === filters.customerName
       );
     }
 
     if (filters.workCategory) {
-      filtered = filtered.filter(dispatch => 
+      filtered = filtered.filter(dispatch =>
         dispatch.workCategory === filters.workCategory
       );
     }
@@ -149,12 +149,12 @@ const Dispatches = () => {
         const customerName = dispatch.customerName?.toString().toLowerCase() || '';
         const workCategory = dispatch.workCategory?.toString().toLowerCase() || '';
         const reasonForRejection = dispatch.reasonForRejection?.toString().toLowerCase() || '';
-        
+
         return invoiceNo.includes(searchLower) ||
-               partName.includes(searchLower) ||
-               customerName.includes(searchLower) ||
-               workCategory.includes(searchLower) ||
-               reasonForRejection.includes(searchLower);
+          partName.includes(searchLower) ||
+          customerName.includes(searchLower) ||
+          workCategory.includes(searchLower) ||
+          reasonForRejection.includes(searchLower);
       });
     }
 
@@ -213,9 +213,9 @@ const Dispatches = () => {
   const exportToCSV = () => {
     const headers = [
       'Date', 'Dispatch Category', 'Work Category', 'Part Name', 'Customer Name',
-       'Quantity', 'Unit'
+      'Quantity', 'Unit'
     ];
-    
+
     const csvData = filteredDispatches.map(dispatch => [
       formatDate(dispatch.date),
       dispatch.dispatchCategory?.toUpperCase() || '',
@@ -247,7 +247,7 @@ const Dispatches = () => {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
-    
+
     showSuccess('Dispatches exported to CSV successfully');
   };
 
@@ -295,7 +295,7 @@ const Dispatches = () => {
         await dispatchesAPI.create(dispatchData);
         showSuccess('Dispatch added successfully');
       }
-      
+
       setShowModal(false);
       setEditingDispatch(null);
       await fetchData();
@@ -310,7 +310,7 @@ const Dispatches = () => {
       showError('No file available to view');
       return;
     }
-    
+
     if (uploadUrl.startsWith('http') || uploadUrl.startsWith('data:')) {
       window.open(uploadUrl, '_blank');
     } else {
@@ -355,22 +355,21 @@ const Dispatches = () => {
                   )}
                 </div>
               </div>
-              
+
               {/* Search Results Info */}
               {searchTerm && (
                 <div className="mt-3 text-sm text-gray-600">
                   Found {filteredDispatches.length} dispatch(s) matching "{searchTerm}"
                 </div>
               )}
-              
+
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                    showFilters || Object.values(filters).some(Boolean) || searchTerm
-                      ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100' 
+                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters || Object.values(filters).some(Boolean) || searchTerm
+                      ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
                       : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
                   Filters
@@ -380,7 +379,7 @@ const Dispatches = () => {
                     </span>
                   )}
                 </button>
-                
+
                 {(Object.values(filters).some(Boolean) || searchTerm) && (
                   <button
                     onClick={clearFilters}
@@ -390,7 +389,7 @@ const Dispatches = () => {
                     Clear
                   </button>
                 )}
-                
+
                 <button
                   onClick={exportToCSV}
                   className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -398,7 +397,7 @@ const Dispatches = () => {
                   <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
                   Export CSV
                 </button>
-                
+
                 <button
                   onClick={() => setShowModal(true)}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
@@ -427,7 +426,7 @@ const Dispatches = () => {
                     ))}
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Work Category</label>
                   <select
@@ -441,7 +440,7 @@ const Dispatches = () => {
                     ))}
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Part Name</label>
                   <select
@@ -455,7 +454,7 @@ const Dispatches = () => {
                     ))}
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
                   <select
@@ -527,7 +526,7 @@ const Dispatches = () => {
                               {dispatch.quantity} {dispatch.unit}
                             </div>
                           </td>
-                         
+
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div className="flex justify-end space-x-2">
                               {dispatch.upload && (
@@ -568,7 +567,7 @@ const Dispatches = () => {
                       <tr>
                         <td colSpan="9" className="px-6 py-8 text-center text-gray-500">
                           {Object.values(filters).some(val => val !== '') || searchTerm
-                            ? 'No dispatches found matching your filters.' 
+                            ? 'No dispatches found matching your filters.'
                             : 'No dispatches found.'
                           }
                         </td>
@@ -578,7 +577,7 @@ const Dispatches = () => {
                 </table>
               </div>
             </div>
-            
+
             {/* Mobile Card View */}
             <div className="lg:hidden">
               {currentItems.length > 0 ? (
@@ -659,7 +658,7 @@ const Dispatches = () => {
               ) : (
                 <div className="p-8 text-center text-gray-500">
                   {Object.values(filters).some(val => val !== '') || searchTerm
-                    ? 'No dispatches found matching your filters.' 
+                    ? 'No dispatches found matching your filters.'
                     : 'No dispatches found.'
                   }
                 </div>
@@ -686,12 +685,12 @@ const Dispatches = () => {
                   <option value={100}>100</option>
                 </select>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-700">
                   Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredDispatches.length)} of {filteredDispatches.length} results
                 </span>
-                
+
                 <nav className="flex space-x-2">
                   <button
                     onClick={() => paginate(Math.max(1, currentPage - 1))}
@@ -700,11 +699,11 @@ const Dispatches = () => {
                   >
                     <ChevronLeftIcon className="h-5 w-5" />
                   </button>
-                  
+
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter(page => 
-                      page === 1 || 
-                      page === totalPages || 
+                    .filter(page =>
+                      page === 1 ||
+                      page === totalPages ||
                       (page >= currentPage - 1 && page <= currentPage + 1)
                     )
                     .map((page, index, array) => {
@@ -718,18 +717,17 @@ const Dispatches = () => {
                           )}
                           <button
                             onClick={() => paginate(page)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              currentPage === page
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
                                 ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
                                 : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                            }`}
+                              }`}
                           >
                             {page}
                           </button>
                         </React.Fragment>
                       );
                     })}
-                  
+
                   <button
                     onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
@@ -810,29 +808,29 @@ const Dispatches = () => {
                 <TruckIcon className="h-5 w-5 mr-2 text-blue-500" />
                 Dispatch Information
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-1">
                   <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Date</h4>
                   <p className="text-sm text-gray-900 font-medium">{formatDate(selectedDispatch.date)}</p>
                 </div>
-                
-             
+
+
                 <div className="space-y-1">
                   <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Part Name</h4>
                   <p className="text-sm text-gray-900 font-medium">{selectedDispatch.partName}</p>
                 </div>
-                
+
                 <div className="space-y-1">
                   <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Work Category</h4>
                   <p className="text-sm text-gray-900 font-medium">{selectedDispatch.workCategory || '-'}</p>
                 </div>
-                
+
                 <div className="space-y-1">
                   <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Customer Name</h4>
                   <p className="text-sm text-gray-900 font-medium">{selectedDispatch.customerName}</p>
                 </div>
-                
+
                 <div className="space-y-1">
                   <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Quantity</h4>
                   <p className="text-sm text-gray-900 font-medium">
