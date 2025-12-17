@@ -15,23 +15,23 @@ const DispatchForm = ({
   dispatchIndex = null
 }) => {
   const initialData = dispatchData || {};
-  
+
   // State for individual line items
   const [lineItems, setLineItems] = useState(
-    initialData.lineItems?.length > 0 
-      ? initialData.lineItems 
+    initialData.lineItems?.length > 0
+      ? initialData.lineItems
       : [{
-          workCategory: '',
-          partName: '',
-          unit: '',
-          quantity: '',
-          priceWithoutGST: '',
-          gstPercentage: 18,
-          gstAmount: '',
-          total: ''
-        }]
+        workCategory: '',
+        partName: '',
+        unit: '',
+        quantity: '',
+        priceWithoutGST: '',
+        gstPercentage: 18,
+        gstAmount: '',
+        total: ''
+      }]
   );
-  
+
   const [formData, setFormData] = useState({
     date: initialData.date || '',
     dispatchCategory: initialData.dispatchCategory || 'dispatch',
@@ -50,14 +50,14 @@ const DispatchForm = ({
       const gstPercentage = parseFloat(item.gstPercentage) || 18;
       const gstAmount = (price * (gstPercentage / 100)) * quantity;
       const total = (price * quantity) + gstAmount;
-      
+
       return {
         ...item,
         gstAmount: gstAmount.toFixed(2),
         total: total.toFixed(2)
       };
     });
-    
+
     // Only update if there are changes to avoid infinite loop
     if (JSON.stringify(updatedItems) !== JSON.stringify(lineItems)) {
       setLineItems(updatedItems);
@@ -92,11 +92,11 @@ const DispatchForm = ({
 
   const handleInputChange = (e) => {
     const { name, value, type, files } = e.target;
-    
+
     if (type === 'file' && files && files[0]) {
       const file = files[0];
       const reader = new FileReader();
-      
+
       reader.onloadend = () => {
         setFormData(prev => ({
           ...prev,
@@ -104,21 +104,21 @@ const DispatchForm = ({
         }));
         showNotification?.(`File "${file.name}" uploaded successfully`);
       };
-      
+
       reader.onerror = () => {
         showError?.('Failed to read file');
       };
-      
+
       reader.readAsDataURL(file);
       return;
     }
-    
+
     // Validate text fields (max 30 characters)
     if (['dispatchNo', 'reasonForRejection'].includes(name) && value.length > 30) {
       showError?.('Maximum 30 characters allowed');
       return;
     }
-    
+
     setFormData(prev => ({
       ...prev,
       [name]: type === 'number' ? parseFloat(value) || 0 : value
@@ -127,7 +127,7 @@ const DispatchForm = ({
 
   const handleLineItemChange = (index, field, value) => {
     const newLineItems = [...lineItems];
-    
+
     // Validate quantity (max 4 digits)
     if (field === 'quantity') {
       const numericValue = value.replace(/[^0-9]/g, '');
@@ -141,7 +141,7 @@ const DispatchForm = ({
         return;
       }
       newLineItems[index][field] = numericValue;
-    } 
+    }
     // Validate price (max 10 digits with 2 decimals)
     else if (field === 'priceWithoutGST') {
       const decimalValue = value.replace(/[^0-9.]/g, '');
@@ -168,7 +168,7 @@ const DispatchForm = ({
     else {
       newLineItems[index][field] = value;
     }
-    
+
     setLineItems(newLineItems);
   };
 
@@ -199,35 +199,68 @@ const DispatchForm = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.date || !formData.dispatchNo || formData.dispatchNo.trim() === '') {
       showError?.('Please fill all required fields');
       return;
     }
 
     // Validate all line items
-    const hasEmptyFields = lineItems.some(item => 
+    const hasEmptyFields = lineItems.some(item =>
       !item.workCategory || !item.partName || !item.quantity || !item.priceWithoutGST
     );
-    
+
     if (hasEmptyFields) {
       showError?.('Please fill all required fields in line items');
       return;
     }
 
-    const dispatch = {
-      ...formData,
-      lineItems,
-      totalValue: lineItems.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0)
-    };
-    
     try {
       if (isEditing && dispatchData?._id) {
-        // Update existing dispatch
+        // For editing, we need to update the existing dispatch
+        // Since we're changing from multi-line to single-line model,
+        // we'll update with the first line item's data
+        const firstItem = lineItems[0];
+        const dispatch = {
+          date: formData.date,
+          dispatchCategory: formData.dispatchCategory,
+          customerName: formData.customerName,
+          invoiceNo: formData.dispatchNo,
+          invoiceDate: formData.dispatchDate,
+          upload: formData.upload,
+          reasonForRejection: formData.reasonForRejection,
+          workCategory: firstItem.workCategory,
+          partName: firstItem.partName,
+          unit: firstItem.unit,
+          quantity: parseFloat(firstItem.quantity),
+          invoiceValueWithoutGST: parseFloat(firstItem.priceWithoutGST),
+          gstValue: parseFloat(firstItem.gstAmount),
+          totalValue: parseFloat(firstItem.total)
+        };
+
         await onSubmit(dispatch, dispatchData._id);
       } else {
-        // Create new dispatch
-        await onSubmit(dispatch);
+        // For creating new dispatches, create one dispatch per line item
+        for (const item of lineItems) {
+          const dispatch = {
+            date: formData.date,
+            dispatchCategory: formData.dispatchCategory,
+            customerName: formData.customerName,
+            invoiceNo: formData.dispatchNo,
+            invoiceDate: formData.dispatchDate,
+            upload: formData.upload,
+            reasonForRejection: formData.reasonForRejection,
+            workCategory: item.workCategory,
+            partName: item.partName,
+            unit: item.unit,
+            quantity: parseFloat(item.quantity),
+            invoiceValueWithoutGST: parseFloat(item.priceWithoutGST),
+            gstValue: parseFloat(item.gstAmount),
+            totalValue: parseFloat(item.total)
+          };
+
+          await onSubmit(dispatch);
+        }
       }
     } catch (error) {
       console.error('Error submitting dispatch:', error);
@@ -254,7 +287,7 @@ const DispatchForm = ({
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
         {isEditing ? 'Edit Dispatch' : 'Add New Dispatch'}
       </h3>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FloatingInput
           label="Date "
@@ -264,7 +297,7 @@ const DispatchForm = ({
           type="date"
           required
         />
-        
+
         <FloatingInput
           label="Dispatch Category"
           name="dispatchCategory"
@@ -277,7 +310,7 @@ const DispatchForm = ({
             { value: 'reject', label: 'Reject' }
           ]}
         />
-        
+
         <FloatingInput
           label="Customer Name"
           name="customerName"
@@ -286,7 +319,7 @@ const DispatchForm = ({
           type="select"
           options={customers.map(c => ({ value: c.customerName, label: c.customerName }))}
         />
-        
+
         <FloatingInput
           label="Dispatch No "
           name="dispatchNo"
@@ -295,7 +328,7 @@ const DispatchForm = ({
           maxLength={30}
           required
         />
-        
+
         <FloatingInput
           label="Dispatch Date"
           name="dispatchDate"
@@ -303,7 +336,7 @@ const DispatchForm = ({
           onChange={handleInputChange}
           type="date"
         />
-        
+
         <FloatingInput
           label="Upload Document"
           name="upload"
@@ -312,7 +345,7 @@ const DispatchForm = ({
           type="file"
           accept=".pdf,.jpg,.jpeg,.png"
         />
-        
+
         {(formData.dispatchCategory === 'return' || formData.dispatchCategory === 'reject') && (
           <div className="md:col-span-2">
             <FloatingInput
@@ -341,7 +374,7 @@ const DispatchForm = ({
               <FaPlus /> Add Item
             </button>
           </div>
-          
+
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white border border-gray-300">
               <thead>
@@ -476,7 +509,7 @@ const DispatchForm = ({
           </div>
         </div>
       )}
-      
+
       <div className="flex gap-2 pt-4 border-t border-gray-200">
         <button
           type="button"

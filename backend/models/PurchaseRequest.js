@@ -20,18 +20,8 @@ const purchaseRequestItemSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Purpose is required'],
     trim: true
-  },
-  unitType: {
-    type: String,
-    required: false,
-    trim: true
-  },
-  estimatedCost: {
-    type: Number,
-    required: false,
-    min: [0, 'Estimated cost cannot be negative'],
-    default: 0
   }
+
 }, { _id: false });
 
 const purchaseRequestSchema = new mongoose.Schema({

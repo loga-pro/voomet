@@ -16,7 +16,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import useNotification from '../../hooks/useNotification';
 import Notification from '../Notifications/Notification';
 
-const InhouseMilestoneForm = ({ viewMode = false, milestone: milestoneProp, onSuccess }) => {
+const InhouseMilestoneForm = ({ viewMode = false, milestone: milestoneProp, onSuccess, onCancel: onCancelProp }) => {
   const navigate = useNavigate();
   const { notification, showSuccess, showError, hideNotification } = useNotification();
   const location = useLocation();
@@ -772,7 +772,7 @@ const InhouseMilestoneForm = ({ viewMode = false, milestone: milestoneProp, onSu
       }
 
       showSuccess(milestone ? 'Milestone updated successfully!' : 'Milestone created successfully!');
-      setTimeout(() => onCancel(), 1500); // Delay to show success message
+      setTimeout(() => handleFormSuccess(), 1500); // Delay to show success message
 
     } catch (error) {
       console.error('Error saving milestone:', error);
@@ -786,13 +786,23 @@ const InhouseMilestoneForm = ({ viewMode = false, milestone: milestoneProp, onSu
 
   const flexibilitySummary = calculateFlexibilitySummary();
 
-  const onCancel = () => {
+  const handleFormSuccess = () => {
     if (onSuccess) {
       // Modal mode - call the success callback
       onSuccess();
     } else {
-      // Standalone page mode - navigate
+      // Standalone page mode - navigate with success state
       navigate('/inhouse-milestone', { state: { formSuccess: true } });
+    }
+  };
+
+  const onCancel = () => {
+    if (onCancelProp) {
+      // Modal mode - call the cancel callback (just closes modal)
+      onCancelProp();
+    } else {
+      // Standalone page mode - navigate without success state
+      navigate('/inhouse-milestone');
     }
   };
 
@@ -805,7 +815,7 @@ const InhouseMilestoneForm = ({ viewMode = false, milestone: milestoneProp, onSu
         isVisible={notification.isVisible}
         onClose={hideNotification}
       />
-      
+
       {/* Optional mobile header */}
       {isMobile && (
         <div className="lg:hidden p-3 border-b bg-white">
@@ -1044,7 +1054,7 @@ const InhouseMilestoneForm = ({ viewMode = false, milestone: milestoneProp, onSu
                     </th>
                     {!viewMode && (
                       <th className="px-3 md:px-4 py-2 md:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky right-0 top-0 bg-gray-50 z-30">
-                        Actions
+                        Action
                       </th>
                     )}
                   </tr>

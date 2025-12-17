@@ -132,7 +132,7 @@ const ProformaInvoice = ({ invoiceData = {}, hideDownloadButton = false }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-6">
-      <style jsx global>{`
+      <style>{`
         @media print {
           body {
             background: none !important;
@@ -220,7 +220,7 @@ const ProformaInvoice = ({ invoiceData = {}, hideDownloadButton = false }) => {
 
         {/* Invoice Preview Card */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200 mb-8">
-   
+
           {/* Invoice Container */}
           <div className="p-4 md:p-6">
             <div className="overflow-auto max-w-full">
@@ -330,7 +330,7 @@ const ProformaInvoice = ({ invoiceData = {}, hideDownloadButton = false }) => {
                             <div className="font-bold">{invoice.termsForDelivery || '\u00A0'}</div>
                           </div>
                         </div>
-                        
+
                         {/* Filler to match the height of the left column */}
                         <div className="flex-grow"></div>
                       </div>

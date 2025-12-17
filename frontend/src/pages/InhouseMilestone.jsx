@@ -977,6 +977,10 @@ const InhouseMilestone = () => {
           viewMode={false}
           milestone={editingMilestone}
           onSuccess={handleFormSuccess}
+          onCancel={() => {
+            setShowModal(false);
+            setEditingMilestone(null);
+          }}
         />
       </Modal>
 
@@ -1061,8 +1065,8 @@ const InhouseMilestone = () => {
                           <td className="px-4 py-3 text-sm text-gray-900">{task.duration || 0} {(task.duration || 0) === 1 ? 'day' : 'days'}</td>
                           <td className="px-4 py-3 text-sm">
                             <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${task.category === 'inhouse'
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-green-100 text-green-800'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-green-100 text-green-800'
                               }`}>
                               {task.category === 'inhouse' ? 'Inhouse' : 'Outsourced'}
                             </span>

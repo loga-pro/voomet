@@ -78,23 +78,23 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
         endDate: purchaseRequest.endDate ? formatDateForInput(purchaseRequest.endDate) : '',
         items: purchaseRequest.items?.length > 0
           ? purchaseRequest.items.map((item, index) => ({
-              sNo: index + 1,
-              scopeOfWork: item.scopeOfWork || '',
-              partName: item.partName || '',
-              quantityRequired: item.quantityRequired || '',
-              purpose: item.purpose || '',
-              unitType: item.unitType || '',
-              estimatedCost: item.estimatedCost || ''
-            }))
+            sNo: index + 1,
+            scopeOfWork: item.scopeOfWork || '',
+            partName: item.partName || '',
+            quantityRequired: item.quantityRequired || '',
+            purpose: item.purpose || '',
+            unitType: item.unitType || '',
+            estimatedCost: item.estimatedCost || ''
+          }))
           : [{
-              sNo: 1,
-              scopeOfWork: '',
-              partName: '',
-              quantityRequired: '',
-              purpose: '',
-              unitType: '',
-              estimatedCost: ''
-            }],
+            sNo: 1,
+            scopeOfWork: '',
+            partName: '',
+            quantityRequired: '',
+            purpose: '',
+            unitType: '',
+            estimatedCost: ''
+          }],
         remarks: purchaseRequest.remarks || '',
         status: purchaseRequest.status || 'pending'
       });
@@ -220,23 +220,8 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
       validatedValue = value.replace(/[^\d]/g, '');
       validatedValue = validatedValue.replace(/^0+/, '') || '0';
       updatedItems[index][field] = validatedValue;
-      if (updatedItems[index].partName) {
-        const selectedPart = availableParts.find(part => part.partName === updatedItems[index].partName);
-        if (selectedPart && selectedPart.partPrice) {
-          const quantity = parseInt(validatedValue) || 0;
-          updatedItems[index].estimatedCost = (quantity * selectedPart.partPrice).toFixed(2);
-        }
-      }
     } else if (field === 'partName') {
       updatedItems[index][field] = value;
-      const selectedPart = availableParts.find(part => part.partName === value);
-      if (selectedPart) {
-        updatedItems[index].unitType = selectedPart.unitType || '';
-        if (selectedPart.partPrice && updatedItems[index].quantityRequired) {
-          const quantity = parseInt(updatedItems[index].quantityRequired) || 0;
-          updatedItems[index].estimatedCost = (quantity * selectedPart.partPrice).toFixed(2);
-        }
-      }
     } else if (field === 'purpose') {
       if (value.length <= VALIDATION_RULES.PURPOSE.maxLength) updatedItems[index][field] = value;
       else return;
@@ -476,8 +461,8 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-          <FloatingInput label="Project Start Date" name="milestoneStartDate" value={formData.milestoneStartDate} onChange={() => {}} type="date" readOnly size="small" className="bg-gray-50 cursor-not-allowed" />
-          <FloatingInput label="Project End Date" name="milestoneEndDate" value={formData.milestoneEndDate} onChange={() => {}} type="date" readOnly size="small" className="bg-gray-50 cursor-not-allowed" />
+          <FloatingInput label="Project Start Date" name="milestoneStartDate" value={formData.milestoneStartDate} onChange={() => { }} type="date" readOnly size="small" className="bg-gray-50 cursor-not-allowed" />
+          <FloatingInput label="Project End Date" name="milestoneEndDate" value={formData.milestoneEndDate} onChange={() => { }} type="date" readOnly size="small" className="bg-gray-50 cursor-not-allowed" />
           <FloatingInput label="Production Start Date" name="startDate" value={formData.startDate} onChange={handleChange} type="date" error={showValidation && errors.startDate} required size="small" />
           <FloatingInput label="Production End Date" name="endDate" value={formData.endDate} onChange={handleChange} type="date" error={showValidation && errors.endDate} required size="small" />
         </div>
@@ -491,24 +476,23 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
             <button type="button" onClick={addItem} className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
               <PlusCircleIcon className="h-4 w-4 mr-2" /> Add Row
             </button>
-           
+
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden flex flex-col flex-1">
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden flex flex-col">
           <div className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
             <div className="grid grid-cols-12 gap-4 px-4 py-3 items-center">
               <div className="col-span-1 text-sm font-medium text-gray-700">s.no</div>
               <div className="col-span-2 text-sm font-medium text-gray-700">Scope of Work*</div>
               <div className="col-span-3 text-sm font-medium text-gray-700">Part name*</div>
               <div className="col-span-1 text-sm font-medium text-gray-700">Qty*</div>
-              <div className="col-span-1 text-sm font-medium text-gray-700">Unit*</div>
               <div className="col-span-3 text-sm font-medium text-gray-700">Purpose*</div>
               <div className="col-span-1 text-sm font-medium text-gray-700 text-right">Action</div>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="overflow-y-auto" style={{ maxHeight: '320px' }}>
             {formData.items.length === 0 ? (
               <div className="px-4 py-8 text-center text-gray-500">No items added. Click "Add Row" to add items.</div>
             ) : (
@@ -539,15 +523,11 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
                       <FloatingInput
                         value={item.partName}
                         onChange={(e) => handleItemChange(index, 'partName', e.target.value)}
-                        type="select"
-                        options={[
-                          { value: '', label: 'Select Part' },
-                          ...(filteredParts[index] || []).map(part => ({ value: part.partName, label: part.partName }))
-                        ]}
+                        type="text"
                         error={showValidation && errors.items?.[index]?.partName}
                         size="small"
                         hideLabel
-                        placeholder="Select Part"
+                        placeholder="Enter Part Name"
                         className="w-full"
                       />
                     </div>
@@ -566,18 +546,6 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
                       />
                     </div>
 
-                     <div className="col-span-1">
-                      <FloatingInput
-                        value={item.unitType}
-                        onChange={(e) => handleItemChange(index, 'unitType', e.target.value)}
-                        type="text"
-                        size="small"
-                        hideLabel
-                        readOnly={!!item.partName}
-                        className="w-full"
-                        placeholder="Unit"
-                      />
-                    </div>
 
                     <div className="col-span-3">
                       <FloatingInput
@@ -593,7 +561,7 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
                       />
                     </div>
 
-                   
+
 
                     {/* Action: Delete always visible */}
                     <div className="col-span-1 flex items-center justify-end">

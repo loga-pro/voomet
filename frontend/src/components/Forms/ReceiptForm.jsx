@@ -315,9 +315,10 @@ const ReceiptForm = ({
           name="receiptCategory"
           value={formData.receiptCategory}
           onChange={handleInputChange}
-          type="Text"
+          type="select"
           options={[
-            { value: 'Buy', label: 'Buy' },
+            { value: 'buy', label: 'Buy' },
+            { value: 'return', label: 'Return' }
           ]}
         />
 
