@@ -35,6 +35,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     items: [{
       partName: '',
       numberOfUnits: '',
+      specification: '',
       unitType: '',
       unitPrice: '',
       margin: '0',
@@ -137,6 +138,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     formattedItems = formattedItems.map(item => ({
       partName: item.partName || '',
       numberOfUnits: String(item.numberOfUnits || ''),
+      specification: item.specification || '',
       unitType: item.unitType || '',
       unitPrice: String(item.unitPrice || ''),
       margin: String(item.margin || '0'),
@@ -157,6 +159,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       formattedItems = [{
         partName: '',
         numberOfUnits: '',
+        specification: '',
         unitType: '',
         unitPrice: '',
         margin: '0',
@@ -631,6 +634,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
         {
           partName: '',
           numberOfUnits: '',
+          specification: '',
           unitType: '',
           unitPrice: '',
           margin: '0',
@@ -863,6 +867,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     formattedItems = formattedItems.map(item => ({
       partName: item.partName || '',
       numberOfUnits: String(item.numberOfUnits || ''),
+      specification: item.specification || '',
       unitType: item.unitType || '',
       unitPrice: String(item.unitPrice || ''),
       margin: String(item.margin || '0'),
@@ -883,6 +888,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       formattedItems = [{
         partName: '',
         numberOfUnits: '',
+        specification: '',
         unitType: '',
         unitPrice: '',
         margin: '0',
@@ -929,6 +935,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
         {
           partName: '',
           numberOfUnits: '',
+          specification: '',
           unitType: '',
           unitPrice: '',
           margin: '0',
@@ -1118,7 +1125,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-8 gap-4">
                     <FloatingInput
                       label="Part Name"
                       value={item.partName}
@@ -1146,6 +1153,13 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                       step="1"
                       min="0"
                       required
+                    />
+
+                    <FloatingInput
+                      label="Specification"
+                      value={item.specification}
+                      onChange={(e) => handleItemChange(index, 'specification', e.target.value)}
+                      type="text"
                     />
 
                     <FloatingInput

@@ -672,7 +672,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                             <div className="font-medium">{item.partName}</div>
                           </td>
                           <td className="border border-blue-800 p-2 text-center align-top">
-                            {item.unitType}
+                            {item.specification || '-'}
                           </td>
                           <td className="border border-blue-800 p-2 text-center align-top font-mono">
                             {parseFloat(item.numberOfUnits || 0).toLocaleString()}

@@ -317,13 +317,13 @@ const ItemsTableHeader = () => (
       <th scope="col" className="px-4 py-3 w-40">
         <div className="flex flex-col">
           <span>Production*</span>
-          <span className="text-xs font-normal text-gray-500 mt-1">Plan*</span>
+          <span className="text-xs font-normal text-gray-500 mt-1">Planed Quantity*</span>
         </div>
       </th>
       <th scope="col" className="px-4 py-3 w-40">
         <div className="flex flex-col">
           <span>Production*</span>
-          <span className="text-xs font-normal text-gray-500 mt-1">Actual Prod*</span>
+          <span className="text-xs font-normal text-gray-500 mt-1">Actual Production*</span>
         </div>
       </th>
       <th scope="col" className="px-4 py-3 w-32">Gap</th>

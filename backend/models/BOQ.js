@@ -11,6 +11,11 @@ const boqItemSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  specification: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   unitType: {
     type: String,
     required: true,

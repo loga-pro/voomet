@@ -88,30 +88,45 @@ router.put('/:id', auth, async (req, res) => {
 
     // If partName changed, update all references
     if (updatedFields.partName && updatedFields.partName !== originalPart.partName) {
-      // Update Inventory receipt/dispatch/return records
+      // Get Receipt and Dispatch models
+      const Receipt = require('../models/Receipt');
+      const Dispatch = require('../models/Dispatch');
+      
+      // Update Receipt collection directly (not Inventory.receipts which are ObjectId references)
+      cascadeUpdates.push(
+        Receipt.updateMany(
+          { partName: originalPart.partName, scopeOfWork: originalPart.scopeOfWork },
+          { $set: { partName: updatedFields.partName } }
+        )
+      );
+      
+      // Update Dispatch collection directly (not Inventory.dispatches which are ObjectId references)
+      cascadeUpdates.push(
+        Dispatch.updateMany(
+          { partName: originalPart.partName, workCategory: originalPart.scopeOfWork },
+          { $set: { partName: updatedFields.partName } }
+        )
+      );
+      
+      // Update Inventory collection (partName field at root level)
       cascadeUpdates.push(
         Inventory.updateMany(
-          { 'receipts.partName': originalPart.partName },
-          { $set: { 'receipts.$[elem].partName': updatedFields.partName } },
-          { arrayFilters: [{ 'elem.partName': originalPart.partName }] }
-        ),
-        Inventory.updateMany(
-          { 'dispatches.partName': originalPart.partName },
-          { $set: { 'dispatches.$[elem].partName': updatedFields.partName } },
-          { arrayFilters: [{ 'elem.partName': originalPart.partName }] }
-        ),
-        Inventory.updateMany(
-          { 'returns.partName': originalPart.partName },
-          { $set: { 'returns.$[elem].partName': updatedFields.partName } },
-          { arrayFilters: [{ 'elem.partName': originalPart.partName }] }
-        ),
-        // Update BOQ items
+          { partName: originalPart.partName, workCategory: originalPart.scopeOfWork },
+          { $set: { partName: updatedFields.partName } }
+        )
+      );
+      
+      // Update BOQ items
+      cascadeUpdates.push(
         BOQ.updateMany(
           { 'items.partName': originalPart.partName },
           { $set: { 'items.$[elem].partName': updatedFields.partName } },
           { arrayFilters: [{ 'elem.partName': originalPart.partName }] }
-        ),
-        // Update ProjectBudget expenditures
+        )
+      );
+      
+      // Update ProjectBudget expenditures
+      cascadeUpdates.push(
         ProjectBudget.updateMany(
           { 'projectExpenditures.partName': originalPart.partName },
           { $set: { 'projectExpenditures.$[elem].partName': updatedFields.partName } },
@@ -160,10 +175,12 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Part not found' });
     }
 
-    // Check for child records in Inventory
-    const inventoryReceipts = await Inventory.countDocuments({ 'receipts.partName': part.partName });
-    const inventoryDispatches = await Inventory.countDocuments({ 'dispatches.partName': part.partName });
-    const inventoryReturns = await Inventory.countDocuments({ 'returns.partName': part.partName });
+    // Check for child records in Receipt and Dispatch collections
+    const Receipt = require('../models/Receipt');
+    const Dispatch = require('../models/Dispatch');
+    
+    const receiptRecords = await Receipt.countDocuments({ partName: part.partName, scopeOfWork: part.scopeOfWork });
+    const dispatchRecords = await Dispatch.countDocuments({ partName: part.partName, workCategory: part.scopeOfWork });
     
     // Check for child records in BOQ
     const boqItems = await BOQ.countDocuments({ 'items.partName': part.partName });
@@ -173,9 +190,8 @@ router.delete('/:id', auth, async (req, res) => {
 
     // Build detailed error message if child records exist
     const childRecords = [];
-    if (inventoryReceipts > 0) childRecords.push(`${inventoryReceipts} inventory receipt(s)`);
-    if (inventoryDispatches > 0) childRecords.push(`${inventoryDispatches} inventory dispatch(es)`);
-    if (inventoryReturns > 0) childRecords.push(`${inventoryReturns} inventory return(s)`);
+    if (receiptRecords > 0) childRecords.push(`${receiptRecords} receipt(s)`);
+    if (dispatchRecords > 0) childRecords.push(`${dispatchRecords} dispatch(es)`);
     if (boqItems > 0) childRecords.push(`${boqItems} BOQ item(s)`);
     if (projectExpenditures > 0) childRecords.push(`${projectExpenditures} project expenditure(s)`);
 

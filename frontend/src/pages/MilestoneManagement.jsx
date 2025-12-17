@@ -986,116 +986,116 @@ const MilestoneManagement = () => {
 
       {/* View Modal */}
       <Modal
-  isOpen={viewModal}
-  onClose={() => {
-    setViewModal(false);
-    setSelectedMilestone(null);
-  }}
-  title="Milestone Details"
-  size="xl"
-  className="font-sans"
->
-  {selectedMilestone && (
-    <div className="space-y-6 py-1">
-      {/* Basic Information Card - Compact One Line Layout */}
-      <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-           <div className="space-y-1">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Client Name:</h4>
-            <p className="text-sm text-gray-900 font-medium">{selectedMilestone.customer || ''}</p>
-          </div>
-           <div className="space-y-1">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Name:</h4>
-            <p className="text-sm text-gray-900 font-medium">{selectedMilestone.projectName || ''}</p>
-          </div>
-          <div className="space-y-1">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Email ID</h4>
-            <p className="text-sm text-gray-900 font-medium">{selectedMilestone.emailId || ''}</p>
-          </div>
-          <div className="space-y-1">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Start Date</h4>
-            <p className="text-sm text-gray-900 font-medium">
-              {selectedMilestone.startDate ? new Date(selectedMilestone.startDate).toLocaleDateString() : ''}
-            </p>
-          </div>
-          <div className="space-y-1">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">End Date</h4>
-            <p className="text-sm text-gray-900 font-medium">
-              {selectedMilestone.endDate ? new Date(selectedMilestone.endDate).toLocaleDateString() : ''}
-            </p>
-          </div>
-          {selectedMilestone.flexibilityPercentage !== undefined && selectedMilestone.flexibilityPercentage > 0 && (
-            <div className="space-y-1">
-              <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Flexibility</h4>
-              <p className="text-sm text-gray-900 font-medium">{selectedMilestone.flexibilityPercentage}%</p>
+        isOpen={viewModal}
+        onClose={() => {
+          setViewModal(false);
+          setSelectedMilestone(null);
+        }}
+        title="Milestone Details"
+        size="xl"
+        className="font-sans"
+      >
+        {selectedMilestone && (
+          <div className="space-y-6 py-1">
+            {/* Basic Information Card - Compact One Line Layout */}
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Client Name:</h4>
+                  <p className="text-sm text-gray-900 font-medium">{selectedMilestone.customer || ''}</p>
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Name:</h4>
+                  <p className="text-sm text-gray-900 font-medium">{selectedMilestone.projectName || ''}</p>
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Email ID</h4>
+                  <p className="text-sm text-gray-900 font-medium">{selectedMilestone.emailId || ''}</p>
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Start Date</h4>
+                  <p className="text-sm text-gray-900 font-medium">
+                    {selectedMilestone.startDate ? new Date(selectedMilestone.startDate).toLocaleDateString() : ''}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">End Date</h4>
+                  <p className="text-sm text-gray-900 font-medium">
+                    {selectedMilestone.endDate ? new Date(selectedMilestone.endDate).toLocaleDateString() : ''}
+                  </p>
+                </div>
+                {selectedMilestone.flexibilityPercentage !== undefined && selectedMilestone.flexibilityPercentage > 0 && (
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Flexibility</h4>
+                    <p className="text-sm text-gray-900 font-medium">{selectedMilestone.flexibilityPercentage}%</p>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* Tasks Table */}
-      {selectedMilestone.tasks && selectedMilestone.tasks.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-200">
-            <h3 className="text-md font-semibold text-gray-700 flex items-center">
-              <i className="fas fa-tasks mr-2 text-blue-500"></i>
-              Project Tasks ({selectedMilestone.tasks.length})
-            </h3>
-          </div>
-          <div className="overflow-x-auto max-h-96 overflow-y-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0 z-10">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phase</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Responsible Person</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {selectedMilestone.tasks.map((task, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm text-gray-900">{task.phase || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{task.task || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{task.duration || 0} day</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">{task.responsiblePerson || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      {task.startDate ? new Date(task.startDate).toLocaleDateString() : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      {task.endDate ? new Date(task.endDate).toLocaleDateString() : '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+            {/* Tasks Table */}
+            {selectedMilestone.tasks && selectedMilestone.tasks.length > 0 && (
+              <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-200">
+                  <h3 className="text-md font-semibold text-gray-700 flex items-center">
+                    <i className="fas fa-tasks mr-2 text-blue-500"></i>
+                    Project Tasks ({selectedMilestone.tasks.length})
+                  </h3>
+                </div>
+                <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50 sticky top-0 z-10">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phase</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Responsible Person</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {selectedMilestone.tasks.map((task, index) => (
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 text-sm text-gray-900">{task.phase || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{task.task || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{task.duration || 0} {(task.duration || 0) === 1 ? 'day' : 'days'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{task.responsiblePerson || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {task.startDate ? new Date(task.startDate).toLocaleDateString() : '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {task.endDate ? new Date(task.endDate).toLocaleDateString() : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
-      {/* Action Buttons */}
-      <div className="flex justify-end space-x-3 pt-2">
-        <button
-          onClick={() => setViewModal(false)}
-          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-        >
-          Close
-        </button>
-        <button
-          onClick={() => {
-            setViewModal(false);
-            handleEdit(selectedMilestone);
-          }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          Edit Milestone
-        </button>
-      </div>
-    </div>
-  )}
-</Modal>
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3 pt-2">
+              <button
+                onClick={() => setViewModal(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setViewModal(false);
+                  handleEdit(selectedMilestone);
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Edit Milestone
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Delete Confirmation Modal */}
       <Modal

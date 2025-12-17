@@ -66,6 +66,9 @@ function EmailMultiInput({ label, values, onChange }) {
 }
 
 const emailTemplate = ({ title, reportType, data }) => {
+  // Extract project name from data if available
+  const projectName = data?.projectName || data?.project || '';
+
   return (`
     <div style="font-family: Arial, sans-serif; font-size: 14px; color: #333; padding: 0; margin: 0;">
   
@@ -74,7 +77,7 @@ const emailTemplate = ({ title, reportType, data }) => {
   </p>
 
   <p style="margin: 0 0 20px 0; line-height: 1.6;">
-    Please find the attached report.
+    Please find the attached  ${title || 'Document'} 
   </p>
 
   <p style="margin: 0 0 5px 0;">
@@ -637,7 +640,7 @@ const EmailCompose = ({ emailAddress, onSend, closeModel, modelTitle, handlePrev
             <button
               onClick={handleSend}
               className={`flex itemse-centr gap-2 px-6 py-2 rounded-lg transition-colors 
-                  ${emailapiTrigger.status === "pending" || previewLoading? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 text-white"}
+                  ${emailapiTrigger.status === "pending" || previewLoading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 text-white"}
                 `}
             >
               {emailapiTrigger.status === "pending" ? (

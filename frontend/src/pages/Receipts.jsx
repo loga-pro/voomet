@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  PlusIcon, 
-  MagnifyingGlassIcon, 
+import {
+  PlusIcon,
+  MagnifyingGlassIcon,
   FunnelIcon,
   XMarkIcon,
   ArrowUpTrayIcon,
@@ -78,24 +78,24 @@ const Receipts = () => {
         partsAPI.getAll(),
         vendorsAPI.getAll()
       ]);
-      
+
       // Handle nested response structure
       const receiptsData = receiptsRes.data?.data || receiptsRes.data || [];
       const partsData = partsRes.data || [];
       const vendorsData = vendorsRes.data || [];
-      
+
       setReceipts(receiptsData);
       setParts(partsData);
       setVendors(vendorsData);
-      
+
       // Extract unique values for dropdowns from saved receipts only
       const categories = [...new Set(receiptsData.map(r => r.receiptCategory))].filter(Boolean);
       const partNames = [...new Set(receiptsData.map(r => r.partName))].filter(Boolean);
       const vendorNames = [...new Set(receiptsData.flatMap(r => r.vendorNames || (r.vendorName ? [r.vendorName] : [])))].filter(Boolean);
-      
-      // Get work categories from saved receipts only
-      const workCategories = [...new Set(receiptsData.map(r => r.workCategory))].filter(Boolean);
-      
+
+      // Get work categories from parts master data to show all available categories
+      const workCategories = [...new Set(partsData.map(p => p.scopeOfWork))].filter(Boolean);
+
       setUniqueCategories(categories);
       setUniquePartNames(partNames);
       setUniqueVendors(vendorNames);
@@ -117,26 +117,26 @@ const Receipts = () => {
 
     // Apply dropdown filters
     if (filters.receiptCategory) {
-      filtered = filtered.filter(receipt => 
+      filtered = filtered.filter(receipt =>
         receipt.receiptCategory === filters.receiptCategory
       );
     }
 
     if (filters.partName) {
-      filtered = filtered.filter(receipt => 
+      filtered = filtered.filter(receipt =>
         receipt.partName === filters.partName
       );
     }
 
     if (filters.vendorName) {
-      filtered = filtered.filter(receipt => 
+      filtered = filtered.filter(receipt =>
         (receipt.vendorNames && receipt.vendorNames.includes(filters.vendorName)) ||
         receipt.vendorName === filters.vendorName
       );
     }
 
     if (filters.workCategory) {
-      filtered = filtered.filter(receipt => 
+      filtered = filtered.filter(receipt =>
         receipt.workCategory === filters.workCategory
       );
     }
@@ -150,12 +150,12 @@ const Receipts = () => {
         const vendorName = (receipt.vendorNames?.join(' ') || receipt.vendorName || '').toLowerCase();
         const workCategory = receipt.workCategory?.toString().toLowerCase() || '';
         const reasonForReturn = receipt.reasonForReturn?.toString().toLowerCase() || '';
-        
+
         return invoiceNo.includes(searchLower) ||
-               partName.includes(searchLower) ||
-               vendorName.includes(searchLower) ||
-               workCategory.includes(searchLower) ||
-               reasonForReturn.includes(searchLower);
+          partName.includes(searchLower) ||
+          vendorName.includes(searchLower) ||
+          workCategory.includes(searchLower) ||
+          reasonForReturn.includes(searchLower);
       });
     }
 
@@ -214,10 +214,10 @@ const Receipts = () => {
   const exportToCSV = () => {
     const headers = [
       'Date', 'Receipt Category', 'Work Category', 'Part Name', 'Vendor Name',
-      'Invoice No', 'Invoice Date', 'Quantity', 'Unit', 
+      'Invoice No', 'Invoice Date', 'Quantity', 'Unit',
       'Invoice Value', 'GST Value', 'Total Value', 'Status'
     ];
-    
+
     const csvData = filteredReceipts.map(receipt => [
       formatDate(receipt.date),
       receipt.receiptCategory?.toUpperCase() || '',
@@ -249,7 +249,7 @@ const Receipts = () => {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
-    
+
     showSuccess('Receipts exported to CSV successfully');
   };
 
@@ -297,7 +297,7 @@ const Receipts = () => {
         await receiptsAPI.create(receiptData);
         showSuccess('Receipt added successfully');
       }
-      
+
       setShowModal(false);
       setEditingReceipt(null);
       await fetchData();
@@ -312,7 +312,7 @@ const Receipts = () => {
       showError('No file available to view');
       return;
     }
-    
+
     if (uploadUrl.startsWith('http') || uploadUrl.startsWith('data:')) {
       window.open(uploadUrl, '_blank');
     } else {
@@ -357,22 +357,21 @@ const Receipts = () => {
                   )}
                 </div>
               </div>
-              
+
               {/* Search Results Info */}
               {searchTerm && (
                 <div className="mt-3 text-sm text-gray-600">
                   Found {filteredReceipts.length} receipt(s) matching "{searchTerm}"
                 </div>
               )}
-              
+
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                    showFilters || Object.values(filters).some(Boolean) || searchTerm
-                      ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100' 
+                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters || Object.values(filters).some(Boolean) || searchTerm
+                      ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
                       : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
                   Filters
@@ -382,7 +381,7 @@ const Receipts = () => {
                     </span>
                   )}
                 </button>
-                
+
                 {(Object.values(filters).some(Boolean) || searchTerm) && (
                   <button
                     onClick={clearFilters}
@@ -392,7 +391,7 @@ const Receipts = () => {
                     Clear
                   </button>
                 )}
-                
+
                 <button
                   onClick={exportToCSV}
                   className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -400,7 +399,7 @@ const Receipts = () => {
                   <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
                   Export CSV
                 </button>
-                
+
                 <button
                   onClick={() => setShowModal(true)}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -429,7 +428,7 @@ const Receipts = () => {
                     ))}
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Work Category</label>
                   <select
@@ -443,7 +442,7 @@ const Receipts = () => {
                     ))}
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Part Name</label>
                   <select
@@ -457,7 +456,7 @@ const Receipts = () => {
                     ))}
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Vendor Name</label>
                   <select
@@ -595,7 +594,7 @@ const Receipts = () => {
                       <tr>
                         <td colSpan="9" className="px-6 py-8 text-center text-gray-500">
                           {Object.values(filters).some(val => val !== '') || searchTerm
-                            ? 'No receipts found matching your filters.' 
+                            ? 'No receipts found matching your filters.'
                             : 'No receipts found.'
                           }
                         </td>
@@ -605,7 +604,7 @@ const Receipts = () => {
                 </table>
               </div>
             </div>
-            
+
             {/* Mobile Card View */}
             <div className="lg:hidden">
               {currentItems.length > 0 ? (
@@ -686,7 +685,7 @@ const Receipts = () => {
               ) : (
                 <div className="p-8 text-center text-gray-500">
                   {Object.values(filters).some(val => val !== '') || searchTerm
-                    ? 'No receipts found matching your filters.' 
+                    ? 'No receipts found matching your filters.'
                     : 'No receipts found.'
                   }
                 </div>
@@ -713,12 +712,12 @@ const Receipts = () => {
                   <option value={100}>100</option>
                 </select>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-700">
                   Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredReceipts.length)} of {filteredReceipts.length} results
                 </span>
-                
+
                 <nav className="flex space-x-2">
                   <button
                     onClick={() => paginate(Math.max(1, currentPage - 1))}
@@ -727,11 +726,11 @@ const Receipts = () => {
                   >
                     <ChevronLeftIcon className="h-5 w-5" />
                   </button>
-                  
+
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter(page => 
-                      page === 1 || 
-                      page === totalPages || 
+                    .filter(page =>
+                      page === 1 ||
+                      page === totalPages ||
                       (page >= currentPage - 1 && page <= currentPage + 1)
                     )
                     .map((page, index, array) => {
@@ -745,18 +744,17 @@ const Receipts = () => {
                           )}
                           <button
                             onClick={() => paginate(page)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              currentPage === page
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
                                 ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
                                 : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                            }`}
+                              }`}
                           >
                             {page}
                           </button>
                         </React.Fragment>
                       );
                     })}
-                  
+
                   <button
                     onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
@@ -837,33 +835,33 @@ const Receipts = () => {
                 <DocumentTextIcon className="h-5 w-5 mr-2 text-blue-500" />
                 Receipt Information
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-1">
                   <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Date</h4>
                   <p className="text-sm text-gray-900 font-medium">{formatDate(selectedReceipt.date)}</p>
                 </div>
-                
+
                 <div className="space-y-1">
                   <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Invoice Date</h4>
                   <p className="text-sm text-gray-900 font-medium">{formatDate(selectedReceipt.invoiceDate)}</p>
                 </div>
-                
+
                 <div className="space-y-1">
                   <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Part Name</h4>
                   <p className="text-sm text-gray-900 font-medium">{selectedReceipt.partName}</p>
                 </div>
-                
+
                 <div className="space-y-1">
                   <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Work Category</h4>
                   <p className="text-sm text-gray-900 font-medium">{selectedReceipt.workCategory || '-'}</p>
                 </div>
-                
+
                 <div className="space-y-1">
                   <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Vendor Name</h4>
                   <p className="text-sm text-gray-900 font-medium">{selectedReceipt.vendorName}</p>
                 </div>
-                
+
                 <div className="space-y-1">
                   <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Quantity</h4>
                   <p className="text-sm text-gray-900 font-medium">
@@ -879,7 +877,7 @@ const Receipts = () => {
                 <BanknotesIcon className="h-5 w-5 mr-2 text-green-500" />
                 Financial Details
               </h3>
-              
+
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Invoice Value (without GST):</span>
