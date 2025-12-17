@@ -110,33 +110,38 @@ router.get('/kpis', auth, async (req, res) => {
     // Total items count
     const totalItems = inventoryItems.length;
     
-    // Calculate total stock value and total inventory value
-    const totalStockValue = inventoryItems.reduce((sum, item) => {
-      return sum + (item.totalStockValue || 0);
+    // Calculate values by location
+    const totalPartsValueAtShopFloor = inventoryItems.reduce((sum, item) => {
+      return sum + (item.stockValueAtFactory || 0);
+    }, 0);
+    
+    const totalPartsValueAtSite = 0; // Site value not currently tracked separately
+    
+    const totalPartsValueAtCustomerEnd = inventoryItems.reduce((sum, item) => {
+      return sum + (item.stockValueSentToCustomer || 0);
     }, 0);
     
     const totalInventoryValue = inventoryItems.reduce((sum, item) => {
       return sum + (item.totalInventoryValue || 0);
     }, 0);
     
-    // Count items by stock status based on reorder levels
-    const outOfStockItems = inventoryItems.filter((item) => {
-      const stockLevel = item.stockAtFactory || 0;
-      return stockLevel <= 0;
+    // Count items by location
+    const itemsAtShopFloor = inventoryItems.filter((item) => {
+      return (item.stockAtFactory || 0) > 0;
     }).length;
     
+    const itemsAtSite = 0; // Site items not currently tracked separately
+    
+    const itemsAtCustomerEnd = inventoryItems.filter((item) => {
+      return (item.stockSentToCustomer || 0) > 0;
+    }).length;
+    
+    // Count items by stock status based on reorder levels
     const lowStockItems = inventoryItems.filter((item) => {
       const stockLevel = item.stockAtFactory || 0;
       const reOrderLevel = item.reOrderLevel || 0;
       // Low stock: stock is above 0, reorder level is set (> 0), and stock is at or below reorder level
       return reOrderLevel > 0 && stockLevel > 0 && stockLevel <= reOrderLevel;
-    }).length;
-    
-    const excessStockItems = inventoryItems.filter((item) => {
-      const stockLevel = item.stockAtFactory || 0;
-      const reOrderLevel = item.reOrderLevel || 0;
-      // Excess stock: stock is more than 3x the reorder level
-      return reOrderLevel > 0 && stockLevel > (reOrderLevel * 3);
     }).length;
 
     // Quality KPIs - Enhanced calculations
@@ -181,11 +186,14 @@ router.get('/kpis', auth, async (req, res) => {
       },
       inventoryKPIs: {
         totalItems,
-        totalStockValue,
+        totalPartsValueAtShopFloor,
+        totalPartsValueAtSite,
+        totalPartsValueAtCustomerEnd,
         totalInventoryValue,
-        lowStockItems,
-        outOfStockItems,
-        excessStockItems
+        itemsAtShopFloor,
+        itemsAtSite,
+        itemsAtCustomerEnd,
+        lowStockItems
       },
       qualityKPIs: {
         rectify: rectifyCount,

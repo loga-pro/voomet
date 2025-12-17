@@ -115,7 +115,7 @@ const MilestoneTracking = () => {
   // Export to CSV function
   const exportToCSV = () => {
     const dataToExport = filteredMilestones.length > 0 ? filteredMilestones : milestones;
-    
+
     if (dataToExport.length === 0) {
       showError('No data available to export');
       return;
@@ -124,7 +124,7 @@ const MilestoneTracking = () => {
     // Main project headers
     const mainHeaders = [
       'Customer',
-      'Project Plan Start', 
+      'Project Plan Start',
       'Project Plan End',
       'Overall Status',
       'Total Activities',
@@ -132,7 +132,7 @@ const MilestoneTracking = () => {
       'Activities Delayed',
       'Activities Likely Delayed'
     ];
-    
+
     // Task/Activity detailed headers
     const taskHeaders = [
       'Phase',
@@ -151,15 +151,15 @@ const MilestoneTracking = () => {
 
     // Prepare CSV content
     const csvRows = [];
-    
+
     // Add main headers
     csvRows.push([...mainHeaders, ...taskHeaders].join(','));
-    
+
     // Add data rows
     dataToExport.forEach(milestone => {
       const { total, finished, delayed, likelyDelayed } = calculateActivityStats(milestone);
       const overallStatus = getOverallProjectStatus(milestone);
-      
+
       // Main project data
       const mainData = [
         `"${milestone.customer || ''}"`,
@@ -171,7 +171,7 @@ const MilestoneTracking = () => {
         delayed,
         likelyDelayed
       ];
-      
+
       if (milestone.tasks && milestone.tasks.length > 0) {
         // Add each task as a separate row with project context
         milestone.tasks.forEach((task, index) => {
@@ -189,7 +189,7 @@ const MilestoneTracking = () => {
             `"${formatDate(task.outlookCompletion)}"`,
             `"${(task.remark || '').replace(/"/g, '""')}"`
           ];
-          
+
           // For first task, include main project data
           if (index === 0) {
             csvRows.push([...mainData, ...taskData].join(','));
@@ -216,7 +216,7 @@ const MilestoneTracking = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     showSuccess('Detailed data exported successfully');
   };
 
@@ -260,24 +260,24 @@ const MilestoneTracking = () => {
     // If actual end date exists, compare with planned end date only
     if (task.actualEndDate) {
       const actualEnd = new Date(task.actualEndDate);
-      
+
       // Compare with plan end date
       if (task.endDate) {
         const planEnd = new Date(task.endDate);
         if (actualEnd < planEnd) {
-          return 'Completed Earlier';
+          return 'Completed (in advance)';
         } else if (actualEnd.getTime() === planEnd.getTime()) {
           return 'Completed (On Time)';
         } else {
           const delayDays = getDaysDifference(planEnd, actualEnd);
           if (delayDays > 30) {
-            return 'Completed with Delayed';
+            return 'Completed with Delay';
           } else {
-            return 'Completed with Likely Delayed';
+            return 'Completed with Delay';
           }
         }
       }
-      
+
       return 'Completed';
     }
 
@@ -330,10 +330,10 @@ const MilestoneTracking = () => {
 
     // Based on status rules
     switch (status) {
-      case 'Completed Earlier':
+      case 'Completed (in advance)':
       case 'Completed (On Time)':
-      case 'Completed with Delayed':
-      case 'Completed with Likely Delayed':
+      case 'Completed with Delay':
+      case 'Completed with Delay':
       case 'Completed':
         return 100;
       case 'On track':
@@ -350,14 +350,14 @@ const MilestoneTracking = () => {
   // Get status color
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Completed Earlier':
+      case 'Completed (in advance)':
         return 'bg-emerald-100 text-emerald-800';
       case 'Completed (On Time)':
       case 'Completed':
         return 'bg-green-100 text-green-800';
-      case 'Completed with Likely Delayed':
+      case 'Completed with Delay':
         return 'bg-yellow-100 text-yellow-800';
-      case 'Completed with Delayed':
+      case 'Completed with Delay':
         return 'bg-red-100 text-red-800';
       case 'On track':
         return 'bg-blue-100 text-blue-800';
@@ -383,7 +383,7 @@ const MilestoneTracking = () => {
       const task = { ...newData[index] };
       task.completion = value;
       task.isCompletionManuallyEdited = true; // Mark as manually edited
-      
+
       // Update status based on completion percentage
       // Only change status to Completed when 100%, otherwise keep existing status
       if (value === 100) {
@@ -396,7 +396,7 @@ const MilestoneTracking = () => {
         }
         // For "Likely Delay", "Delayed", and "On track" - keep the status as is
       }
-      
+
       newData[index] = task;
       return newData;
     });
@@ -417,7 +417,7 @@ const MilestoneTracking = () => {
       if ((field === 'actualStartDate' || field === 'actualEndDate') && value) {
         const newDate = new Date(value);
         const startDate = task.startDate ? new Date(task.startDate) : null;
-        
+
         if (startDate && newDate < startDate) {
           showError('Actual dates cannot be prior to plan start date');
           return prev;
@@ -454,7 +454,7 @@ const MilestoneTracking = () => {
             actualEndDate: ''
           });
           task.status = newStatus;
-          
+
           // Only recalculate completion if it wasn't manually edited
           if (!task.isCompletionManuallyEdited) {
             const newCompletion = calculateCompletionPercentage({
@@ -553,7 +553,7 @@ const MilestoneTracking = () => {
 
         const status = determineStatusBasedOnDates(task);
         const calculatedCompletion = calculateCompletionPercentage(task);
-        
+
         // Check if completion was manually edited
         // If task has a saved completion value that differs from calculated, it was manually edited
         const savedCompletion = task.completion !== undefined ? task.completion : calculatedCompletion;
@@ -608,7 +608,7 @@ const MilestoneTracking = () => {
       // Validate data before saving
       for (let i = 0; i < trackingData.length; i++) {
         const task = trackingData[i];
-        
+
         // Check if actual end date is set without actual start date
         if (task.actualEndDate && !task.actualStartDate) {
           showError(`Task "${task.task}" has Actual End Date but no Actual Start Date`);
@@ -618,12 +618,12 @@ const MilestoneTracking = () => {
         // Check if dates are prior to plan start date
         if (task.startDate) {
           const planStart = new Date(task.startDate);
-          
+
           if (task.actualStartDate && new Date(task.actualStartDate) < planStart) {
             showError(`Task "${task.task}" has Actual Start Date prior to Plan Start Date`);
             return;
           }
-          
+
           if (task.actualEndDate && new Date(task.actualEndDate) < planStart) {
             showError(`Task "${task.task}" has Actual End Date prior to Plan Start Date`);
             return;
@@ -651,16 +651,16 @@ const MilestoneTracking = () => {
 
       console.log('Sending tracking data:', JSON.stringify(trackingDataForSave, null, 2));
       console.log('Milestone ID:', selectedMilestone._id);
-      
+
       // Debug: Check if all required fields are present and validate data types
       trackingDataForSave.forEach((task, index) => {
         const missingFields = [];
         const invalidFields = [];
-        
+
         if (!task.phase) missingFields.push('phase');
         if (!task.task) missingFields.push('task');
         if (!task.responsiblePerson) missingFields.push('responsiblePerson');
-        
+
         // Check data types
         if (task.duration !== undefined && (typeof task.duration !== 'number' || task.duration < 0)) {
           invalidFields.push(`duration (${task.duration})`);
@@ -671,7 +671,7 @@ const MilestoneTracking = () => {
         if (task.status && typeof task.status !== 'string') {
           invalidFields.push(`status (${task.status})`);
         }
-        
+
         // Check date fields
         const dateFields = ['startDate', 'endDate', 'actualStartDate', 'actualEndDate', 'outlookCompletion'];
         dateFields.forEach(field => {
@@ -679,7 +679,7 @@ const MilestoneTracking = () => {
             invalidFields.push(`${field} (${task[field]} - ${typeof task[field]})`);
           }
         });
-        
+
         if (missingFields.length > 0) {
           console.warn(`Task ${index} missing required fields:`, missingFields);
         }
@@ -690,7 +690,7 @@ const MilestoneTracking = () => {
           console.warn('Task data:', task);
         }
       });
-      
+
       await inhouseMilestonesAPI.updateTracking(selectedMilestone._id, trackingDataForSave);
       showSuccess('Tracking data saved successfully');
       setShowTrackingModal(false);
@@ -699,7 +699,7 @@ const MilestoneTracking = () => {
       console.error('Error saving tracking data:', error);
       console.error('Error response:', error.response);
       console.error('Error request:', error.request);
-      
+
       let errorMessage = 'Failed to save tracking data: ';
       if (error.response) {
         // The request was made and the server responded with a status code
@@ -713,7 +713,7 @@ const MilestoneTracking = () => {
         // Something happened in setting up the request
         errorMessage += error.message;
       }
-      
+
       showError(errorMessage);
     }
   };
@@ -736,19 +736,19 @@ const MilestoneTracking = () => {
   }
 
   const formatDateToDDMMYYYY = (dateString) => {
-  if (!dateString) return '';
-  
-  const date = new Date(dateString);
-  
-  // Check if date is valid
-  if (isNaN(date.getTime())) return '';
-  
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
-  const year = date.getFullYear();
-  
-  return `${day}-${month}-${year}`;
-};
+    if (!dateString) return '';
+
+    const date = new Date(dateString);
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) return '';
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const year = date.getFullYear();
+
+    return `${day}-${month}-${year}`;
+  };
 
   return (
     <div className="bg-gray-50 p-2 sm:p-4 lg:p-6 xl:p-8">
@@ -781,13 +781,13 @@ const MilestoneTracking = () => {
               </div>
 
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-               
+
 
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters || Object.values(filters).some(Boolean)
-                      ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
-                      : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                    ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
+                    : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
                     }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
@@ -798,7 +798,7 @@ const MilestoneTracking = () => {
                     </span>
                   )}
                 </button>
-                  
+
                 {Object.values(filters).some(Boolean) && (
                   <button
                     onClick={clearFilters}
@@ -809,7 +809,7 @@ const MilestoneTracking = () => {
                   </button>
                 )}
 
-                 <button
+                <button
                   onClick={exportToCSV}
                   className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
@@ -950,7 +950,7 @@ const MilestoneTracking = () => {
                               <span className="ml-1 text-red-600 font-medium">{delayed}</span>
                             </div>
                           )}
-                          
+
                         </div>
                       </div>
                     </div>
@@ -1132,22 +1132,22 @@ const MilestoneTracking = () => {
                             <div className="text-sm text-gray-900">
                               {milestone.tasks && milestone.tasks.length > 0
                                 ? (() => {
-                                    const task = milestone.tasks[0];
-                                    // Priority: Show Actual End if it exists
-                                    if (task.actualEndDate) {
-                                      return formatDate(task.actualEndDate);
-                                    }
-                                    // Otherwise, show Outlook Completion (calculated or stored)
-                                    if (task.outlookCompletion) {
-                                      return formatDate(task.outlookCompletion);
-                                    }
-                                    // If no outlook completion, calculate it if we have actual start and duration
-                                    if (task.actualStartDate && task.duration) {
-                                      const calculatedDate = calculateBusinessDays(task.actualStartDate, task.duration);
-                                      return formatDate(calculatedDate);
-                                    }
-                                    return '-';
-                                  })()
+                                  const task = milestone.tasks[0];
+                                  // Priority: Show Actual End if it exists
+                                  if (task.actualEndDate) {
+                                    return formatDate(task.actualEndDate);
+                                  }
+                                  // Otherwise, show Outlook Completion (calculated or stored)
+                                  if (task.outlookCompletion) {
+                                    return formatDate(task.outlookCompletion);
+                                  }
+                                  // If no outlook completion, calculate it if we have actual start and duration
+                                  if (task.actualStartDate && task.duration) {
+                                    const calculatedDate = calculateBusinessDays(task.actualStartDate, task.duration);
+                                    return formatDate(calculatedDate);
+                                  }
+                                  return '-';
+                                })()
                                 : '-'
                               }
                             </div>
@@ -1179,7 +1179,7 @@ const MilestoneTracking = () => {
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                   </svg>
                                 </div>
-                                
+
                                 {/* Project and Client Info */}
                                 <div className="mb-3 pb-3 border-b border-blue-200">
                                   <div className="text-sm mb-1">
@@ -1209,7 +1209,7 @@ const MilestoneTracking = () => {
                                     <span className="text-red-600 font-medium">Delayed: </span>
                                     <span>{summeryViewData.filter(task => task.status && (task.status.includes('Delayed') || task.status === 'Delayed')).length}</span>
                                   </div>
-                                  
+
                                 </div>
                               </div>
                             </>}
@@ -1297,8 +1297,8 @@ const MilestoneTracking = () => {
                             <button
                               onClick={() => paginate(page)}
                               className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
-                                  ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                  : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                                 }`}
                             >
                               {page}
@@ -1357,22 +1357,22 @@ const MilestoneTracking = () => {
                     // Get tasks with actual start dates
                     const tasksWithActualStart = trackingData.filter(task => task.actualStartDate);
                     if (tasksWithActualStart.length === 0) return '-';
-                    
+
                     // Find earliest actual start date
                     const earliestStart = new Date(Math.min(...tasksWithActualStart.map(t => new Date(t.actualStartDate))));
-                    
+
                     // Calculate total duration of all tasks
                     const totalDuration = trackingData.reduce((sum, task) => {
                       return sum + (task.duration || 0);
                     }, 0);
-                    
+
                     if (totalDuration === 0) {
                       return formatDate(earliestStart);
                     }
-                    
+
                     // Calculate end date: earliest start + total duration
                     const calculatedEndDate = calculateBusinessDays(earliestStart, totalDuration);
-                    
+
                     return `${formatDate(earliestStart)} - ${formatDate(calculatedEndDate)}`;
                   })()}
                 </p>
@@ -1391,7 +1391,7 @@ const MilestoneTracking = () => {
                   <span className="text-green-600 font-medium">Completed: </span>
                   <span>{trackingData.filter(task => task.status && task.status.includes('Completed')).length}</span>
                 </div>
-                 <div>
+                <div>
                   <span className="text-yellow-600 font-medium">Likely Delayed: </span>
                   <span>{trackingData.filter(task => task.status && task.status === 'Likely Delay').length}</span>
                 </div>
@@ -1459,7 +1459,7 @@ const MilestoneTracking = () => {
                           {task.duration || 0}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 min-w-[100px] text-center">
-                          {formatDateToDDMMYYYY(task.startDate) || '-'} 
+                          {formatDateToDDMMYYYY(task.startDate) || '-'}
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 min-w-[100px] text-center">
                           {formatDateToDDMMYYYY(task.endDate) || '-'}
@@ -1484,7 +1484,10 @@ const MilestoneTracking = () => {
                               min="0"
                               value={task.completion}
                               onChange={(e) => handleCompletionChange(e, index)}
-                              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 text-center"
+                              disabled={!task.actualStartDate}
+                              className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 text-center ${!task.actualStartDate ? 'bg-gray-100 cursor-not-allowed' : ''
+                                }`}
+                              title={!task.actualStartDate ? 'Please set Actual Start Date first' : ''}
                             />
                           ) : (
                             <div className="text-center">

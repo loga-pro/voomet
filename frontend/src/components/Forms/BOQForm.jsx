@@ -37,6 +37,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       numberOfUnits: '',
       unitType: '',
       unitPrice: '',
+      margin: '0',
       totalPrice: '',
       remarks: '',
       uploadImg: '',
@@ -138,6 +139,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       numberOfUnits: String(item.numberOfUnits || ''),
       unitType: item.unitType || '',
       unitPrice: String(item.unitPrice || ''),
+      margin: String(item.margin || '0'),
       totalPrice: String(item.totalPrice || ''),
       remarks: item.remarks || '',
       image: item.image
@@ -157,6 +159,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
         numberOfUnits: '',
         unitType: '',
         unitPrice: '',
+        margin: '0',
         totalPrice: '',
         remarks: '',
         image: null
@@ -180,11 +183,11 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       gstPercentage: String(boq.gstPercentage || '18'),
       totalWithGST: String(boq.totalWithGST || '0'),
       overallRemarks: boq.overallRemarks || '',
-      paymentTerms: boq.paymentTerms && boq.paymentTerms.length > 0 
+      paymentTerms: boq.paymentTerms && boq.paymentTerms.length > 0
         ? boq.paymentTerms.map(term => ({
-            discount: String(term.discount || ''),
-            Installment: term.Installment || 1
-          }))
+          discount: String(term.discount || ''),
+          Installment: term.Installment || 1
+        }))
         : [{ discount: '', Installment: 1 }]
     };
 
@@ -200,13 +203,13 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
         try {
           const response = await projectsAPI.getAll({ customerName: boq.customer });
           let projectsData = response.data || response;
-          
+
           // Filter projects by stage (exclude RFQ), but always include the current project
           const allowedStages = ['boq', 'awarded', 'under_execution', 'completed', 'post_implementation'];
-          projectsData = (projectsData || []).filter(project => 
+          projectsData = (projectsData || []).filter(project =>
             allowedStages.includes(project.stage) || project.projectName === boq.projectName
           );
-          
+
           setProjects(projectsData || []);
         } catch (error) {
           console.error('Error fetching projects for edit:', error);
@@ -245,13 +248,13 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
           setLoading(true);
           const response = await projectsAPI.getAll({ customerName: formData.customer });
           let projectsData = response.data || response;
-          
+
           // Filter projects by stage (exclude RFQ), but always include the current project if editing
           const allowedStages = ['boq', 'awarded', 'under_execution', 'completed', 'post_implementation'];
-          projectsData = (projectsData || []).filter(project => 
+          projectsData = (projectsData || []).filter(project =>
             allowedStages.includes(project.stage) || (boq && project.projectName === boq.projectName)
           );
-          
+
           setProjects(projectsData || []);
 
           // If there's only one project, auto-populate the project name
@@ -286,7 +289,12 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     const updatedItems = data.items.map(item => {
       const numberOfUnits = parseFloat(item.numberOfUnits || 0);
       const unitPrice = parseFloat(item.unitPrice || 0);
-      const totalPrice = numberOfUnits * unitPrice;
+      const margin = parseFloat(item.margin || 0);
+
+      // Apply margin as markup/increase: increased price = unitPrice + (unitPrice * margin%)
+      const increasedUnitPrice = unitPrice + (unitPrice * (margin / 100));
+      const totalPrice = numberOfUnits * increasedUnitPrice;
+
       return {
         ...item,
         totalPrice: isNaN(totalPrice) ? '0.00' : totalPrice.toFixed(2)
@@ -307,18 +315,18 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     if (discountPercentage > 100) discountPercentage = 100;
 
     const discountAmount = itemsTotal * (discountPercentage / 100);
-    
+
     // Calculate Taxable Value (Items - Discount + Transportation)
     const netItemsTotal = Math.max(0, itemsTotal - discountAmount);
     const transportationCharges = parseFloat(data.transportationCharges || 0);
-    
+
     // Transportation included in GST calculation basis
     const taxableValue = netItemsTotal + transportationCharges;
 
     // Calculate GST on Taxable Value
     const gstPercentage = parseFloat(data.gstPercentage || 0);
     const gstAmount = taxableValue * (gstPercentage / 100);
-    
+
     // Total with GST
     const totalWithGST = taxableValue + gstAmount;
 
@@ -432,11 +440,11 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
         // If no scopes selected or item's part doesn't match any selected scope
         const itemPart = newFilteredParts.find(p => p.partName === item.partName);
         if (!itemPart) {
-      return {
-          ...item,
-          partName: '',
-          unitType: '',
-          unitPrice: ''
+          return {
+            ...item,
+            partName: '',
+            unitType: '',
+            unitPrice: ''
           };
         }
         return item;
@@ -459,6 +467,16 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     }
     if (field === 'numberOfUnits') {
       if (value !== '' && !/^\d{0,8}$/.test(value)) {
+        return;
+      }
+    }
+    if (field === 'margin') {
+      // Allow empty string or numbers 0-100 with up to 2 decimal places
+      if (value !== '' && !/^\d{0,3}(\.\d{0,2})?$/.test(value)) {
+        return;
+      }
+      const numValue = parseFloat(value);
+      if (value !== '' && (isNaN(numValue) || numValue < 0 || numValue > 100)) {
         return;
       }
     }
@@ -536,7 +554,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
   const handleFileUpload = (index, file) => {
     const isImage = file.type.startsWith('image/');
     const isPDF = file.type === 'application/pdf';
-    
+
     if (!isImage && !isPDF) {
       showLocalNotification(
         `You can only upload ${getAllowedFileTypesText()}!`,
@@ -615,6 +633,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
           numberOfUnits: '',
           unitType: '',
           unitPrice: '',
+          margin: '0',
           totalPrice: '',
           remarks: '',
           uploadImg: '',
@@ -798,12 +817,12 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       if (onSubmit) onSubmit();
     } catch (error) {
       console.error('Error submitting BOQ:', error);
-      
+
       // Handle duplicate BOQ error (409 Conflict)
       if (error.response?.status === 409) {
         const duplicateMessage = `A BOQ already exists for "${formData.customer}" and project "${formData.projectName}". Please use a different customer or project name combination.`;
-        setErrors(prev => ({ 
-          ...prev, 
+        setErrors(prev => ({
+          ...prev,
           submit: duplicateMessage,
           customer: 'Duplicate combination',
           projectName: 'Duplicate combination'
@@ -815,7 +834,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
         }
         return;
       }
-      
+
       const errorMessage = error.response?.data?.message || 'An error occurred. Please try again.';
       setErrors(prev => ({ ...prev, submit: errorMessage }));
       if (showError) {
@@ -846,6 +865,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       numberOfUnits: String(item.numberOfUnits || ''),
       unitType: item.unitType || '',
       unitPrice: String(item.unitPrice || ''),
+      margin: String(item.margin || '0'),
       totalPrice: String(item.totalPrice || ''),
       remarks: item.remarks || '',
       image: item.image
@@ -865,6 +885,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
         numberOfUnits: '',
         unitType: '',
         unitPrice: '',
+        margin: '0',
         totalPrice: '',
         remarks: '',
         image: null
@@ -886,12 +907,12 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       gstPercentage: String(project.gstPercentage || '18'),
       totalWithGST: String(project.totalWithGST || '0'),
       overallRemarks: project.overallRemarks || '',
-      paymentTerms: project.paymentTerms && project.paymentTerms.length > 0 
-      ? project.paymentTerms.map(term => ({
+      paymentTerms: project.paymentTerms && project.paymentTerms.length > 0
+        ? project.paymentTerms.map(term => ({
           discount: String(term.discount || ''),
           Installment: term.Installment || 1
         }))
-      : [{ discount: '', Installment: 1 }]
+        : [{ discount: '', Installment: 1 }]
     };
 
     setFormData(finalFormData);
@@ -910,6 +931,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
           numberOfUnits: '',
           unitType: '',
           unitPrice: '',
+          margin: '0',
           totalPrice: '',
           remarks: '',
           uploadImg: '',
@@ -1096,7 +1118,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
                     <FloatingInput
                       label="Part Name"
                       value={item.partName}
@@ -1106,9 +1128,9 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                       options={
                         formData.scopeOfWork && formData.scopeOfWork.length > 0
                           ? [{ value: '', label: 'Select Part' }, ...filteredParts.map(part => ({
-                        value: part.partName,
-                        label: `${part.partName}`
-                            }))]
+                            value: part.partName,
+                            label: `${part.partName}`
+                          }))]
                           : [{ value: '', label: 'Select Scope of Work first' }]
                       }
                       disabled={!formData.scopeOfWork || formData.scopeOfWork.length === 0}
@@ -1116,7 +1138,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                     />
 
                     <FloatingInput
-                      label="Number of Units"
+                      label="No of Units"
                       value={item.numberOfUnits}
                       onChange={(e) => handleItemChange(index, 'numberOfUnits', e.target.value)}
                       error={errors[`item-${index}-numberOfUnits`]}
@@ -1134,7 +1156,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                     />
 
                     <FloatingInput
-                      label="Unit Price (₹)"
+                      label="Base Price (₹)"
                       value={item.unitPrice}
                       onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
                       error={errors[`item-${index}-unitPrice`]}
@@ -1143,6 +1165,17 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                       min="0"
                       readOnly
                       required
+                    />
+
+                    <FloatingInput
+                      label="Margin (%)"
+                      value={item.margin}
+                      onChange={(e) => handleItemChange(index, 'margin', e.target.value)}
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      placeholder="0-100%"
                     />
 
                     <FloatingInput
@@ -1163,7 +1196,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
 
 
                     <div className="md:col-span-2">
-                      <Upload 
+                      <Upload
                         {...createUploadProps(index)}
                         accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.svg,.tiff,.pdf"
                       >
@@ -1331,13 +1364,13 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                             Installment {index + 1}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={term.discount}
-                      onChange={(e) => handlePaymentTermChange(index, e.target.value)}
-                      onBlur={(e) => handlePaymentTermBlur(index, e.target.value)}
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              value={term.discount}
+                              onChange={(e) => handlePaymentTermChange(index, e.target.value)}
+                              onBlur={(e) => handlePaymentTermBlur(index, e.target.value)}
                               readOnly={isOriginalTerm}
                               className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2 border ${isOriginalTerm ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                               placeholder="0-100"
@@ -1350,33 +1383,33 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                             <div className="flex items-center space-x-2">
                               {/* Only show Add button on the last row and if total discount < 100 */}
                               {index === formData.paymentTerms.length - 1 && (
-                    <button
-                      type="button"
-                      onClick={addPaymentTerm}
-                      disabled={formData.paymentTerms.length >= 5}
-                      className={`p-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${formData.paymentTerms.length >= 5
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-primary-600 text-white hover:bg-primary-700'
-                        }`}
+                                <button
+                                  type="button"
+                                  onClick={addPaymentTerm}
+                                  disabled={formData.paymentTerms.length >= 5}
+                                  className={`p-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${formData.paymentTerms.length >= 5
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    : 'bg-primary-600 text-white hover:bg-primary-700'
+                                    }`}
                                   title="Add Installment"
-                    >
-                      <PlusIcon />
-                    </button>
+                                >
+                                  <PlusIcon />
+                                </button>
                               )}
 
-                    <button
-                      type="button"
-                      onClick={() => removePaymentTerm(index)}
+                              <button
+                                type="button"
+                                onClick={() => removePaymentTerm(index)}
                                 disabled={formData.paymentTerms.length <= 1 || isOriginalTerm}
                                 className={`p-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${formData.paymentTerms.length <= 1 || isOriginalTerm
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-red-600 text-white hover:bg-red-700'
-                        }`}
+                                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                  : 'bg-red-600 text-white hover:bg-red-700'
+                                  }`}
                                 title="Remove Installment"
-                    >
-                      <MinusIcon />
-                    </button>
-                  </div>
+                              >
+                                <MinusIcon />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -1398,7 +1431,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                     </tr>
                   </tfoot>
                 </table>
-                </div>
+              </div>
             </div>
           </div>
         </form>

@@ -104,22 +104,20 @@ const ProformaInvoice = ({ invoiceData = {} }) => {
     
     try {
       const canvas = await html2canvas(element, { 
-        scale: 2,
+        scale: 3, 
         useCORS: true,
         logging: false,
-        backgroundColor: '#ffffff',
-        allowTaint: true,
-        removeContainer: true
+        backgroundColor: '#ffffff'
       });
 
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
       
       const pdfWidth = 210;
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pdfHeight = 297;
       
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`${companyName}_Proforma_Invoice_${invoice.voucherNo || 'invoice'}.pdf`);
+      pdf.save('Voomet_Proforma_Invoice.pdf');
 
     } catch (error) {
       console.error("Error generating PDF:", error);
@@ -136,32 +134,28 @@ const ProformaInvoice = ({ invoiceData = {} }) => {
       <style jsx global>{`
         @media print {
           body {
-            margin: 0;
-            padding: 0;
-            background: white !important;
-            -webkit-print-color-adjust: exact;
+            background: none !important;
           }
           .print-hide {
             display: none !important;
           }
-          .invoice-wrapper {
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 100% !important;
-          }
           .a4-page {
-            width: 210mm !important;
-            height: 297mm !important;
-            margin: 0 !important;
-            padding: 10mm !important;
             box-shadow: none !important;
             border: none !important;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+          }
+          .invoice-wrapper {
+            display: block !important;
+            margin: 0 !important;
           }
         }
       `}</style>
 
       {/* Controls */}
-      <div className="print-hide mb-6 flex gap-4">
+      <div className="print-hide controls mb-6 flex gap-4">
         <button
           onClick={generatePDF}
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded shadow-sm transition-colors disabled:bg-gray-400"
@@ -173,9 +167,9 @@ const ProformaInvoice = ({ invoiceData = {} }) => {
           </svg>
           Download PDF
         </button>
-        <button
+        {/* <button
           onClick={handlePrint}
-          className="flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-6 py-2 rounded shadow-sm transition-colors"
+          className="print-hide flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-6 py-2 rounded shadow-sm transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="6 9 6 2 18 2 18 9"/>
@@ -183,15 +177,15 @@ const ProformaInvoice = ({ invoiceData = {} }) => {
             <rect width="12" height="8" x="6" y="14"/>
           </svg>
           Print
-        </button>
+        </button> */}
       </div>
 
       {/* Invoice Container */}
-      <div className="overflow-auto max-w-full shadow-2xl">
+      <div className="overflow-auto max-w-full shadow-2xl invoice-wrapper">
         <div
           ref={invoiceRef}
           id="invoiceContent"
-          className="bg-white text-black a4-page"
+          className="bg-white text-black relative a4-page"
           style={{
             width: '210mm',
             height: '297mm',
@@ -200,8 +194,7 @@ const ProformaInvoice = ({ invoiceData = {} }) => {
             fontSize: '11px',
             lineHeight: 1.3,
             fontFamily: 'Arial, sans-serif',
-            margin: '0 auto',
-            position: 'relative'
+            margin: '0 auto'
           }}
         >
           {/* Content Wrapper with Border */}
@@ -235,7 +228,7 @@ const ProformaInvoice = ({ invoiceData = {} }) => {
                   <div className="font-bold">{customer}</div>
                   <div>{invoice.destination || 'As per order'}</div>
                   <div className="mt-1">GSTIN/UIN : {invoice.customerGSTIN || ''}</div>
-                  <div>State Name : {invoice.customerState || companyState}, Code : {invoice.customerStateCode || companyStateCode}</div>
+                  <div>State Name : {companyState}, Code : {companyStateCode}</div>
                 </div>
 
                 {/* Buyer */}
@@ -244,7 +237,7 @@ const ProformaInvoice = ({ invoiceData = {} }) => {
                   <div className="font-bold">{customer}</div>
                   <div>{invoice.destination || 'As per order'}</div>
                   <div className="mt-1">GSTIN/UIN : {invoice.customerGSTIN || ''}</div>
-                  <div>State Name : {invoice.customerState || companyState}, Code : {invoice.customerStateCode || companyStateCode}</div>
+                  <div>State Name : {companyState}, Code : {companyStateCode}</div>
                 </div>
               </div>
 
@@ -288,7 +281,11 @@ const ProformaInvoice = ({ invoiceData = {} }) => {
                     <div className="text-[10px]">Destination</div>
                     <div className="font-bold">{invoice.destination || '\u00A0'}</div>
                   </div>
-                  <div className="w-1/2 p-2">
+                  
+                </div>
+                {/* Filler to match the height of the left column (approximate) */}
+                <div className="flex-grow">
+                  <div className="w-1/2 p-2 flex flex-col justify-between">
                     <div className="text-[10px]">Terms of Delivery</div>
                     <div className="font-bold">{invoice.termsForDelivery || '\u00A0'}</div>
                   </div>
@@ -298,10 +295,9 @@ const ProformaInvoice = ({ invoiceData = {} }) => {
 
             {/* Items Table Header */}
             <div className="flex text-center font-bold border-b border-black text-[10px]">
-              <div className="w-[5%] border-r border-black p-1 flex items-center justify-center">Sl No.</div>
-              <div className="w-[10%] border-r border-black p-1 flex items-center justify-center">No. & Kind of Pkgs</div>
-              <div className="w-[35%] border-r border-black p-1 flex items-center justify-center">Description of Goods</div>
-              <div className="w-[10%] border-r border-black p-1 flex items-center justify-center">HSN/SAC</div>
+              <div className="w-[4%] border-r border-black p-1 flex items-end justify-center">Sl No.</div>
+              <div className="w-[25%] border-r border-black p-1 flex items-end justify-center">Description of Goods</div>
+              <div className="w-[8%] border-r border-black p-1 flex items-end justify-center">HSN/SAC</div>
               <div className="w-[14%] border-r border-black flex flex-col">
                 <div className="border-b border-black p-1">Quantity</div>
                 <div className="flex h-full">
@@ -309,63 +305,63 @@ const ProformaInvoice = ({ invoiceData = {} }) => {
                   <div className="w-1/2 p-1 italic font-normal">To Bill</div>
                 </div>
               </div>
-              <div className="w-[10%] border-r border-black p-1 flex items-center justify-center">Rate</div>
-              <div className="w-[6%] border-r border-black p-1 flex items-center justify-center">per</div>
-              <div className="w-[5%] p-1 flex items-center justify-center">Amount</div>
+              <div className="w-[9%] border-r border-black p-1 flex items-end justify-center">Rate</div>
+              <div className="w-[6%] border-r border-black p-1 flex items-end justify-center">per</div>
+              <div className="w-[18%] p-1 flex items-end justify-center">Amount</div>
             </div>
 
             {/* Items Table Body */}
             <div className="flex-grow flex flex-col">
               {/* Render all invoices */}
               {invoices.length > 0 ? invoices.map((inv, index) => (
-                <div key={index} className="flex text-[10px] border-b border-black">
-                  <div className="w-[5%] border-r border-black p-1 text-center">{index + 1}</div>
-                  <div className="w-[10%] border-r border-black p-1 text-center">{inv.noOfPackages || '\u00A0'}</div>
-                  <div className="w-[35%] border-r border-black p-1">
+                <div key={index} className="flex text-[10px]">
+                  <div className="w-[4%] border-r border-black p-1 text-center">{index + 1}</div>
+                  <div className="w-[25%] border-r border-black p-1">
                     <span className="font-bold">{projectName || 'Interior Works'}</span>
                     <div className="italic text-[9px] mt-1">As Per Attached Annexure</div>
                   </div>
-                  <div className="w-[10%] border-r border-black p-1 text-center">{inv.hsnSac || '998391'}</div>
-                  <div className="w-[7%] border-r border-black p-1 text-center">{inv.quantityToShip || '\u00A0'}</div>
-                  <div className="w-[7%] border-r border-black p-1 text-center">{inv.quantityToBill || '\u00A0'}</div>
-                  <div className="w-[10%] border-r border-black p-1 text-right">{inv.rate ? parseFloat(inv.rate).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '\u00A0'}</div>
-                  <div className="w-[6%] border-r border-black p-1 text-center">{inv.unit || '\u00A0'}</div>
-                  <div className="w-[5%] p-1 text-right font-bold">{(parseFloat(inv.invoiceValue) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                  <div className="w-[8%] border-r border-black p-1 text-center">{inv.hsnSac || '998391'}</div>
+                  <div className="w-[7%] border-r border-black p-1 text-center"></div>
+                  <div className="w-[7%] border-r border-black p-1 text-center"></div>
+                  <div className="w-[9%] border-r border-black p-1 text-right"></div>
+                  <div className="w-[6%] border-r border-black p-1 text-center"></div>
+                  <div className="w-[18%] p-1 text-right font-bold">{(parseFloat(inv.invoiceValue) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                 </div>
               )) : (
-                <div className="flex text-[10px] border-b border-black">
-                  <div className="w-[5%] border-r border-black p-1 text-center">1</div>
-                  <div className="w-[15%] border-r border-black p-1 text-center"></div>
-                  <div className="w-[35%] border-r border-black p-1">
+                <div className="flex text-[10px]">
+                  <div className="w-[4%] border-r border-black p-1 text-center">1</div>
+                  <div className="w-[25%] border-r border-black p-1">
                     <span className="font-bold">{projectName || 'Interior Works'}</span>
                     <div className="italic text-[9px] mt-1">As Per Attached Annexure</div>
                   </div>
-                  <div className="w-[10%] border-r border-black p-1 text-center">998391</div>
+                  <div className="w-[8%] border-r border-black p-1 text-center">998391</div>
                   <div className="w-[7%] border-r border-black p-1 text-center"></div>
                   <div className="w-[7%] border-r border-black p-1 text-center"></div>
-                  <div className="w-[10%] border-r border-black p-1 text-right"></div>
+                  <div className="w-[9%] border-r border-black p-1 text-right"></div>
                   <div className="w-[6%] border-r border-black p-1 text-center"></div>
-                  <div className="w-[5%] p-1 text-right font-bold">0.00</div>
+                  <div className="w-[18%] p-1 text-right font-bold">0.00</div>
                 </div>
               )}
 
               {/* Tax Rows (CGST/SGST) */}
-              <div className="flex text-[10px] border-b border-black">
-                <div className="w-[5%] border-r border-black p-1 text-center"></div>
-                <div className="w-[15%] border-r border-black p-1"></div>
-                <div className="w-[35%] border-r border-black p-1 text-right italic">
-                  <div>Output CGST {invoice.cgst ? `${invoice.cgst}%` : '9%'}</div>
-                  <div>Output SGST {invoice.sgst ? `${invoice.sgst}%` : '9%'}</div>
+              <div className="flex text-[10px]">
+                <div className="w-[4%] border-r border-black p-1 text-center"></div>
+                <div className="w-[25%] border-r border-black p-1 text-right italic">
+                  <div>Output CGST</div>
+                  <div>Output SGST</div>
                 </div>
-                <div className="w-[10%] border-r border-black p-1 text-center"></div>
+                <div className="w-[8%] border-r border-black p-1 text-center"></div>
                 <div className="w-[7%] border-r border-black p-1 text-center"></div>
                 <div className="w-[7%] border-r border-black p-1 text-center"></div>
-                <div className="w-[10%] border-r border-black p-1 text-center flex flex-col items-center">
-                  <div>{invoice.cgst ? `${invoice.cgst}%` : '9%'}</div>
-                  <div>{invoice.sgst ? `${invoice.sgst}%` : '9%'}</div>
+                <div className="w-[9%] border-r border-black p-1 text-center flex flex-col items-center">
+                  <div>{invoice.cgst || '9'}</div>
+                  <div>{invoice.sgst || '9'}</div>
                 </div>
-                <div className="w-[6%] border-r border-black p-1 text-center"></div>
-                <div className="w-[5%] p-1 text-right">
+                <div className="w-[6%] border-r border-black p-1 text-center flex flex-col items-center">
+                  <div>%</div>
+                  <div>%</div>
+                </div>
+                <div className="w-[18%] p-1 text-right">
                   <div>{cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                   <div>{sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                 </div>
@@ -374,86 +370,81 @@ const ProformaInvoice = ({ invoiceData = {} }) => {
               {/* Round Off - Only show if roundOff has a value */}
               {roundOff !== 0 && (
                 <div className="flex text-[10px] border-b border-black">
-                  <div className="w-[5%] border-r border-black p-1 text-center"></div>
-                  <div className="w-[15%] border-r border-black p-1"></div>
-                  <div className="w-[35%] border-r border-black p-1 text-right">
-                    {roundOff > 0 ? 'Add : ' : 'Less : '}<span className="font-bold">Round OFF</span>
+                  <div className="w-[4%] border-r border-black p-1 text-center"></div>
+                  <div className="w-[25%] border-r border-black p-1 text-right">
+                    {roundOff >= 0 ? 'Add : ' : 'Less : '}<span className="font-bold">Round OFF</span>
                   </div>
-                  <div className="w-[10%] border-r border-black p-1 text-center"></div>
+                  <div className="w-[8%] border-r border-black p-1 text-center"></div>
                   <div className="w-[7%] border-r border-black p-1 text-center"></div>
                   <div className="w-[7%] border-r border-black p-1 text-center"></div>
-                  <div className="w-[10%] border-r border-black p-1 text-right"></div>
+                  <div className="w-[9%] border-r border-black p-1 text-right"></div>
                   <div className="w-[6%] border-r border-black p-1 text-center"></div>
-                  <div className="w-[5%] p-1 text-right">{roundOff > 0 ? '' : '(-)'}{Math.abs(roundOff).toFixed(2)}</div>
+                  <div className="w-[18%] p-1 text-right">{roundOff >= 0 ? '' : '(-)' }{Math.abs(roundOff).toFixed(2)}</div>
                 </div>
               )}
               
-              {/* Fill remaining space */}
-              <div className="flex-grow flex">
-                <div className="w-[5%] border-r border-black"></div>
-                <div className="w-[15%] border-r border-black"></div>
-                <div className="w-[35%] border-r border-black"></div>
-                <div className="w-[10%] border-r border-black"></div>
-                <div className="w-[7%] border-r border-black"></div>
-                <div className="w-[7%] border-r border-black"></div>
-                <div className="w-[10%] border-r border-black"></div>
-                <div className="w-[6%] border-r border-black"></div>
-                <div className="w-[5%]"></div>
+              {/* Vertical Spacer for empty rows and column lines */}
+              <div className="flex-grow flex relative">
+                <div className="w-[4%] border-r border-black h-full"></div>
+                <div className="w-[25%] border-r border-black h-full"></div>
+                <div className="w-[8%] border-r border-black h-full"></div>
+                <div className="w-[7%] border-r border-black h-full"></div>
+                <div className="w-[7%] border-r border-black h-full"></div>
+                <div className="w-[9%] border-r border-black h-full"></div>
+                <div className="w-[6%] border-r border-black h-full"></div>
+                <div className="w-[18%] h-full"></div>
               </div>
             </div>
 
             {/* Total Row */}
             <div className="flex border-t border-b border-black">
-              <div className="w-[95%] border-r border-black p-1 text-right text-[10px]">
-                Total
-              </div>
-              <div className="w-[5%] p-1 flex flex-col items-end justify-center">
-                <span className="text-[8px] italic mr-2 self-start">E. & O.E</span>
+              <div className="w-[4%] border-r border-black p-1 text-center text-[10px]"></div>
+              <div className="w-[25%] border-r border-black p-1 text-right text-[10px] font-bold">Total</div>
+              <div className="w-[8%] border-r border-black p-1 text-center"></div>
+              <div className="w-[7%] border-r border-black p-1 text-center"></div>
+              <div className="w-[7%] border-r border-black p-1 text-center"></div>
+              <div className="w-[9%] border-r border-black p-1 text-center"></div>
+              <div className="w-[6%] border-r border-black p-1 text-center"></div>
+              <div className="w-[18%] p-1 flex flex-col items-end justify-center">
                 <span className="font-bold text-sm">₹ {totalWithTax.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
 
-            {/* Amount in Words */}
-            <div className="border-b border-black p-2 text-[10px]">
-              <div>Amount Chargeable (in words)</div>
-              <div className="font-bold mt-1">{amountInWords}</div>
-            </div>
-
-            {/* Bank Details & Signature Block */}
-            <div className="flex border-t border-black">
-              {/* Bank Details */}
+            {/* Amount in Words & Bank Details & Signature Section */}
+            <div className="flex border-b border-black min-h-[100px]">
+              {/* Left: Amount in Words */}
               <div className="w-1/2 border-r border-black p-2 text-[10px] flex flex-col">
-                <div className="underline font-bold mb-2">Company's Bank Details</div>
-                <div className="grid grid-cols-[100px_1fr] gap-y-1">
-                  <div>A/c Holder's Name</div>
-                  <div className="font-bold uppercase">: {bankDetails.accountHolder}</div>
-                  
-                  <div>Bank Name</div>
-                  <div className="font-bold">: {bankDetails.bankName}</div>
-                  
-                  <div>A/c No.</div>
-                  <div className="font-bold">: {bankDetails.accountNumber}</div>
-                  
-                  <div>Branch & IFS Code</div>
-                  <div className="font-bold">: {bankDetails.branch} & {bankDetails.ifscCode}</div>
-                </div>
+                <div>Amount Chargeable (in words)</div>
+                <div className="font-bold mt-1">{amountInWords}</div>
               </div>
-
-              {/* Signature */}
-              <div className="w-1/2 p-2 flex flex-col justify-between items-end text-[10px]">
-                <div className="font-bold">for {companyName}</div>
-                <div className="text-center w-32">
-                  <div className="h-16 mb-2 flex items-center justify-center text-gray-300 italic border border-dotted border-gray-300 rounded">
-                    Signature / Stamp
+              
+              {/* Right Section: Bank Details and Signature */}
+              <div className="w-1/2 flex flex-col">
+                {/* Bank Details */}
+                <div className="border-b border-black p-2 text-[10px] flex-grow">
+                  <div className="font-bold mb-1">Company's Bank Details</div>
+                  <div className="space-y-0.5">
+                    <div>A/c Holder's Name : <span className="font-bold">{bankDetails.accountHolder}</span></div>
+                    <div>Bank Name : <span className="font-bold">{bankDetails.bankName}</span></div>
+                    <div>A/c No. : <span className="font-bold">{bankDetails.accountNumber}</span></div>
+                    <div>Branch & IFS Code : <span className="font-bold">{bankDetails.branch} & {bankDetails.ifscCode}</span></div>
                   </div>
-                  <div className="border-t border-black pt-1">Authorised Signatory</div>
+                </div>
+
+                {/* E & O E and Signature */}
+                <div className="p-2 flex justify-between items-end text-[10px]">
+                  
+                  <div className="text-right">
+                    <div className="mb-8 italic text-[9px]">For {companyName}</div>
+                    <div className="text-[8px] text-gray-500 italic">Authorised Signatory</div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
           
           {/* Footer Text */}
-          <div className="text-center text-[8px] mt-1">
+          <div className="text-center text-[8px] mt-1 absolute bottom-1 right-0 left-0">
             This is a Computer Generated Document
           </div>
         </div>
