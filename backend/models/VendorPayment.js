@@ -6,6 +6,12 @@ const vendorPaymentSchema = new mongoose.Schema({
     ref: 'Vendor',
     required: true
   },
+  vendorType: {
+    type: String,
+    enum: ['vendor', 'contractor'],
+    default: 'vendor',
+    required: true
+  },
   uploadImg: {
     type: String,
     default: ''

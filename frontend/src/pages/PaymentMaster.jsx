@@ -701,151 +701,135 @@ const PaymentManagement = () => {
             </div>
           )}
         </div>
-
+        
+        {/* view modal */}
         <Modal
-          isOpen={showModal || !!viewingPayment}
-          onClose={() => {
-            setShowModal(false);
-            setEditingPayment(null);
-            setViewingPayment(null);
-          }}
-          title={viewingPayment ? 'Payment Details' : editingPayment ? 'Edit Payment' : 'Add Payment'}
-          size="lg"
-          className="font-sans"
-        >
-          {viewingPayment ? (
-            <div className="space-y-6">
-              {/* Header Section */}
-              <div className="pb-4 border-b border-gray-200">
-                <div className="flex items-center space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <CreditCardIcon className="h-6 w-6 text-blue-600" />
-                    </div>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">{viewingPayment.customer}</h2>
-                    <p className="text-gray-600 text-sm">{viewingPayment.projectName}</p>
-                  </div>
-                </div>
+  isOpen={showModal || !!viewingPayment}
+  onClose={() => {
+    setShowModal(false);
+    setEditingPayment(null);
+    setViewingPayment(null);
+  }}
+  title={viewingPayment ? 'Payment Details' : editingPayment ? 'Edit Payment' : 'Add Payment'}
+  size="lg"
+  className="font-sans"
+>
+  {viewingPayment ? (
+    <div className="p-1">
+      <div className="space-y-6">
+        {/* Details Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Customer Information */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <div className="flex items-center mb-3">
+              <h3 className="text-md font-semibold text-gray-900">Customer Information</h3>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Customer</p>
+                <p className="text-sm text-gray-800">{viewingPayment.customer}</p>
               </div>
-
-              {/* Main Grid - 2 columns */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Left Column - Project Details */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-900 flex items-center">
-                    <FolderIcon className="h-5 w-5 mr-2 text-blue-600" />
-                    Project Details
-                  </h3>
-
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Project Name</label>
-                      <div className="text-sm text-gray-900 bg-blue-50 p-2 rounded border border-blue-100">
-                        {viewingPayment.projectName}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Project Cost</label>
-                      <div className="text-sm font-bold text-green-700 bg-green-50 p-2 rounded border border-green-100">
-                        ₹{viewingPayment.projectCost?.toFixed(2)?.toLocaleString()}
-                      </div>
-                    </div>
-                  </div>
+              {viewingPayment.customerEmail && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Email</p>
+                  <p className="text-sm text-gray-600">{viewingPayment.customerEmail}</p>
                 </div>
+              )}
+            </div>
+          </div>
 
-                {/* Right Column - Financial Summary */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-900 flex items-center">
-                    <CurrencyRupeeIcon className="h-5 w-5 mr-2 text-green-600" />
-                    Financial Summary
-                  </h3>
-
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Invoices Raised</label>
-                      <div className="flex justify-between items-center text-sm bg-gray-50 p-2 rounded border border-gray-200">
-                        <span className="text-gray-700">Amount</span>
-                        <span className="font-semibold text-gray-900">
-                          ₹{viewingPayment.totalInvoiceRaised?.toFixed(2)?.toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Payments Received</label>
-                      <div className="flex justify-between items-center text-sm bg-green-50 p-2 rounded border border-green-100">
-                        <span className="text-gray-700">Amount</span>
-                        <span className="font-semibold text-green-700">
-                          ₹{viewingPayment.totalPayments?.toFixed(2)?.toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Balance Amount</label>
-                      <div className="flex justify-between items-center text-sm bg-amber-50 p-2 rounded border border-amber-100">
-                        <span className="text-gray-700">Pending</span>
-                        <span className="font-bold text-amber-700">
-                          ₹{viewingPayment.balanceAmount?.toFixed(2)?.toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+          {/* Project Details */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <div className="flex items-center mb-3">
+              <h3 className="text-md font-semibold text-gray-900">Project Details</h3>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Name</p>
+                <p className="text-sm text-gray-800">{viewingPayment.projectName}</p>
               </div>
-
-              {/* Bottom Section - Status & Actions */}
-              <div className="pt-4 border-t border-gray-200">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-
-                  {/* Action Buttons */}
-                  <div className="flex justify-end space-x-3">
-                    <button
-                      onClick={() => {
-                        setShowModal(false);
-                        setViewingPayment(null);
-                      }}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                    >
-                      Close
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleGenerateInvoice(viewingPayment);
-                      }}
-                      className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700"
-                    >
-                      Generate Invoice
-                    </button>
-                    <button
-                      onClick={() => {
-                        setEditingPayment(viewingPayment);
-                        setViewingPayment(null);
-                        setShowModal(true);
-                      }}
-                      className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-                    >
-                      Edit Payment
-                    </button>
-                  </div>
+              {viewingPayment.projectCost && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Cost</p>
+                  <p className="text-sm font-medium text-green-700">
+                    ₹{viewingPayment.projectCost?.toFixed(2)?.toLocaleString()}
+                  </p>
                 </div>
+              )}
+            </div>
+          </div>
+
+          {/* Financial Summary */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <div className="flex items-center mb-3">
+              <h3 className="text-md font-semibold text-gray-900">Financial Summary</h3>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Invoices Raised</p>
+                <p className="text-sm font-medium text-gray-800">
+                  ₹{viewingPayment.totalInvoiceRaised?.toFixed(2)?.toLocaleString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Payments Received</p>
+                <p className="text-sm font-medium text-green-700">
+                  ₹{viewingPayment.totalPayments?.toFixed(2)?.toLocaleString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Balance Amount</p>
+                <p className="text-sm font-bold text-amber-700">
+                  ₹{viewingPayment.balanceAmount?.toFixed(2)?.toLocaleString()}
+                </p>
               </div>
             </div>
-          ) : (
-            <PaymentForm
-              payment={editingPayment}
-              onSubmit={handleFormSubmit}
-              onCancel={() => {
-                setShowModal(false);
-                setEditingPayment(null);
-              }}
-            />
-          )}
-        </Modal>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+          <button
+            onClick={() => {
+              setShowModal(false);
+              setViewingPayment(null);
+            }}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Close
+          </button>
+          <button
+            onClick={() => {
+              handleGenerateInvoice(viewingPayment);
+            }}
+            className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 transition-colors"
+          >
+            Generate Invoice
+          </button>
+          <button
+            onClick={() => {
+              setEditingPayment(viewingPayment);
+              setViewingPayment(null);
+              setShowModal(true);
+            }}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Edit Payment
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : (
+    <PaymentForm
+      payment={editingPayment}
+      onSubmit={handleFormSubmit}
+      onCancel={() => {
+        setShowModal(false);
+        setEditingPayment(null);
+      }}
+    />
+  )}
+</Modal>
 
         {/* Delete Confirmation Modal */}
         <Modal

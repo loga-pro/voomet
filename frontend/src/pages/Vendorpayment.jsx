@@ -656,7 +656,7 @@ const VendorPaymentManagement = () => {
         </div>
 
         {/* Rest of your modals remain the same */}
-        <Modal
+       <Modal
   isOpen={showModal || !!viewingPayment}
   onClose={() => {
     setShowModal(false);
@@ -668,137 +668,137 @@ const VendorPaymentManagement = () => {
   className="font-sans"
 >
   {viewingPayment ? (
-    <div className="space-y-6">
-
-      {/* Main Grid - 2 columns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Left Column - Vendor Details */}
-        <div className="space-y-4">
-          <h3 className="font-semibold text-gray-900 flex items-center">
-            <BuildingOfficeIcon className="h-5 w-5 mr-2 text-blue-600" />
-            Vendor Information
-          </h3>
-          
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Vendor Name</label>
-              <div className="text-sm text-gray-900 bg-blue-50 p-2 rounded border border-blue-100">
-                {viewingPayment.vendor?.vendorName || viewingPayment.vendor}
-              </div>
+    <div className="p-1">
+      <div className="space-y-6">
+        {/* Details Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Vendor Information */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <div className="flex items-center mb-3">
+              <h3 className="text-md font-semibold text-gray-900">Vendor Information</h3>
             </div>
-            
-            {viewingPayment.vendorGstNumber && (
+            <div className="space-y-2">
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">GST Number</label>
-                <div className="text-sm font-mono text-gray-900 bg-gray-50 p-2 rounded border border-gray-200">
-                  {viewingPayment.vendorGstNumber}
-                </div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Vendor Name</p>
+                <p className="text-sm text-gray-800">{viewingPayment.vendor?.vendorName || viewingPayment.vendor || 'Not specified'}</p>
               </div>
-            )}
-            
-            {viewingPayment.vendorAccountNumber && (
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Account Number</label>
-                <div className="text-sm font-mono text-gray-900 bg-gray-50 p-2 rounded border border-gray-200">
-                  {viewingPayment.vendorAccountNumber}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Column - Payment Summary */}
-        <div className="space-y-4">
-          <h3 className="font-semibold text-gray-900 flex items-center">
-            <CreditCardIcon className="h-5 w-5 mr-2 text-green-600" />
-            Payment Summary
-          </h3>
-          
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Invoices Raised</label>
-              <div className="flex justify-between items-center text-sm bg-gray-50 p-2 rounded border border-gray-200">
-                <span className="text-gray-700">Total</span>
-                <span className="font-semibold text-gray-900">
-                  ₹{viewingPayment.totalInvoiceRaised?.toFixed(2)?.toLocaleString()}
-                </span>
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Payments Made</label>
-              <div className="flex justify-between items-center text-sm bg-green-50 p-2 rounded border border-green-100">
-                <span className="text-gray-700">Total Paid</span>
-                <span className="font-semibold text-green-700">
-                  ₹{viewingPayment.totalPayments?.toFixed(2)?.toLocaleString()}
-                </span>
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Balance Amount</label>
-              <div className="flex justify-between items-center text-sm bg-amber-50 p-2 rounded border border-amber-100">
-                <span className="text-gray-700">Pending</span>
-                <span className="font-bold text-amber-700">
-                  ₹{viewingPayment.balanceAmount?.toFixed(2)?.toLocaleString()}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Section - Status & Actions */}
-      <div className="pt-4 border-t border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Status Card */}
-          <div>
-            <h3 className="font-semibold text-gray-900 mb-3">Payment Status</h3>
-            <div className={`p-3 rounded-lg border ${
-              viewingPayment.status === 'paid' ? 'bg-green-50 border-green-200 text-green-700' :
-              viewingPayment.status === 'pending' ? 'bg-yellow-50 border-yellow-200 text-yellow-700' :
-              viewingPayment.status === 'overdue' ? 'bg-red-50 border-red-200 text-red-700' :
-              'bg-gray-50 border-gray-200 text-gray-700'
-            }`}>
-              <div className="flex items-center justify-between">
+              {viewingPayment.projectName && (
                 <div>
-                  <span className="font-medium capitalize">{viewingPayment.status}</span>
-                  <div className="text-xs text-gray-600 mt-1">
-                    {viewingPayment.invoices?.length || 0} invoice(s)
-                  </div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Name</p>
+                  <p className="text-sm text-gray-800">{viewingPayment.projectName}</p>
                 </div>
-                <div className="text-right">
-                  <div className="text-lg font-bold">
-                    ₹{viewingPayment.totalInvoiceRaised?.toFixed(2)?.toLocaleString()}
-                  </div>
-                  <div className="text-xs text-gray-600">Total Raised</div>
+              )}
+              {viewingPayment.projectValue && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Value</p>
+                  <p className="text-sm text-gray-800">₹{viewingPayment.projectValue?.toFixed(2)?.toLocaleString()}</p>
                 </div>
+              )}
+            </div>
+          </div>
+
+          {/* Payment Summary */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <div className="flex items-center mb-3">
+              <h3 className="text-md font-semibold text-gray-900">Payment Summary</h3>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Invoices Raised</p>
+                <p className="text-sm font-medium text-gray-800">
+                  ₹{viewingPayment.totalInvoiceRaised?.toFixed(2)?.toLocaleString() || '0.00'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Payments Made</p>
+                <p className="text-sm font-medium text-green-700">
+                  ₹{viewingPayment.totalPayments?.toFixed(2)?.toLocaleString() || '0.00'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Balance Amount</p>
+                <p className="text-sm font-bold text-amber-700">
+                  ₹{viewingPayment.balanceAmount?.toFixed(2)?.toLocaleString() || '0.00'}
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-end items-center space-x-3">
-            <button
-              onClick={() => {
-                setShowModal(false);
-                setViewingPayment(null);
-              }}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-            >
-              Close
-            </button>
-            <button
-              onClick={() => {
-                setEditingPayment(viewingPayment);
-                setViewingPayment(null);
-                setShowModal(true);
-              }}
-              className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-            >
-              Edit Payment
-            </button>
+          {/* Additional Information */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <div className="flex items-center mb-3">
+              <h3 className="text-md font-semibold text-gray-900">Additional Information</h3>
+            </div>
+            <div className="space-y-2">
+              {viewingPayment.vendorGstNumber && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">GST Number</p>
+                  <p className="text-sm font-mono text-gray-800">{viewingPayment.vendorGstNumber}</p>
+                </div>
+              )}
+              {viewingPayment.vendorAccountNumber && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Account Number</p>
+                  <p className="text-sm font-mono text-gray-800">{viewingPayment.vendorAccountNumber}</p>
+                </div>
+              )}
+              {viewingPayment.paymentDate && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Payment Date</p>
+                  <p className="text-sm text-gray-800">{new Date(viewingPayment.paymentDate).toLocaleDateString()}</p>
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Payment Status */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <div className="flex items-center mb-3">
+              <h3 className="text-md font-semibold text-gray-900">Payment Status</h3>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Status</p>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                  viewingPayment.status === 'paid' ? 'bg-green-100 text-green-800' :
+                  viewingPayment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                  viewingPayment.status === 'partial' ? 'bg-blue-100 text-blue-800' :
+                  'bg-gray-100 text-gray-800'
+                }`}>
+                  {viewingPayment.status?.charAt(0).toUpperCase() + viewingPayment.status?.slice(1) || 'Pending'}
+                </span>
+              </div>
+              {viewingPayment.notes && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Notes</p>
+                  <p className="text-sm text-gray-800">{viewingPayment.notes}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+          <button
+            onClick={() => {
+              setShowModal(false);
+              setViewingPayment(null);
+            }}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Close
+          </button>
+          <button
+            onClick={() => {
+              setEditingPayment(viewingPayment);
+              setViewingPayment(null);
+              setShowModal(true);
+            }}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Edit Payment
+          </button>
         </div>
       </div>
     </div>

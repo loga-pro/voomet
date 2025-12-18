@@ -635,122 +635,124 @@ const CustomerMaster = () => {
     size="lg"
     className="font-sans"
   >
-    <div className="space-y-6">
-      {/* Customer Header */}
-      <div className="flex items-center space-x-4 pb-4 border-b border-gray-200">
-        <div className="flex-shrink-0">
-          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-            <UserGroupIcon className="h-6 w-6 text-blue-600" />
+    <div className="p-1">
+      <div className="space-y-6">
+        {/* Details Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Customer Details */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <div className="flex items-center mb-3">
+              <div className="bg-purple-100 p-1.5 rounded-lg">
+                <UserGroupIcon className="w-4 h-4 text-purple-600" />
+              </div>
+              <h3 className="ml-2 text-md font-semibold text-gray-900">Customer Details</h3>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Customer Name</p>
+                <p className="text-sm font-medium text-gray-800">{selectedCustomer.customerName}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Email</p>
+                <p className="text-sm text-gray-600">{selectedCustomer.customerEmail}</p>
+              </div>
+            </div>
           </div>
-        </div>
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">{selectedCustomer.customerName}</h2>
-          <p className="text-gray-600 text-sm">{selectedCustomer.customerEmail}</p>
-        </div>
-      </div>
 
-      {/* Main Grid - 2 columns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Left Column */}
-        <div className="space-y-6">
           {/* Contact Information */}
-          <div className="space-y-3">
-            <h3 className="font-semibold text-gray-900 flex items-center">
-              <DocumentTextIcon className="h-5 w-5 mr-2 text-blue-600" />
-              Contact Info
-            </h3>
-            
-            <div className="space-y-3">
-              
-              
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <div className="flex items-center mb-3">
+              <div className="bg-blue-100 p-1.5 rounded-lg">
+                <DocumentTextIcon className="w-4 h-4 text-blue-600" />
+              </div>
+              <h3 className="ml-2 text-md font-semibold text-gray-900">Contact Info</h3>
+            </div>
+            <div className="space-y-2">
               {selectedCustomer.invoiceEmail && (
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Invoice Email</label>
-                  <div className="flex items-center text-sm text-gray-900">
-                    <EnvelopeOpenIcon className="h-4 w-4 mr-2 text-gray-400" />
-                    {selectedCustomer.invoiceEmail}
-                  </div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Invoice Email</p>
+                  <p className="text-sm text-gray-800">{selectedCustomer.invoiceEmail}</p>
                 </div>
               )}
             </div>
           </div>
 
           {/* Location Information */}
-          {(selectedCustomer.city || selectedCustomer.state) && (
-            <div className="space-y-3">
-              <h3 className="font-semibold text-gray-900 flex items-center">
-                <MapPinIcon className="h-5 w-5 mr-2 text-green-600" />
-                Location
-              </h3>
-              
-              <div className="space-y-2">
-                {selectedCustomer.city && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">City</label>
-                    <div className="text-sm text-gray-900">{selectedCustomer.city}</div>
-                  </div>
-                )}
-                
-                {selectedCustomer.state && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">State</label>
-                    <div className="text-sm text-gray-900">{selectedCustomer.state}</div>
-                  </div>
-                )}
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <div className="flex items-center mb-3">
+              <div className="bg-green-100 p-1.5 rounded-lg">
+                <MapPinIcon className="w-4 h-4 text-green-600" />
               </div>
+              <h3 className="ml-2 text-md font-semibold text-gray-900">Location</h3>
             </div>
-          )}
-        </div>
-
-        {/* Right Column */}
-        <div className="space-y-6">
-          {/* Address Information */}
-          {selectedCustomer.address && (
-            <div className="space-y-3">
-              <h3 className="font-semibold text-gray-900 flex items-center">
-                <MapPinIcon className="h-5 w-5 mr-2 text-red-600" />
-                Address
-              </h3>
-              
-              <div className="bg-gray-50 p-3 rounded-md border border-gray-200">
-                <div className="space-y-2 text-sm">
-                  <div className="font-medium text-gray-900">{selectedCustomer.address}</div>
-                  <div className="text-gray-700">
-                    {selectedCustomer.city && `${selectedCustomer.city}, `}
-                    {selectedCustomer.state && `${selectedCustomer.state}`}
-                    {selectedCustomer.zipCode && ` ${selectedCustomer.zipCode}`}
-                  </div>
-                  {selectedCustomer.country && (
-                    <div className="text-gray-700">{selectedCustomer.country}</div>
-                  )}
+            <div className="space-y-2">
+              {selectedCustomer.city && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">City</p>
+                  <p className="text-sm text-gray-800">{selectedCustomer.city}</p>
                 </div>
+              )}
+              {selectedCustomer.state && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">State</p>
+                  <p className="text-sm text-gray-800">{selectedCustomer.state}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Address Information */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <div className="flex items-center mb-3">
+              <div className="bg-red-100 p-1.5 rounded-lg">
+                <MapPinIcon className="w-4 h-4 text-red-600" />
+              </div>
+              <h3 className="ml-2 text-md font-semibold text-gray-900">Address</h3>
+            </div>
+            <div className="space-y-2">
+              {selectedCustomer.address && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Full Address</p>
+                  <p className="text-sm text-gray-800 leading-relaxed">{selectedCustomer.address}</p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                {selectedCustomer.zipCode && (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">ZIP Code</p>
+                    <p className="text-sm text-gray-800">{selectedCustomer.zipCode}</p>
+                  </div>
+                )}
+                {selectedCustomer.country && (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Country</p>
+                    <p className="text-sm text-gray-800">{selectedCustomer.country}</p>
+                  </div>
+                )}
               </div>
             </div>
-          )}
+          </div>
         </div>
-      </div>
 
-  
-
-      {/* Action Buttons */}
-      <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-        <button
-          onClick={() => {
-            setSelectedCustomer(null);
-            setEditingCustomer(selectedCustomer);
-            setShowModal(true);
-          }}
-          className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-        >
-          <PencilSquareIcon className="h-4 w-4 mr-2" />
-          Edit Customer
-        </button>
-        <button
-          onClick={() => setSelectedCustomer(null)}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-        >
-          Close
-        </button>
+        {/* Action Buttons */}
+        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+          <button
+            onClick={() => {
+              setSelectedCustomer(null);
+              setEditingCustomer(selectedCustomer);
+              setShowModal(true);
+            }}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Edit Customer
+          </button>
+          <button
+            onClick={() => setSelectedCustomer(null)}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Close
+          </button>
+        </div>
       </div>
     </div>
   </Modal>

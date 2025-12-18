@@ -889,44 +889,6 @@ const PurchaseRequestManagement = () => {
   {selectedRequest && (
     <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
       <div className="space-y-6 p-1">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-start space-x-4">
-              <div className="flex-shrink-0">
-                <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <ClipboardDocumentListIcon className="h-6 w-6 text-blue-600" />
-                </div>
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">
-                  {selectedRequest.projectName || "Project"}
-                </h2>
-                <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {selectedRequest.customerName}
-                  </span>
-                  {(() => {
-                    const statusColor = getStatusColor(selectedRequest.status);
-                    return (
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor.bgColor} ${statusColor.textColor}`}>
-                        {statusColor.label}
-                      </span>
-                    );
-                  })()}
-                </div>
-              </div>
-            </div>
-            <div className="mt-4 sm:mt-0 text-right">
-              <p className="text-sm text-gray-500">Production Period</p>
-              <p className="text-sm font-semibold text-blue-600">
-                {selectedRequest.startDate ? new Date(selectedRequest.startDate).toLocaleDateString() : "N/A"} - 
-                {selectedRequest.endDate ? new Date(selectedRequest.endDate).toLocaleDateString() : "N/A"}
-              </p>
-            </div>
-          </div>
-        </div>
-
         {/* Project Details */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white border border-gray-200 rounded-lg p-6">
@@ -967,12 +929,6 @@ const PurchaseRequestManagement = () => {
                 <span className="text-sm text-gray-500">End Date:</span>
                 <span className="text-sm font-medium text-gray-900">
                   {selectedRequest.endDate ? new Date(selectedRequest.endDate).toLocaleDateString() : "N/A"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Created At:</span>
-                <span className="text-sm font-medium text-gray-900">
-                  {selectedRequest.createdAt ? new Date(selectedRequest.createdAt).toLocaleDateString() : "N/A"}
                 </span>
               </div>
             </div>

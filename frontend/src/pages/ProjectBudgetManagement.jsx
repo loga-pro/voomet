@@ -812,37 +812,6 @@ const ProjectBudgetManagement = () => {
       >
         {selectedBudget && (
           <div className="space-y-6">
-            {/* Header Section */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <BuildingStorefrontIcon className="h-6 w-6 text-blue-600" />
-                    </div>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">{selectedBudget.projectName}</h2>
-                    <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {selectedBudget.financialYear}
-                      </span>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getBusinessImpactColor(selectedBudget.overallBusinessImpact)}`}>
-                        {selectedBudget.overallBusinessImpact} Impact
-                      </span>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${selectedBudget.netProfitLoss >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                        {selectedBudget.netProfitLoss >= 0 ? 'Profit' : 'Loss'}: ₹{Math.abs(selectedBudget.netProfitLoss)?.toLocaleString('en-IN')}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 sm:mt-0 text-right">
-                  <p className="text-sm text-gray-500">Customer</p>
-                  <p className="text-lg font-bold text-blue-600">{selectedBudget.customerName}</p>
-                </div>
-              </div>
-            </div>
 
             {/* Financial Overview */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -7,6 +7,7 @@ import { Button, Upload } from 'antd';
 
 const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
+    vendorType: 'vendor', // New field for vendor/contractor selection
     vendor: '',
     vendorGstNumber: '',
     vendorAccountNumber: '',
@@ -62,6 +63,8 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
       }
 
       setFormData({
+        // Set vendor type from payment data
+        vendorType: payment.vendorType || payment.vendor?.category || 'vendor',
         // Handle both populated vendor object and vendor ID
         vendor: payment.vendor?._id || payment.vendor || '',
         vendorGstNumber: payment.vendorGstNumber || '',
@@ -216,6 +219,19 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
         ...prev,
         [name]: value
       }));
+
+      // Reset vendor selection when vendor type changes
+      if (name === 'vendorType') {
+        setFormData(prev => ({
+          ...prev,
+          vendor: '',
+          vendorGstNumber: '',
+          vendorAccountNumber: '',
+          image: null,
+          uploadImg: ''
+        }));
+        setSelectedVendorCategory(value);
+      }
 
       // Auto-fill vendor details when vendor is selected
       if (name === 'vendor') {
@@ -395,6 +411,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
       const formDataToSend = new FormData();
 
       // Add basic fields
+      formDataToSend.append('vendorType', formData.vendorType); // Save vendor type
       formDataToSend.append('vendor', formData.vendor);
       formDataToSend.append('vendorGstNumber', formData.vendorGstNumber);
       formDataToSend.append('vendorAccountNumber', formData.vendorAccountNumber);
@@ -503,23 +520,41 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Vendor Type Selection */}
           <FloatingInput
-            label="Vendor"
-            name="vendor"
-            value={isEditMode && payment?.vendor?.vendorName ? payment.vendor.vendorName : formData.vendor}
-            onChange={(e) => handleVendorSelect(e.target.value)}
-            error={errors.vendor}
-            type={isEditMode ? "text" : "select"}
-            options={vendors.map(vendor => ({
-              value: vendor._id,
-              label: vendor.vendorName
-            }))}
+            label="Type"
+            name="vendorType"
+            value={formData.vendorType}
+            onChange={handleChange}
+            error={errors.vendorType}
+            type="select"
+            options={[
+              { value: 'vendor', label: 'Vendor' },
+              { value: 'contractor', label: 'Contractor' }
+            ]}
             required
             readOnly={isEditMode}
           />
 
           <FloatingInput
-            label="Vendor GST Number"
+            label={formData.vendorType === 'contractor' ? 'Contractor' : 'Vendor'}
+            name="vendor"
+            value={isEditMode && payment?.vendor?.vendorName ? payment.vendor.vendorName : formData.vendor}
+            onChange={(e) => handleVendorSelect(e.target.value)}
+            error={errors.vendor}
+            type={isEditMode ? "text" : "select"}
+            options={vendors
+              .filter(vendor => vendor.category === formData.vendorType)
+              .map(vendor => ({
+                value: vendor._id,
+                label: vendor.vendorName
+              }))}
+            required
+            readOnly={isEditMode}
+          />
+
+          <FloatingInput
+            label="GST Number"
             name="vendorGstNumber"
             value={formData.vendorGstNumber}
             onChange={handleChange}
@@ -529,7 +564,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
           />
 
           <FloatingInput
-            label="Vendor Account Number"
+            label="Account Number"
             name="vendorAccountNumber"
             value={formData.vendorAccountNumber}
             onChange={handleChange}

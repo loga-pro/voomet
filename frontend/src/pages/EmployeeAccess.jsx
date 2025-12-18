@@ -10,7 +10,8 @@ import {
   EyeIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  UserCircleIcon
+  UserCircleIcon,
+  MailIcon
 } from '@heroicons/react/24/outline';
 import UserForm from '../components/Forms/UserForm';
 import Modal from '../components/Modals/Modal';
@@ -772,100 +773,101 @@ const EmployeeAccess = () => {
       </Modal>
 
       {/* View User Modal */}
-      {viewingUser && (
-        <Modal
-          isOpen={!!viewingUser}
-          onClose={() => setViewingUser(null)}
-          title="User Profile"
-          size="lg"
-        >
-          <div className="max-h-[70vh] overflow-y-auto">
-            <div className="space-y-8 p-1">
-              {/* Header Section */}
-              <div className="flex items-center space-x-6 pb-6 border-b border-gray-200">
-                <div className="flex-shrink-0 h-20 w-20 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl flex items-center justify-center shadow-lg">
-                  <span className="text-2xl font-bold text-white">
-                    {viewingUser.name ? viewingUser.name.charAt(0).toUpperCase() : 'U'}
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-1">{viewingUser.name}</h3>
-                  <p className="text-gray-600 flex items-center">
-                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
-                      <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
-                    </svg>
-                    {viewingUser.email}
-                  </p>
-                </div>
+       {viewingUser && (
+  <Modal
+    isOpen={!!viewingUser}
+    onClose={() => setViewingUser(null)}
+    title="User Profile"
+    size="lg"
+  >
+    <div className="p-1">
+      <div className="space-y-6">
+        {/* Details Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* User Information */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <div className="flex items-center mb-3">
+              <h3 className="ml-2 text-md font-semibold text-gray-900">User Information</h3>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Name</p>
+                <p className="text-sm font-medium text-gray-800">{viewingUser.name}</p>
               </div>
-              
-              {/* Key Information Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</h4>
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
-                  <p className="text-lg font-semibold text-gray-900">{formatRole(viewingUser.role)}</p>
-                </div>
-                
-                <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Last Login</h4>
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <p className="text-lg font-semibold text-gray-900">{formatLastLogin(viewingUser.lastLogin)}</p>
-                </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Email</p>
+                <p className="text-sm text-gray-600">{viewingUser.email}</p>
               </div>
-              
-              {/* Permissions Section */}
-              <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-lg font-semibold text-gray-900">ACCESS PERMISSIONS</h4>
-                  <span className="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
-                    {viewingUser.permissions.length} permissions
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {viewingUser.permissions.map((permission, index) => (
-                    <div 
-                      key={index} 
-                      className="bg-white border border-blue-100 rounded-lg px-4 py-3 text-sm font-medium text-blue-700 flex items-center shadow-sm hover:shadow-md transition-shadow duration-200"
-                    >
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                      {formatPermission(permission)}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Action Buttons */}
-              <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-                <button
-                  onClick={() => setViewingUser(null)}
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 font-medium shadow-sm hover:shadow"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={() => {
-                    setViewingUser(null);
-                    handleEdit(viewingUser);
-                  }}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                >
-                  Edit Profile
-                </button>
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Role</p>
+                <p className="text-sm text-gray-800">{formatRole(viewingUser.role)}</p>
               </div>
             </div>
           </div>
-        </Modal>
-      )}
+
+          {/* Activity Information */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <div className="flex items-center mb-3">
+              <h3 className="ml-2 text-md font-semibold text-gray-900">Activity</h3>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Last Login</p>
+                <p className="text-sm text-gray-800">{formatLastLogin(viewingUser.lastLogin)}</p>
+              </div>
+              {viewingUser.status && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Status</p>
+                  <p className="text-sm text-gray-800">{viewingUser.status}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Permissions Section - Spans full width with 3 columns */}
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 md:col-span-2">
+            <div className="flex items-center mb-3">
+              <h3 className="ml-2 text-md font-semibold text-gray-900">Access Permissions</h3>
+              <span className="ml-auto bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-1 rounded-full">
+                {viewingUser.permissions.length} permissions
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {viewingUser.permissions.map((permission, index) => (
+                <div 
+                  key={index} 
+                  className="bg-white border border-blue-100 rounded-lg px-3 py-2 text-xs font-medium text-blue-700 flex items-center shadow-sm"
+                >
+                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></div>
+                  {formatPermission(permission)}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+          <button
+            onClick={() => setViewingUser(null)}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Close
+          </button>
+          <button
+            onClick={() => {
+              setViewingUser(null);
+              handleEdit(viewingUser);
+            }}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Edit Profile
+          </button>
+        </div>
+      </div>
+    </div>
+  </Modal>
+)}
 
       {/* Notification */}
       <Notification

@@ -878,128 +878,160 @@ const ProjectMaster = () => {
 
       {/* View Modal */}
       <Modal
-        isOpen={viewModal}
-        onClose={() => {
-          setViewModal(false);
-          setSelectedProject(null);
-        }}
-        title="Project Details"
-        size="lg"
-        className="font-sans"
-      >
-        {selectedProject && (
-          <div className="space-y-6 py-1">
-            {/* Header with project name and stage */}
-            <div className="flex items-start justify-between">
+  isOpen={viewModal}
+  onClose={() => {
+    setViewModal(false);
+    setSelectedProject(null);
+  }}
+  title="Project Details"
+  size="lg"
+  className="font-sans"
+>
+  {selectedProject && (
+    <div className="p-1">
+      <div className="space-y-6">
+        {/* Details Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Project Information */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <div className="flex items-center mb-3">
+             
+              <h3 className="ml-2 text-md font-semibold text-gray-900">Project Information</h3>
+            </div>
+            <div className="space-y-2">
               <div>
-                <h2 className="text-xl font-semibold text-gray-800">
-                  {selectedProject.projectName}
-                </h2>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Name</p>
+                <p className="text-sm font-medium text-gray-800">{selectedProject.projectName}</p>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-500">Project Value</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  ₹{selectedProject.totalProjectValue.toLocaleString()}
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Client Name</p>
+                <p className="text-sm text-gray-800">{selectedProject?.customerName || 'Not specified'}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Type</p>
+                <p className="text-sm text-gray-800">
+                  {selectedProject.projectType?.charAt(0).toUpperCase() +
+                    selectedProject.projectType?.slice(1) || "New"}
                 </p>
               </div>
             </div>
+          </div>
 
-            {/* Basic Information Card */}
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5">
-              <h3 className="text-md font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                <DocumentTextIcon className="h-5 w-5 mr-2 text-blue-500" />
-                Project Information
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="space-y-1">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    Client Name
-                  </h4>
-                  <p className="text-sm text-gray-900 font-medium">
-                    {selectedProject?.customerName}
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    Enquiry Date
-                  </h4>
-                  <p className="text-sm text-gray-900 font-medium">
-                    {new Date(selectedProject.enquiryDate).toLocaleDateString()}
-                  </p>
-                </div>
-
-                <div className="space-y-1">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    Stage
-                  </h4>
-                  <div className="mt-1">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {selectedProject.stage.replace(/_/g, " ").toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    Project Type
-                  </h4>
-                  <p className="text-sm text-gray-900 font-medium">
-                    {selectedProject.projectType?.charAt(0).toUpperCase() +
-                      selectedProject.projectType?.slice(1) || "New"}
-                  </p>
-                </div>
-
-                <div className="space-y-1 md:col-span-2">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                    Scope of Work
-                  </h4>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {selectedProject.scopeOfWork &&
-                    selectedProject.scopeOfWork.length > 0 ? (
-                      formatScopeOfWork(selectedProject.scopeOfWork).map(
-                        (scope, index) => (
-                          <span
-                            key={index}
-                            className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-800"
-                          >
-                            {scope}
-                          </span>
-                        )
-                      )
-                    ) : (
-                      <span className="text-sm text-gray-500">
-                        No scope of work defined
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
+          {/* Financial Information */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <div className="flex items-center mb-3">
+              <h3 className="ml-2 text-md font-semibold text-gray-900">Financial Information</h3>
             </div>
-
-            {/* Action Buttons */}
-            <div className="flex justify-end space-x-3 pt-2">
-              <button
-                onClick={() => setViewModal(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => {
-                  setViewModal(false);
-                  setEditingProject(selectedProject);
-                  setShowModal(true);
-                }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Edit Project
-              </button>
+            <div className="space-y-2">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Value</p>
+                <p className="text-sm font-medium text-gray-800">₹{selectedProject.totalProjectValue.toLocaleString()}</p>
+              </div>
+              {selectedProject.projectBudget && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Budget</p>
+                  <p className="text-sm text-gray-800">₹{selectedProject.projectBudget.toLocaleString()}</p>
+                </div>
+              )}
             </div>
           </div>
-        )}
-      </Modal>
+
+          {/* Timeline Information */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <div className="flex items-center mb-3">
+    
+              <h3 className="ml-2 text-md font-semibold text-gray-900">Timeline</h3>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Enquiry Date</p>
+                <p className="text-sm text-gray-800">{new Date(selectedProject.enquiryDate).toLocaleDateString()}</p>
+              </div>
+              {selectedProject.startDate && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Start Date</p>
+                  <p className="text-sm text-gray-800">{new Date(selectedProject.startDate).toLocaleDateString()}</p>
+                </div>
+              )}
+              {selectedProject.expectedCompletion && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Expected Completion</p>
+                  <p className="text-sm text-gray-800">{new Date(selectedProject.expectedCompletion).toLocaleDateString()}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Status Information */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <div className="flex items-center mb-3">
+              <h3 className="ml-2 text-md font-semibold text-gray-900">Status</h3>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Stage</p>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  {selectedProject.stage.replace(/_/g, " ")}
+                </span>
+              </div>
+              {selectedProject.status && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Status</p>
+                  <p className="text-sm text-gray-800">{selectedProject.status}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Scope of Work - Full Width */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm md:col-span-2">
+            <div className="flex items-center mb-3">
+              
+              <h3 className="ml-2 text-md font-semibold text-gray-900">Scope of Work</h3>
+            </div>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Details</p>
+              <div className="flex flex-wrap gap-2">
+                {selectedProject.scopeOfWork && selectedProject.scopeOfWork.length > 0 ? (
+                  formatScopeOfWork(selectedProject.scopeOfWork).map((scope, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-800"
+                    >
+                      {scope}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-sm text-gray-500">No scope of work defined</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+          <button
+            onClick={() => setViewModal(false)}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Close
+          </button>
+          <button
+            onClick={() => {
+              setViewModal(false);
+              setEditingProject(selectedProject);
+              setShowModal(true);
+            }}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Edit Project
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
+</Modal>
 
       {/* History Modal */}
       <Modal
