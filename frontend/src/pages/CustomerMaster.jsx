@@ -172,7 +172,7 @@ const CustomerMaster = () => {
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   const exportToCSV = () => {
-    const headers = ['Customer Name', 'Customer Email', 'City', 'State', 'Address', 'Invoice Email', 'ZIP/Postal Code', 'Country'];
+    const headers = ['Client Name', 'Client Email', 'City', 'State', 'Address', 'Invoice Email', 'ZIP/Postal Code', 'Country'];
     const csvData = filteredCustomers.map(customer => [
       customer.customerName,
       customer.customerEmail,
@@ -347,7 +347,7 @@ const CustomerMaster = () => {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Customer Email</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Client Email</label>
                   <select
                     value={filters.customerEmail}
                     onChange={(e) => handleFilterChange('customerEmail', e.target.value)}

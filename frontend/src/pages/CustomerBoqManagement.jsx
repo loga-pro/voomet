@@ -736,7 +736,7 @@ const CustomerBoqManagement = () => {
                 className="hover:bg-gray-50 transition-colors duration-150"
               >
                 {/* Customer & Project Column */}
-                <td className="px-4 py-4 text-center">
+                <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex flex-col items-center justify-center">
                     <div className="text-sm font-medium text-gray-900">
                       {boq.customer}

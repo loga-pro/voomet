@@ -149,7 +149,7 @@ const VendorMaster = () => {
 
   const exportToCSV = () => {
     const headers = [
-      'Vendor Name', 
+      'Vendor/Contractor Name', 
       'Email', 
       'GST Number', 
       'Mobile Number', 
@@ -351,7 +351,7 @@ const VendorMaster = () => {
             <div className="px-4 py-5 sm:p-6 bg-gray-50 border-b border-gray-200">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Vendor Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Vendor/Contractor Name</label>
                   <select
                     value={filters.vendorName}
                     onChange={(e) => handleFilterChange('vendorName', e.target.value)}
@@ -402,7 +402,7 @@ const VendorMaster = () => {
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Vendor Name
+                        Vendor/Contractor Name
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Email

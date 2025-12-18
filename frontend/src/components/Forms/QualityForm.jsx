@@ -14,7 +14,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
     responsibility: '',
     remarks: ''
   });
-  
+
   const [customers, setCustomers] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -30,23 +30,24 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
     { value: 'cctv', label: 'CCTV' },
     { value: 'partition', label: 'Partition' },
     { value: 'fire_and_safety', label: 'Fire and Safety' },
-    { value: 'access', label: 'Access' }
+    { value: 'access', label: 'Access' },
+    { value: 'transportation', label: 'Transportation' }
   ];
-  
+
   const categoryOptions = ['rectify', 'replace'];
-  const statusOptions = ['open', 'closed', 'in-progress', 'resolved'];
+  const statusOptions = ['open', 'closed'];
 
   useEffect(() => {
     fetchCustomers();
     fetchVendors();
     fetchEmployees();
     fetchProjects();
-    
+
     if (quality) {
-      const processedScopeOfWork = Array.isArray(quality.scopeOfWork) 
-        ? quality.scopeOfWork.map(scope => scope.toLowerCase()) 
+      const processedScopeOfWork = Array.isArray(quality.scopeOfWork)
+        ? quality.scopeOfWork.map(scope => scope.toLowerCase())
         : (quality.scopeOfWork ? [quality.scopeOfWork.toLowerCase()] : []);
-      
+
       setFormData({
         customer: quality.customer || '',
         scopeOfWork: processedScopeOfWork,
@@ -66,7 +67,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
       const customerProjects = projects.filter(
         project => project.customerName === formData.customer
       );
-      
+
       const scopes = new Set();
       customerProjects.forEach(project => {
         if (project.scopeOfWork && Array.isArray(project.scopeOfWork)) {
@@ -76,10 +77,10 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
           });
         }
       });
-      
+
       const availableScopesArray = Array.from(scopes);
       setAvailableScopes(availableScopesArray);
-      
+
       if (!quality && scopes.size > 0) {
         setFormData(prev => ({
           ...prev,
@@ -129,7 +130,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -147,7 +148,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
     setFormData(prev => {
       const currentScopes = prev.scopeOfWork || [];
       const isSelected = currentScopes.includes(scopeValue);
-      
+
       return {
         ...prev,
         scopeOfWork: isSelected
@@ -181,7 +182,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     const scopeMapping = {
@@ -190,13 +191,15 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
       'cctv': 'CCTV',
       'partition': 'Partition',
       'fire_and_safety': 'Fire and Safety',
-      'access': 'Access'
+      'fire and safety': 'Fire and Safety',  // Handle lowercase with space from existing records
+      'access': 'Access',
+      'transportation': 'Transportation'  // Add missing Transportation option
     };
 
     const cleanedData = {
       ...formData,
       customer: formData.customer?.trim() || undefined,
-      scopeOfWork: formData.scopeOfWork && formData.scopeOfWork.length > 0 
+      scopeOfWork: formData.scopeOfWork && formData.scopeOfWork.length > 0
         ? formData.scopeOfWork.map(scope => scopeMapping[scope] || scope)
         : undefined,
       scopeOfWorkText: formData.scopeOfWorkText?.trim() || undefined,
@@ -218,10 +221,10 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
     try {
       await onSubmit(cleanedData);
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.error || 
-                          error.message || 
-                          'Failed to save quality issue';
+      const errorMessage = error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        'Failed to save quality issue';
       setErrors({ submit: `Failed to save quality issue: ${errorMessage}` });
     } finally {
       setLoading(false);
@@ -268,7 +271,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
                     }))
                   ]}
                 />
-                
+
                 <FloatingInput
                   label="Category"
                   name="category"
@@ -299,7 +302,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
                     label: status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ')
                   }))}
                 />
-                
+
                 <FloatingInput
                   label="Scope of Work Details"
                   name="scopeOfWorkText"
@@ -313,9 +316,9 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
             {/* SECTION 2: Scope of Work */}
             <div className="bg-white p-6 rounded-lg border border-gray-200">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Scope of Work</h3>
-              
+
               <div className="relative mb-4">
-                <div 
+                <div
                   className={`block w-full px-3 pt-4 pb-2 bg-white rounded border transition-all duration-200 min-h-[64px] cursor-pointer
                     ${errors.scopeOfWork ? 'border-red-500' : scopeFocused ? 'border-blue-500' : 'border-gray-300'}
                     ${formData.customer && availableScopes.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}
@@ -326,29 +329,29 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
                 >
                   <label
                     className={`absolute left-3 bg-white px-1 transition-all duration-200 pointer-events-none
-                      ${(scopeFocused || (formData.scopeOfWork && formData.scopeOfWork.length > 0)) 
-                        ? 'top-0 text-xs transform -translate-y-1/2 text-blue-600 font-medium' 
+                      ${(scopeFocused || (formData.scopeOfWork && formData.scopeOfWork.length > 0))
+                        ? 'top-0 text-xs transform -translate-y-1/2 text-blue-600 font-medium'
                         : 'top-3 text-sm text-gray-500'
                       }
                     `}
                   >
                     Scope of Work <span className="text-red-500">*</span>
                   </label>
-                  
-                  
+
+
                   {formData.customer && availableScopes.length === 0 && (
                     <div className="text-xs text-gray-500 mt-1 ml-1">
                       No scopes available for this customer
                     </div>
                   )}
-                  
+
                   {formData.customer && availableScopes.length > 0 && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mt-3 max-h-60 overflow-y-auto pr-2">
                       {allScopeOptions
                         .filter(scope => availableScopes.includes(scope.value))
                         .map((scope) => {
                           const isChecked = formData.scopeOfWork?.includes(scope.value);
-                          
+
                           return (
                             <label
                               key={scope.value}
@@ -368,23 +371,18 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
                         })}
                     </div>
                   )}
-                  
-                  {formData.scopeOfWork && formData.scopeOfWork.length > 0 && (
-                    <div className="text-xs text-gray-600 mt-2 ml-1">
-                      Selected: {formData.scopeOfWork.length} scope(s)
-                    </div>
-                  )}
+
                 </div>
-                
+
                 {errors.scopeOfWork && (
                   <div className="mt-1 flex items-start ml-1">
                     <svg className="w-4 h-4 mt-0.5 mr-1 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path 
-                        fillRule="evenodd" 
+                      <path
+                        fillRule="evenodd"
                         d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 
                           1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 
-                          0 00-1-1z" 
-                        clipRule="evenodd" 
+                          0 00-1-1z"
+                        clipRule="evenodd"
                       />
                     </svg>
                     <p className="text-xs text-red-600">{errors.scopeOfWork}</p>
@@ -412,7 +410,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
                     { value: 'outsourced', label: 'Outsourced' }
                   ]}
                 />
-                
+
                 <FloatingInput
                   label="Responsible Person"
                   name="responsibility"
@@ -424,17 +422,17 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
                   disabled={!formData.personType}
                   options={[
                     { value: '', label: formData.personType ? (formData.personType === 'inhouse' ? 'Select Employee' : 'Select Vendor') : 'Select Person Type First' },
-                    ...(formData.personType === 'inhouse' 
+                    ...(formData.personType === 'inhouse'
                       ? employees.map(employee => ({
-                          value: employee.name,
-                          label: employee.name
-                        }))
+                        value: employee.name,
+                        label: employee.name
+                      }))
                       : formData.personType === 'outsourced'
-                      ? vendors.map(vendor => ({
+                        ? vendors.map(vendor => ({
                           value: vendor.vendorName,
                           label: vendor.vendorName
                         }))
-                      : []
+                        : []
                     )
                   ]}
                 />
@@ -456,7 +454,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
                   rows={5}
                   helperText="Describe all open issues that need to be addressed"
                 />
-                
+
                 <FloatingInput
                   label="Remarks"
                   name="remarks"

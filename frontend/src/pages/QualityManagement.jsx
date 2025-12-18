@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  PlusIcon, 
-  MagnifyingGlassIcon, 
+import {
+  PlusIcon,
+  MagnifyingGlassIcon,
   FunnelIcon,
   XMarkIcon,
   ArrowUpTrayIcon,
@@ -69,7 +69,7 @@ const QualityManagement = () => {
       .filter(Boolean)
       .map(name => name.trim())
     )].sort();
-    
+
     const customerOptions = uniqueCustomers.map(name => ({
       id: name,
       value: name,
@@ -86,7 +86,7 @@ const QualityManagement = () => {
       }
       return [];
     });
-    
+
     const uniqueScopes = [...new Set(allScopes)].sort();
     setScopeOfWorkOptions(uniqueScopes);
 
@@ -122,7 +122,7 @@ const QualityManagement = () => {
       const issues = response.data.qualityIssues || response.data || [];
       setQualityIssues(issues);
       setFilteredIssues(issues);
-      
+
       // Extract filter options from saved data only
       extractUniqueOptionsFromData(issues);
     } catch (error) {
@@ -139,7 +139,7 @@ const QualityManagement = () => {
     // Apply search term across multiple fields
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(issue => 
+      filtered = filtered.filter(issue =>
         issue.customer?.toLowerCase().includes(searchLower) ||
         (Array.isArray(issue.scopeOfWork) ? issue.scopeOfWork.join(', ').toLowerCase().includes(searchLower) : issue.scopeOfWork?.toLowerCase().includes(searchLower)) ||
         issue.openIssues?.toLowerCase().includes(searchLower) ||
@@ -153,33 +153,33 @@ const QualityManagement = () => {
 
     // Apply dropdown filters
     if (filters.customer) {
-      filtered = filtered.filter(issue => 
+      filtered = filtered.filter(issue =>
         issue.customer === filters.customer
       );
     }
 
     if (filters.scopeOfWork) {
-      filtered = filtered.filter(issue => 
-        Array.isArray(issue.scopeOfWork) 
+      filtered = filtered.filter(issue =>
+        Array.isArray(issue.scopeOfWork)
           ? issue.scopeOfWork.includes(filters.scopeOfWork)
           : issue.scopeOfWork === filters.scopeOfWork
       );
     }
 
     if (filters.category) {
-      filtered = filtered.filter(issue => 
+      filtered = filtered.filter(issue =>
         issue.category === filters.category
       );
     }
 
     if (filters.status) {
-      filtered = filtered.filter(issue => 
+      filtered = filtered.filter(issue =>
         issue.status === filters.status
       );
     }
 
     if (filters.responsibility) {
-      filtered = filtered.filter(issue => 
+      filtered = filtered.filter(issue =>
         issue.responsibility === filters.responsibility
       );
     }
@@ -278,7 +278,7 @@ const QualityManagement = () => {
   const handleFormSubmit = async (formData) => {
     try {
       setLoading(true);
-      
+
       // Clean up form data to ensure proper data types
       const cleanedData = {
         ...formData,
@@ -318,12 +318,12 @@ const QualityManagement = () => {
       console.error('Error response data:', error.response?.data);
       console.error('Error status:', error.response?.status);
       console.error('Error headers:', error.response?.headers);
-      
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.error || 
-                          error.message || 
-                          'Failed to save quality issue';
-      
+
+      const errorMessage = error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        'Failed to save quality issue';
+
       showError(`Failed to save quality issue: ${errorMessage}`);
     } finally {
       setLoading(false);
@@ -353,7 +353,7 @@ const QualityManagement = () => {
         isVisible={notification.isVisible}
         onClose={hideNotification}
       />
-      
+
       <div className="max-w-none w-full">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-auto mb-6">
           <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
@@ -372,15 +372,14 @@ const QualityManagement = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                    showFilters || Object.values(filters).some(Boolean) || searchTerm
-                      ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100' 
+                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters || Object.values(filters).some(Boolean) || searchTerm
+                      ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
                       : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
                   Filters
@@ -390,7 +389,7 @@ const QualityManagement = () => {
                     </span>
                   )}
                 </button>
-                
+
                 {(Object.values(filters).some(Boolean) || searchTerm) && (
                   <button
                     onClick={clearFilters}
@@ -400,7 +399,7 @@ const QualityManagement = () => {
                     Clear
                   </button>
                 )}
-                
+
                 <button
                   onClick={exportToCSV}
                   className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -408,7 +407,7 @@ const QualityManagement = () => {
                   <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
                   Export CSV
                 </button>
-                
+
                 <button
                   onClick={() => setShowModal(true)}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -561,20 +560,18 @@ const QualityManagement = () => {
                             </div>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              issue.category === 'rectify' 
-                                ? 'bg-yellow-100 text-yellow-800' 
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${issue.category === 'rectify'
+                                ? 'bg-yellow-100 text-yellow-800'
                                 : 'bg-red-100 text-red-800'
-                            }`}>
+                              }`}>
                               {issue.category?.charAt(0).toUpperCase() + issue.category?.slice(1)}
                             </span>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              issue.status === 'open' 
-                                ? 'bg-red-100 text-red-800' 
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${issue.status === 'open'
+                                ? 'bg-red-100 text-red-800'
                                 : 'bg-green-100 text-green-800'
-                            }`}>
+                              }`}>
                               {issue.status?.charAt(0).toUpperCase() + issue.status?.slice(1)}
                             </span>
                           </td>
@@ -612,7 +609,7 @@ const QualityManagement = () => {
                       <tr>
                         <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
                           {Object.values(filters).some(val => val !== '') || searchTerm
-                            ? 'No quality issues found matching your filters.' 
+                            ? 'No quality issues found matching your filters.'
                             : 'No quality issues found. Add your first quality issue to get started.'
                           }
                         </td>
@@ -622,7 +619,7 @@ const QualityManagement = () => {
                 </table>
               </div>
             </div>
-            
+
             {/* Mobile Card View */}
             <div className="sm:hidden">
               {currentItems.length > 0 ? (
@@ -660,21 +657,19 @@ const QualityManagement = () => {
                     <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
                       <div>
                         <span className="font-medium">Category:</span>
-                        <span className={`ml-1 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
-                          issue.category === 'rectify' 
-                            ? 'bg-yellow-100 text-yellow-800' 
+                        <span className={`ml-1 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${issue.category === 'rectify'
+                            ? 'bg-yellow-100 text-yellow-800'
                             : 'bg-red-100 text-red-800'
-                        }`}>
+                          }`}>
                           {issue.category?.charAt(0).toUpperCase() + issue.category?.slice(1)}
                         </span>
                       </div>
                       <div>
                         <span className="font-medium">Status:</span>
-                        <span className={`ml-1 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
-                          issue.status === 'open' 
-                            ? 'bg-red-100 text-red-800' 
+                        <span className={`ml-1 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${issue.status === 'open'
+                            ? 'bg-red-100 text-red-800'
                             : 'bg-green-100 text-green-800'
-                        }`}>
+                          }`}>
                           {issue.status?.charAt(0).toUpperCase() + issue.status?.slice(1)}
                         </span>
                       </div>
@@ -704,7 +699,7 @@ const QualityManagement = () => {
               ) : (
                 <div className="p-8 text-center text-gray-500">
                   {Object.values(filters).some(val => val !== '') || searchTerm
-                    ? 'No quality issues found matching your filters.' 
+                    ? 'No quality issues found matching your filters.'
                     : 'No quality issues found. Add your first quality issue to get started.'
                   }
                 </div>
@@ -731,12 +726,12 @@ const QualityManagement = () => {
                   <option value={100}>100</option>
                 </select>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-700">
                   Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredIssues.length)} of {filteredIssues.length} results
                 </span>
-                
+
                 <nav className="flex space-x-2">
                   <button
                     onClick={() => paginate(Math.max(1, currentPage - 1))}
@@ -745,11 +740,11 @@ const QualityManagement = () => {
                   >
                     <ChevronLeftIcon className="h-5 w-5" />
                   </button>
-                  
+
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter(page => 
-                      page === 1 || 
-                      page === totalPages || 
+                    .filter(page =>
+                      page === 1 ||
+                      page === totalPages ||
                       (page >= currentPage - 1 && page <= currentPage + 1)
                     )
                     .map((page, index, array) => {
@@ -764,18 +759,17 @@ const QualityManagement = () => {
                           )}
                           <button
                             onClick={() => paginate(page)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              currentPage === page
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
                                 ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
                                 : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                            }`}
+                              }`}
                           >
                             {page}
                           </button>
                         </React.Fragment>
                       );
                     })}
-                  
+
                   <button
                     onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
@@ -789,7 +783,7 @@ const QualityManagement = () => {
           )}
         </div>
 
-        {/* Modal components remain the same */}
+        {/* Modal for Add/Edit/View */}
         <Modal
           isOpen={showModal || !!viewingIssue}
           onClose={() => {
@@ -801,7 +795,171 @@ const QualityManagement = () => {
           size="lg"
           className="font-sans"
         >
-          {/* Modal content remains the same */}
+          {viewingIssue ? (
+            <div className="space-y-6">
+              {/* Main Content Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Left Column */}
+                <div className="space-y-6">
+                  {/* Basic Information */}
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-gray-900 flex items-center">
+                      <DocumentTextIcon className="h-5 w-5 mr-2 text-blue-600" />
+                      Basic Information
+                    </h3>
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Client</label>
+                        <div className="text-sm text-gray-900 p-2 rounded bg-blue-50 border border-blue-100">
+                          {viewingIssue.customer}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Scope of Work</label>
+                        <div className="text-sm text-gray-900 p-2 rounded bg-gray-50 border border-gray-200">
+                          {Array.isArray(viewingIssue.scopeOfWork) ? viewingIssue.scopeOfWork.join(', ') : viewingIssue.scopeOfWork}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Category</label>
+                        <div className="text-sm text-gray-900 p-2 rounded bg-purple-50 border border-purple-100 capitalize">
+                          {viewingIssue.category}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Assignment Details */}
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-gray-900 flex items-center">
+                      <UserGroupIcon className="h-5 w-5 mr-2 text-green-600" />
+                      Assignment
+                    </h3>
+
+                    <div className="space-y-3">
+                      {viewingIssue.personType && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Person Type</label>
+                          <div className="text-sm text-gray-900 p-2 rounded bg-indigo-50 border border-indigo-100 capitalize">
+                            {viewingIssue.personType}
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Responsible</label>
+                        <div className="text-sm text-gray-900 p-2 rounded bg-green-50 border border-green-100">
+                          {viewingIssue.responsibility}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-6">
+                  {/* Status Card */}
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-gray-900 flex items-center">
+                      <ExclamationTriangleIcon className="h-5 w-5 mr-2 text-yellow-600" />
+                      Status
+                    </h3>
+
+                    <div className={`p-4 rounded-lg border ${viewingIssue.status === 'open' ? 'bg-yellow-50 border-yellow-200' :
+                        viewingIssue.status === 'in progress' ? 'bg-blue-50 border-blue-200' :
+                          viewingIssue.status === 'resolved' ? 'bg-green-50 border-green-200' :
+                            'bg-gray-50 border-gray-200'
+                      }`}>
+                      <div className="text-center">
+                        <div className={`text-lg font-bold mb-1 ${viewingIssue.status === 'open' ? 'text-yellow-700' :
+                            viewingIssue.status === 'in progress' ? 'text-blue-700' :
+                              viewingIssue.status === 'resolved' ? 'text-green-700' :
+                                'text-gray-700'
+                          }`}>
+                          {viewingIssue.status?.toUpperCase()}
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          Quality Issue Status
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Open Issues Card */}
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-gray-900 flex items-center">
+                      <ExclamationTriangleIcon className="h-5 w-5 mr-2 text-red-600" />
+                      Open Issues
+                    </h3>
+
+                    <div className="p-3 rounded bg-red-50 border border-red-200">
+                      <p className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">
+                        {viewingIssue.openIssues}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Additional Info (if any) */}
+                  {(viewingIssue.scopeOfWorkText || viewingIssue.remarks) && (
+                    <div className="space-y-3">
+                      {viewingIssue.scopeOfWorkText && (
+                        <div className="mb-3">
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Scope Details</label>
+                          <div className="text-sm text-gray-900 p-3 rounded bg-gray-50 border border-gray-200 whitespace-pre-wrap">
+                            {viewingIssue.scopeOfWorkText}
+                          </div>
+                        </div>
+                      )}
+
+                      {viewingIssue.remarks && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Remarks</label>
+                          <div className="text-sm text-gray-900 p-3 rounded bg-amber-50 border border-amber-200 whitespace-pre-wrap">
+                            {viewingIssue.remarks}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    setShowModal(false);
+                    setViewingIssue(null);
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingIssue(viewingIssue);
+                    setViewingIssue(null);
+                    setShowModal(true);
+                  }}
+                  className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  Edit Issue
+                </button>
+              </div>
+            </div>
+          ) : (
+            <QualityForm
+              quality={editingIssue}
+              onSubmit={handleFormSubmit}
+              onCancel={() => {
+                setShowModal(false);
+                setEditingIssue(null);
+              }}
+            />
+          )}
         </Modal>
 
         {/* Delete Confirmation Modal */}

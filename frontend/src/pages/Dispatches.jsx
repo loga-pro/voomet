@@ -42,7 +42,7 @@ const Dispatches = () => {
   const [uniqueWorkCategories, setUniqueWorkCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const [parts, setParts] = useState([]);
   const [customers, setCustomers] = useState([]);
   const { notification, showSuccess, showError, hideNotification } = useNotification();

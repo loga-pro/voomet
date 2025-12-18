@@ -502,32 +502,6 @@ const EmployeeForm = ({ employee, onSubmit, onCancel }) => {
 
   return (
     <div className="flex flex-col h-full max-h-[70vh] relative">
-      {/* Red Error Popup */}
-      {showNextError && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in-down">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl shadow-lg flex items-center space-x-3 max-w-md">
-            <div className="flex-shrink-0">
-              <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium">{nextErrorMessage}</p>
-              <p className="text-xs text-red-600 mt-1">Please fix the error before proceeding</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowNextError(false)}
-              className="flex-shrink-0 text-red-500 hover:text-red-700"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Fixed Tabs Section */}
       <div className="flex-shrink-0 px-6 py-4 bg-white border-b border-gray-200">
         <div className="flex items-center justify-between">

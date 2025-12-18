@@ -75,7 +75,9 @@ const Dashboard = () => {
   const [selectedStageTitle, setSelectedStageTitle] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSticky, setIsSticky] = useState(false);
+  const [stickyHeight, setStickyHeight] = useState(0);
   const stickyRef = useRef(null);
+  const stickyOffsetRef = useRef(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -100,16 +102,33 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
+    // Store the initial offset position
+    if (stickyRef.current && !isSticky) {
+      const rect = stickyRef.current.getBoundingClientRect();
+      stickyOffsetRef.current = rect.top + window.scrollY;
+      setStickyHeight(rect.height);
+    }
+  }, [loading, isSticky]);
+
+  useEffect(() => {
     const handleScroll = () => {
-      if (stickyRef.current) {
-        const stickyTop = stickyRef.current.offsetTop;
-        setIsSticky(window.scrollY > stickyTop);
+      if (stickyRef.current && stickyOffsetRef.current > 0) {
+        const shouldBeSticky = window.scrollY > stickyOffsetRef.current;
+
+        if (shouldBeSticky !== isSticky) {
+          setIsSticky(shouldBeSticky);
+
+          // Update height when becoming sticky
+          if (shouldBeSticky && stickyRef.current) {
+            setStickyHeight(stickyRef.current.offsetHeight);
+          }
+        }
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [isSticky]);
 
   const handleStageClick = (stage, title) => {
     setSelectedStage(stage);
@@ -314,13 +333,6 @@ const Dashboard = () => {
       color: 'bg-indigo-500'
     },
     {
-      id: 'site-value',
-      title: 'Site Value (₹)',
-      value: (kpis.inventoryKPIs?.totalPartsValueAtSite || 0).toLocaleString('en-IN'),
-      icon: TruckIcon,
-      color: 'bg-purple-500'
-    },
-    {
       id: 'customer-end-value',
       title: 'Customer End Value (₹)',
       value: (kpis.inventoryKPIs?.totalPartsValueAtCustomerEnd || 0).toLocaleString('en-IN'),
@@ -337,13 +349,6 @@ const Dashboard = () => {
       value: kpis.inventoryKPIs?.itemsAtShopFloor || 0,
       icon: BuildingStorefrontIcon,
       color: 'bg-indigo-500'
-    },
-    {
-      id: 'site-items',
-      title: 'At Site',
-      value: kpis.inventoryKPIs?.itemsAtSite || 0,
-      icon: TruckIcon,
-      color: 'bg-purple-500'
     },
     {
       id: 'customer-end-items',
@@ -363,13 +368,7 @@ const Dashboard = () => {
       icon: ExclamationTriangleIcon,
       color: 'bg-red-500'
     },
-    {
-      id: 'critical-issues',
-      title: 'Critical Issues',
-      value: kpis.qualityKPIs.criticalIssues || 0,
-      icon: ExclamationTriangleIcon,
-      color: 'bg-red-500'
-    },
+
     {
       id: 'open-issues',
       title: 'Open Issues',
@@ -394,13 +393,6 @@ const Dashboard = () => {
       value: kpis.qualityKPIs.rectify || 0,
       icon: WrenchIcon,
       color: 'bg-yellow-500'
-    },
-    {
-      id: 'to-replace',
-      title: 'Replace',
-      value: kpis.qualityKPIs.replace || 0,
-      icon: CubeIcon,
-      color: 'bg-red-500'
     },
     {
       id: 'resolution-rate',
@@ -507,8 +499,8 @@ const Dashboard = () => {
       <div
         ref={stickyRef}
         className={`transition-all duration-300 ${isSticky
-          ? 'fixed top-0 left-0 right-0 z-50 bg-white shadow-lg border-b border-gray-200 p-4 mx-[-1rem] md:mx-[-1.5rem] lg:mx-[-2rem]'
-          : 'relative'
+            ? 'fixed top-0 left-0 right-0 z-50 bg-white shadow-lg border-b border-gray-200 p-4 sm:p-6 lg:p-8'
+            : 'relative'
           }`}
       >
         <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">
@@ -520,12 +512,10 @@ const Dashboard = () => {
             <GradientKpiCard key={index} {...kpi} />
           ))}
         </div>
-
-        {isSticky && <div className="h-4"></div>}
       </div>
 
-      {/* Spacer when sticky */}
-      {isSticky && <div className="h-[200px] sm:h-[180px]"></div>}
+      {/* Spacer when sticky - matches the actual height of the sticky section */}
+      {isSticky && <div style={{ height: `${stickyHeight}px` }}></div>}
 
       {/* Profit Loss Summary */}
       <ProfitLossSummary />

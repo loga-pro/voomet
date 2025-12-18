@@ -40,7 +40,7 @@ const ProductionManagement = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const [uniqueCustomers, setUniqueCustomers] = useState([]);
   const [uniqueProjects, setUniqueProjects] = useState([]);
   const [uniqueParts, setUniqueParts] = useState([]);

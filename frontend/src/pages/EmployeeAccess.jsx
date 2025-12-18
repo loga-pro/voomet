@@ -234,7 +234,7 @@ const EmployeeAccess = () => {
   };
 
   const exportFilteredUsers = () => {
-    exportToCSV(filteredUsers, 'filtered_employee_access.csv');
+    exportToCSV(filteredUsers, 'employee_access.csv');
   };
 
   // Pagination logic - FIXED
@@ -554,11 +554,7 @@ const EmployeeAccess = () => {
                     {currentItems.map((user) => (
                       <tr key={user._id} className="hover:bg-gray-50 transition-colors duration-150">
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="ml-4">
                               <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                            </div>
-                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">{user.email}</div>
