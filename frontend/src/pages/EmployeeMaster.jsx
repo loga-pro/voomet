@@ -759,23 +759,201 @@ const EmployeeMaster = () => {
         />
       </Modal>
 
-      {/* View Modal - Rest of the view modal remains the same */}
       <Modal
-        isOpen={viewModal}
-        onClose={() => {
-          setViewModal(false);
-          setSelectedEmployee(null);
-        }}
-        title="Employee Profile"
-        size="lg"
-        className="employee-modal"
-      >
-        {selectedEmployee && (
-          <div className="max-h-[80vh] overflow-y-auto p-1">
-            {/* ... (view modal content remains unchanged) ... */}
+  isOpen={viewModal}
+  onClose={() => {
+    setViewModal(false);
+    setSelectedEmployee(null);
+  }}
+  title="Employee Profile"
+  size="lg"
+  className="employee-modal"
+>
+  {selectedEmployee && (
+    <div className="max-h-[80vh] overflow-y-auto p-1">
+      {/* Header Section */}
+      <div className="flex items-start gap-5 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl mb-6">
+        <div className="flex-shrink-0 h-20 w-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+          <span className="font-semibold text-2xl text-white">
+            {selectedEmployee.name ? selectedEmployee.name.charAt(0).toUpperCase() : 'E'}
+          </span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-2xl font-bold text-gray-900 truncate">{selectedEmployee.name}</h2>
+          <p className="text-md text-indigo-600 font-medium">{selectedEmployee.designation}</p>
+          <div className="flex flex-wrap gap-2 mt-2">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              {selectedEmployee.department}
+            </span>
+            {selectedEmployee.qualification && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                {selectedEmployee.qualification}
+              </span>
+            )}
+            {selectedEmployee.gender && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
+                {selectedEmployee.gender}
+              </span>
+            )}
           </div>
-        )}
-      </Modal>
+        </div>
+      </div>
+
+      {/* Details Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Personal Information */}
+        <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+          <div className="flex items-center mb-4">
+            <div className="bg-purple-100 p-2 rounded-lg">
+              <User className="w-5 h-5 text-purple-600" />
+            </div>
+            <h3 className="ml-3 text-lg font-semibold text-gray-900">Personal Information</h3>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Gender</p>
+              <p className="text-sm text-gray-800 font-medium">{selectedEmployee.gender || 'Not provided'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Date of Birth</p>
+              <div className="flex items-center space-x-2">
+                <p className="text-sm text-gray-800 font-medium">
+                  {formatDate(selectedEmployee.dob)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Contact Information */}
+        <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+          <div className="flex items-center mb-4">
+            <div className="bg-blue-100 p-2 rounded-lg">
+              <Phone className="w-5 h-5 text-blue-600" />
+            </div>
+            <h3 className="ml-3 text-lg font-semibold text-gray-900">Contact Information</h3>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-start">
+              <Mail className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+              <span className="text-sm text-gray-600 break-all">{selectedEmployee.email}</span>
+            </div>
+            <div className="flex items-start">
+              <Phone className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+              <span className="text-sm text-gray-600">{selectedEmployee.phone}</span>
+            </div>
+            <div className="flex items-start">
+              <MapPin className="w-5 h-5 text-gray-400 mt-0.5 mr-3 flex-shrink-0" />
+              <span className="text-sm text-gray-600">{selectedEmployee.address || 'Not provided'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Employment Details */}
+        <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+          <div className="flex items-center mb-4">
+            <div className="bg-indigo-100 p-2 rounded-lg">
+              <Briefcase className="w-5 h-5 text-indigo-600" />
+            </div>
+            <h3 className="ml-3 text-lg font-semibold text-gray-900">Employment Details</h3>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Department</p>
+              <p className="text-sm text-gray-800 font-medium">{selectedEmployee.department}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Designation</p>
+              <p className="text-sm text-gray-800 font-medium">{selectedEmployee.designation}</p>
+            </div>
+            {selectedEmployee.qualification && (
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Qualification</p>
+                <p className="text-sm text-gray-800 font-medium">{selectedEmployee.qualification}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Government IDs */}
+        <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+          <div className="flex items-center mb-4">
+            <div className="bg-green-100 p-2 rounded-lg">
+              <IdCard className="w-5 h-5 text-green-600" />
+            </div>
+            <h3 className="ml-3 text-lg font-semibold text-gray-900">Government IDs</h3>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Aadhaar Number</p>
+              <p className="text-sm text-gray-800 font-mono">{selectedEmployee.aadhar || 'Not provided'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">PAN Number</p>
+              <p className="text-sm text-gray-800 font-mono">{selectedEmployee.pan || 'Not provided'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">UAN Number</p>
+              <p className="text-sm text-gray-800 font-mono">
+                {selectedEmployee.uan ? 
+                  `${selectedEmployee.uan.slice(0, 4)} ${selectedEmployee.uan.slice(4, 8)} ${selectedEmployee.uan.slice(8, 12)}` 
+                  : 'Not provided'
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bank Details */}
+        <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+          <div className="flex items-center mb-4">
+            <div className="bg-amber-100 p-2 rounded-lg">
+              <Banknote className="w-5 h-5 text-amber-600" />
+            </div>
+            <h3 className="ml-3 text-lg font-semibold text-gray-900">Bank Details</h3>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Bank Name</p>
+              <p className="text-sm text-gray-800">{selectedEmployee.bankName || 'Not provided'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Account Number</p>
+              <p className="text-sm text-gray-800 font-mono">{selectedEmployee.bankAccountNumber || 'Not provided'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Branch</p>
+              <p className="text-sm text-gray-800">{selectedEmployee.branch || 'Not provided'}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons - FIXED */}
+      <div className="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
+        <button
+          onClick={() => {
+            setViewModal(false);
+            setSelectedEmployee(null);
+          }}
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+        >
+          Close
+        </button>
+        <button
+          onClick={() => {
+            setViewModal(false);
+            setSelectedEmployee(null);
+            handleEdit(selectedEmployee); // This line was fixed
+          }}
+          className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+        >
+          Edit Employee
+        </button>
+      </div>
+    </div>
+  )}
+</Modal>
 
       {/* Notification */}
       <Notification
