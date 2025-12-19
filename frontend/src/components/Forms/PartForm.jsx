@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { partsAPI, vendorsAPI } from '../../services/api';
 import FloatingInput from './FloatingInput';
+import ComboBox from './ComboBox';
 
 const PartForm = ({ part, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -23,7 +24,8 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
     { value: 'cctv', label: 'CCTV' },
     { value: 'partion', label: 'Partition' },
     { value: 'fire_and_safety', label: 'Fire and Safety' },
-    { value: 'access', label: 'Access' }
+    { value: 'access', label: 'Access' },
+    { value: 'furniture', label: 'Furniture' }
   ];
 
   const categoryOptions = [
@@ -260,12 +262,11 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
         </div>
       )}
 
-      <FloatingInput
+      <ComboBox
         label="Scope of Work"
         name="scopeOfWork"
         value={formData.scopeOfWork}
         onChange={handleChange}
-        type="select"
         options={scopeOptions}
         disabled={!!part}
         error={errors.scopeOfWork}

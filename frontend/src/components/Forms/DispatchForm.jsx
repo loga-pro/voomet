@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import FloatingInput from './FloatingInput';
 import { FaTrash, FaPlus } from 'react-icons/fa';
+import { inventoryAPI, dispatchesAPI } from '../../services/api';
 
 const DispatchForm = ({
   dispatchData = {},
@@ -17,20 +18,51 @@ const DispatchForm = ({
   const initialData = dispatchData || {};
 
   // State for individual line items
-  const [lineItems, setLineItems] = useState(
-    initialData.lineItems?.length > 0
-      ? initialData.lineItems
-      : [{
-        workCategory: '',
-        partName: '',
-        unit: '',
-        quantity: '',
-        priceWithoutGST: '',
-        gstPercentage: 18,
-        gstAmount: '',
-        total: ''
-      }]
-  );
+  const [lineItems, setLineItems] = useState(() => {
+    // If editing and lineItems array exists, map the fields correctly
+    if (initialData.lineItems?.length > 0) {
+      return initialData.lineItems.map(item => ({
+        workCategory: item.workCategory || '',
+        partName: item.partName || '',
+        unit: item.unit || '',
+        quantity: item.quantity?.toString() || '',
+        priceWithoutGST: (item.priceWithoutGST || item.invoiceValueWithoutGST)?.toString() || '',
+        gstPercentage: item.gstPercentage || 18,
+        gstAmount: (item.gstAmount || item.gstValue)?.toString() || '',
+        total: (item.total || item.totalValue)?.toString() || '',
+        availableStock: null,
+        stockWarning: ''
+      }));
+    }
+    // If editing a single dispatch (has individual fields), convert to lineItems format
+    if (isEditing && initialData.workCategory && initialData.partName) {
+      return [{
+        workCategory: initialData.workCategory || '',
+        partName: initialData.partName || '',
+        unit: initialData.unit || '',
+        quantity: initialData.quantity?.toString() || '',
+        priceWithoutGST: initialData.invoiceValueWithoutGST?.toString() || '',
+        gstPercentage: initialData.gstPercentage || 18,
+        gstAmount: initialData.gstValue?.toString() || '',
+        total: initialData.totalValue?.toString() || '',
+        availableStock: null,
+        stockWarning: ''
+      }];
+    }
+    // Default empty line item for new dispatches
+    return [{
+      workCategory: '',
+      partName: '',
+      unit: '',
+      quantity: '',
+      priceWithoutGST: '',
+      gstPercentage: 18,
+      gstAmount: '',
+      total: '',
+      availableStock: null,
+      stockWarning: ''
+    }];
+  });
 
   const [formData, setFormData] = useState({
     date: initialData.date || '',
@@ -41,6 +73,10 @@ const DispatchForm = ({
     upload: initialData.upload || '',
     reasonForRejection: initialData.reasonForRejection || '',
   });
+
+  const [inventory, setInventory] = useState([]);
+  const [allDispatches, setAllDispatches] = useState([]);
+
 
   // Calculate totals for line items
   useEffect(() => {
@@ -74,17 +110,132 @@ const DispatchForm = ({
     }
   }, [formData.dispatchCategory, formData.reasonForRejection]);
 
+  // Fetch inventory and dispatch data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [inventoryResponse, dispatchesResponse] = await Promise.all([
+          inventoryAPI.getAll(),
+          dispatchesAPI.getAll()
+        ]);
+        setInventory(inventoryResponse.data || []);
+        setAllDispatches(dispatchesResponse.data?.data || dispatchesResponse.data || []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Recalculate available stock when customer or dispatch category changes
+  useEffect(() => {
+    if (lineItems.length > 0 && inventory.length > 0) {
+      const updatedItems = lineItems.map(item => {
+        if (!item.partName || !item.workCategory) return item;
+
+        let availableStock;
+        if (formData.dispatchCategory === 'return') {
+          availableStock = getReturnableQuantity(formData.customerName, item.partName, item.workCategory);
+        } else {
+          availableStock = getAvailableStock(item.partName, item.workCategory);
+        }
+
+        // Update warning if quantity exceeds new available stock
+        let stockWarning = '';
+        if (item.quantity && availableStock !== null && parseInt(item.quantity) > availableStock) {
+          if (formData.dispatchCategory === 'return') {
+            stockWarning = `⚠️ Only ${availableStock} units can be returned from this customer!`;
+          } else {
+            stockWarning = `⚠️ Only ${availableStock} units available in receipt!`;
+          }
+        }
+
+        return {
+          ...item,
+          availableStock,
+          stockWarning
+        };
+      });
+
+      if (JSON.stringify(updatedItems) !== JSON.stringify(lineItems)) {
+        setLineItems(updatedItems);
+      }
+    }
+  }, [formData.customerName, formData.dispatchCategory, inventory, allDispatches]);
+
+
+  // Helper function to get available stock for a part
+  const getAvailableStock = (partName, workCategory) => {
+    if (!partName || !workCategory || formData.dispatchCategory === 'return') {
+      return null;
+    }
+
+    const inventoryItem = inventory.find(
+      inv => inv.partName?.toLowerCase() === partName.toLowerCase() &&
+        inv.workCategory === workCategory
+    );
+
+    if (!inventoryItem) {
+      return 0; // No inventory found
+    }
+
+    // Use stockAtFactory which represents available stock (received - dispatched - rejected - returned to vendor)
+    return inventoryItem.stockAtFactory || 0;
+  };
+
+  // Helper function to get returnable quantity (for return dispatches)
+  // Can only return what was previously dispatched to this customer
+  const getReturnableQuantity = (customerName, partName, workCategory) => {
+    if (!customerName || !partName || !workCategory) {
+      return 0;
+    }
+
+    // Find all dispatches to this customer for this part
+    const customerDispatches = allDispatches.filter(
+      d => d.customerName === customerName &&
+        d.partName?.toLowerCase() === partName.toLowerCase() &&
+        d.workCategory === workCategory &&
+        d.dispatchCategory === 'dispatch' // Only regular dispatches, not returns or rejects
+    );
+
+    // Find all returns from this customer for this part
+    const customerReturns = allDispatches.filter(
+      d => d.customerName === customerName &&
+        d.partName?.toLowerCase() === partName.toLowerCase() &&
+        d.workCategory === workCategory &&
+        d.dispatchCategory === 'return'
+    );
+
+    // Calculate: Total dispatched - Total already returned
+    const totalDispatched = customerDispatches.reduce((sum, d) => sum + (d.quantity || 0), 0);
+    const totalReturned = customerReturns.reduce((sum, d) => sum + (d.quantity || 0), 0);
+
+    return Math.max(0, totalDispatched - totalReturned);
+  };
+
   // Auto-fill unit, price, and work category when part is selected for each line item
   const handlePartChange = (index, partName) => {
     const selectedPart = parts.find(p => p.partName === partName);
     if (selectedPart) {
+      const workCategory = selectedPart.scopeOfWork || '';
+
+      // For return dispatches, use returnable quantity; otherwise use available stock
+      let availableStock;
+      if (formData.dispatchCategory === 'return') {
+        availableStock = getReturnableQuantity(formData.customerName, partName, workCategory);
+      } else {
+        availableStock = getAvailableStock(partName, workCategory);
+      }
+
       const newLineItems = [...lineItems];
       newLineItems[index] = {
         ...newLineItems[index],
         partName,
-        workCategory: selectedPart.scopeOfWork || '',
+        workCategory,
         unit: selectedPart.unitType || '',
-        priceWithoutGST: selectedPart.partPrice || ''
+        priceWithoutGST: selectedPart.partPrice || '',
+        availableStock,
+        stockWarning: ''
       };
       setLineItems(newLineItems);
     }
@@ -141,6 +292,20 @@ const DispatchForm = ({
         return;
       }
       newLineItems[index][field] = numericValue;
+
+      // Check against available stock
+      if (newLineItems[index].availableStock !== null) {
+        const availableStock = newLineItems[index].availableStock;
+        if (num > availableStock) {
+          if (formData.dispatchCategory === 'return') {
+            newLineItems[index].stockWarning = `⚠️ Only ${availableStock} units can be returned from this customer!`;
+          } else {
+            newLineItems[index].stockWarning = `⚠️ Only ${availableStock} units available in receipt!`;
+          }
+        } else {
+          newLineItems[index].stockWarning = '';
+        }
+      }
     }
     // Validate price (max 10 digits with 2 decimals)
     else if (field === 'priceWithoutGST') {
@@ -183,7 +348,9 @@ const DispatchForm = ({
         priceWithoutGST: '',
         gstPercentage: 18,
         gstAmount: '',
-        total: ''
+        total: '',
+        availableStock: null,
+        stockWarning: ''
       }
     ]);
   };
@@ -215,33 +382,19 @@ const DispatchForm = ({
       return;
     }
 
+    // Check for stock warnings
+    const hasStockWarnings = lineItems.some(item => item.stockWarning);
+    if (hasStockWarnings) {
+      const warningItem = lineItems.find(item => item.stockWarning);
+      showError?.(warningItem.stockWarning);
+      return;
+    }
+
     try {
       if (isEditing && dispatchData?._id) {
-        // For editing, we need to update the existing dispatch
-        // Since we're changing from multi-line to single-line model,
-        // we'll update with the first line item's data
-        const firstItem = lineItems[0];
-        const dispatch = {
-          date: formData.date,
-          dispatchCategory: formData.dispatchCategory,
-          customerName: formData.customerName,
-          invoiceNo: formData.dispatchNo,
-          invoiceDate: formData.dispatchDate,
-          upload: formData.upload,
-          reasonForRejection: formData.reasonForRejection,
-          workCategory: firstItem.workCategory,
-          partName: firstItem.partName,
-          unit: firstItem.unit,
-          quantity: parseFloat(firstItem.quantity),
-          invoiceValueWithoutGST: parseFloat(firstItem.priceWithoutGST),
-          gstValue: parseFloat(firstItem.gstAmount),
-          totalValue: parseFloat(firstItem.total)
-        };
-
-        await onSubmit(dispatch, dispatchData._id);
-      } else {
-        // For creating new dispatches, create one dispatch per line item
-        for (const item of lineItems) {
+        // For editing, submit all line items (the parent will handle deletion and recreation)
+        for (let i = 0; i < lineItems.length; i++) {
+          const item = lineItems[i];
           const dispatch = {
             date: formData.date,
             dispatchCategory: formData.dispatchCategory,
@@ -259,12 +412,47 @@ const DispatchForm = ({
             totalValue: parseFloat(item.total)
           };
 
+          // Only pass the ID on the first iteration to trigger the edit flow
+          await onSubmit(dispatch, i === 0 ? dispatchData._id : null);
+        }
+        // Show success message and trigger refresh after all items are submitted
+        showNotification?.('Dispatch updated successfully');
+        onCancel(); // Close the modal
+        window.location.reload(); // Refresh the page
+      } else {
+        // For creating new dispatches, create one dispatch per line item
+        // Submit all at once and catch any validation errors
+        for (let i = 0; i < lineItems.length; i++) {
+          const item = lineItems[i];
+          const dispatch = {
+            date: formData.date,
+            dispatchCategory: formData.dispatchCategory,
+            customerName: formData.customerName,
+            invoiceNo: formData.dispatchNo,
+            invoiceDate: formData.dispatchDate,
+            upload: formData.upload,
+            reasonForRejection: formData.reasonForRejection,
+            workCategory: item.workCategory,
+            partName: item.partName,
+            unit: item.unit,
+            quantity: parseFloat(item.quantity),
+            invoiceValueWithoutGST: parseFloat(item.priceWithoutGST),
+            gstValue: parseFloat(item.gstAmount),
+            totalValue: parseFloat(item.total)
+          };
+
+          // This will throw an error if validation fails, which will be caught by the parent
           await onSubmit(dispatch);
         }
+        // Show success message and trigger refresh after all items are submitted
+        showNotification?.('Dispatch added successfully');
+        onCancel(); // Close the modal
+        window.location.reload(); // Refresh the page
       }
     } catch (error) {
+      // Re-throw the error so it's caught by the parent component
       console.error('Error submitting dispatch:', error);
-      showError?.('Failed to save dispatch');
+      throw error;
     }
   };
 
@@ -292,7 +480,7 @@ const DispatchForm = ({
         <FloatingInput
           label="Date "
           name="date"
-          value={formData.date}
+          value={formatDateForInput(formData.date)}
           onChange={handleInputChange}
           type="date"
           required
@@ -434,16 +622,35 @@ const DispatchForm = ({
                       />
                     </td>
                     <td className="py-2 px-3 border-b">
-                      <input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => handleLineItemChange(index, 'quantity', e.target.value)}
-                        min="0"
-                        max="9999"
-                        step="1"
-                        className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        required
-                      />
+                      <div>
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => handleLineItemChange(index, 'quantity', e.target.value)}
+                          min="0"
+                          max="9999"
+                          step="1"
+                          className={`w-full text-sm border rounded px-2 py-1 focus:outline-none focus:ring-1 ${item.stockWarning
+                            ? 'border-red-500 focus:ring-red-500 bg-red-50'
+                            : 'border-gray-300 focus:ring-blue-500'
+                            }`}
+                          required
+                        />
+                        {item.availableStock !== null && (
+                          <div className="text-xs mt-1">
+                            <span className="text-gray-600">
+                              {formData.dispatchCategory === 'return'
+                                ? `Returnable: ${item.availableStock} units`
+                                : `Available: ${item.availableStock} units`}
+                            </span>
+                          </div>
+                        )}
+                        {item.stockWarning && (
+                          <div className="text-xs text-red-600 font-medium mt-1">
+                            {item.stockWarning}
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="py-2 px-3 border-b">
                       <input

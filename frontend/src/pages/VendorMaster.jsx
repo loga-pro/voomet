@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  PlusIcon, 
-  MagnifyingGlassIcon, 
+import {
+  PlusIcon,
+  MagnifyingGlassIcon,
   FunnelIcon,
   XMarkIcon,
   ArrowUpTrayIcon,
@@ -64,11 +64,11 @@ const VendorMaster = () => {
     try {
       const response = await vendorsAPI.getAll();
       setVendors(response.data);
-      
+
       // Extract unique values for dropdowns
       const vendorNames = [...new Set(response.data.map(vendor => vendor.vendorName))].filter(Boolean);
       const emails = [...new Set(response.data.map(vendor => vendor.email))].filter(Boolean);
-      
+
       setUniqueVendorNames(vendorNames);
       setUniqueEmails(emails);
     } catch (error) {
@@ -83,19 +83,19 @@ const VendorMaster = () => {
 
     // Apply dropdown filters
     if (filters.vendorName) {
-      filtered = filtered.filter(vendor => 
+      filtered = filtered.filter(vendor =>
         vendor.vendorName === filters.vendorName
       );
     }
 
     if (filters.email) {
-      filtered = filtered.filter(vendor => 
+      filtered = filtered.filter(vendor =>
         vendor.email === filters.email
       );
     }
 
     if (filters.category) {
-      filtered = filtered.filter(vendor => 
+      filtered = filtered.filter(vendor =>
         vendor.category === filters.category
       );
     }
@@ -103,7 +103,7 @@ const VendorMaster = () => {
     // Apply overall search across multiple fields
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(vendor => 
+      filtered = filtered.filter(vendor =>
         vendor.vendorName.toLowerCase().includes(searchLower) ||
         vendor.email.toLowerCase().includes(searchLower) ||
         vendor.gstNumber.toLowerCase().includes(searchLower) ||
@@ -149,33 +149,38 @@ const VendorMaster = () => {
 
   const exportToCSV = () => {
     const headers = [
-      'Vendor/Contractor Name', 
-      'Email', 
-      'GST Number', 
-      'Mobile Number', 
-      'Contact Person', 
+      'Category',
+      'Vendor/Contractor Name',
+      'Contact Person',
+      'Mobile Number',
+      'Email',
+      'Bank Details',
+      'IFSC Code',
+      'GST Number',
       'Address',
       'City',
       'State',
       'Zip Code',
       'Country',
-      'Bank Account Number',
-      'Category'
+
+
     ];
-    
+
     const csvData = filteredVendors.map(vendor => [
+      vendor.category || '',
       vendor.vendorName,
-      vendor.email,
-      vendor.gstNumber,
-      vendor.mobileNumber,
       vendor.contactPerson || '',
+      vendor.mobileNumber || '',
+      vendor.email,
+      vendor.bankAccountNumber || '',
+      vendor.ifscCode || '',
+      vendor.gstNumber || '',
       vendor.address || '',
       vendor.city || '',
       vendor.state || '',
       vendor.zipCode || '',
       vendor.country || '',
-      vendor.bankAccountNumber,
-      vendor.category || ''
+
     ]);
 
     const csvContent = [
@@ -291,22 +296,21 @@ const VendorMaster = () => {
                   />
                 </div>
               </div>
-              
+
               {/* Search Results Info */}
               {searchTerm && (
                 <div className="mt-3 text-sm text-gray-600">
                   Found {filteredVendors.length} vendor(s) matching "{searchTerm}"
                 </div>
               )}
-              
+
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                    showFilters || Object.values(filters).some(Boolean) || searchTerm
-                      ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100' 
-                      : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
-                  }`}
+                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters || Object.values(filters).some(Boolean) || searchTerm
+                    ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
+                    : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                    }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
                   Filters
@@ -316,7 +320,7 @@ const VendorMaster = () => {
                     </span>
                   )}
                 </button>
-                
+
                 {(Object.values(filters).some(Boolean) || searchTerm) && (
                   <button
                     onClick={clearFilters}
@@ -326,7 +330,7 @@ const VendorMaster = () => {
                     Clear
                   </button>
                 )}
-                
+
                 <button
                   onClick={exportToCSV}
                   className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -334,7 +338,7 @@ const VendorMaster = () => {
                   <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
                   Export CSV
                 </button>
-                
+
                 <button
                   onClick={() => setShowModal(true)}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -402,6 +406,9 @@ const VendorMaster = () => {
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Category
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Vendor/Contractor Name
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -413,9 +420,7 @@ const VendorMaster = () => {
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Mobile Number
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Category
-                      </th>
+                  
                       <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
@@ -425,6 +430,11 @@ const VendorMaster = () => {
                     {currentItems.length > 0 ? (
                       currentItems.map((vendor) => (
                         <tr key={vendor._id} className="hover:bg-gray-50 transition-colors duration-150">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(vendor.category)}`}>
+                              {formatCategory(vendor.category)}
+                            </span>
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">{vendor.vendorName}</div>
                           </td>
@@ -437,11 +447,7 @@ const VendorMaster = () => {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">{vendor.mobileNumber}</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(vendor.category)}`}>
-                              {formatCategory(vendor.category)}
-                            </span>
-                          </td>
+                          
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div className="flex justify-end space-x-2">
                               <button
@@ -473,7 +479,7 @@ const VendorMaster = () => {
                       <tr>
                         <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
                           {Object.values(filters).some(val => val !== '') || searchTerm
-                            ? 'No vendors found matching your filters.' 
+                            ? 'No vendors found matching your filters.'
                             : 'No vendors found.'
                           }
                         </td>
@@ -483,7 +489,7 @@ const VendorMaster = () => {
                 </table>
               </div>
             </div>
-            
+
             {/* Mobile Card View */}
             <div className="sm:hidden">
               {currentItems.length > 0 ? (
@@ -536,7 +542,7 @@ const VendorMaster = () => {
               ) : (
                 <div className="p-8 text-center text-gray-500">
                   {Object.values(filters).some(val => val !== '') || searchTerm
-                    ? 'No vendors found matching your filters.' 
+                    ? 'No vendors found matching your filters.'
                     : 'No vendors found.'
                   }
                 </div>
@@ -563,12 +569,12 @@ const VendorMaster = () => {
                   <option value={100}>100</option>
                 </select>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-700">
                   Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredVendors.length)} of {filteredVendors.length} results
                 </span>
-                
+
                 <nav className="flex space-x-2">
                   <button
                     onClick={() => paginate(Math.max(1, currentPage - 1))}
@@ -577,11 +583,11 @@ const VendorMaster = () => {
                   >
                     <ChevronLeftIcon className="h-5 w-5" />
                   </button>
-                  
+
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter(page => 
-                      page === 1 || 
-                      page === totalPages || 
+                    .filter(page =>
+                      page === 1 ||
+                      page === totalPages ||
                       (page >= currentPage - 1 && page <= currentPage + 1)
                     )
                     .map((page, index, array) => {
@@ -596,18 +602,17 @@ const VendorMaster = () => {
                           )}
                           <button
                             onClick={() => paginate(page)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              currentPage === page
-                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                            }`}
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
+                              ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                              }`}
                           >
                             {page}
                           </button>
                         </React.Fragment>
                       );
                     })}
-                  
+
                   <button
                     onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
@@ -643,159 +648,165 @@ const VendorMaster = () => {
       </Modal>
 
       {/* View Modal */}
-     <Modal
-  isOpen={viewModal}
-  onClose={() => {
-    setViewModal(false);
-    setSelectedVendor(null);
-  }}
-  title="Vendor Details"
-  size="lg"
-  className="font-sans"
->
-  {selectedVendor && (
-    <div className="p-1">
-      <div className="space-y-6">
-        {/* Details Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Vendor Information */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center mb-3">
-              <h3 className="text-md font-semibold text-gray-900">Vendor Information</h3>
-            </div>
-            <div className="space-y-2">
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Vendor Name</p>
-                <p className="text-sm font-medium text-gray-800">{selectedVendor.vendorName}</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Email</p>
-                <p className="text-sm text-gray-600">{selectedVendor.email}</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Category</p>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(selectedVendor.category)}`}>
-                  {formatCategory(selectedVendor.category)}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Contact Information */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center mb-3">
-              <h3 className="text-md font-semibold text-gray-900">Contact Info</h3>
-            </div>
-            <div className="space-y-2">
-              {selectedVendor.contactPerson && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Contact Person</p>
-                  <p className="text-sm text-gray-800">{selectedVendor.contactPerson}</p>
-                </div>
-              )}
-              {selectedVendor.mobileNumber && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Mobile</p>
-                  <p className="text-sm text-gray-800">{selectedVendor.mobileNumber}</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Business Information */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center mb-3">
-              <h3 className="text-md font-semibold text-gray-900">Business Info</h3>
-            </div>
-            <div className="space-y-2">
-              {selectedVendor.gstNumber && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">GST Number</p>
-                  <p className="text-sm font-mono text-gray-800">{selectedVendor.gstNumber}</p>
-                </div>
-              )}
-              {selectedVendor.bankAccountNumber && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Bank Account</p>
-                  <p className="text-sm font-mono text-gray-800">{selectedVendor.bankAccountNumber}</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Location Information */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center mb-3">
-              <h3 className="text-md font-semibold text-gray-900">Location</h3>
-            </div>
-            <div className="space-y-2">
-              {selectedVendor.city && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">City</p>
-                  <p className="text-sm text-gray-800">{selectedVendor.city}</p>
-                </div>
-              )}
-              {selectedVendor.state && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">State</p>
-                  <p className="text-sm text-gray-800">{selectedVendor.state}</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Address Information - Spans 2 columns like Customer Master */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm md:col-span-2">
-            <div className="flex items-center mb-3">
-              <h3 className="text-md font-semibold text-gray-900">Address</h3>
-            </div>
-            <div className="space-y-2">
-              {selectedVendor.address && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Full Address</p>
-                  <p className="text-sm text-gray-800 leading-relaxed">{selectedVendor.address}</p>
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                {selectedVendor.zipCode && (
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">ZIP Code</p>
-                    <p className="text-sm text-gray-800">{selectedVendor.zipCode}</p>
+      <Modal
+        isOpen={viewModal}
+        onClose={() => {
+          setViewModal(false);
+          setSelectedVendor(null);
+        }}
+        title="Vendor Details"
+        size="lg"
+        className="font-sans"
+      >
+        {selectedVendor && (
+          <div className="p-1">
+            <div className="space-y-6">
+              {/* Details Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Vendor Information */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                  <div className="flex items-center mb-3">
+                    <h3 className="text-md font-semibold text-gray-900">Vendor Information</h3>
                   </div>
-                )}
-                {selectedVendor.country && (
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Country</p>
-                    <p className="text-sm text-gray-800">{selectedVendor.country}</p>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Vendor Name</p>
+                      <p className="text-sm font-medium text-gray-800">{selectedVendor.vendorName}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Email</p>
+                      <p className="text-sm text-gray-600">{selectedVendor.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Category</p>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(selectedVendor.category)}`}>
+                        {formatCategory(selectedVendor.category)}
+                      </span>
+                    </div>
                   </div>
-                )}
+                </div>
+
+                {/* Contact Information */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                  <div className="flex items-center mb-3">
+                    <h3 className="text-md font-semibold text-gray-900">Contact Info</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {selectedVendor.contactPerson && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Contact Person</p>
+                        <p className="text-sm text-gray-800">{selectedVendor.contactPerson}</p>
+                      </div>
+                    )}
+                    {selectedVendor.mobileNumber && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Mobile</p>
+                        <p className="text-sm text-gray-800">{selectedVendor.mobileNumber}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Business Information */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                  <div className="flex items-center mb-3">
+                    <h3 className="text-md font-semibold text-gray-900">Business Info</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {selectedVendor.gstNumber && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">GST Number</p>
+                        <p className="text-sm font-mono text-gray-800">{selectedVendor.gstNumber}</p>
+                      </div>
+                    )}
+                    {selectedVendor.bankAccountNumber && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Bank Account</p>
+                        <p className="text-sm font-mono text-gray-800">{selectedVendor.bankAccountNumber}</p>
+                      </div>
+                    )}
+                    {selectedVendor.ifscCode && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">IFSC Code</p>
+                        <p className="text-sm font-mono text-gray-800">{selectedVendor.ifscCode}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Location Information */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                  <div className="flex items-center mb-3">
+                    <h3 className="text-md font-semibold text-gray-900">Location</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {selectedVendor.city && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">City</p>
+                        <p className="text-sm text-gray-800">{selectedVendor.city}</p>
+                      </div>
+                    )}
+                    {selectedVendor.state && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">State</p>
+                        <p className="text-sm text-gray-800">{selectedVendor.state}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Address Information - Spans 2 columns like Customer Master */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm md:col-span-2">
+                  <div className="flex items-center mb-3">
+                    <h3 className="text-md font-semibold text-gray-900">Address</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {selectedVendor.address && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Full Address</p>
+                        <p className="text-sm text-gray-800 leading-relaxed">{selectedVendor.address}</p>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-4 pt-2">
+                      {selectedVendor.zipCode && (
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">ZIP Code</p>
+                          <p className="text-sm text-gray-800">{selectedVendor.zipCode}</p>
+                        </div>
+                      )}
+                      {selectedVendor.country && (
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Country</p>
+                          <p className="text-sm text-gray-800">{selectedVendor.country}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    setViewModal(false);
+                    handleEdit(selectedVendor);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Edit Vendor
+                </button>
+                <button
+                  onClick={() => setViewModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-          <button
-            onClick={() => {
-              setViewModal(false);
-              handleEdit(selectedVendor);
-            }}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Edit Vendor
-          </button>
-          <button
-            onClick={() => setViewModal(false)}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  )}
-</Modal>
+        )}
+      </Modal>
 
       {/* Notification */}
       <Notification

@@ -9,17 +9,18 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
     md: 'sm:max-w-2xl',
     lg: 'sm:max-w-4xl',
     xl: 'sm:max-w-6xl',
-    full: 'sm:max-w-7xl'
+    '4xl': 'sm:max-w-7xl',
+    full: 'sm:max-w-full'
   };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Grey background overlay - THIS IS WHAT YOU NEED */}
-      <div 
+      <div
         className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
         onClick={onClose}
       ></div>
-      
+
       <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 

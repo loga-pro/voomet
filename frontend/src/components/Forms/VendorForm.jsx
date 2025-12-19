@@ -18,6 +18,7 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
     zipCode: '',
     country: '',
     bankAccountNumber: '',
+    ifscCode: '',
     email: '',
     gstNumber: '',
     mobileNumber: '',
@@ -40,6 +41,7 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
         zipCode: vendor.zipCode || '',
         country: vendor.country || '',
         bankAccountNumber: vendor.bankAccountNumber || '',
+        ifscCode: vendor.ifscCode || '',
         email: vendor.email || '',
         gstNumber: vendor.gstNumber || '',
         mobileNumber: vendor.mobileNumber || '',
@@ -81,16 +83,14 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
   // Real-time validation functions
   const validateField = (name, value) => {
     let error = '';
-    
+
     switch (name) {
       case 'email':
-        if (!value) {
-          error = 'Email is required';
-        } else if (!/^\S+@\S+\.\S+$/.test(value)) {
+        if (value && !/^\S+@\S+\.\S+$/.test(value)) {
           error = 'Please enter a valid email address';
         }
         break;
-        
+
       case 'mobileNumber':
         if (!value) {
           error = 'Mobile number is required';
@@ -98,26 +98,32 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
           error = 'Mobile number must be exactly 10 digits';
         }
         break;
-        
+
       case 'gstNumber':
-        if (!value) {
-          error = 'GST number is required';
-        } else {
+        if (value && value.trim()) {
           const gstValidation = validateGSTNumber(value);
           if (!gstValidation.isValid) {
             error = gstValidation.message;
           }
         }
         break;
-        
+
       case 'bankAccountNumber':
         if (!value) {
           error = 'Bank account number is required';
-        } else if (!/^\d{16}$/.test(value)) {
-          error = 'Bank account number must be exactly 16 digits';
+        } else if (!/^\d{9,18}$/.test(value)) {
+          error = 'Bank account number must be between 9 and 18 digits';
         }
         break;
-        
+
+      case 'ifscCode':
+        if (!value) {
+          error = 'IFSC code is required';
+        } else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(value)) {
+          error = 'IFSC code must be 11 characters (e.g., SBIN0001234)';
+        }
+        break;
+
       case 'vendorName':
         if (!value.trim()) {
           error = `${formData.category === 'vendor' ? 'Vendor' : 'Contractor'} name is required`;
@@ -127,49 +133,47 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
           error = `${formData.category === 'vendor' ? 'Vendor' : 'Contractor'} name must be 25 characters or less`;
         }
         break;
-        
+
       case 'address':
-        if (!value.trim()) {
-          error = 'Street address is required';
-        } else if (value.trim().length < 5) {
+        if (value && value.trim().length > 0 && value.trim().length < 5) {
           error = 'Address must be at least 5 characters long';
         }
         break;
-        
+
       case 'city':
         if (!value.trim()) {
           error = 'City is required';
         }
         break;
-        
+
       case 'state':
         if (!value.trim()) {
           error = 'State/Province is required';
         }
         break;
-        
+
       case 'zipCode':
         if (!value.trim()) {
           error = 'ZIP/Postal code is required';
         }
         break;
-        
+
       case 'country':
         if (!value.trim()) {
           error = 'Country is required';
         }
         break;
-        
+
       case 'contactPerson':
         if (value && value.length > 50) {
           error = 'Contact person name must be 50 characters or less';
         }
         break;
-        
+
       default:
         break;
     }
-    
+
     return error;
   };
 
@@ -189,7 +193,10 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
     } else if (name === 'mobileNumber') {
       validatedValue = value.replace(/\D/g, '').slice(0, 10);
     } else if (name === 'bankAccountNumber') {
-      validatedValue = value.replace(/\D/g, '').slice(0, 16);
+      validatedValue = value.replace(/\D/g, '').slice(0, 18);
+    } else if (name === 'ifscCode') {
+      validatedValue = value.replace(/\s+/g, '').toUpperCase();
+      validatedValue = validatedValue.replace(/[^A-Z0-9]/g, '').slice(0, 11);
     } else if (name === 'gstNumber') {
       validatedValue = value.replace(/\s+/g, '').toUpperCase();
       validatedValue = validatedValue.replace(/[^A-Z0-9]/g, '').slice(0, 15);
@@ -220,12 +227,12 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
 
   const handleBlur = (e) => {
     const { name, value } = e.target;
-    
+
     // Mark field as touched
     if (!touchedFields[name]) {
       setTouchedFields(prev => ({ ...prev, [name]: true }));
     }
-    
+
     // Validate on blur
     const fieldError = validateField(name, value);
     setErrors(prev => ({
@@ -239,17 +246,15 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
     const fieldsToValidate = [
       'category',
       'vendorName',
-      'address',
       'city',
       'state',
       'zipCode',
       'country',
       'bankAccountNumber',
-      'email',
-      'gstNumber',
+      'ifscCode',
       'mobileNumber'
     ];
-    
+
     fieldsToValidate.forEach(field => {
       const value = formData[field];
       const error = validateField(field, value);
@@ -313,18 +318,30 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
     setLoading(true);
     try {
       const submitData = {
-        ...formData,
         category: formData.category,
-        gstNumber: formData.gstNumber.replace(/\s+/g, '').toUpperCase(),
         vendorName: formData.vendorName.trim(),
-        address: formData.address.trim(),
         city: formData.city.trim(),
         state: formData.state.trim(),
         zipCode: formData.zipCode.trim(),
         country: formData.country.trim(),
-        email: formData.email.trim().toLowerCase(),
+        bankAccountNumber: formData.bankAccountNumber.trim(),
+        ifscCode: formData.ifscCode.trim().toUpperCase(),
+        mobileNumber: formData.mobileNumber.trim(),
         contactPerson: formData.contactPerson.trim()
       };
+
+      // Only include optional fields if they have values
+      if (formData.email && formData.email.trim()) {
+        submitData.email = formData.email.trim().toLowerCase();
+      }
+
+      if (formData.gstNumber && formData.gstNumber.trim()) {
+        submitData.gstNumber = formData.gstNumber.replace(/\s+/g, '').toUpperCase();
+      }
+
+      if (formData.address && formData.address.trim()) {
+        submitData.address = formData.address.trim();
+      }
 
       if (vendor) {
         await vendorsAPI.update(vendor._id, submitData);
@@ -367,17 +384,15 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
   const isFormComplete = () => {
     const requiredFields = [
       'vendorName',
-      'address',
       'city',
       'state',
       'zipCode',
       'country',
       'bankAccountNumber',
-      'email',
-      'gstNumber',
+      'ifscCode',
       'mobileNumber'
     ];
-    
+
     return requiredFields.every(field => {
       const value = formData[field];
       const error = validateField(field, value);
@@ -397,8 +412,8 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
 
           {notification.isVisible && (
             <div className={`p-4 rounded-md border ${notification.type === 'success'
-                ? 'bg-green-50 border-green-200 text-green-800'
-                : 'bg-red-50 border-red-200 text-red-800'
+              ? 'bg-green-50 border-green-200 text-green-800'
+              : 'bg-red-50 border-red-200 text-red-800'
               }`}>
               {notification.message}
             </div>
@@ -429,33 +444,31 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
               error={errors.vendorName}
               required={true}
               maxLength="25"
-            
+
             />
 
             <FloatingInput
-              label="Email "
+              label="Email"
               name="email"
               type="email"
               value={formData.email}
               onChange={handleChange}
               onBlur={handleBlur}
               error={errors.email}
-              required={true}
             />
 
             <FloatingInput
-              label="GST Number "
+              label="GST Number"
               name="gstNumber"
               value={formData.gstNumber}
               onChange={handleChange}
               onBlur={handleBlur}
               error={errors.gstNumber}
-              required={true}
               maxLength="15"
             />
 
             <FloatingInput
-              label="Mobile Number "
+              label="Mobile Number"
               name="mobileNumber"
               type="tel"
               value={formData.mobileNumber}
@@ -486,7 +499,19 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
               onBlur={handleBlur}
               error={errors.bankAccountNumber}
               required={true}
-              maxLength="16"
+              maxLength="18"
+            />
+
+            <FloatingInput
+              label="IFSC Code"
+              name="ifscCode"
+              type="text"
+              value={formData.ifscCode}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              error={errors.ifscCode}
+              required={true}
+              maxLength="11"
             />
           </div>
 
@@ -494,21 +519,20 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
             <h3 className="text-lg font-medium text-gray-900">Address Information</h3>
 
             <FloatingInput
-              label="Street Address "
+              label="Street Address"
               name="address"
               type="text"
               value={formData.address}
               onChange={handleChange}
               onBlur={handleBlur}
               error={errors.address}
-              required={true}
               rows={3}
               maxLength="200"
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FloatingInput
-                label="City "
+                label="City"
                 name="city"
                 type="text"
                 value={formData.city}
@@ -520,7 +544,7 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
               />
 
               <FloatingInput
-                label="State/Province "
+                label="State/Province"
                 name="state"
                 type="text"
                 value={formData.state}
@@ -534,7 +558,7 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FloatingInput
-                label="ZIP/Postal Code "
+                label="ZIP/Postal Code"
                 name="zipCode"
                 type="text"
                 value={formData.zipCode}
@@ -546,7 +570,7 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
               />
 
               <FloatingInput
-                label="Country "
+                label="Country"
                 name="country"
                 type="text"
                 value={formData.country}

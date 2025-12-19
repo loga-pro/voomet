@@ -45,6 +45,8 @@ const Receipts = () => {
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [parts, setParts] = useState([]);
   const [vendors, setVendors] = useState([]);
+  const [showItemsModal, setShowItemsModal] = useState(false);
+  const [selectedGroupedReceipt, setSelectedGroupedReceipt] = useState(null);
   const { notification, showSuccess, showError, hideNotification } = useNotification();
 
   // Status color mapping
@@ -203,11 +205,38 @@ const Receipts = () => {
     }).format(amount || 0);
   };
 
-  // Pagination logic
+  // Pagination logic - Group receipts by invoice number first
+  const groupReceiptsByInvoice = (receipts) => {
+    const grouped = {};
+
+    receipts.forEach(receipt => {
+      const key = `${receipt.invoiceNo}_${receipt.receiptCategory}`;
+      if (!grouped[key]) {
+        grouped[key] = {
+          ...receipt,
+          lineItems: [receipt],
+          totalQuantity: parseFloat(receipt.quantity) || 0,
+          combinedPartNames: [receipt.partName]
+        };
+      } else {
+        grouped[key].lineItems.push(receipt);
+        grouped[key].totalQuantity += parseFloat(receipt.quantity) || 0;
+        if (!grouped[key].combinedPartNames.includes(receipt.partName)) {
+          grouped[key].combinedPartNames.push(receipt.partName);
+        }
+        // Update total value to sum of all line items
+        grouped[key].totalValue = (grouped[key].totalValue || 0) + (receipt.totalValue || 0);
+      }
+    });
+
+    return Object.values(grouped);
+  };
+
+  const groupedReceipts = groupReceiptsByInvoice(filteredReceipts);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredReceipts.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredReceipts.length / itemsPerPage);
+  const currentItems = groupedReceipts.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(groupedReceipts.length / itemsPerPage);
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
@@ -259,8 +288,39 @@ const Receipts = () => {
   };
 
   const handleEdit = (receipt) => {
-    setEditingReceipt(receipt);
+    // Find all receipts with the same invoice number to group them
+    const relatedReceipts = receipts.filter(r =>
+      r.invoiceNo === receipt.invoiceNo &&
+      r.receiptCategory === receipt.receiptCategory
+    );
+
+    // If there are multiple receipts with the same invoice number, group them as line items
+    if (relatedReceipts.length > 1) {
+      const groupedReceipt = {
+        ...receipt, // Use the first receipt's common fields
+        lineItems: relatedReceipts.map(r => ({
+          _id: r._id, // Keep track of the original receipt ID
+          workCategory: r.workCategory || '',
+          partName: r.partName || '',
+          unit: r.unit || '',
+          quantity: r.quantity?.toString() || '',
+          priceWithoutGST: r.invoiceValueWithoutGST?.toString() || '',
+          gstPercentage: r.gstPercentage || 18,
+          gstAmount: r.gstValue?.toString() || '',
+          total: r.totalValue?.toString() || ''
+        })),
+        relatedReceiptIds: relatedReceipts.map(r => r._id) // Store all IDs for deletion/update
+      };
+      setEditingReceipt(groupedReceipt);
+    } else {
+      setEditingReceipt(receipt);
+    }
     setShowModal(true);
+  };
+
+  const handleShowItems = (receipt) => {
+    setSelectedGroupedReceipt(receipt);
+    setShowItemsModal(true);
   };
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -289,21 +349,26 @@ const Receipts = () => {
   const handleFormSubmit = async (receiptData, receiptId = null) => {
     try {
       if (receiptId) {
-        // Update existing receipt
-        await receiptsAPI.update(receiptId, receiptData);
-        showSuccess('Receipt updated successfully');
+        // If editing grouped receipts (has relatedReceiptIds), delete all old ones first
+        if (editingReceipt?.relatedReceiptIds && editingReceipt.relatedReceiptIds.length > 0) {
+          // Delete all related receipts
+          await Promise.all(
+            editingReceipt.relatedReceiptIds.map(id => receiptsAPI.delete(id))
+          );
+          // Create new receipts for each line item (same as new receipt creation)
+          await receiptsAPI.create(receiptData);
+        } else {
+          // Single receipt update
+          await receiptsAPI.update(receiptId, receiptData);
+        }
       } else {
         // Create new receipt
         await receiptsAPI.create(receiptData);
-        showSuccess('Receipt added successfully');
       }
-
-      setShowModal(false);
-      setEditingReceipt(null);
-      await fetchData();
     } catch (error) {
       console.error('Error saving receipt:', error);
       showError(error.response?.data?.message || 'Failed to save receipt');
+      throw error; // Re-throw to let the form handle it
     }
   };
 
@@ -369,8 +434,8 @@ const Receipts = () => {
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters || Object.values(filters).some(Boolean) || searchTerm
-                      ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
-                      : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                    ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
+                    : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
                     }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
@@ -489,23 +554,16 @@ const Receipts = () => {
                         Category
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Part Name
+                        View Items
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Vendor
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Quantity
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Total Value
-                      </th>
+
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Invoice No
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
+
                       <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
@@ -526,34 +584,28 @@ const Receipts = () => {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900 font-medium">{receipt.partName}</div>
-                            <div className="text-xs text-gray-500">{receipt.workCategory}</div>
+                            {receipt.lineItems && receipt.lineItems.length >= 1 && (
+                              <button
+                                onClick={() => handleShowItems(receipt)}
+                                className="text-purple-600 hover:text-purple-900 p-1 transition-colors duration-150"
+                                title="View Items"
+                              >
+                                <EyeIcon className="h-5 w-5" />
+                              </button>
+                            )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
                               {receipt.vendorNames?.join(', ') || receipt.vendorName || '-'}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {receipt.quantity} {receipt.unit}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-semibold text-gray-900">
-                              {formatCurrency(receipt.totalValue || 0)}
-                            </div>
-                          </td>
+
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900 font-mono">
                               {receipt.invoiceNo || '-'}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[receipt.status] || 'bg-gray-100 text-gray-800'}`}>
-                              {receipt.status?.toUpperCase() || 'ACTIVE'}
-                            </span>
-                          </td>
+
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div className="flex justify-end space-x-2">
                               {receipt.upload && (
@@ -565,6 +617,7 @@ const Receipts = () => {
                                   <DocumentTextIcon className="h-5 w-5" />
                                 </button>
                               )}
+
                               <button
                                 onClick={() => handleView(receipt)}
                                 className="text-green-600 hover:text-green-900 p-1 transition-colors duration-150"
@@ -715,7 +768,7 @@ const Receipts = () => {
 
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-700">
-                  Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredReceipts.length)} of {filteredReceipts.length} results
+                  Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, groupedReceipts.length)} of {groupedReceipts.length} results
                 </span>
 
                 <nav className="flex space-x-2">
@@ -745,8 +798,8 @@ const Receipts = () => {
                           <button
                             onClick={() => paginate(page)}
                             className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
-                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                              ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                               }`}
                           >
                             {page}
@@ -983,6 +1036,75 @@ const Receipts = () => {
             </button>
           </div>
         </div>
+      </Modal>
+
+      {/* View Items Modal */}
+      <Modal
+        isOpen={showItemsModal}
+        onClose={() => setShowItemsModal(false)}
+        title="Receipt Line Items"
+        size="xl"
+      >
+        {selectedGroupedReceipt && selectedGroupedReceipt.lineItems && selectedGroupedReceipt.lineItems.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Part Name
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Quantity
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Units
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Unit Price
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {selectedGroupedReceipt.lineItems.map((item, index) => (
+                  <tr key={item._id || index} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-center text-sm text-gray-900">
+                      {item.partName}
+                    </td>
+                    <td className="px-4 py-3 text-center text-sm text-gray-900">
+                      {item.quantity}
+                    </td>
+                    <td className="px-4 py-3 text-center text-sm text-gray-900">
+                      {item.unit}
+                    </td>
+                    <td className="px-4 py-3 text-center text-sm text-gray-900">
+                      ₹{(item.invoiceValueWithoutGST || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td className="px-4 py-3 text-center text-sm font-medium text-gray-900">
+                      ₹{(item.totalValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="bg-gray-50">
+                <tr>
+                  <td colSpan="4" className="px-4 py-3 text-sm font-medium text-gray-900 text-right">
+                    Grand Total:
+                  </td>
+                  <td className="px-4 py-3 text-sm font-bold text-green-700 text-center">
+                    ₹{(selectedGroupedReceipt.totalValue || 0).toLocaleString('en-IN')}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            No items found
+          </div>
+        )}
       </Modal>
     </div>
   );

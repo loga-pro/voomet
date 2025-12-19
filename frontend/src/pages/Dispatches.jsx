@@ -13,10 +13,12 @@ import {
   DocumentTextIcon,
   BanknotesIcon,
   TruckIcon,
-  UserIcon
+  UserIcon,
+  DocumentArrowDownIcon
 } from '@heroicons/react/24/outline';
 import DispatchForm from '../components/Forms/DispatchForm';
 import Modal from '../components/Modals/Modal';
+import DispatchInvoice from '../components/ProformaInvoice/Dispatchinvoice';
 import Notification from '../components/Notifications/Notification';
 import useNotification from '../hooks/useNotification';
 import { dispatchesAPI, partsAPI, customersAPI } from '../services/api';
@@ -29,6 +31,8 @@ const Dispatches = () => {
   const [viewModal, setViewModal] = useState(false);
   const [selectedDispatch, setSelectedDispatch] = useState(null);
   const [editingDispatch, setEditingDispatch] = useState(null);
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [pdfInvoiceData, setPdfInvoiceData] = useState(null);
   const [filters, setFilters] = useState({
     dispatchCategory: '',
     partName: '',
@@ -45,6 +49,8 @@ const Dispatches = () => {
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [parts, setParts] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [showItemsModal, setShowItemsModal] = useState(false);
+  const [selectedGroupedDispatch, setSelectedGroupedDispatch] = useState(null);
   const { notification, showSuccess, showError, hideNotification } = useNotification();
 
   // Status color mapping
@@ -202,11 +208,38 @@ const Dispatches = () => {
     }).format(amount || 0);
   };
 
-  // Pagination logic
+  // Pagination logic - Group dispatches by invoice number first
+  const groupDispatchesByInvoice = (dispatches) => {
+    const grouped = {};
+
+    dispatches.forEach(dispatch => {
+      const key = `${dispatch.invoiceNo}_${dispatch.dispatchCategory}`;
+      if (!grouped[key]) {
+        grouped[key] = {
+          ...dispatch,
+          lineItems: [dispatch],
+          totalQuantity: parseFloat(dispatch.quantity) || 0,
+          combinedPartNames: [dispatch.partName]
+        };
+      } else {
+        grouped[key].lineItems.push(dispatch);
+        grouped[key].totalQuantity += parseFloat(dispatch.quantity) || 0;
+        if (!grouped[key].combinedPartNames.includes(dispatch.partName)) {
+          grouped[key].combinedPartNames.push(dispatch.partName);
+        }
+        // Update total value to sum of all line items
+        grouped[key].totalValue = (grouped[key].totalValue || 0) + (dispatch.totalValue || 0);
+      }
+    });
+
+    return Object.values(grouped);
+  };
+
+  const groupedDispatches = groupDispatchesByInvoice(filteredDispatches);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredDispatches.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredDispatches.length / itemsPerPage);
+  const currentItems = groupedDispatches.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(groupedDispatches.length / itemsPerPage);
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
@@ -257,8 +290,85 @@ const Dispatches = () => {
   };
 
   const handleEdit = (dispatch) => {
-    setEditingDispatch(dispatch);
+    // Find all dispatches with the same invoice number to group them
+    const relatedDispatches = dispatches.filter(d =>
+      d.invoiceNo === dispatch.invoiceNo &&
+      d.dispatchCategory === dispatch.dispatchCategory
+    );
+
+    // If there are multiple dispatches with the same invoice number, group them as line items
+    if (relatedDispatches.length > 1) {
+      const groupedDispatch = {
+        ...dispatch, // Use the first dispatch's common fields
+        lineItems: relatedDispatches.map(d => ({
+          _id: d._id, // Keep track of the original dispatch ID
+          workCategory: d.workCategory || '',
+          partName: d.partName || '',
+          unit: d.unit || '',
+          quantity: d.quantity?.toString() || '',
+          priceWithoutGST: d.invoiceValueWithoutGST?.toString() || '',
+          gstPercentage: d.gstPercentage || 18,
+          gstAmount: d.gstValue?.toString() || '',
+          total: d.totalValue?.toString() || '',
+          availableStock: null,
+          stockWarning: ''
+        })),
+        relatedDispatchIds: relatedDispatches.map(d => d._id) // Store all IDs for deletion/update
+      };
+      setEditingDispatch(groupedDispatch);
+    } else {
+      setEditingDispatch(dispatch);
+    }
     setShowModal(true);
+  };
+
+  const handlePdfPreview = (dispatch) => {
+    // Find all dispatches with the same invoice number to group them
+    const relatedDispatches = dispatches.filter(d =>
+      d.invoiceNo === dispatch.invoiceNo &&
+      d.dispatchCategory === dispatch.dispatchCategory
+    );
+
+    // Prepare invoice data in the format expected by DispatchInvoice component
+    const invoiceData = {
+      customer: dispatch.customerName || 'N/A',
+      projectName: dispatch.workCategory || 'Project',
+      invoices: relatedDispatches.map(d => ({
+        voucherNo: d.invoiceNo || 'N/A',
+        invoiceDate: d.date,
+        deliveryNote: 'Immediate',
+        vehicleNo: 'NA',
+        destination: 'Karnataka',
+        customerGSTIN: 'Unregistered',
+        partName: d.partName || 'N/A',
+        quantity: d.quantity || 0,
+        unit: d.unit || ''
+      })),
+      companyName: 'VOOMET',
+      companyAddress: {
+        line1: 'No. 165, Sy.No.40/1 ,3rd Phase',
+        line2: 'Odefenahali Industrial Area, Kasabahobli',
+        line3: 'Doddaballapur',
+        line4: 'Bangalore'
+      },
+      companyGSTIN: '29ANZPK9532D22B',
+      companyEmail: 'Accounts@voomet.com',
+      bankDetails: {
+        accountHolder: 'VOOMET',
+        bankName: 'State Bank of India',
+        accountNumber: '43395372560',
+        branch: 'BSF Yelahanka',
+        ifscCode: 'SBIN0063847'
+      }
+    };
+
+    setPdfInvoiceData(invoiceData);
+    setShowPdfModal(true);
+  };
+
+  const handleShowItems = (dispatch) => {
+    setSelectedGroupedDispatch(dispatch);
+    setShowItemsModal(true);
   };
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -287,21 +397,26 @@ const Dispatches = () => {
   const handleFormSubmit = async (dispatchData, dispatchId = null) => {
     try {
       if (dispatchId) {
-        // Update existing dispatch
-        await dispatchesAPI.update(dispatchId, dispatchData);
-        showSuccess('Dispatch updated successfully');
+        // If editing grouped dispatches (has relatedDispatchIds), delete all old ones first
+        if (editingDispatch?.relatedDispatchIds && editingDispatch.relatedDispatchIds.length > 0) {
+          // Delete all related dispatches
+          await Promise.all(
+            editingDispatch.relatedDispatchIds.map(id => dispatchesAPI.delete(id))
+          );
+          // Create new dispatches for each line item (same as new dispatch creation)
+          await dispatchesAPI.create(dispatchData);
+        } else {
+          // Single dispatch update
+          await dispatchesAPI.update(dispatchId, dispatchData);
+        }
       } else {
         // Create new dispatch
         await dispatchesAPI.create(dispatchData);
-        showSuccess('Dispatch added successfully');
       }
-
-      setShowModal(false);
-      setEditingDispatch(null);
-      await fetchData();
     } catch (error) {
       console.error('Error saving dispatch:', error);
       showError(error.response?.data?.message || 'Failed to save dispatch');
+      throw error; // Re-throw to let the form handle it
     }
   };
 
@@ -367,8 +482,8 @@ const Dispatches = () => {
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters || Object.values(filters).some(Boolean) || searchTerm
-                      ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
-                      : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                    ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
+                    : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
                     }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
@@ -487,13 +602,13 @@ const Dispatches = () => {
                         Category
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Part Name
+                        View Items
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Customer
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Quantity
+                        Dispatch No
                       </th>
                       <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
@@ -515,15 +630,23 @@ const Dispatches = () => {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900 font-medium">{dispatch.partName}</div>
-                            <div className="text-xs text-gray-500">{dispatch.workCategory}</div>
+                            {dispatch.lineItems && dispatch.lineItems.length >= 1 && (
+                              <button
+                                onClick={() => handleShowItems(dispatch)}
+                                className="text-purple-600 hover:text-purple-900 p-1 transition-colors duration-150"
+                                title="View Items"
+                              >
+                                <EyeIcon className="h-5 w-5" />
+                              </button>
+                            )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">{dispatch.customerName}</div>
                           </td>
+
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {dispatch.quantity} {dispatch.unit}
+                            <div className="text-sm text-gray-900 font-mono">
+                              {dispatch.invoiceNo || '-'}
                             </div>
                           </td>
 
@@ -538,6 +661,14 @@ const Dispatches = () => {
                                   <DocumentTextIcon className="h-5 w-5" />
                                 </button>
                               )}
+                              <button
+                                onClick={() => handlePdfPreview(dispatch)}
+                                className="text-purple-600 hover:text-purple-900 p-1 transition-colors duration-150"
+                                title="Preview PDF Invoice"
+                              >
+                                <DocumentArrowDownIcon className="h-5 w-5" />
+                              </button>
+
                               <button
                                 onClick={() => handleView(dispatch)}
                                 className="text-green-600 hover:text-green-900 p-1 transition-colors duration-150"
@@ -608,6 +739,13 @@ const Dispatches = () => {
                             <DocumentTextIcon className="h-4 w-4" />
                           </button>
                         )}
+                        <button
+                          onClick={() => handlePdfPreview(dispatch)}
+                          className="text-purple-600 hover:text-purple-900 p-1"
+                          title="Preview PDF Invoice"
+                        >
+                          <DocumentArrowDownIcon className="h-4 w-4" />
+                        </button>
                         <button
                           onClick={() => handleView(dispatch)}
                           className="text-green-600 hover:text-green-900 p-1"
@@ -688,7 +826,7 @@ const Dispatches = () => {
 
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-700">
-                  Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredDispatches.length)} of {filteredDispatches.length} results
+                  Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, groupedDispatches.length)} of {groupedDispatches.length} results
                 </span>
 
                 <nav className="flex space-x-2">
@@ -718,8 +856,8 @@ const Dispatches = () => {
                           <button
                             onClick={() => paginate(page)}
                             className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
-                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                              ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                               }`}
                           >
                             {page}
@@ -927,6 +1065,92 @@ const Dispatches = () => {
             </button>
           </div>
         </div>
+      </Modal>
+
+      {/* PDF Preview Modal */}
+      <Modal
+        isOpen={showPdfModal}
+        onClose={() => {
+          setShowPdfModal(false);
+          setPdfInvoiceData(null);
+        }}
+        title="Dispatch Invoice Preview"
+        size="4xl"
+      >
+        {pdfInvoiceData && (
+          <div className="max-h-[80vh] overflow-auto">
+            <DispatchInvoice invoiceData={pdfInvoiceData} hideDownloadButton={false} />
+          </div>
+        )}
+      </Modal>
+
+      {/* View Items Modal */}
+      <Modal
+        isOpen={showItemsModal}
+        onClose={() => setShowItemsModal(false)}
+        title="Dispatch Line Items"
+        size="xl"
+      >
+        {selectedGroupedDispatch && selectedGroupedDispatch.lineItems && selectedGroupedDispatch.lineItems.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Part Name
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Quantity
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Units
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Unit Price
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {selectedGroupedDispatch.lineItems.map((item, index) => (
+                  <tr key={item._id || index} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-center text-sm text-gray-900">
+                      {item.partName}
+                    </td>
+                    <td className="px-4 py-3 text-center text-sm text-gray-900">
+                      {item.quantity}
+                    </td>
+                    <td className="px-4 py-3 text-center text-sm text-gray-900">
+                      {item.unit}
+                    </td>
+                    <td className="px-4 py-3 text-center text-sm text-gray-900">
+                      ₹{(item.invoiceValueWithoutGST || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td className="px-4 py-3 text-center text-sm font-medium text-gray-900">
+                      ₹{(item.totalValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="bg-gray-50">
+                <tr>
+                  <td colSpan="4" className="px-4 py-3 text-sm font-medium text-gray-900 text-right">
+                    Grand Total:
+                  </td>
+                  <td className="px-4 py-3 text-sm font-bold text-green-700 text-center">
+                    ₹{(selectedGroupedDispatch.totalValue || 0).toLocaleString('en-IN')}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            No items found
+          </div>
+        )}
       </Modal>
     </div>
   );

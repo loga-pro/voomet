@@ -1,22 +1,25 @@
 import React, { useEffect } from 'react';
-import { 
-  CheckCircleIcon, 
-  XCircleIcon, 
-  ExclamationTriangleIcon, 
+import {
+  CheckCircleIcon,
+  XCircleIcon,
+  ExclamationTriangleIcon,
   InformationCircleIcon,
-  XMarkIcon 
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 
-const Notification = ({ message, type = 'success', isVisible, onClose, duration = 3000 }) => {
+const Notification = ({ message, type = 'success', isVisible, onClose, duration }) => {
+  // Use longer duration for errors and warnings since they contain more details
+  const defaultDuration = type === 'error' || type === 'warning' ? 8000 : 3000;
+  const actualDuration = duration !== undefined ? duration : defaultDuration;
   useEffect(() => {
-    if (isVisible && duration > 0) {
+    if (isVisible && actualDuration > 0) {
       const timer = setTimeout(() => {
         onClose();
-      }, duration);
+      }, actualDuration);
 
       return () => clearTimeout(timer);
     }
-  }, [isVisible, duration, onClose]);
+  }, [isVisible, actualDuration, onClose]);
 
   if (!isVisible) return null;
 
@@ -51,16 +54,15 @@ const Notification = ({ message, type = 'success', isVisible, onClose, duration 
   };
 
   return (
-    <div className={`fixed top-4 right-4 z-[9999] max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden transform transition-all duration-300 ease-in-out ${
-      isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
-    }`}>
+    <div className={`fixed top-4 right-4 z-[9999] max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden transform transition-all duration-300 ease-in-out ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+      }`}>
       <div className={`p-4 border-l-4 ${getNotificationStyles()}`}>
         <div className="flex items-start">
           <div className="flex-shrink-0">
             {getIcon()}
           </div>
           <div className="ml-3 w-0 flex-1">
-            <p className="text-sm font-medium">{message}</p>
+            <p className="text-sm font-medium whitespace-pre-line">{message}</p>
           </div>
           <div className="ml-4 flex-shrink-0 flex">
             <button

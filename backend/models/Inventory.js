@@ -169,7 +169,7 @@ inventorySchema.statics.calculateSummary = async function(inventoryId) {
     // Update inventory with calculated values
     // Stock at Factory: Regular receipts - Regular dispatches - Rejects - Returns to Vendor
     inventory.stockAtFactory = Math.max(0, regularReceiptsQty - regularDispatchesQty - rejectsQty - receiptReturnsQty);
-    inventory.stockValueAtFactory = regularReceiptsTotal - regularDispatchesTotal - rejectsTotal - receiptReturnsTotal;
+    inventory.stockValueAtFactory = Math.max(0, regularReceiptsTotal - regularDispatchesTotal - rejectsTotal - receiptReturnsTotal);
     inventory.stockSentToCustomer = regularDispatchesQty;
     inventory.stockValueSentToCustomer = regularDispatchesTotal;
     
@@ -185,11 +185,11 @@ inventorySchema.statics.calculateSummary = async function(inventoryId) {
     inventory.stockValueReject = rejectsTotal;
     // Total Stock: Factory stock + Returns from Customer (returns to vendor already subtracted from factory stock)
     inventory.totalStock = Math.max(0, regularReceiptsQty - regularDispatchesQty - rejectsQty - receiptReturnsQty) + dispatchReturnsQty;
-    inventory.totalStockValue = (regularReceiptsTotal - regularDispatchesTotal - rejectsTotal - receiptReturnsTotal) + dispatchReturnsTotal;
-    inventory.inventoryAtFactoryValue = regularReceiptsTotal - regularDispatchesTotal - rejectsTotal - receiptReturnsTotal;
+    inventory.totalStockValue = Math.max(0, (regularReceiptsTotal - regularDispatchesTotal - rejectsTotal - receiptReturnsTotal) + dispatchReturnsTotal);
+    inventory.inventoryAtFactoryValue = Math.max(0, regularReceiptsTotal - regularDispatchesTotal - rejectsTotal - receiptReturnsTotal);
     inventory.inventoryAtCustomerEndValue = regularDispatchesTotal;
     inventory.inventoryReturnFromCustomerValue = dispatchReturnsTotal;
-    inventory.totalInventoryValue = regularReceiptsTotal + totalReturnsValue;
+    inventory.totalInventoryValue = Math.max(0, regularReceiptsTotal + totalReturnsValue);
 
     // Update Row Data (Category & Vendors) based on receipts
     const sortedReceipts = [...receipts].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));

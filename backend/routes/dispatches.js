@@ -63,7 +63,77 @@ router.post('/', auth, async (req, res) => {
     console.log('Creating dispatch with data:', req.body);
     
     const dispatchData = req.body;
-    const { partName, workCategory } = dispatchData;
+    const { partName, workCategory, quantity, dispatchCategory } = dispatchData;
+    
+    console.log('=== DISPATCH VALIDATION DEBUG ===');
+    console.log('dispatchCategory:', dispatchCategory);
+    console.log('partName:', partName);
+    console.log('workCategory:', workCategory);
+    console.log('quantity:', quantity);
+    
+    // Validation: For regular dispatches, ensure we have enough stock available
+    if (dispatchCategory !== 'return' && partName && workCategory && quantity) {
+      console.log('✓ Validation check triggered');
+      const Inventory = require('../models/Inventory');
+      
+      // Find the inventory item
+      const inventory = await Inventory.findOne({ 
+        partName: { $regex: new RegExp(`^${partName}$`, 'i') },
+        workCategory: workCategory 
+      });
+      
+      console.log('Inventory found:', inventory ? 'YES' : 'NO');
+      
+      if (inventory) {
+        // Get all receipts and dispatches to calculate available stock
+        const Receipt = require('../models/Receipt');
+        const allReceipts = await Receipt.find({ _id: { $in: inventory.receipts } });
+        
+        const regularReceipts = allReceipts.filter(r => r.receiptCategory !== 'return');
+        const receiptReturns = allReceipts.filter(r => r.receiptCategory === 'return');
+        
+        const totalReceived = regularReceipts.reduce((sum, r) => sum + (r.quantity || 0), 0);
+        const totalReturnedToVendor = receiptReturns.reduce((sum, r) => sum + (r.quantity || 0), 0);
+        
+        // Get existing dispatches
+        const allDispatches = await Dispatch.find({ _id: { $in: inventory.dispatches } });
+        const regularDispatches = allDispatches.filter(d => d.dispatchCategory === 'dispatch');
+        const dispatchRejects = allDispatches.filter(d => d.dispatchCategory === 'reject');
+        
+        const totalDispatched = regularDispatches.reduce((sum, d) => sum + (d.quantity || 0), 0);
+        const totalRejected = dispatchRejects.reduce((sum, d) => sum + (d.quantity || 0), 0);
+        
+        // Available stock = Total Received - Total Dispatched - Total Rejected - Returned to Vendor
+        const availableStock = totalReceived - totalDispatched - totalRejected - totalReturnedToVendor;
+        
+        console.log('Stock Calculation:');
+        console.log('  Total Received:', totalReceived);
+        console.log('  Total Dispatched:', totalDispatched);
+        console.log('  Total Rejected:', totalRejected);
+        console.log('  Returned to Vendor:', totalReturnedToVendor);
+        console.log('  Available Stock:', availableStock);
+        console.log('  Requested Quantity:', quantity);
+        
+        if (quantity > availableStock) {
+          console.log('❌ VALIDATION FAILED - Insufficient stock');
+          return res.status(400).json({
+            success: false,
+            message: `⚠️ Cannot dispatch ${quantity} units. Only ${availableStock} units available in receipt!\n\nStock Details:\n• Total Received: ${totalReceived} units\n• Already Dispatched: ${totalDispatched} units\n• Rejected: ${totalRejected} units\n• Returned to Vendor: ${totalReturnedToVendor} units\n• Available for Dispatch: ${availableStock} units`
+          });
+        }
+        console.log('✓ Validation passed');
+      } else {
+        // No inventory record exists, cannot dispatch
+        console.log('❌ VALIDATION FAILED - No inventory found');
+        return res.status(400).json({
+          success: false,
+          message: `No inventory found for ${partName} (${workCategory}). Please add receipts first before dispatching.`
+        });
+      }
+    } else {
+      console.log('⚠ Validation skipped - conditions not met');
+    }
+    console.log('=== END VALIDATION DEBUG ===');
     
     // Calculate total value
     if (dispatchData.invoiceValueWithoutGST && dispatchData.gstValue && dispatchData.quantity) {
@@ -120,6 +190,50 @@ router.post('/', auth, async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   try {
     const dispatchData = req.body;
+    const { partName, workCategory, quantity, dispatchCategory } = dispatchData;
+    
+    // Validation: For regular dispatches, ensure we have enough stock available
+    if (dispatchCategory !== 'return' && partName && workCategory && quantity) {
+      const Inventory = require('../models/Inventory');
+      
+      // Find the inventory item
+      const inventory = await Inventory.findOne({ 
+        partName: { $regex: new RegExp(`^${partName}$`, 'i') },
+        workCategory: workCategory 
+      });
+      
+      if (inventory) {
+        // Get all receipts and dispatches to calculate available stock (excluding current dispatch being updated)
+        const Receipt = require('../models/Receipt');
+        const allReceipts = await Receipt.find({ _id: { $in: inventory.receipts } });
+        
+        const regularReceipts = allReceipts.filter(r => r.receiptCategory !== 'return');
+        const receiptReturns = allReceipts.filter(r => r.receiptCategory === 'return');
+        
+        const totalReceived = regularReceipts.reduce((sum, r) => sum + (r.quantity || 0), 0);
+        const totalReturnedToVendor = receiptReturns.reduce((sum, r) => sum + (r.quantity || 0), 0);
+        
+        // Get existing dispatches (excluding the one being updated)
+        const allDispatches = await Dispatch.find({ 
+          _id: { $in: inventory.dispatches, $ne: req.params.id } 
+        });
+        const regularDispatches = allDispatches.filter(d => d.dispatchCategory === 'dispatch');
+        const dispatchRejects = allDispatches.filter(d => d.dispatchCategory === 'reject');
+        
+        const totalDispatched = regularDispatches.reduce((sum, d) => sum + (d.quantity || 0), 0);
+        const totalRejected = dispatchRejects.reduce((sum, d) => sum + (d.quantity || 0), 0);
+        
+        // Available stock = Total Received - Total Dispatched - Total Rejected - Returned to Vendor
+        const availableStock = totalReceived - totalDispatched - totalRejected - totalReturnedToVendor;
+        
+        if (quantity > availableStock) {
+          return res.status(400).json({
+            success: false,
+            message: `⚠️ Cannot dispatch ${quantity} units. Only ${availableStock} units available in receipt!\n\nStock Details:\n• Total Received: ${totalReceived} units\n• Already Dispatched: ${totalDispatched} units\n• Rejected: ${totalRejected} units\n• Returned to Vendor: ${totalReturnedToVendor} units\n• Available for Dispatch: ${availableStock} units`
+          });
+        }
+      }
+    }
     
     // Calculate total value
     if (dispatchData.invoiceValueWithoutGST && dispatchData.gstValue && dispatchData.quantity) {

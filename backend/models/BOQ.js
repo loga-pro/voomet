@@ -124,6 +124,10 @@ const boqSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  customDate: {
+    type: String,
+    trim: true
+  },
   termsAndConditions: [{
     type: String,
     trim: true

@@ -63,7 +63,54 @@ router.post('/', auth, async (req, res) => {
     console.log('Creating receipt with data:', req.body);
     
     const receiptData = req.body;
-    const { partName, workCategory } = receiptData;
+    const { partName, workCategory, receiptCategory, quantity } = receiptData;
+    
+    // Validation: For return receipts on bought-out parts, ensure we have enough stock to return
+    if (receiptCategory === 'return' && partName && workCategory) {
+      const Inventory = require('../models/Inventory');
+      const Part = require('../models/Part');
+      
+      // Check if this is a bought-out part
+      const part = await Part.findOne({ 
+        partName: { $regex: new RegExp(`^${partName}$`, 'i') },
+        scopeOfWork: { $regex: new RegExp(`^${workCategory}$`, 'i') }
+      });
+      
+      if (part && part.category === 'bought_out') {
+        // Find the inventory item
+        const inventory = await Inventory.findOne({ 
+          partName: { $regex: new RegExp(`^${partName}$`, 'i') },
+          workCategory: workCategory 
+        });
+        
+        if (inventory) {
+          // Get all receipts and calculate available stock
+          const Receipt = require('../models/Receipt');
+          const allReceipts = await Receipt.find({ _id: { $in: inventory.receipts } });
+          
+          const regularReceipts = allReceipts.filter(r => r.receiptCategory !== 'return');
+          const existingReturns = allReceipts.filter(r => r.receiptCategory === 'return');
+          
+          const totalReceived = regularReceipts.reduce((sum, r) => sum + (r.quantity || 0), 0);
+          const totalReturned = existingReturns.reduce((sum, r) => sum + (r.quantity || 0), 0);
+          
+          // Get dispatches to calculate what's been sent out
+          const Dispatch = require('../models/Dispatch');
+          const allDispatches = await Dispatch.find({ _id: { $in: inventory.dispatches } });
+          const totalDispatched = allDispatches.reduce((sum, d) => sum + (d.quantity || 0), 0);
+          
+          // Available stock = Total Received - Total Dispatched - Already Returned
+          const availableForReturn = totalReceived - totalDispatched - totalReturned;
+          
+          if (quantity > availableForReturn) {
+            return res.status(400).json({
+              success: false,
+              message: `Cannot return ${quantity} units. Only ${availableForReturn} units available for return to vendor. (Received: ${totalReceived}, Dispatched: ${totalDispatched}, Already Returned: ${totalReturned})`
+            });
+          }
+        }
+      }
+    }
     
     // Calculate total value
     if (receiptData.invoiceValueWithoutGST && receiptData.gstValue && receiptData.quantity) {
@@ -154,6 +201,56 @@ router.post('/', auth, async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   try {
     const receiptData = req.body;
+    const { partName, workCategory, receiptCategory, quantity } = receiptData;
+    
+    // Validation: For return receipts on bought-out parts, ensure we have enough stock to return
+    if (receiptCategory === 'return' && partName && workCategory) {
+      const Inventory = require('../models/Inventory');
+      const Part = require('../models/Part');
+      
+      // Check if this is a bought-out part
+      const part = await Part.findOne({ 
+        partName: { $regex: new RegExp(`^${partName}$`, 'i') },
+        scopeOfWork: { $regex: new RegExp(`^${workCategory}$`, 'i') }
+      });
+      
+      if (part && part.category === 'bought_out') {
+        // Find the inventory item
+        const inventory = await Inventory.findOne({ 
+          partName: { $regex: new RegExp(`^${partName}$`, 'i') },
+          workCategory: workCategory 
+        });
+        
+        if (inventory) {
+          // Get all receipts and calculate available stock (excluding the current receipt being updated)
+          const Receipt = require('../models/Receipt');
+          const allReceipts = await Receipt.find({ 
+            _id: { $in: inventory.receipts, $ne: req.params.id } 
+          });
+          
+          const regularReceipts = allReceipts.filter(r => r.receiptCategory !== 'return');
+          const existingReturns = allReceipts.filter(r => r.receiptCategory === 'return');
+          
+          const totalReceived = regularReceipts.reduce((sum, r) => sum + (r.quantity || 0), 0);
+          const totalReturned = existingReturns.reduce((sum, r) => sum + (r.quantity || 0), 0);
+          
+          // Get dispatches to calculate what's been sent out
+          const Dispatch = require('../models/Dispatch');
+          const allDispatches = await Dispatch.find({ _id: { $in: inventory.dispatches } });
+          const totalDispatched = allDispatches.reduce((sum, d) => sum + (d.quantity || 0), 0);
+          
+          // Available stock = Total Received - Total Dispatched - Already Returned
+          const availableForReturn = totalReceived - totalDispatched - totalReturned;
+          
+          if (quantity > availableForReturn) {
+            return res.status(400).json({
+              success: false,
+              message: `Cannot return ${quantity} units. Only ${availableForReturn} units available for return to vendor. (Received: ${totalReceived}, Dispatched: ${totalDispatched}, Already Returned: ${totalReturned})`
+            });
+          }
+        }
+      }
+    }
     
     // Calculate total value
     if (receiptData.invoiceValueWithoutGST && receiptData.gstValue && receiptData.quantity) {

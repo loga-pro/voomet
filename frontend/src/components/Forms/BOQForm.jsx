@@ -1141,7 +1141,8 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-8 gap-4">
+                  {/* First Row - Main Fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
                     <FloatingInput
                       label="Part Name"
                       value={item.partName}
@@ -1161,7 +1162,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                     />
 
                     <FloatingInput
-                      label="No of Units"
+                      label="No of Quantity"
                       value={item.numberOfUnits}
                       onChange={(e) => handleItemChange(index, 'numberOfUnits', e.target.value)}
                       error={errors[`item-${index}-numberOfUnits`]}
@@ -1216,14 +1217,18 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                       step="0.01"
                       min="0"
                     />
+                  </div>
 
-                    <FloatingInput
-                      label="Remarks"
-                      value={item?.remarks}
-                      onChange={(e) => handleItemChange(index, 'remarks', e.target.value)}
-                      type="text"
-                    />
-
+                  {/* Second Row - Remarks and Upload Field */}
+                  <div className="grid grid-cols-1 md:grid-cols-7 gap-4 mt-4">
+                    <div className="md:col-span-5">
+                      <FloatingInput
+                        label="Remarks"
+                        value={item?.remarks}
+                        onChange={(e) => handleItemChange(index, 'remarks', e.target.value)}
+                        type="text"
+                      />
+                    </div>
 
                     <div className="md:col-span-2">
                       <Upload

@@ -12,7 +12,7 @@ const validatePurchaseRequest = [
   body('endDate').isISO8601().toDate().withMessage('Valid end date is required'),
   body('overallProduction').optional().trim(),
   body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
-  body('items.*.scopeOfWork').isIn(['electrical', 'data', 'cctv', 'partition', 'fire_and_safety', 'access']).withMessage('Invalid scope of work'),
+  body('items.*.scopeOfWork').notEmpty().trim().withMessage('Scope of work is required'),
   body('items.*.partName').notEmpty().trim().withMessage('Part name is required'),
   body('items.*.quantityRequired').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
   body('items.*.purpose').notEmpty().trim().withMessage('Purpose is required'),

@@ -33,6 +33,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
   ]);
 
   const [customEstimateNumber, setCustomEstimateNumber] = useState('');
+  const [customDate, setCustomDate] = useState('');
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const contentRef = useRef();
@@ -53,6 +54,13 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
       setCustomEstimateNumber(boqData.estimateNumber);
     }
   }, [boqData.estimateNumber]);
+
+  // Initialize custom date from boqData
+  useEffect(() => {
+    if (boqData.customDate) {
+      setCustomDate(boqData.customDate);
+    }
+  }, [boqData.customDate]);
 
   // Initialize terms and conditions from boqData
   useEffect(() => {
@@ -156,6 +164,41 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
     }
   };
 
+  // Save custom date to database
+  const handleDateChange = async (value) => {
+    // Convert from YYYY-MM-DD (input format) to DD/MM/YYYY (display format)
+    if (value) {
+      const [year, month, day] = value.split('-');
+      const formattedDate = `${day}/${month}/${year}`;
+      setCustomDate(formattedDate);
+      
+      // Auto-save to database
+      if (boqData._id) {
+        try {
+          await boqAPI.update(boqData._id, { customDate: formattedDate });
+        } catch (error) {
+          console.error('Error saving custom date:', error);
+        }
+      }
+    } else {
+      setCustomDate('');
+      if (boqData._id) {
+        try {
+          await boqAPI.update(boqData._id, { customDate: '' });
+        } catch (error) {
+          console.error('Error saving custom date:', error);
+        }
+      }
+    }
+  };
+
+  // Helper function to convert DD/MM/YYYY to YYYY-MM-DD for date input
+  const getDateInputValue = () => {
+    if (!customDate) return '';
+    const [day, month, year] = customDate.split('/');
+    return `${year}-${month}-${day}`;
+  };
+
   const generatePDF = async () => {
     setIsGeneratingPDF(true);
     try {
@@ -252,11 +295,12 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
     setEmailCompose(true)
   };
 
-  const currentDate = new Date().toLocaleDateString('en-IN', {
+  const defaultDate = new Date().toLocaleDateString('en-IN', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric'
   });
+  const currentDate = customDate || defaultDate;
   const boqCode = generateBOQCode();
 
   const getImageUrl = (image) => {
@@ -495,7 +539,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
         {/* Editable Controls - Only show if showEditableControls is true */}
         {showEditableControls && (
           <div className="p-4 bg-blue-50 border-b print:hidden">
-            <div className={showEstimateNumber ? "grid grid-cols-1 md:grid-cols-2 gap-6" : "grid grid-cols-1"}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Estimate Number Editor - Only show if showEstimateNumber is true */}
               {showEstimateNumber && (
                 <div>
@@ -516,6 +560,24 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                   </div>
                 </div>
               )}
+
+              {/* Date Editor */}
+              <div>
+                <h3 className="font-semibold mb-3 text-blue-700">Date</h3>
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="date"
+                    value={getDateInputValue()}
+                    onChange={(e) => handleDateChange(e.target.value)}
+                    className="flex-1 p-2 border rounded text-sm"
+                  />
+                  {!customDate && (
+                    <span className="text-sm text-blue-600 whitespace-nowrap">
+                      Auto: {defaultDate}
+                    </span>
+                  )}
+                </div>
+              </div>
 
               {/* Terms & Conditions Editor */}
               <div>
@@ -652,6 +714,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                   <table className="w-full border-collapse border border-blue-800 text-xs">
                     <thead>
                       <tr className="bg-blue-200">
+                        <th className="border border-blue-800 p-2 font-bold text-center">S.NO</th>
                         <th className="border border-blue-800 p-2 font-bold text-left">DESCRIPTION</th>
                         <th className="border border-blue-800 p-2 font-bold text-center">SPECIFICATION</th>
                         <th className="border border-blue-800 p-2 font-bold text-center">QUANTITY</th>
@@ -666,8 +729,13 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                     </thead>
                     <tbody>
                       {/* Items */}
-                      {pageItems && pageItems.map((item, index) => (
+                      {pageItems && pageItems.map((item, index) => {
+                        const serialNumber = pageIndex * itemsPerPage + index + 1;
+                        return (
                         <tr key={index}>
+                          <td className="border border-blue-800 p-2 text-center align-top font-semibold">
+                            {serialNumber}
+                          </td>
                           <td className="border border-blue-800 p-2 align-top">
                             <div className="font-medium">{item.partName}</div>
                           </td>
@@ -700,19 +768,20 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                                 <img
                                   src={getImageUrl(item.image)}
                                   alt="Item"
-                                  className="h-16 w-16 object-contain mx-auto"
+                                  className="h-24 w-24 object-contain mx-auto"
                                   crossOrigin="anonymous"
                                 />
                               )}
                             </td>
                           </>}
                         </tr>
-                      ))}
+                      );
+                      })}
 
                       {/* Transportation Charges Row - Only on last page */}
                       {pageIndex === pages.length - 1 && hasInOffice && transportationCharges > 0 && (
                         <tr className="bg-blue-50">
-                          <td className="border border-blue-800 p-2 font-medium" colSpan="5">
+                          <td className="border border-blue-800 p-2 font-medium" colSpan="6">
                             Transportation & Handling Charges
                           </td>
                           <td className="border border-blue-800 p-2 text-right font-mono font-semibold">

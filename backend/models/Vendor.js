@@ -21,7 +21,7 @@ const vendorSchema = new mongoose.Schema({
   },
   address: {
     type: String,
-    required: true,
+    required: false,
     maxlength: [200, 'Address must not exceed 200 characters']
   },
   city: {
@@ -73,19 +73,33 @@ const vendorSchema = new mongoose.Schema({
     required: true,
     validate: {
       validator: function (v) {
-        return /^[0-9]{16}$/.test(v);
+        return /^[0-9]{9,18}$/.test(v);
       },
-      message: 'Bank account number must be exactly 16 digits'
+      message: 'Bank account number must be between 9 and 18 digits'
+    }
+  },
+  ifscCode: {
+    type: String,
+    required: true,
+    uppercase: true,
+    trim: true,
+    validate: {
+      validator: function (v) {
+        return /^[A-Z]{4}0[A-Z0-9]{6}$/.test(v);
+      },
+      message: 'Invalid IFSC code format'
     }
   },
   email: {
     type: String,
-    required: true,
+    required: false,
     unique: true,
+    sparse: true,
     lowercase: true,
     trim: true,
     validate: {
       validator: function (v) {
+        if (!v) return true;
         return /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(v);
       },
       message: 'Please enter a valid email address'
@@ -93,12 +107,14 @@ const vendorSchema = new mongoose.Schema({
   },
   gstNumber: {
     type: String,
-    required: true,
+    required: false,
     unique: true,
+    sparse: true,
     uppercase: true,
     trim: true,
     validate: {
       validator: function (v) {
+        if (!v) return true;
         const cleanGST = v.replace(/\s+/g, '');
         if (cleanGST.length !== 15) return false;
 

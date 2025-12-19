@@ -31,20 +31,45 @@ const ReceiptForm = ({
   const initialData = receiptData || {};
 
   // State for individual line items
-  const [lineItems, setLineItems] = useState(
-    initialData.lineItems?.length > 0
-      ? initialData.lineItems
-      : [{
-        workCategory: '',
-        partName: '',
-        unit: '',
-        quantity: '',
-        priceWithoutGST: '',
-        gstPercentage: 18,
-        gstAmount: '',
-        total: ''
-      }]
-  );
+  const [lineItems, setLineItems] = useState(() => {
+    // If editing and lineItems array exists, map the fields correctly
+    if (initialData.lineItems?.length > 0) {
+      return initialData.lineItems.map(item => ({
+        workCategory: item.workCategory || '',
+        partName: item.partName || '',
+        unit: item.unit || '',
+        quantity: item.quantity?.toString() || '',
+        priceWithoutGST: (item.priceWithoutGST || item.invoiceValueWithoutGST)?.toString() || '',
+        gstPercentage: item.gstPercentage || 18,
+        gstAmount: (item.gstAmount || item.gstValue)?.toString() || '',
+        total: (item.total || item.totalValue)?.toString() || ''
+      }));
+    }
+    // If editing a single receipt (has individual fields), convert to lineItems format
+    if (isEditing && initialData.workCategory && initialData.partName) {
+      return [{
+        workCategory: initialData.workCategory || '',
+        partName: initialData.partName || '',
+        unit: initialData.unit || '',
+        quantity: initialData.quantity?.toString() || '',
+        priceWithoutGST: initialData.invoiceValueWithoutGST?.toString() || '',
+        gstPercentage: initialData.gstPercentage || 18,
+        gstAmount: initialData.gstValue?.toString() || '',
+        total: initialData.totalValue?.toString() || ''
+      }];
+    }
+    // Default empty line item for new receipts
+    return [{
+      workCategory: '',
+      partName: '',
+      unit: '',
+      quantity: '',
+      priceWithoutGST: '',
+      gstPercentage: 18,
+      gstAmount: '',
+      total: ''
+    }];
+  });
 
   const [formData, setFormData] = useState({
     date: formatDateForInput(initialData.date),
@@ -241,29 +266,34 @@ const ReceiptForm = ({
 
     try {
       if (isEditing && receiptData?._id) {
-        // For editing, we need to update the existing receipt
-        // Since we're changing from multi-line to single-line model,
-        // we'll update with the first line item's data
-        const firstItem = lineItems[0];
-        const receipt = {
-          date: formData.date,
-          receiptCategory: formData.receiptCategory,
-          category: formData.category,
-          vendorNames: formData.vendorNames,
-          invoiceNo: formData.invoiceNo,
-          invoiceDate: formData.invoiceDate,
-          upload: formData.upload,
-          reasonForReturn: formData.reasonForReturn,
-          workCategory: firstItem.workCategory,
-          partName: firstItem.partName,
-          unit: firstItem.unit,
-          quantity: parseFloat(firstItem.quantity),
-          invoiceValueWithoutGST: parseFloat(firstItem.priceWithoutGST),
-          gstValue: parseFloat(firstItem.gstAmount),
-          totalValue: parseFloat(firstItem.total)
-        };
+        // For editing, submit all line items (the parent will handle deletion and recreation)
+        for (let i = 0; i < lineItems.length; i++) {
+          const item = lineItems[i];
+          const receipt = {
+            date: formData.date,
+            receiptCategory: formData.receiptCategory,
+            category: formData.category,
+            vendorNames: formData.vendorNames,
+            invoiceNo: formData.invoiceNo,
+            invoiceDate: formData.invoiceDate,
+            upload: formData.upload,
+            reasonForReturn: formData.reasonForReturn,
+            workCategory: item.workCategory,
+            partName: item.partName,
+            unit: item.unit,
+            quantity: parseFloat(item.quantity),
+            invoiceValueWithoutGST: parseFloat(item.priceWithoutGST),
+            gstValue: parseFloat(item.gstAmount),
+            totalValue: parseFloat(item.total)
+          };
 
-        await onSubmit(receipt, receiptData._id);
+          // Only pass the ID on the first iteration to trigger the edit flow
+          await onSubmit(receipt, i === 0 ? receiptData._id : null);
+        }
+        // Show success message and trigger refresh after all items are submitted
+        showNotification?.('Receipt updated successfully');
+        onCancel(); // Close the modal
+        window.location.reload(); // Refresh the page
       } else {
         // For creating new receipts, create one receipt per line item
         for (const item of lineItems) {
@@ -287,6 +317,10 @@ const ReceiptForm = ({
 
           await onSubmit(receipt);
         }
+        // Show success message and trigger refresh after all items are submitted
+        showNotification?.('Receipt added successfully');
+        onCancel(); // Close the modal
+        window.location.reload(); // Refresh the page
       }
     } catch (error) {
       console.error('Error submitting receipt:', error);

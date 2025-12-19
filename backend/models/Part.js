@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const partSchema = new mongoose.Schema({
   scopeOfWork: {
     type: String,
-    enum: ['electrical', 'data', 'cctv', 'partion', 'fire_and_safety', 'access'],
     required: true
   },
   partName: {
