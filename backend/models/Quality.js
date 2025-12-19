@@ -5,6 +5,10 @@ const qualitySchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  projectName: {
+    type: String,
+    trim: true
+  },
   scopeOfWork: [{
     type: String,
     enum: ['Electrical', 'Data', 'CCTV', 'Partition', 'Fire and Safety', 'Access', 'Transportation']

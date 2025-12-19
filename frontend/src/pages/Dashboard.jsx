@@ -75,9 +75,7 @@ const Dashboard = () => {
   const [selectedStageTitle, setSelectedStageTitle] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSticky, setIsSticky] = useState(false);
-  const [stickyHeight, setStickyHeight] = useState(0);
   const stickyRef = useRef(null);
-  const stickyOffsetRef = useRef(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -102,33 +100,16 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    // Store the initial offset position
-    if (stickyRef.current && !isSticky) {
-      const rect = stickyRef.current.getBoundingClientRect();
-      stickyOffsetRef.current = rect.top + window.scrollY;
-      setStickyHeight(rect.height);
-    }
-  }, [loading, isSticky]);
-
-  useEffect(() => {
     const handleScroll = () => {
-      if (stickyRef.current && stickyOffsetRef.current > 0) {
-        const shouldBeSticky = window.scrollY > stickyOffsetRef.current;
-
-        if (shouldBeSticky !== isSticky) {
-          setIsSticky(shouldBeSticky);
-
-          // Update height when becoming sticky
-          if (shouldBeSticky && stickyRef.current) {
-            setStickyHeight(stickyRef.current.offsetHeight);
-          }
-        }
+      if (stickyRef.current) {
+        const stickyTop = stickyRef.current.offsetTop;
+        setIsSticky(window.scrollY > stickyTop);
       }
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [isSticky]);
+  }, []);
 
   const handleStageClick = (stage, title) => {
     setSelectedStage(stage);
@@ -368,7 +349,6 @@ const Dashboard = () => {
       icon: ExclamationTriangleIcon,
       color: 'bg-red-500'
     },
-
     {
       id: 'open-issues',
       title: 'Open Issues',
@@ -499,8 +479,8 @@ const Dashboard = () => {
       <div
         ref={stickyRef}
         className={`transition-all duration-300 ${isSticky
-            ? 'fixed top-0 left-0 right-0 z-50 bg-white shadow-lg border-b border-gray-200 p-4 sm:p-6 lg:p-8'
-            : 'relative'
+          ? 'fixed top-0 left-0 right-0 z-50 bg-white shadow-lg border-b border-gray-200 p-4 mx-[-1rem] md:mx-[-1.5rem] lg:mx-[-2rem]'
+          : 'relative'
           }`}
       >
         <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">
@@ -512,10 +492,12 @@ const Dashboard = () => {
             <GradientKpiCard key={index} {...kpi} />
           ))}
         </div>
+
+        {isSticky && <div className="h-4"></div>}
       </div>
 
-      {/* Spacer when sticky - matches the actual height of the sticky section */}
-      {isSticky && <div style={{ height: `${stickyHeight}px` }}></div>}
+      {/* Spacer when sticky */}
+      {isSticky && <div className="h-[200px] sm:h-[180px]"></div>}
 
       {/* Profit Loss Summary */}
       <ProfitLossSummary />

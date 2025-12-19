@@ -21,7 +21,9 @@ const Layout = () => {
         <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
         
         {/* Main content with Outlet */}
-        <main className="flex-1 overflow-auto bg-gray-50 main-content">
+        <main 
+        className="flex-1 overflow-auto bg-gray-50 main-content"
+        >
           <div className="max-w-none w-full h-full">
             <Outlet />
           </div>

@@ -5,6 +5,7 @@ import FloatingInput from './FloatingInput';
 const QualityForm = ({ quality, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
     customer: '',
+    projectName: '',
     scopeOfWork: [],
     scopeOfWorkText: '',
     openIssues: '',
@@ -37,6 +38,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
   const categoryOptions = ['rectify', 'replace'];
   const statusOptions = ['open', 'closed'];
 
+
   useEffect(() => {
     fetchCustomers();
     fetchVendors();
@@ -44,18 +46,56 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
     fetchProjects();
 
     if (quality) {
+      // Reverse mapping from saved values (title case) to form values (lowercase)
+      const reverseScopeMapping = {
+        'Electrical': 'electrical',
+        'Data': 'data',
+        'CCTV': 'cctv',
+        'Partition': 'partition',
+        'Fire and Safety': 'fire_and_safety',
+        'fire and safety': 'fire_and_safety',  // Handle if already lowercase
+        'Access': 'access',
+        'Transportation': 'transportation'
+      };
+
       const processedScopeOfWork = Array.isArray(quality.scopeOfWork)
-        ? quality.scopeOfWork.map(scope => scope.toLowerCase())
-        : (quality.scopeOfWork ? [quality.scopeOfWork.toLowerCase()] : []);
+        ? quality.scopeOfWork.map(scope => {
+          // Use reverse mapping, or fallback to lowercase
+          return reverseScopeMapping[scope] || scope.toLowerCase().replace(/ /g, '_');
+        })
+        : (quality.scopeOfWork ? [reverseScopeMapping[quality.scopeOfWork] || quality.scopeOfWork.toLowerCase().replace(/ /g, '_')] : []);
+
+      console.log('Loading quality record:', quality);
+      console.log('Person Type from DB:', quality.personType);
+      console.log('Responsibility from DB:', quality.responsibility);
+
+      // Auto-detect personType from responsibility if not set (for old records)
+      let detectedPersonType = quality.personType?.toLowerCase() || '';
+
+      if (!detectedPersonType && quality.responsibility) {
+        // Check if responsibility matches an employee
+        const isEmployee = employees.some(emp => emp.name === quality.responsibility);
+        // Check if responsibility matches a vendor
+        const isVendor = vendors.some(vendor => vendor.vendorName === quality.responsibility);
+
+        if (isEmployee) {
+          detectedPersonType = 'inhouse';
+          console.log('Auto-detected personType as "inhouse" from employee:', quality.responsibility);
+        } else if (isVendor) {
+          detectedPersonType = 'outsourced';
+          console.log('Auto-detected personType as "outsourced" from vendor:', quality.responsibility);
+        }
+      }
 
       setFormData({
         customer: quality.customer || '',
+        projectName: quality.projectName || '',
         scopeOfWork: processedScopeOfWork,
         scopeOfWorkText: quality.scopeOfWorkText || '',
         openIssues: quality.openIssues || '',
         category: quality.category || '',
         status: quality.status || 'open',
-        personType: quality.personType || '',
+        personType: detectedPersonType,
         responsibility: quality.responsibility || '',
         remarks: quality.remarks || ''
       });
@@ -131,10 +171,19 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    // If customer changes, reset projectName
+    if (name === 'customer') {
+      setFormData(prev => ({
+        ...prev,
+        customer: value,
+        projectName: ''
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
 
     if (errors[name]) {
       setErrors(prev => ({
@@ -190,17 +239,26 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
       'data': 'Data',
       'cctv': 'CCTV',
       'partition': 'Partition',
+      'partion': 'Partition',  // Handle typo in Project model
       'fire_and_safety': 'Fire and Safety',
       'fire and safety': 'Fire and Safety',  // Handle lowercase with space from existing records
       'access': 'Access',
       'transportation': 'Transportation'  // Add missing Transportation option
     };
 
+    console.log('Form data before cleaning:', formData);
+    console.log('Scope of work before mapping:', formData.scopeOfWork);
+
     const cleanedData = {
       ...formData,
       customer: formData.customer?.trim() || undefined,
+      projectName: formData.projectName?.trim() || undefined,
       scopeOfWork: formData.scopeOfWork && formData.scopeOfWork.length > 0
-        ? formData.scopeOfWork.map(scope => scopeMapping[scope] || scope)
+        ? formData.scopeOfWork.map(scope => {
+          const mapped = scopeMapping[scope] || scope;
+          console.log(`Mapping scope: ${scope} -> ${mapped}`);
+          return mapped;
+        })
         : undefined,
       scopeOfWorkText: formData.scopeOfWorkText?.trim() || undefined,
       openIssues: formData.openIssues?.trim() || undefined,
@@ -211,11 +269,15 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
       remarks: formData.remarks?.trim() || undefined
     };
 
+    console.log('Cleaned data before removing undefined:', cleanedData);
+
     Object.keys(cleanedData).forEach(key => {
       if (cleanedData[key] === undefined) {
         delete cleanedData[key];
       }
     });
+
+    console.log('Final data being submitted:', cleanedData);
 
     setLoading(true);
     try {
@@ -234,12 +296,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
   return (
     <div className="flex flex-col h-[calc(100vh-200px)] min-h-[600px] max-h-[800px]">
       <form onSubmit={handleSubmit} className="flex flex-col h-full">
-        {/* Form Header - Fixed */}
-        <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4">
-          <h2 className="text-xl font-semibold text-gray-900">
-            {quality ? 'Edit Quality Issue' : 'Create Quality Issue'}
-          </h2>
-        </div>
+
 
         {/* Scrollable Form Content */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -273,6 +330,24 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
                 />
 
                 <FloatingInput
+                  label="Project Name"
+                  name="projectName"
+                  value={formData.projectName}
+                  onChange={handleChange}
+                  type="select"
+                  disabled={!formData.customer}
+                  options={[
+                    { value: '', label: formData.customer ? 'Select Project' : 'Select Customer First' },
+                    ...projects
+                      .filter(project => project.customerName === formData.customer)
+                      .map(project => ({
+                        value: project.projectName,
+                        label: project.projectName
+                      }))
+                  ]}
+                />
+
+                <FloatingInput
                   label="Category"
                   name="category"
                   value={formData.category}
@@ -288,9 +363,9 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
                     }))
                   ]}
                 />
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+
+
                 <FloatingInput
                   label="Status"
                   name="status"
@@ -312,159 +387,159 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
                 />
               </div>
             </div>
+          </div>
 
-            {/* SECTION 2: Scope of Work */}
-            <div className="bg-white p-6 rounded-lg border border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Scope of Work</h3>
+          {/* SECTION 2: Scope of Work */}
+          <div className="bg-white p-6 rounded-lg border border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Scope of Work</h3>
 
-              <div className="relative mb-4">
-                <div
-                  className={`block w-full px-3 pt-4 pb-2 bg-white rounded border transition-all duration-200 min-h-[64px] cursor-pointer
+            <div className="relative mb-4">
+              <div
+                className={`block w-full px-3 pt-4 pb-2 bg-white rounded border transition-all duration-200 min-h-[64px] cursor-pointer
                     ${errors.scopeOfWork ? 'border-red-500' : scopeFocused ? 'border-blue-500' : 'border-gray-300'}
                     ${formData.customer && availableScopes.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}
                   `}
-                  onClick={() => !(formData.customer && availableScopes.length === 0) && setScopeFocused(true)}
-                  onBlur={() => setScopeFocused(false)}
-                  tabIndex="0"
-                >
-                  <label
-                    className={`absolute left-3 bg-white px-1 transition-all duration-200 pointer-events-none
+                onClick={() => !(formData.customer && availableScopes.length === 0) && setScopeFocused(true)}
+                onBlur={() => setScopeFocused(false)}
+                tabIndex="0"
+              >
+                <label
+                  className={`absolute left-3 bg-white px-1 transition-all duration-200 pointer-events-none
                       ${(scopeFocused || (formData.scopeOfWork && formData.scopeOfWork.length > 0))
-                        ? 'top-0 text-xs transform -translate-y-1/2 text-blue-600 font-medium'
-                        : 'top-3 text-sm text-gray-500'
-                      }
+                      ? 'top-0 text-xs transform -translate-y-1/2 text-blue-600 font-medium'
+                      : 'top-3 text-sm text-gray-500'
+                    }
                     `}
-                  >
-                    Scope of Work <span className="text-red-500">*</span>
-                  </label>
+                >
+                  Scope of Work <span className="text-red-500">*</span>
+                </label>
 
 
-                  {formData.customer && availableScopes.length === 0 && (
-                    <div className="text-xs text-gray-500 mt-1 ml-1">
-                      No scopes available for this customer
-                    </div>
-                  )}
-
-                  {formData.customer && availableScopes.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mt-3 max-h-60 overflow-y-auto pr-2">
-                      {allScopeOptions
-                        .filter(scope => availableScopes.includes(scope.value))
-                        .map((scope) => {
-                          const isChecked = formData.scopeOfWork?.includes(scope.value);
-
-                          return (
-                            <label
-                              key={scope.value}
-                              className="flex items-center space-x-3 p-3 rounded cursor-pointer transition-colors hover:bg-blue-50 border border-gray-200"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={() => handleScopeChange(scope.value)}
-                                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                              />
-                              <span className={`text-sm ${isChecked ? 'font-medium text-primary-700' : 'text-gray-700'}`}>
-                                {scope.label}
-                              </span>
-                            </label>
-                          );
-                        })}
-                    </div>
-                  )}
-
-                </div>
-
-                {errors.scopeOfWork && (
-                  <div className="mt-1 flex items-start ml-1">
-                    <svg className="w-4 h-4 mt-0.5 mr-1 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path
-                        fillRule="evenodd"
-                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 
-                          1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 
-                          0 00-1-1z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <p className="text-xs text-red-600">{errors.scopeOfWork}</p>
+                {formData.customer && availableScopes.length === 0 && (
+                  <div className="text-xs text-gray-500 mt-1 ml-1">
+                    No scopes available for this customer
                   </div>
                 )}
+
+                {formData.customer && availableScopes.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mt-3 max-h-60 overflow-y-auto pr-2">
+                    {allScopeOptions
+                      .filter(scope => availableScopes.includes(scope.value))
+                      .map((scope) => {
+                        const isChecked = formData.scopeOfWork?.includes(scope.value);
+
+                        return (
+                          <label
+                            key={scope.value}
+                            className="flex items-center space-x-3 p-3 rounded cursor-pointer transition-colors hover:bg-blue-50 border border-gray-200"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => handleScopeChange(scope.value)}
+                              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                            />
+                            <span className={`text-sm ${isChecked ? 'font-medium text-primary-700' : 'text-gray-700'}`}>
+                              {scope.label}
+                            </span>
+                          </label>
+                        );
+                      })}
+                  </div>
+                )}
+
               </div>
+
+              {errors.scopeOfWork && (
+                <div className="mt-1 flex items-start ml-1">
+                  <svg className="w-4 h-4 mt-0.5 mr-1 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 
+                          1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 
+                          0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <p className="text-xs text-red-600">{errors.scopeOfWork}</p>
+                </div>
+              )}
             </div>
+          </div>
 
-            {/* SECTION 3: Responsible Party */}
-            <div className="bg-white p-6 rounded-lg border border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Responsible Party</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FloatingInput
-                  label="Person Type"
-                  name="personType"
-                  value={formData.personType}
-                  onChange={(e) => {
-                    handleChange(e);
-                    setFormData(prev => ({ ...prev, responsibility: '' }));
-                  }}
-                  type="select"
-                  options={[
-                    { value: '', label: 'Select Type' },
-                    { value: 'inhouse', label: 'Inhouse' },
-                    { value: 'outsourced', label: 'Outsourced' }
-                  ]}
-                />
+          {/* SECTION 3: Responsible Party */}
+          <div className="bg-white p-6 rounded-lg border border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Responsible Party</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FloatingInput
+                label="Person Type"
+                name="personType"
+                value={formData.personType}
+                onChange={(e) => {
+                  handleChange(e);
+                  setFormData(prev => ({ ...prev, responsibility: '' }));
+                }}
+                type="select"
+                options={[
+                  { value: '', label: 'Select Type' },
+                  { value: 'inhouse', label: 'Inhouse' },
+                  { value: 'outsourced', label: 'Outsourced' }
+                ]}
+              />
 
-                <FloatingInput
-                  label="Responsible Person"
-                  name="responsibility"
-                  value={formData.responsibility}
-                  onChange={handleChange}
-                  error={errors.responsibility}
-                  type="select"
-                  required={true}
-                  disabled={!formData.personType}
-                  options={[
-                    { value: '', label: formData.personType ? (formData.personType === 'inhouse' ? 'Select Employee' : 'Select Vendor') : 'Select Person Type First' },
-                    ...(formData.personType === 'inhouse'
-                      ? employees.map(employee => ({
-                        value: employee.name,
-                        label: employee.name
+              <FloatingInput
+                label="Responsible Person"
+                name="responsibility"
+                value={formData.responsibility}
+                onChange={handleChange}
+                error={errors.responsibility}
+                type="select"
+                required={true}
+                disabled={!formData.personType}
+                options={[
+                  { value: '', label: formData.personType ? (formData.personType === 'inhouse' ? 'Select Employee' : 'Select Vendor') : 'Select Person Type First' },
+                  ...(formData.personType === 'inhouse'
+                    ? employees.map(employee => ({
+                      value: employee.name,
+                      label: employee.name
+                    }))
+                    : formData.personType === 'outsourced'
+                      ? vendors.map(vendor => ({
+                        value: vendor.vendorName,
+                        label: vendor.vendorName
                       }))
-                      : formData.personType === 'outsourced'
-                        ? vendors.map(vendor => ({
-                          value: vendor.vendorName,
-                          label: vendor.vendorName
-                        }))
-                        : []
-                    )
-                  ]}
-                />
-              </div>
+                      : []
+                  )
+                ]}
+              />
             </div>
+          </div>
 
-            {/* SECTION 4: Issue Details */}
-            <div className="bg-white p-6 rounded-lg border border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Issue Details</h3>
-              <div className="space-y-6">
-                <FloatingInput
-                  label="List of Open Issues"
-                  name="openIssues"
-                  value={formData.openIssues}
-                  onChange={handleChange}
-                  error={errors.openIssues}
-                  type="textarea"
-                  required={true}
-                  rows={5}
-                  helperText="Describe all open issues that need to be addressed"
-                />
+          {/* SECTION 4: Issue Details */}
+          <div className="bg-white p-6 rounded-lg border border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Issue Details</h3>
+            <div className="space-y-6">
+              <FloatingInput
+                label="List of Open Issues"
+                name="openIssues"
+                value={formData.openIssues}
+                onChange={handleChange}
+                error={errors.openIssues}
+                type="textarea"
+                required={true}
+                rows={5}
+                helperText="Describe all open issues that need to be addressed"
+              />
 
-                <FloatingInput
-                  label="Remarks"
-                  name="remarks"
-                  value={formData.remarks}
-                  onChange={handleChange}
-                  type="textarea"
-                  rows={4}
-                  helperText="Additional comments or notes (optional)"
-                />
-              </div>
+              <FloatingInput
+                label="Remarks"
+                name="remarks"
+                value={formData.remarks}
+                onChange={handleChange}
+                type="textarea"
+                rows={4}
+                helperText="Additional comments or notes (optional)"
+              />
             </div>
           </div>
         </div>

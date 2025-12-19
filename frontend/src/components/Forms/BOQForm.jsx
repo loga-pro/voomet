@@ -398,8 +398,24 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     }
 
     if (name === 'gstPercentage') {
-      const calculated = calculateBoqMetrics(newData);
-      setFormData({ ...newData, ...calculated });
+      // Allow empty string or numbers 1-100 with up to 2 decimal places
+      if (value === '' || /^\d{0,3}(\.\d{0,2})?$/.test(value)) {
+        const numValue = parseFloat(value);
+
+        // Validate range: must be between 1 and 100
+        if (value !== '' && (isNaN(numValue) || numValue < 1 || numValue > 100)) {
+          setErrors(prev => ({ ...prev, gstPercentage: 'GST percentage must be between 1 and 100' }));
+          return;
+        }
+
+        const calculated = calculateBoqMetrics(newData);
+        setFormData({ ...newData, ...calculated });
+
+        // Clear error if valid
+        if (errors.gstPercentage) {
+          setErrors(prev => ({ ...prev, gstPercentage: '' }));
+        }
+      }
       return;
     }
 
@@ -1317,6 +1333,8 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                 step="0.01"
                 min="0"
                 max="100"
+                placeholder="0-100%"
+                error={errors.gstPercentage}
               />
 
               <FloatingInput
