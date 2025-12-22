@@ -1,6 +1,7 @@
 const express = require('express');
 const Quality = require('../models/Quality');
 const auth = require('../middleware/auth');
+const uploadQualityImage = require('../middleware/uploadQualityImage');
 
 const router = express.Router();
 
@@ -122,6 +123,22 @@ router.patch('/update-vendor-name', auth, async (req, res) => {
     res.json({ message: `Successfully updated ${updateResult.modifiedCount} quality issue(s)`, updatedCount: updateResult.modifiedCount });
   } catch (error) {
     res.status(500).json({ message: 'Server error updating vendor name in quality issues' });
+  }
+});
+
+// Upload quality issue image (damage or fixed image)
+router.post('/upload-image', auth, uploadQualityImage.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No image file uploaded' });
+    }
+    
+    // Return the file path that can be used to access the image
+    const imageUrl = `/uploads/quality/${req.file.filename}`;
+    res.json({ imageUrl });
+  } catch (error) {
+    console.error('Error uploading quality image:', error);
+    res.status(500).json({ message: 'Error uploading image', error: error.message });
   }
 });
 

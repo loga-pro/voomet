@@ -1,29 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { customersAPI, vendorsAPI, projectsAPI, employeesAPI } from '../../services/api';
+import { customersAPI, vendorsAPI, projectsAPI, employeesAPI, qualityAPI } from '../../services/api';
 import FloatingInput from './FloatingInput';
 
 const QualityForm = ({ quality, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
     customer: '',
     projectName: '',
-    scopeOfWork: [],
-    scopeOfWorkText: '',
     openIssues: '',
     category: '',
     status: 'open',
-    personType: '',
-    responsibility: '',
-    remarks: ''
+    qualityIssues: []  // Array for quality issues
   });
 
   const [customers, setCustomers] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [projects, setProjects] = useState([]);
-  const [availableScopes, setAvailableScopes] = useState([]);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [scopeFocused, setScopeFocused] = useState(false);
+
+  // State for new quality issue form
+  const [newIssue, setNewIssue] = useState({
+    dateOfIssue: '',
+    scopeOfWork: '',
+    reason: '',
+    description: '',
+    dateOfDamage: '',
+    damageImage: null,
+    remarks: '',
+    fixedImage: null,
+    personType: '',
+    responsiblePerson: ''
+  });
+
+  const [editingIssueIndex, setEditingIssueIndex] = useState(null);
+  const [imagePreview, setImagePreview] = useState({ show: false, url: '', title: '' });
 
   const allScopeOptions = [
     { value: 'electrical', label: 'Electrical' },
@@ -35,9 +46,9 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
     { value: 'transportation', label: 'Transportation' }
   ];
 
-  const categoryOptions = ['rectify', 'replace'];
-  const statusOptions = ['open', 'closed'];
-
+  const categoryOptions = ['rectify', 'replace', 'possible', 'not possible', 'reject'];
+  const statusOptions = ['open', 'closed', 'in-progress'];
+  const reasonOptions = ['Damaged', 'Missing', 'Wrong Installation', 'Other'];
 
   useEffect(() => {
     fetchCustomers();
@@ -46,91 +57,21 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
     fetchProjects();
 
     if (quality) {
-      // Reverse mapping from saved values (title case) to form values (lowercase)
-      const reverseScopeMapping = {
-        'Electrical': 'electrical',
-        'Data': 'data',
-        'CCTV': 'cctv',
-        'Partition': 'partition',
-        'Fire and Safety': 'fire_and_safety',
-        'fire and safety': 'fire_and_safety',  // Handle if already lowercase
-        'Access': 'access',
-        'Transportation': 'transportation'
-      };
-
-      const processedScopeOfWork = Array.isArray(quality.scopeOfWork)
-        ? quality.scopeOfWork.map(scope => {
-          // Use reverse mapping, or fallback to lowercase
-          return reverseScopeMapping[scope] || scope.toLowerCase().replace(/ /g, '_');
-        })
-        : (quality.scopeOfWork ? [reverseScopeMapping[quality.scopeOfWork] || quality.scopeOfWork.toLowerCase().replace(/ /g, '_')] : []);
-
       console.log('Loading quality record:', quality);
-      console.log('Person Type from DB:', quality.personType);
-      console.log('Responsibility from DB:', quality.responsibility);
 
-      // Auto-detect personType from responsibility if not set (for old records)
-      let detectedPersonType = quality.personType?.toLowerCase() || '';
-
-      if (!detectedPersonType && quality.responsibility) {
-        // Check if responsibility matches an employee
-        const isEmployee = employees.some(emp => emp.name === quality.responsibility);
-        // Check if responsibility matches a vendor
-        const isVendor = vendors.some(vendor => vendor.vendorName === quality.responsibility);
-
-        if (isEmployee) {
-          detectedPersonType = 'inhouse';
-          console.log('Auto-detected personType as "inhouse" from employee:', quality.responsibility);
-        } else if (isVendor) {
-          detectedPersonType = 'outsourced';
-          console.log('Auto-detected personType as "outsourced" from vendor:', quality.responsibility);
-        }
-      }
+      // Initialize qualityIssues from existing data or empty array
+      const qualityIssues = quality.qualityIssues || [];
 
       setFormData({
         customer: quality.customer || '',
         projectName: quality.projectName || '',
-        scopeOfWork: processedScopeOfWork,
-        scopeOfWorkText: quality.scopeOfWorkText || '',
         openIssues: quality.openIssues || '',
         category: quality.category || '',
         status: quality.status || 'open',
-        personType: detectedPersonType,
-        responsibility: quality.responsibility || '',
-        remarks: quality.remarks || ''
+        qualityIssues: qualityIssues
       });
     }
   }, [quality]);
-
-  useEffect(() => {
-    if (formData.customer && projects.length > 0) {
-      const customerProjects = projects.filter(
-        project => project.customerName === formData.customer
-      );
-
-      const scopes = new Set();
-      customerProjects.forEach(project => {
-        if (project.scopeOfWork && Array.isArray(project.scopeOfWork)) {
-          project.scopeOfWork.forEach(scope => {
-            const normalizedScope = scope.toLowerCase();
-            scopes.add(normalizedScope);
-          });
-        }
-      });
-
-      const availableScopesArray = Array.from(scopes);
-      setAvailableScopes(availableScopesArray);
-
-      if (!quality && scopes.size > 0) {
-        setFormData(prev => ({
-          ...prev,
-          scopeOfWork: Array.from(scopes)
-        }));
-      }
-    } else {
-      setAvailableScopes([]);
-    }
-  }, [formData.customer, projects, quality]);
 
   const fetchCustomers = async () => {
     try {
@@ -171,7 +112,6 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    // If customer changes, reset projectName
     if (name === 'customer') {
       setFormData(prev => ({
         ...prev,
@@ -193,37 +133,142 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
     }
   };
 
-  const handleScopeChange = (scopeValue) => {
-    setFormData(prev => {
-      const currentScopes = prev.scopeOfWork || [];
-      const isSelected = currentScopes.includes(scopeValue);
+  // Handle new issue form changes
+  const handleNewIssueChange = async (e) => {
+    const { name, value, type, files } = e.target;
 
-      return {
-        ...prev,
-        scopeOfWork: isSelected
-          ? currentScopes.filter(s => s !== scopeValue)
-          : [...currentScopes, scopeValue]
-      };
+    if (type === 'file' && files[0]) {
+      // Upload image immediately when selected
+      try {
+        const response = await qualityAPI.uploadImage(files[0]);
+        const imageUrl = response.data.imageUrl;
+
+        setNewIssue(prev => ({
+          ...prev,
+          [name]: imageUrl // Store the URL instead of the file object
+        }));
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        alert('Failed to upload image. Please try again.');
+      }
+    } else {
+      // If person type changes, clear responsible person
+      if (name === 'personType') {
+        setNewIssue(prev => ({
+          ...prev,
+          [name]: value,
+          responsiblePerson: '' // Clear responsible person when type changes
+        }));
+      } else {
+        setNewIssue(prev => ({
+          ...prev,
+          [name]: value
+        }));
+      }
+    }
+  };
+
+  // Edit existing quality issue
+  const editIssue = (index) => {
+    const issue = formData.qualityIssues[index];
+
+    // Helper function to convert ISO date to yyyy-MM-dd format
+    const formatDateForInput = (dateString) => {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    // Reverse mapping from saved values (title case) to form values (lowercase)
+    const reverseScopeMapping = {
+      'Electrical': 'electrical',
+      'Data': 'data',
+      'CCTV': 'cctv',
+      'Partition': 'partition',
+      'Fire and Safety': 'fire_and_safety',
+      'Access': 'access',
+      'Transportation': 'transportation'
+    };
+
+    setNewIssue({
+      dateOfIssue: formatDateForInput(issue.dateOfIssue),
+      scopeOfWork: reverseScopeMapping[issue.scopeOfWork] || issue.scopeOfWork || '',
+      reason: issue.reason || '',
+      description: issue.description || '',
+      dateOfDamage: formatDateForInput(issue.dateOfDamage),
+      damageImage: null,
+      remarks: issue.remarks || '',
+      fixedImage: null,
+      personType: issue.personType || '',
+      responsiblePerson: issue.responsiblePerson || ''
     });
+    setEditingIssueIndex(index);
 
-    if (errors.scopeOfWork) {
-      setErrors(prev => ({
+    // Scroll to the form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Add new quality issue to the table or update existing one
+  const addNewIssue = () => {
+    if (!newIssue.dateOfIssue || !newIssue.scopeOfWork || !newIssue.reason || !newIssue.description) {
+      alert('Please fill in all required fields (Date of Issue, Scope of Work, Reason, Description)');
+      return;
+    }
+
+    // Don't add a temporary ID - let MongoDB generate it
+    const newIssueWithoutId = {
+      ...newIssue
+    };
+
+    if (editingIssueIndex !== null) {
+      // Update existing issue
+      setFormData(prev => ({
         ...prev,
-        scopeOfWork: ''
+        qualityIssues: prev.qualityIssues.map((issue, index) =>
+          index === editingIssueIndex ? newIssueWithoutId : issue
+        )
+      }));
+      setEditingIssueIndex(null);
+    } else {
+      // Add new issue
+      setFormData(prev => ({
+        ...prev,
+        qualityIssues: [...prev.qualityIssues, newIssueWithoutId]
       }));
     }
+
+    // Reset new issue form
+    setNewIssue({
+      dateOfIssue: '',
+      scopeOfWork: '',
+      reason: '',
+      description: '',
+      dateOfDamage: '',
+      damageImage: null,
+      remarks: '',
+      fixedImage: null,
+      personType: '',
+      responsiblePerson: ''
+    });
+  };
+
+  // Remove quality issue from table
+  const removeIssue = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      qualityIssues: prev.qualityIssues.filter((_, i) => i !== index)
+    }));
   };
 
   const validateForm = () => {
     const newErrors = {};
 
     if (!formData.customer) newErrors.customer = 'Customer is required';
-    if (!formData.scopeOfWork || formData.scopeOfWork.length === 0) {
-      newErrors.scopeOfWork = 'At least one scope of work is required';
-    }
     if (!formData.openIssues) newErrors.openIssues = 'Open issues description is required';
     if (!formData.category) newErrors.category = 'Category is required';
-    if (!formData.responsibility) newErrors.responsibility = 'Responsible person is required';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -234,39 +279,40 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
 
     if (!validateForm()) return;
 
+    console.log('Form data before cleaning:', formData);
+
+    // Scope mapping for quality issues
     const scopeMapping = {
       'electrical': 'Electrical',
       'data': 'Data',
       'cctv': 'CCTV',
       'partition': 'Partition',
-      'partion': 'Partition',  // Handle typo in Project model
       'fire_and_safety': 'Fire and Safety',
-      'fire and safety': 'Fire and Safety',  // Handle lowercase with space from existing records
       'access': 'Access',
-      'transportation': 'Transportation'  // Add missing Transportation option
+      'transportation': 'Transportation'
     };
 
-    console.log('Form data before cleaning:', formData);
-    console.log('Scope of work before mapping:', formData.scopeOfWork);
+    // Map quality issues to ensure scope of work values are properly formatted
+    const mappedQualityIssues = formData.qualityIssues.map(issue => {
+      const cleanIssue = {
+        ...issue,
+        scopeOfWork: scopeMapping[issue.scopeOfWork] || issue.scopeOfWork,
+        // Remove any _id field if it exists (MongoDB will generate it)
+        _id: undefined
+      };
+
+      // Images are now URLs (strings), not File objects, so no need to delete them
+
+      return cleanIssue;
+    });
 
     const cleanedData = {
-      ...formData,
       customer: formData.customer?.trim() || undefined,
       projectName: formData.projectName?.trim() || undefined,
-      scopeOfWork: formData.scopeOfWork && formData.scopeOfWork.length > 0
-        ? formData.scopeOfWork.map(scope => {
-          const mapped = scopeMapping[scope] || scope;
-          console.log(`Mapping scope: ${scope} -> ${mapped}`);
-          return mapped;
-        })
-        : undefined,
-      scopeOfWorkText: formData.scopeOfWorkText?.trim() || undefined,
       openIssues: formData.openIssues?.trim() || undefined,
       category: formData.category?.trim() || undefined,
       status: formData.status?.trim() || 'open',
-      personType: formData.personType?.trim() || undefined,
-      responsibility: formData.responsibility?.trim() || undefined,
-      remarks: formData.remarks?.trim() || undefined
+      qualityIssues: mappedQualityIssues
     };
 
     console.log('Cleaned data before removing undefined:', cleanedData);
@@ -276,6 +322,17 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
         delete cleanedData[key];
       }
     });
+
+    // Clean up qualityIssues to remove undefined _id fields
+    if (cleanedData.qualityIssues) {
+      cleanedData.qualityIssues = cleanedData.qualityIssues.map(issue => {
+        const cleanIssue = { ...issue };
+        if (cleanIssue._id === undefined) {
+          delete cleanIssue._id;
+        }
+        return cleanIssue;
+      });
+    }
 
     console.log('Final data being submitted:', cleanedData);
 
@@ -293,10 +350,39 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
     }
   };
 
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Get scope label from value
+  const getScopeLabel = (scopeValue) => {
+    const scope = allScopeOptions.find(s => s.value === scopeValue);
+    return scope ? scope.label : scopeValue;
+  };
+
+  // Handle image preview
+  const handleImagePreview = (imageUrl, title) => {
+    // Construct full URL - imageUrl is like "/uploads/quality/filename.jpg"
+    const fullUrl = imageUrl.startsWith('http')
+      ? imageUrl
+      : `http://localhost:5000${imageUrl}`;
+    setImagePreview({ show: true, url: fullUrl, title });
+  };
+
+  const closeImagePreview = () => {
+    setImagePreview({ show: false, url: '', title: '' });
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-200px)] min-h-[600px] max-h-[800px]">
       <form onSubmit={handleSubmit} className="flex flex-col h-full">
-
 
         {/* Scrollable Form Content */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -364,8 +450,6 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
                   ]}
                 />
 
-
-
                 <FloatingInput
                   label="Status"
                   name="status"
@@ -377,148 +461,331 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
                     label: status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ')
                   }))}
                 />
-
-                <FloatingInput
-                  label="Scope of Work Details"
-                  name="scopeOfWorkText"
-                  value={formData.scopeOfWorkText}
-                  onChange={handleChange}
-                  type="text"
-                />
               </div>
             </div>
-          </div>
 
-          {/* SECTION 2: Scope of Work */}
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Scope of Work</h3>
+            {/* SECTION 2: Quality Issues Table */}
+            <div className="bg-white p-6 rounded-lg border border-gray-200">
 
-            <div className="relative mb-4">
-              <div
-                className={`block w-full px-3 pt-4 pb-2 bg-white rounded border transition-all duration-200 min-h-[64px] cursor-pointer
-                    ${errors.scopeOfWork ? 'border-red-500' : scopeFocused ? 'border-blue-500' : 'border-gray-300'}
-                    ${formData.customer && availableScopes.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}
-                  `}
-                onClick={() => !(formData.customer && availableScopes.length === 0) && setScopeFocused(true)}
-                onBlur={() => setScopeFocused(false)}
-                tabIndex="0"
-              >
-                <label
-                  className={`absolute left-3 bg-white px-1 transition-all duration-200 pointer-events-none
-                      ${(scopeFocused || (formData.scopeOfWork && formData.scopeOfWork.length > 0))
-                      ? 'top-0 text-xs transform -translate-y-1/2 text-blue-600 font-medium'
-                      : 'top-3 text-sm text-gray-500'
-                    }
-                    `}
-                >
-                  Scope of Work <span className="text-red-500">*</span>
-                </label>
+              {/* Form to add new quality issue */}
+              <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                <h4 className="text-md font-medium text-gray-900 mb-4">Add New Quality Issue</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <FloatingInput
+                    label="Date of Issue"
+                    name="dateOfIssue"
+                    value={newIssue.dateOfIssue}
+                    onChange={handleNewIssueChange}
+                    type="date"
+                    required={true}
+                  />
 
-
-                {formData.customer && availableScopes.length === 0 && (
-                  <div className="text-xs text-gray-500 mt-1 ml-1">
-                    No scopes available for this customer
-                  </div>
-                )}
-
-                {formData.customer && availableScopes.length > 0 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mt-3 max-h-60 overflow-y-auto pr-2">
-                    {allScopeOptions
-                      .filter(scope => availableScopes.includes(scope.value))
-                      .map((scope) => {
-                        const isChecked = formData.scopeOfWork?.includes(scope.value);
-
-                        return (
-                          <label
-                            key={scope.value}
-                            className="flex items-center space-x-3 p-3 rounded cursor-pointer transition-colors hover:bg-blue-50 border border-gray-200"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => handleScopeChange(scope.value)}
-                              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                            />
-                            <span className={`text-sm ${isChecked ? 'font-medium text-primary-700' : 'text-gray-700'}`}>
-                              {scope.label}
-                            </span>
-                          </label>
-                        );
-                      })}
-                  </div>
-                )}
-
-              </div>
-
-              {errors.scopeOfWork && (
-                <div className="mt-1 flex items-start ml-1">
-                  <svg className="w-4 h-4 mt-0.5 mr-1 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 
-                          1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 
-                          0 00-1-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <p className="text-xs text-red-600">{errors.scopeOfWork}</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* SECTION 3: Responsible Party */}
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Responsible Party</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FloatingInput
-                label="Person Type"
-                name="personType"
-                value={formData.personType}
-                onChange={(e) => {
-                  handleChange(e);
-                  setFormData(prev => ({ ...prev, responsibility: '' }));
-                }}
-                type="select"
-                options={[
-                  { value: '', label: 'Select Type' },
-                  { value: 'inhouse', label: 'Inhouse' },
-                  { value: 'outsourced', label: 'Outsourced' }
-                ]}
-              />
-
-              <FloatingInput
-                label="Responsible Person"
-                name="responsibility"
-                value={formData.responsibility}
-                onChange={handleChange}
-                error={errors.responsibility}
-                type="select"
-                required={true}
-                disabled={!formData.personType}
-                options={[
-                  { value: '', label: formData.personType ? (formData.personType === 'inhouse' ? 'Select Employee' : 'Select Vendor') : 'Select Person Type First' },
-                  ...(formData.personType === 'inhouse'
-                    ? employees.map(employee => ({
-                      value: employee.name,
-                      label: employee.name
-                    }))
-                    : formData.personType === 'outsourced'
-                      ? vendors.map(vendor => ({
-                        value: vendor.vendorName,
-                        label: vendor.vendorName
+                  <FloatingInput
+                    label="Scope of Work"
+                    name="scopeOfWork"
+                    value={newIssue.scopeOfWork}
+                    onChange={handleNewIssueChange}
+                    type="select"
+                    required={true}
+                    options={[
+                      { value: '', label: 'Select Scope' },
+                      ...allScopeOptions.map(scope => ({
+                        value: scope.value,
+                        label: scope.label
                       }))
-                      : []
-                  )
-                ]}
-              />
-            </div>
-          </div>
+                    ]}
+                  />
 
-          {/* SECTION 4: Issue Details */}
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Issue Details</h3>
-            <div className="space-y-6">
+                  <FloatingInput
+                    label="Reason"
+                    name="reason"
+                    value={newIssue.reason}
+                    onChange={handleNewIssueChange}
+                    type="select"
+                    required={true}
+                    options={[
+                      { value: '', label: 'Select Reason' },
+                      ...reasonOptions.map(reason => ({
+                        value: reason,
+                        label: reason
+                      }))
+                    ]}
+                  />
+
+                  <FloatingInput
+                    label="Description"
+                    name="description"
+                    value={newIssue.description}
+                    onChange={handleNewIssueChange}
+                    type="textarea"
+                    required={true}
+                    rows={2}
+                  />
+
+                  <FloatingInput
+                    label="Date of Damage"
+                    name="dateOfDamage"
+                    value={newIssue.dateOfDamage}
+                    onChange={handleNewIssueChange}
+                    type="date"
+                  />
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Damage Image
+                      </label>
+                      <input
+                        type="file"
+                        name="damageImage"
+                        onChange={handleNewIssueChange}
+                        accept="image/"
+                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Fixed Image
+                      </label>
+                      <input
+                        type="file"
+                        name="fixedImage"
+                        onChange={handleNewIssueChange}
+                        accept="image/"
+                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                      />
+                    </div>
+                  </div>
+
+                  <FloatingInput
+                    label="Remarks"
+                    name="remarks"
+                    value={newIssue.remarks}
+                    onChange={handleNewIssueChange}
+                    type="text"
+                  />
+
+                  <FloatingInput
+                    label="Person Type"
+                    name="personType"
+                    value={newIssue.personType}
+                    onChange={handleNewIssueChange}
+                    type="select"
+                    options={[
+                      { value: '', label: 'Select Type' },
+                      { value: 'inhouse', label: 'Inhouse' },
+                      { value: 'outsourced', label: 'Outsourced' }
+                    ]}
+                  />
+
+                  <FloatingInput
+                    label="Responsible Person"
+                    name="responsiblePerson"
+                    value={newIssue.responsiblePerson}
+                    onChange={handleNewIssueChange}
+                    type="select"
+                    disabled={!newIssue.personType}
+                    options={[
+                      { value: '', label: newIssue.personType ? 'Select Person' : 'Select Person Type First' },
+                      ...(newIssue.personType === 'inhouse'
+                        ? employees.map(emp => ({
+                          value: emp.name,
+                          label: emp.name
+                        }))
+                        : newIssue.personType === 'outsourced'
+                          ? vendors.map(vendor => ({
+                            value: vendor.vendorName,
+                            label: vendor.vendorName
+                          }))
+                          : [])
+                    ]}
+                  />
+                </div>
+
+                <div className="mt-6 flex justify-end space-x-3">
+                  {editingIssueIndex !== null && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingIssueIndex(null);
+                        setNewIssue({
+                          dateOfIssue: '',
+                          scopeOfWork: '',
+                          reason: '',
+                          description: '',
+                          dateOfDamage: '',
+                          damageImage: null,
+                          remarks: '',
+                          fixedImage: null,
+                          personType: '',
+                          responsiblePerson: ''
+                        });
+                      }}
+                      className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={addNewIssue}
+                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  >
+                    {editingIssueIndex !== null ? 'Update Issue' : 'Add Issue to Table'}
+                  </button>
+                </div>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Quality Issues</h3>
+
+              {/* Table for quality issues */}
+              <div className="overflow-x-auto mb-6">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date of Issue
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Scope of Work
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Reason
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Description
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date of Damage
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Damage Image
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Remarks
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Fixed Image
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Person Type
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Responsible Person
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {formData.qualityIssues.length === 0 ? (
+                      <tr>
+                        <td colSpan="11" className="px-6 py-4 text-center text-sm text-gray-500">
+                          No quality issues added yet
+                        </td>
+                      </tr>
+                    ) : (
+                      formData.qualityIssues.map((issue, index) => (
+                        <tr key={index} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {formatDate(issue.dateOfIssue)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {getScopeLabel(issue.scopeOfWork)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {issue.reason}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            <div className="max-w-xs truncate" title={issue.description}>
+                              {issue.description}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {formatDate(issue.dateOfDamage)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {issue.damageImage ? (
+                              <button
+                                type="button"
+                                onClick={() => handleImagePreview(issue.damageImage, 'Damage Image')}
+                                className="text-blue-600 hover:text-blue-900"
+                                title="View Damage Image"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                              </button>
+                            ) : (
+                              <span className="text-gray-400">No image</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            <div className="max-w-xs truncate" title={issue.remarks}>
+                              {issue.remarks || 'N/A'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {issue.fixedImage ? (
+                              <button
+                                type="button"
+                                onClick={() => handleImagePreview(issue.fixedImage, 'Fixed Image')}
+                                className="text-blue-600 hover:text-blue-900"
+                                title="View Fixed Image"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                              </button>
+                            ) : (
+                              <span className="text-gray-400">No image</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {issue.personType === 'inhouse' ? 'Inhouse' :
+                              issue.personType === 'outsourced' ? 'Outsourced' : 'N/A'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {issue.responsiblePerson || 'N/A'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex items-center space-x-3">
+                              <button
+                                type="button"
+                                onClick={() => editIssue(index)}
+                                className="text-blue-600 hover:text-blue-900"
+                                title="Edit"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeIssue(index)}
+                                className="text-red-600 hover:text-red-900"
+                                title="Delete"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* SECTION 3: Open Issues */}
+            <div className="bg-white p-6 rounded-lg border border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">General Open Issues</h3>
               <FloatingInput
                 label="List of Open Issues"
                 name="openIssues"
@@ -529,16 +796,6 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
                 required={true}
                 rows={5}
                 helperText="Describe all open issues that need to be addressed"
-              />
-
-              <FloatingInput
-                label="Remarks"
-                name="remarks"
-                value={formData.remarks}
-                onChange={handleChange}
-                type="textarea"
-                rows={4}
-                helperText="Additional comments or notes (optional)"
               />
             </div>
           </div>
@@ -564,6 +821,36 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
           </div>
         </div>
       </form>
+
+      {/* Image Preview Modal */}
+      {imagePreview.show && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={closeImagePreview}
+        >
+          <div
+            className="bg-white rounded-lg p-6 max-w-4xl max-h-[90vh] overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">{imagePreview.title}</h3>
+              <button
+                onClick={closeImagePreview}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <img
+              src={imagePreview.url}
+              alt={imagePreview.title}
+              className="max-w-full h-auto"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

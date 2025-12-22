@@ -12,6 +12,7 @@ import {
   ChevronRightIcon,
   ClockIcon,
   DocumentTextIcon,
+  DocumentArrowDownIcon
 } from "@heroicons/react/24/outline";
 import ProjectForm from "../components/Forms/ProjectForm";
 import Modal from "../components/Modals/Modal";
@@ -33,14 +34,17 @@ const ProjectMaster = () => {
     customerName: "",
     stage: "",
     projectName: "",
+    projectCategory: "",
   });
   const [showFilters, setShowFilters] = useState(false);
   const [uniqueCustomers, setUniqueCustomers] = useState([]);
   const [uniqueStages, setUniqueStages] = useState([]);
   const [uniqueProjectNames, setUniqueProjectNames] = useState([]);
+  const [uniqueCategories, setUniqueCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const { notification, showSuccess, showError, hideNotification } = useNotification();
 
   useEffect(() => {
@@ -66,10 +70,14 @@ const ProjectMaster = () => {
       const projectNames = [
         ...new Set(response.data.map((project) => project.projectName)),
       ].filter(Boolean);
+      const categories = [
+        ...new Set(response.data.map((project) => project.projectCategory)),
+      ].filter(Boolean);
 
       setUniqueCustomers(customers);
       setUniqueStages(stages);
       setUniqueProjectNames(projectNames);
+      setUniqueCategories(categories);
     } catch (error) {
       console.error("Error fetching projects:", error);
     } finally {
@@ -80,7 +88,7 @@ const ProjectMaster = () => {
   // Helper function specifically for Fire and safety formatting
   const formatScopeItem = (scope) => {
     if (typeof scope !== 'string') return String(scope);
-    
+
     return scope
       .replace(/_/g, " ") // Replace underscores with spaces
       .replace(/\b\w/g, (l) => l.toUpperCase()) // Capitalize first letter of each word
@@ -116,6 +124,12 @@ const ProjectMaster = () => {
     if (filters.projectName) {
       filtered = filtered.filter(
         (project) => project.projectName === filters.projectName
+      );
+    }
+
+    if (filters.projectCategory) {
+      filtered = filtered.filter(
+        (project) => project.projectCategory === filters.projectCategory
       );
     }
 
@@ -161,6 +175,7 @@ const ProjectMaster = () => {
       customerName: "",
       stage: "",
       projectName: "",
+      projectCategory: "",
     });
     setSearchTerm("");
   };
@@ -195,7 +210,7 @@ const ProjectMaster = () => {
       "Project Value (In Rupees)",
       "Scope of Work",
     ];
-    
+
     const csvData = filteredProjects.map((project) => [
       escapeCSV(project.customerName),
       escapeCSV(project.projectName),
@@ -232,32 +247,166 @@ const ProjectMaster = () => {
   const handleViewHistory = async (project) => {
     try {
       const response = await projectsAPI.getHistory(project._id);
-      
+
       // Filter out duplicate entries where old and new values are the same
       const filteredHistory = response.data.filter((change, index, array) => {
         if (change.field === "created") return true; // Always show creation
-        
+
         // Skip if old and new values are identical
         if (JSON.stringify(change.oldValue) === JSON.stringify(change.newValue)) {
           return false;
         }
-        
+
         // For dates, compare as timestamps
         if (change.field === "enquiryDate") {
           const oldDate = new Date(change.oldValue).getTime();
           const newDate = new Date(change.newValue).getTime();
           return oldDate !== newDate;
         }
-        
+
         return true;
       });
-      
+
       setProjectHistory(filteredHistory);
       setSelectedProject(project);
       setHistoryModal(true);
     } catch (error) {
       console.error("Error fetching project history:", error);
       showError("Error loading project history");
+    }
+  };
+
+  const handleDownloadHistoryPDF = async () => {
+    try {
+      setPdfLoading(true);
+
+      // Dynamically import jsPDF and html2canvas
+      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+        import('jspdf'),
+        import('html2canvas')
+      ]);
+
+      // Create a temporary container for the PDF content
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '-9999px';
+      container.style.top = '0';
+      container.style.width = '210mm'; // A4 width
+      container.style.backgroundColor = 'white';
+      container.style.padding = '20px';
+      document.body.appendChild(container);
+
+      // Build the HTML content
+      const htmlContent = `
+        <div style="font-family: Arial, sans-serif; color: #333;">
+          <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #3b82f6; padding-bottom: 15px;">
+            <h1 style="color: #1f2937; margin: 0; font-size: 24px;">Project History Report</h1>
+            <p style="color: #6b7280; margin: 10px 0 0 0; font-size: 14px;">Generated on ${new Date().toLocaleDateString()}</p>
+          </div>
+          
+          <div style="margin-bottom: 25px; padding: 15px; background-color: #f3f4f6; border-radius: 8px;">
+            <h2 style="color: #1f2937; margin: 0 0 10px 0; font-size: 18px;">Project Information</h2>
+            <p style="margin: 5px 0;"><strong>Project Name:</strong> ${selectedProject?.projectName || 'N/A'}</p>
+            <p style="margin: 5px 0;"><strong>Client Name:</strong> ${selectedProject?.customerName || 'N/A'}</p>
+            <p style="margin: 5px 0;"><strong>Current Stage:</strong> ${selectedProject?.stage?.replace(/_/g, ' ').toUpperCase() || 'N/A'}</p>
+            <p style="margin: 5px 0;"><strong>Project Value:</strong> ₹${selectedProject?.totalProjectValue?.toLocaleString() || '0'}</p>
+            <p style="margin: 5px 0;"><strong>Total Changes:</strong> ${projectHistory.length}</p>
+          </div>
+
+          <div>
+            <h2 style="color: #1f2937; margin: 0 0 15px 0; font-size: 18px;">Change History</h2>
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+              <thead>
+                <tr style="background-color: #f9fafb; border-bottom: 2px solid #e5e7eb;">
+                  <th style="padding: 10px; text-align: left; font-weight: 600; color: #6b7280;">Date & Time</th>
+                  <th style="padding: 10px; text-align: left; font-weight: 600; color: #6b7280;">Changed By</th>
+                  <th style="padding: 10px; text-align: left; font-weight: 600; color: #6b7280;">Action</th>
+                  <th style="padding: 10px; text-align: left; font-weight: 600; color: #6b7280;">Field</th>
+                  <th style="padding: 10px; text-align: left; font-weight: 600; color: #6b7280;">Old Value</th>
+                  <th style="padding: 10px; text-align: left; font-weight: 600; color: #6b7280;">New Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${projectHistory.map((change, index) => {
+        const isCreation = change.field === 'created';
+        const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+
+        return `
+                    <tr style="background-color: ${bgColor}; border-bottom: 1px solid #e5e7eb;">
+                      <td style="padding: 8px;">
+                        <div style="font-weight: 500;">${new Date(change.updatedAt).toLocaleDateString()}</div>
+                        <div style="font-size: 10px; color: #6b7280;">${new Date(change.updatedAt).toLocaleTimeString()}</div>
+                      </td>
+                      <td style="padding: 8px;">${change.updatedBy || 'System'}</td>
+                      <td style="padding: 8px;">
+                        <span style="padding: 4px 8px; border-radius: 12px; font-size: 10px; font-weight: 500; background-color: ${isCreation ? '#d1fae5' : '#fef3c7'}; color: ${isCreation ? '#065f46' : '#92400e'};">
+                          ${isCreation ? 'Created' : 'Modified'}
+                        </span>
+                      </td>
+                      <td style="padding: 8px; font-weight: 500; color: ${isCreation ? '#059669' : '#2563eb'};">
+                        ${isCreation ? 'Project Creation' : formatFieldName(change.field)}
+                      </td>
+                      <td style="padding: 8px; color: #6b7280;">
+                        ${isCreation ? '—' : formatValue(change.oldValue, change.field)}
+                      </td>
+                      <td style="padding: 8px; font-weight: 500; color: ${isCreation ? '#059669' : '#000'};">
+                        ${isCreation ? 'Initial Setup' : formatValue(change.newValue, change.field)}
+                      </td>
+                    </tr>
+                  `;
+      }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      container.innerHTML = htmlContent;
+
+      // Wait for content to render
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Generate canvas from HTML
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+
+      // Clean up container
+      document.body.removeChild(container);
+
+      // Create PDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210; // A4 width in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pageHeight = 297; // A4 height in mm
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      // Add first page
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      // Add additional pages if needed
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Download PDF
+      const fileName = `Project_History_${selectedProject?.projectName?.replace(/\\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(fileName);
+
+      showSuccess('PDF downloaded successfully');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      showError('Failed to generate PDF');
+    } finally {
+      setPdfLoading(false);
     }
   };
 
@@ -306,6 +455,7 @@ const ProjectMaster = () => {
       stage: "Stage",
       scopeOfWork: "Scope of Work",
       projectType: "Project Type",
+      projectCategory: "Project Category",
       created: "Project Created",
     };
     return (
@@ -342,6 +492,10 @@ const ProjectMaster = () => {
     }
 
     if (field === "projectType") {
+      return value.charAt(0).toUpperCase() + value.slice(1);
+    }
+
+    if (field === "projectCategory") {
       return value.charAt(0).toUpperCase() + value.slice(1);
     }
 
@@ -439,13 +593,12 @@ const ProjectMaster = () => {
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                    showFilters ||
+                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters ||
                     Object.values(filters).some(Boolean) ||
                     searchTerm
-                      ? "border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100"
-                      : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
-                  }`}
+                    ? "border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100"
+                    : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+                    }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
                   Filters
@@ -489,7 +642,7 @@ const ProjectMaster = () => {
           {/* Filters */}
           {showFilters && (
             <div className="px-4 py-5 sm:p-6 bg-gray-50 border-b border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Client Name
@@ -543,6 +696,25 @@ const ProjectMaster = () => {
                     {uniqueProjectNames.map((projectName) => (
                       <option key={projectName} value={projectName}>
                         {projectName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Project Category
+                  </label>
+                  <select
+                    value={filters.projectCategory}
+                    onChange={(e) =>
+                      handleFilterChange("projectCategory", e.target.value)
+                    }
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
+                  >
+                    <option value="">All Categories</option>
+                    {uniqueCategories.map((category) => (
+                      <option key={category} value={category}>
+                        {category.charAt(0).toUpperCase() + category.slice(1)}
                       </option>
                     ))}
                   </select>
@@ -680,7 +852,7 @@ const ProjectMaster = () => {
                           className="px-6 py-8 text-center text-gray-500"
                         >
                           {searchTerm.trim() ||
-                          Object.values(filters).some((val) => val !== "")
+                            Object.values(filters).some((val) => val !== "")
                             ? "No projects found matching your search criteria."
                             : 'No projects found. Click "Add Project" to create your first project.'}
                         </td>
@@ -761,7 +933,7 @@ const ProjectMaster = () => {
               ) : (
                 <div className="p-8 text-center text-gray-500">
                   {searchTerm.trim() ||
-                  Object.values(filters).some((val) => val !== "")
+                    Object.values(filters).some((val) => val !== "")
                     ? "No projects found matching your search criteria."
                     : 'No projects found. Click "Add Project" to create your first project.'}
                 </div>
@@ -827,11 +999,10 @@ const ProjectMaster = () => {
                           )}
                           <button
                             onClick={() => paginate(page)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              currentPage === page
-                                ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
-                                : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
-                            }`}
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
+                              ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
+                              : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                              }`}
                           >
                             {page}
                           </button>
@@ -878,160 +1049,160 @@ const ProjectMaster = () => {
 
       {/* View Modal */}
       <Modal
-  isOpen={viewModal}
-  onClose={() => {
-    setViewModal(false);
-    setSelectedProject(null);
-  }}
-  title="Project Details"
-  size="lg"
-  className="font-sans"
->
-  {selectedProject && (
-    <div className="p-1">
-      <div className="space-y-6">
-        {/* Details Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Project Information */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center mb-3">
-             
-              <h3 className="ml-2 text-md font-semibold text-gray-900">Project Information</h3>
-            </div>
-            <div className="space-y-2">
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Name</p>
-                <p className="text-sm font-medium text-gray-800">{selectedProject.projectName}</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Client Name</p>
-                <p className="text-sm text-gray-800">{selectedProject?.customerName || 'Not specified'}</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Type</p>
-                <p className="text-sm text-gray-800">
-                  {selectedProject.projectType?.charAt(0).toUpperCase() +
-                    selectedProject.projectType?.slice(1) || "New"}
-                </p>
-              </div>
-            </div>
-          </div>
+        isOpen={viewModal}
+        onClose={() => {
+          setViewModal(false);
+          setSelectedProject(null);
+        }}
+        title="Project Details"
+        size="lg"
+        className="font-sans"
+      >
+        {selectedProject && (
+          <div className="p-1">
+            <div className="space-y-6">
+              {/* Details Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Project Information */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                  <div className="flex items-center mb-3">
 
-          {/* Financial Information */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center mb-3">
-              <h3 className="ml-2 text-md font-semibold text-gray-900">Financial Information</h3>
-            </div>
-            <div className="space-y-2">
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Value</p>
-                <p className="text-sm font-medium text-gray-800">₹{selectedProject.totalProjectValue.toLocaleString()}</p>
-              </div>
-              {selectedProject.projectBudget && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Budget</p>
-                  <p className="text-sm text-gray-800">₹{selectedProject.projectBudget.toLocaleString()}</p>
+                    <h3 className="ml-2 text-md font-semibold text-gray-900">Project Information</h3>
+                  </div>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Name</p>
+                      <p className="text-sm font-medium text-gray-800">{selectedProject.projectName}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Client Name</p>
+                      <p className="text-sm text-gray-800">{selectedProject?.customerName || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Type</p>
+                      <p className="text-sm text-gray-800">
+                        {selectedProject.projectType?.charAt(0).toUpperCase() +
+                          selectedProject.projectType?.slice(1) || "New"}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
 
-          {/* Timeline Information */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center mb-3">
-    
-              <h3 className="ml-2 text-md font-semibold text-gray-900">Timeline</h3>
-            </div>
-            <div className="space-y-2">
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Enquiry Date</p>
-                <p className="text-sm text-gray-800">{new Date(selectedProject.enquiryDate).toLocaleDateString()}</p>
-              </div>
-              {selectedProject.startDate && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Start Date</p>
-                  <p className="text-sm text-gray-800">{new Date(selectedProject.startDate).toLocaleDateString()}</p>
+                {/* Financial Information */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                  <div className="flex items-center mb-3">
+                    <h3 className="ml-2 text-md font-semibold text-gray-900">Financial Information</h3>
+                  </div>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Value</p>
+                      <p className="text-sm font-medium text-gray-800">₹{selectedProject.totalProjectValue.toLocaleString()}</p>
+                    </div>
+                    {selectedProject.projectBudget && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Budget</p>
+                        <p className="text-sm text-gray-800">₹{selectedProject.projectBudget.toLocaleString()}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-              {selectedProject.expectedCompletion && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Expected Completion</p>
-                  <p className="text-sm text-gray-800">{new Date(selectedProject.expectedCompletion).toLocaleDateString()}</p>
+
+                {/* Timeline Information */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                  <div className="flex items-center mb-3">
+
+                    <h3 className="ml-2 text-md font-semibold text-gray-900">Timeline</h3>
+                  </div>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Enquiry Date</p>
+                      <p className="text-sm text-gray-800">{new Date(selectedProject.enquiryDate).toLocaleDateString()}</p>
+                    </div>
+                    {selectedProject.startDate && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Start Date</p>
+                        <p className="text-sm text-gray-800">{new Date(selectedProject.startDate).toLocaleDateString()}</p>
+                      </div>
+                    )}
+                    {selectedProject.expectedCompletion && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Expected Completion</p>
+                        <p className="text-sm text-gray-800">{new Date(selectedProject.expectedCompletion).toLocaleDateString()}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
 
-          {/* Status Information */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center mb-3">
-              <h3 className="ml-2 text-md font-semibold text-gray-900">Status</h3>
-            </div>
-            <div className="space-y-2">
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Stage</p>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {selectedProject.stage.replace(/_/g, " ")}
-                </span>
-              </div>
-              {selectedProject.status && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Status</p>
-                  <p className="text-sm text-gray-800">{selectedProject.status}</p>
+                {/* Status Information */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                  <div className="flex items-center mb-3">
+                    <h3 className="ml-2 text-md font-semibold text-gray-900">Status</h3>
+                  </div>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Stage</p>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {selectedProject.stage.replace(/_/g, " ")}
+                      </span>
+                    </div>
+                    {selectedProject.status && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Status</p>
+                        <p className="text-sm text-gray-800">{selectedProject.status}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
 
-          {/* Scope of Work - Full Width */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm md:col-span-2">
-            <div className="flex items-center mb-3">
-              
-              <h3 className="ml-2 text-md font-semibold text-gray-900">Scope of Work</h3>
-            </div>
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Details</p>
-              <div className="flex flex-wrap gap-2">
-                {selectedProject.scopeOfWork && selectedProject.scopeOfWork.length > 0 ? (
-                  formatScopeOfWork(selectedProject.scopeOfWork).map((scope, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-800"
-                    >
-                      {scope}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-sm text-gray-500">No scope of work defined</span>
-                )}
+                {/* Scope of Work - Full Width */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm md:col-span-2">
+                  <div className="flex items-center mb-3">
+
+                    <h3 className="ml-2 text-md font-semibold text-gray-900">Scope of Work</h3>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Details</p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedProject.scopeOfWork && selectedProject.scopeOfWork.length > 0 ? (
+                        formatScopeOfWork(selectedProject.scopeOfWork).map((scope, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-800"
+                          >
+                            {scope}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-sm text-gray-500">No scope of work defined</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => setViewModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    setViewModal(false);
+                    setEditingProject(selectedProject);
+                    setShowModal(true);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Edit Project
+                </button>
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-          <button
-            onClick={() => setViewModal(false)}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Close
-          </button>
-          <button
-            onClick={() => {
-              setViewModal(false);
-              setEditingProject(selectedProject);
-              setShowModal(true);
-            }}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Edit Project
-          </button>
-        </div>
-      </div>
-    </div>
-  )}
-</Modal>
+        )}
+      </Modal>
 
       {/* History Modal */}
       <Modal
@@ -1063,12 +1234,22 @@ const ProjectMaster = () => {
                     </span>
                   </p>
                 </div>
-                <div className="flex items-center space-x-2 bg-blue-50 px-3 py-2 rounded-lg">
-                  <ClockIcon className="h-5 w-5 text-blue-500" />
-                  <span className="text-sm font-medium text-blue-700">
-                    {projectHistory.length}{" "}
-                    {projectHistory.length === 1 ? "change" : "changes"} recorded
-                  </span>
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={handleDownloadHistoryPDF}
+                    disabled={pdfLoading || projectHistory.length === 0}
+                    className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                  >
+                    <DocumentArrowDownIcon className="h-5 w-5 mr-2" />
+                    {pdfLoading ? 'Generating...' : 'Download PDF'}
+                  </button>
+                  <div className="flex items-center space-x-2 bg-blue-50 px-3 py-2 rounded-lg">
+                    <ClockIcon className="h-5 w-5 text-blue-500" />
+                    <span className="text-sm font-medium text-blue-700">
+                      {projectHistory.length}{" "}
+                      {projectHistory.length === 1 ? "change" : "changes"} recorded
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1104,7 +1285,7 @@ const ProjectMaster = () => {
                       {projectHistory.map((change, index) => {
                         const isCreation = change.field === "created";
                         const changedField = change.field;
-                        
+
                         // Skip rows where old and new values are the same (except for creation)
                         if (!isCreation && JSON.stringify(change.oldValue) === JSON.stringify(change.newValue)) {
                           return null;
@@ -1113,9 +1294,8 @@ const ProjectMaster = () => {
                         return (
                           <tr
                             key={index}
-                            className={`hover:bg-gray-50 transition-colors duration-150 ${
-                              isCreation ? "bg-green-50" : "bg-white"
-                            }`}
+                            className={`hover:bg-gray-50 transition-colors duration-150 ${isCreation ? "bg-green-50" : "bg-white"
+                              }`}
                           >
                             {/* DATE & TIME */}
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -1186,7 +1366,7 @@ const ProjectMaster = () => {
                                         return <div className="text-sm text-gray-900">{newValueObj}</div>;
                                       }
                                     }
-                                    
+
                                     if (typeof newValueObj === 'object' && newValueObj !== null) {
                                       return Object.entries(newValueObj).map(([key, value]) => (
                                         <div key={key} className="text-sm">
@@ -1199,14 +1379,13 @@ const ProjectMaster = () => {
                                         </div>
                                       ));
                                     }
-                                    
+
                                     return <div className="text-sm text-gray-900">{String(newValueObj)}</div>;
                                   })()}
                                 </div>
                               ) : (
-                                <div className={`text-sm font-medium ${
-                                  change.oldValue !== change.newValue ? 'text-green-600' : 'text-gray-900'
-                                }`}>
+                                <div className={`text-sm font-medium ${change.oldValue !== change.newValue ? 'text-green-600' : 'text-gray-900'
+                                  }`}>
                                   {formatValue(change.newValue, changedField)}
                                 </div>
                               )}

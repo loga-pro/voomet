@@ -11,7 +11,8 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
     scopeOfWork: [],
     stage: '',
     totalProjectValue: '',
-    projectName: ''
+    projectName: '',
+    projectCategory: ''
   });
   const [scopeOptions, setScopeOptions] = useState([]);
   const [errors, setErrors] = useState({});
@@ -37,7 +38,7 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
   // Real-time validation functions
   const validateField = (name, value) => {
     let error = '';
-    
+
     switch (name) {
       case 'projectName':
         if (!value) {
@@ -48,13 +49,13 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
           error = 'Project name cannot exceed 30 characters';
         }
         break;
-        
+
       case 'customerId':
         if (!value) {
           error = 'Customer name is required';
         }
         break;
-        
+
       case 'enquiryDate':
         if (!value) {
           error = 'Enquiry date is required';
@@ -67,7 +68,7 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
           }
         }
         break;
-        
+
       case 'stage':
         if (!value) {
           error = 'Stage is required';
@@ -78,7 +79,7 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
           }
         }
         break;
-        
+
       case 'totalProjectValue':
         if (!value) {
           error = 'Project value is required';
@@ -88,17 +89,23 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
           error = 'Project value cannot exceed ₹99,999,999.99';
         }
         break;
-        
+
       case 'scopeOfWork':
         if (value.length === 0) {
           error = 'At least one scope of work is required';
         }
         break;
-        
+
+      case 'projectCategory':
+        if (!value) {
+          error = 'Project category is required';
+        }
+        break;
+
       default:
         break;
     }
-    
+
     return error;
   };
 
@@ -179,12 +186,12 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
   useEffect(() => {
     fetchScopeOptions();
     fetchAvailableProjects();
-    
+
     // Only set form data if we have a project to edit AND customerData is loaded
     if (project && customerData && customerData.length > 0) {
       // Find the customerId from customerName if customerId is not present
       let customerId = project.customerId || '';
-      
+
       // If customerId is missing but customerName exists, find it from customerData
       if (!customerId && project.customerName) {
         const matchingCustomer = customerData.find(c => c.label === project.customerName);
@@ -192,14 +199,14 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
           customerId = matchingCustomer.value;
         }
       }
-      
+
       console.log('Setting form data for edit:', {
         projectCustomerId: project.customerId,
         projectCustomerName: project.customerName,
         resolvedCustomerId: customerId,
         customerDataLength: customerData.length
       });
-      
+
       setFormData({
         customerId: customerId,
         customerName: project.customerName || '',
@@ -207,7 +214,8 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
         scopeOfWork: project.scopeOfWork || [],
         stage: project.stage || 'rfq',
         totalProjectValue: project.totalProjectValue || '',
-        projectName: project.projectName || ''
+        projectName: project.projectName || '',
+        projectCategory: project.projectCategory || ''
       });
       setOriginalCustomerName(project.customerName || '');
     } else if (project && (!customerData || customerData.length === 0)) {
@@ -220,7 +228,8 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
         scopeOfWork: project.scopeOfWork || [],
         stage: project.stage || 'rfq',
         totalProjectValue: project.totalProjectValue || '',
-        projectName: project.projectName || ''
+        projectName: project.projectName || '',
+        projectCategory: project.projectCategory || ''
       });
       setOriginalCustomerName(project.customerName || '');
     }
@@ -237,7 +246,8 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
         scopeOfWork: [],
         stage: 'rfq',
         totalProjectValue: '',
-        projectName: ''
+        projectName: '',
+        projectCategory: ''
       }));
       // Clear errors when switching tabs
       setErrors({});
@@ -251,7 +261,8 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
         scopeOfWork: [],
         stage: 'rfq',
         totalProjectValue: '',
-        projectName: ''
+        projectName: '',
+        projectCategory: ''
       }));
       // Clear errors when switching tabs
       setErrors({});
@@ -280,7 +291,7 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     // Mark field as touched
     if (!touchedFields[name]) {
       setTouchedFields(prev => ({ ...prev, [name]: true }));
@@ -316,8 +327,8 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
       setFormData(prev => {
         // Find the selected customer from customerData to get the customerName
         const selectedCustomer = customerData?.find(customer => customer.value === value);
-        const newFormData = { 
-          ...prev, 
+        const newFormData = {
+          ...prev,
           customerId: value,
           customerName: selectedCustomer ? selectedCustomer.label : ''
         };
@@ -338,12 +349,12 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
 
   const handleBlur = (e) => {
     const { name, value } = e.target;
-    
+
     // Mark field as touched
     if (!touchedFields[name]) {
       setTouchedFields(prev => ({ ...prev, [name]: true }));
     }
-    
+
     // Validate on blur
     const fieldError = validateField(name, name === 'scopeOfWork' ? formData.scopeOfWork : value);
     if (fieldError) {
@@ -355,17 +366,17 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
     const newScopeOfWork = formData.scopeOfWork.includes(scope)
       ? formData.scopeOfWork.filter(s => s !== scope)
       : [...formData.scopeOfWork, scope];
-    
+
     setFormData(prev => ({
       ...prev,
       scopeOfWork: newScopeOfWork
     }));
-    
+
     // Mark scopeOfWork as touched
     if (!touchedFields.scopeOfWork) {
       setTouchedFields(prev => ({ ...prev, scopeOfWork: true }));
     }
-    
+
     // Validate scope in real-time
     const fieldError = validateField('scopeOfWork', newScopeOfWork);
     if (fieldError) {
@@ -383,9 +394,10 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
       'enquiryDate',
       'stage',
       'totalProjectValue',
-      'scopeOfWork'
+      'scopeOfWork',
+      'projectCategory'
     ];
-    
+
     fieldsToValidate.forEach(field => {
       const value = formData[field];
       const error = validateField(field, value);
@@ -400,7 +412,7 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     if (!validateForm()) {
       // Show error notification if validation fails
       showError('Please fix all validation errors before submitting.');
@@ -422,7 +434,7 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
         await projectsAPI.create(submitData);
         showSuccess('Project created successfully!');
       }
-      
+
       // Call onSubmit callback to close modal or navigate
       onSubmit();
     } catch (error) {
@@ -447,13 +459,13 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
     const hasStage = formData.stage && formData.stage.trim() !== '';
     const hasTotalProjectValue = formData.totalProjectValue && formData.totalProjectValue.toString().trim() !== '';
     const hasScopeOfWork = formData.scopeOfWork.length > 0;
-    
+
     // Check if there are any validation errors
-    const hasErrors = Object.keys(errors).some(key => 
-      errors[key] && errors[key] !== '' && 
+    const hasErrors = Object.keys(errors).some(key =>
+      errors[key] && errors[key] !== '' &&
       ['projectName', 'customerId', 'enquiryDate', 'stage', 'totalProjectValue', 'scopeOfWork'].includes(key)
     );
-    
+
     console.log('Form completion check:', {
       hasProjectName,
       hasCustomerId,
@@ -465,20 +477,20 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
       formData,
       errors
     });
-    
-    return hasProjectName && hasCustomerId && hasEnquiryDate && hasStage && 
-           hasTotalProjectValue && hasScopeOfWork && !hasErrors;
+
+    return hasProjectName && hasCustomerId && hasEnquiryDate && hasStage &&
+      hasTotalProjectValue && hasScopeOfWork && !hasErrors;
   };
 
   // Determine button text and disabled states
   const isEditingExistingProject = !!project;
   const isCreatingNewProject = !project && projectType === 'new';
   const isCreatingExistingProject = !project && projectType === 'existing';
-  
-  const submitButtonText = loading 
-    ? 'Saving...' 
-    : isEditingExistingProject 
-      ? 'Update' 
+
+  const submitButtonText = loading
+    ? 'Saving...'
+    : isEditingExistingProject
+      ? 'Update'
       : 'Create';
 
   return (
@@ -501,9 +513,9 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
                   type="button"
                   onClick={() => setProjectType('new')}
                   className={`${projectType === 'new'
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200`}
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200`}
                 >
                   New Project
                 </button>
@@ -511,9 +523,9 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
                   type="button"
                   onClick={() => setProjectType('existing')}
                   className={`${projectType === 'existing'
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200`}
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200`}
                 >
                   Existing Project
                 </button>
@@ -542,7 +554,7 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
             <h3 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">
               Project Information
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FloatingInput
                 label="Project Name "
@@ -586,6 +598,24 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
               />
 
               <FloatingInput
+                label="Project Category "
+                name="projectCategory"
+                type="select"
+                value={formData.projectCategory}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                options={[
+                  { value: 'residential', label: 'Residential' },
+                  { value: 'commercial', label: 'Commercial' }
+                ]}
+                error={errors.projectCategory}
+                required
+                placeholder="Select category"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FloatingInput
                 label="Stage "
                 name="stage"
                 type="select"
@@ -619,7 +649,7 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
             <h3 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">
               Scope of Work
             </h3>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">
                 Select Scope of Work * {errors.scopeOfWork && <span className="text-red-600 text-sm">- {errors.scopeOfWork}</span>}
@@ -631,9 +661,9 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
                     type="button"
                     onClick={() => handleScopeChange(scope)}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${formData.scopeOfWork.includes(scope)
-                        ? 'bg-primary-600 text-white shadow-sm'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-                    }`}
+                      ? 'bg-primary-600 text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                      }`}
                   >
                     {formatScopeName(scope)}
                   </button>

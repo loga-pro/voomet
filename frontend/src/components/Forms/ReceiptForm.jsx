@@ -423,6 +423,27 @@ const ReceiptForm = ({
           </>
         )}
 
+        {formData.receiptCategory === 'return' && (
+          <>
+            <FloatingInput
+              label="Invoice No "
+              name="invoiceNo"
+              value={formData.invoiceNo}
+              onChange={handleInputChange}
+              maxLength={30}
+              required
+            />
+
+            <FloatingInput
+              label="Return Date"
+              name="invoiceDate"
+              value={formatDateForInput(formData.invoiceDate)}
+              onChange={handleInputChange}
+              type="date"
+            />
+          </>
+        )}
+
         <FloatingInput
           label="Upload Document"
           name="upload"
@@ -448,7 +469,7 @@ const ReceiptForm = ({
       </div>
 
       {/* Line Items Section - Only show when invoice number is entered */}
-      {formData.invoiceNo && formData.receiptCategory === 'buy' && (
+      {formData.invoiceNo && (
         <div className="mt-6 pt-6 border-t border-gray-200">
           <div className="flex justify-between items-center mb-4">
             <h4 className="text-md font-semibold text-gray-900">Line Items</h4>

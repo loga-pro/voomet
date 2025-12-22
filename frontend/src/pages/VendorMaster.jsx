@@ -34,11 +34,13 @@ const VendorMaster = () => {
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [editingVendor, setEditingVendor] = useState(null);
   const [filters, setFilters] = useState({
+    vendorType: '',
     vendorName: '',
     email: '',
     category: ''
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [uniqueVendorTypes, setUniqueVendorTypes] = useState([]);
   const [uniqueVendorNames, setUniqueVendorNames] = useState([]);
   const [uniqueEmails, setUniqueEmails] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -66,9 +68,11 @@ const VendorMaster = () => {
       setVendors(response.data);
 
       // Extract unique values for dropdowns
+      const vendorTypes = [...new Set(response.data.map(vendor => vendor.vendorType))].filter(Boolean);
       const vendorNames = [...new Set(response.data.map(vendor => vendor.vendorName))].filter(Boolean);
       const emails = [...new Set(response.data.map(vendor => vendor.email))].filter(Boolean);
 
+      setUniqueVendorTypes(vendorTypes);
       setUniqueVendorNames(vendorNames);
       setUniqueEmails(emails);
     } catch (error) {
@@ -82,6 +86,12 @@ const VendorMaster = () => {
     let filtered = vendors;
 
     // Apply dropdown filters
+    if (filters.vendorType) {
+      filtered = filtered.filter(vendor =>
+        vendor.vendorType === filters.vendorType
+      );
+    }
+
     if (filters.vendorName) {
       filtered = filtered.filter(vendor =>
         vendor.vendorName === filters.vendorName
@@ -110,7 +120,8 @@ const VendorMaster = () => {
         vendor.mobileNumber.toLowerCase().includes(searchLower) ||
         (vendor.address && vendor.address.toLowerCase().includes(searchLower)) ||
         (vendor.contactPerson && vendor.contactPerson.toLowerCase().includes(searchLower)) ||
-        (vendor.category && vendor.category.toLowerCase().includes(searchLower))
+        (vendor.category && vendor.category.toLowerCase().includes(searchLower)) ||
+        (vendor.vendorType && vendor.vendorType.toLowerCase().includes(searchLower))
       );
     }
 
@@ -132,6 +143,7 @@ const VendorMaster = () => {
 
   const clearFilters = () => {
     setFilters({
+      vendorType: '',
       vendorName: '',
       email: '',
       category: ''
@@ -149,6 +161,7 @@ const VendorMaster = () => {
 
   const exportToCSV = () => {
     const headers = [
+      'Work Type',
       'Category',
       'Vendor/Contractor Name',
       'Contact Person',
@@ -167,6 +180,7 @@ const VendorMaster = () => {
     ];
 
     const csvData = filteredVendors.map(vendor => [
+      vendor.vendorType ? vendor.vendorType.charAt(0).toUpperCase() + vendor.vendorType.slice(1) : '',
       vendor.category || '',
       vendor.vendorName,
       vendor.contactPerson || '',
@@ -353,7 +367,20 @@ const VendorMaster = () => {
           {/* Filters */}
           {showFilters && (
             <div className="px-4 py-5 sm:p-6 bg-gray-50 border-b border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Work Type</label>
+                  <select
+                    value={filters.vendorType}
+                    onChange={(e) => handleFilterChange('vendorType', e.target.value)}
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
+                  >
+                    <option value="">All Types</option>
+                    {uniqueVendorTypes.map(type => (
+                      <option key={type} value={type}>{type.charAt(0).toUpperCase() + type.slice(1)}</option>
+                    ))}
+                  </select>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Vendor/Contractor Name</label>
                   <select
@@ -406,6 +433,9 @@ const VendorMaster = () => {
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Work Type
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Category
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -420,7 +450,7 @@ const VendorMaster = () => {
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Mobile Number
                       </th>
-                  
+
                       <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
@@ -430,6 +460,11 @@ const VendorMaster = () => {
                     {currentItems.length > 0 ? (
                       currentItems.map((vendor) => (
                         <tr key={vendor._id} className="hover:bg-gray-50 transition-colors duration-150">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                              {vendor.vendorType ? vendor.vendorType.charAt(0).toUpperCase() + vendor.vendorType.slice(1) : 'N/A'}
+                            </span>
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(vendor.category)}`}>
                               {formatCategory(vendor.category)}
@@ -447,7 +482,7 @@ const VendorMaster = () => {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">{vendor.mobileNumber}</div>
                           </td>
-                          
+
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div className="flex justify-end space-x-2">
                               <button
@@ -477,7 +512,7 @@ const VendorMaster = () => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                        <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
                           {Object.values(filters).some(val => val !== '') || searchTerm
                             ? 'No vendors found matching your filters.'
                             : 'No vendors found.'
@@ -500,7 +535,10 @@ const VendorMaster = () => {
                         <h3 className="text-sm font-medium text-gray-900 truncate">{vendor.vendorName}</h3>
                         <p className="text-sm text-gray-500 truncate">{vendor.email}</p>
                       </div>
-                      <div className="flex space-x-2 ml-2">
+                      <div className="flex flex-col space-y-1 ml-2">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          {vendor.vendorType ? vendor.vendorType.charAt(0).toUpperCase() + vendor.vendorType.slice(1) : 'N/A'}
+                        </span>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(vendor.category)}`}>
                           {formatCategory(vendor.category)}
                         </span>
@@ -669,6 +707,12 @@ const VendorMaster = () => {
                     <h3 className="text-md font-semibold text-gray-900">Vendor Information</h3>
                   </div>
                   <div className="space-y-2">
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Work Type</p>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        {selectedVendor.vendorType ? selectedVendor.vendorType.charAt(0).toUpperCase() + selectedVendor.vendorType.slice(1) : 'N/A'}
+                      </span>
+                    </div>
                     <div>
                       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Vendor Name</p>
                       <p className="text-sm font-medium text-gray-800">{selectedVendor.vendorName}</p>

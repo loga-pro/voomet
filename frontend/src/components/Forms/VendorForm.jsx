@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { vendorsAPI, vendorPaymentsAPI, qualityAPI } from '../../services/api';
 import FloatingInput from './FloatingInput';
+import ComboBox from './ComboBox';
 import useNotification from '../../hooks/useNotification';
+
+const vendorTypeOptions = [
+  { value: 'residential', label: 'Residential' },
+  { value: 'commercial', label: 'Commercial' },
+];
 
 const categoryOptions = [
   { value: 'vendor', label: 'Vendor' },
@@ -10,6 +16,7 @@ const categoryOptions = [
 
 const VendorForm = ({ vendor, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
+    vendorType: '',
     category: 'vendor',
     vendorName: '',
     address: '',
@@ -33,6 +40,7 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
   useEffect(() => {
     if (vendor) {
       const vendorData = {
+        vendorType: vendor.vendorType || '',
         category: vendor.category || "vendor",
         vendorName: vendor.vendorName || '',
         address: vendor.address || '',
@@ -85,6 +93,12 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
     let error = '';
 
     switch (name) {
+      case 'vendorType':
+        if (!value || !value.trim()) {
+          error = 'Vendor type is required';
+        }
+        break;
+
       case 'email':
         if (value && !/^\S+@\S+\.\S+$/.test(value)) {
           error = 'Please enter a valid email address';
@@ -244,6 +258,7 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
   const validateForm = () => {
     const newErrors = {};
     const fieldsToValidate = [
+      'vendorType',
       'category',
       'vendorName',
       'city',
@@ -318,6 +333,7 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
     setLoading(true);
     try {
       const submitData = {
+        vendorType: formData.vendorType,
         category: formData.category,
         vendorName: formData.vendorName.trim(),
         city: formData.city.trim(),
@@ -383,6 +399,7 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
   // Helper function to check if required fields are filled with correct format
   const isFormComplete = () => {
     const requiredFields = [
+      'vendorType',
       'vendorName',
       'city',
       'state',
@@ -420,6 +437,15 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
           )}
 
           <div className="grid grid-cols-2 gap-4">
+            <ComboBox
+              label="Vendor Type"
+              name="vendorType"
+              value={formData.vendorType}
+              onChange={handleChange}
+              options={vendorTypeOptions}
+              error={errors.vendorType}
+              required
+            />
             <FloatingInput
               label="Category"
               name="category"

@@ -9,7 +9,7 @@ const StockMaster = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
-  
+
   // Flattened data states
   const [allReceipts, setAllReceipts] = useState([]);
   const [allDispatches, setAllDispatches] = useState([]);
@@ -19,7 +19,7 @@ const StockMaster = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
+
         // Fetch data from all sources
         const [inventoryRes, vendorsRes, receiptsRes, dispatchesRes] = await Promise.all([
           inventoryAPI.getAll(),
@@ -27,99 +27,90 @@ const StockMaster = () => {
           receiptsAPI.getAll(),
           dispatchesAPI.getAll()
         ]);
-        
+
         const items = inventoryRes.data || [];
         setInventoryItems(items);
         setVendors(vendorsRes.data || []);
-        
+
         // Get receipts and dispatches from their dedicated APIs
         const receiptsData = receiptsRes.data?.data || receiptsRes.data || [];
         const dispatchesData = dispatchesRes.data?.data || dispatchesRes.data || [];
-        
+
+        console.log('Fetched inventory items:', items.length);
         console.log('Fetched receipts:', receiptsData.length);
         console.log('Fetched dispatches:', dispatchesData.length);
-        
+
         setAllReceipts(receiptsData);
         setAllDispatches(dispatchesData);
-        
-        // 2. Collect saved row preferences (Category, Vendor Names) from all items
-        const savedPreferences = [];
-        items.forEach(item => {
-          if (Array.isArray(item.rowData)) {
-            item.rowData.forEach(row => {
-              if (row.workCategory || row.partName) {
-                savedPreferences.push({
-                  workCategory: row.workCategory,
-                  partName: row.partName,
-                  category: row.category,
-                  vendorNames: row.vendorNames
-                });
-              }
-            });
-          }
-        });
-        
-        // 3. Derive unique combinations (Work Category + Part Name)
-        const combinations = new Map();
-        
-        // From receipts
-        receiptsData.forEach(r => {
-          const key = `${r.workCategory || ''}_${r.partName || ''}`;
-          if (!combinations.has(key) && (r.workCategory || r.partName)) {
-            combinations.set(key, {
-              workCategory: r.workCategory || '-',
-              partName: r.partName || '-'
-            });
-          }
-        });
-        
-        // From dispatches
-        dispatchesData.forEach(d => {
-          const key = `${d.workCategory || ''}_${d.partName || ''}`;
-          if (!combinations.has(key) && (d.workCategory || d.partName)) {
-            combinations.set(key, {
-              workCategory: d.workCategory || '-',
-              partName: d.partName || '-'
-            });
-          }
-        });
-        
-        console.log('Unique combinations found:', combinations.size);
-        
-        // 4. Create Master Row Data
-        const derivedRows = Array.from(combinations.values()).map((combo, index) => {
-          // Find existing inventory item for this combination
-          const existingItem = items.find(i => 
-             i.workCategory === combo.workCategory && i.partName === combo.partName
-          );
-          
-          let category = 'In house';
-          let vendorNames = [];
-          let reOrderLevel = 0;
 
-          if (existingItem) {
-             reOrderLevel = existingItem.reOrderLevel || 0;
-             if (existingItem.rowData && existingItem.rowData.length > 0) {
-                category = existingItem.rowData[0].category || category;
-                vendorNames = existingItem.rowData[0].vendorNames || vendorNames;
-             }
+        // Create a Map to store all unique combinations
+        // ONLY show combinations that have actual receipt or dispatch data
+        const combinationsMap = new Map();
+
+        // PRIORITY 1: Add combinations from receipts
+        receiptsData.forEach(r => {
+          if (r.workCategory && r.partName) {
+            const key = `${r.workCategory}_${r.partName}`;
+            if (!combinationsMap.has(key)) {
+              // Check if there's an inventory item for this combination
+              const inventoryItem = items.find(item =>
+                item.workCategory === r.workCategory && item.partName === r.partName
+              );
+
+              combinationsMap.set(key, {
+                workCategory: r.workCategory,
+                partName: r.partName,
+                inventoryId: inventoryItem?._id,
+                category: inventoryItem?.rowData?.[0]?.category || 'In house',
+                vendorNames: inventoryItem?.rowData?.[0]?.vendorNames || [],
+                reOrderLevel: inventoryItem?.reOrderLevel || 0
+              });
+            }
           }
-          
-          return {
-            id: index + 1,
-            workCategory: combo.workCategory,
-            partName: combo.partName,
-            category: category,
-            vendorNames: vendorNames,
-            reOrderLevel: reOrderLevel
-          };
         });
-        
+
+        // PRIORITY 2: Add combinations from dispatches (if not already added from receipts)
+        dispatchesData.forEach(d => {
+          if (d.workCategory && d.partName) {
+            const key = `${d.workCategory}_${d.partName}`;
+            if (!combinationsMap.has(key)) {
+              // Check if there's an inventory item for this combination
+              const inventoryItem = items.find(item =>
+                item.workCategory === d.workCategory && item.partName === d.partName
+              );
+
+              combinationsMap.set(key, {
+                workCategory: d.workCategory,
+                partName: d.partName,
+                inventoryId: inventoryItem?._id,
+                category: inventoryItem?.rowData?.[0]?.category || 'In house',
+                vendorNames: inventoryItem?.rowData?.[0]?.vendorNames || [],
+                reOrderLevel: inventoryItem?.reOrderLevel || 0
+              });
+            }
+          }
+        });
+
+        console.log('Total unique combinations found:', combinationsMap.size);
+        console.log('Combinations details:', Array.from(combinationsMap.entries()));
+
+        // Create Master Row Data from the combinations
+        const derivedRows = Array.from(combinationsMap.values()).map((combo, index) => ({
+          id: index + 1,
+          workCategory: combo.workCategory,
+          partName: combo.partName,
+          category: combo.category,
+          vendorNames: combo.vendorNames,
+          reOrderLevel: combo.reOrderLevel,
+          inventoryId: combo.inventoryId
+        }));
+
         console.log('Master row data created:', derivedRows.length);
-        
-        // If no data at all, start with empty
+        console.log('Derived rows sample:', derivedRows.slice(0, 3));
+
+        // Set the master row data
         setMasterRowData(derivedRows);
-        
+
       } catch (err) {
         console.error('Error fetching stock master data:', err);
         setError('Failed to load stock data');
@@ -132,7 +123,7 @@ const StockMaster = () => {
   }, []);
 
   const handleRowCategoryChange = (rowId, newCategory) => {
-    setMasterRowData(prev => prev.map(row => 
+    setMasterRowData(prev => prev.map(row =>
       row.id === rowId ? { ...row, category: newCategory } : row
     ));
   };
@@ -142,7 +133,7 @@ const StockMaster = () => {
       if (row.id === rowId) {
         const currentVendors = row.vendorNames || [];
         const isSelected = currentVendors.includes(vendorName);
-        
+
         return {
           ...row,
           vendorNames: isSelected
@@ -157,7 +148,7 @@ const StockMaster = () => {
   const handleSave = async (row) => {
     try {
       // Find existing inventory item for this combination
-      const existingItem = inventoryItems.find(item => 
+      const existingItem = inventoryItems.find(item =>
         item.workCategory === row.workCategory && item.partName === row.partName
       );
 
@@ -216,44 +207,44 @@ const StockMaster = () => {
 
   const calculateStockForCombination = (workCategory, partName) => {
     // Filter receipts for this combination
-    const matchingReceipts = allReceipts.filter(r => 
+    const matchingReceipts = allReceipts.filter(r =>
       r.workCategory === workCategory && r.partName === partName
     );
-    
+
     // Filter dispatches for this combination
-    const matchingDispatches = allDispatches.filter(d => 
+    const matchingDispatches = allDispatches.filter(d =>
       d.workCategory === workCategory && d.partName === partName
     );
-    
+
     // Separate regular receipts (buy) from returns
     const regularReceipts = matchingReceipts.filter(r => r.receiptCategory !== 'return');
     const receiptReturns = matchingReceipts.filter(r => r.receiptCategory === 'return');
-    
+
     // Separate dispatches by category
     const regularDispatches = matchingDispatches.filter(d => d.dispatchCategory === 'dispatch');
     const dispatchReturns = matchingDispatches.filter(d => d.dispatchCategory === 'return');
     const dispatchRejects = matchingDispatches.filter(d => d.dispatchCategory === 'reject');
-    
+
     // Calculate totals for regular receipts only (excluding returns)
     const regularReceiptsTotal = regularReceipts.reduce((sum, r) => sum + (r.totalValue || 0), 0);
-    
+
     // Calculate regular dispatch totals (excluding returns and rejects)
     const regularDispatchesTotal = regularDispatches.reduce((sum, d) => sum + (d.totalValue || 0), 0);
-    
+
     // Calculate reject totals
     const rejectsTotal = dispatchRejects.reduce((sum, d) => sum + (d.totalValue || 0), 0);
-    
+
     // Calculate return totals from both receipts and dispatches
     const receiptReturnsTotal = receiptReturns.reduce((sum, r) => sum + (r.totalValue || 0), 0);
     const dispatchReturnsTotal = dispatchReturns.reduce((sum, d) => sum + (d.totalValue || 0), 0);
-    
+
     const totalReturnsValue = receiptReturnsTotal + dispatchReturnsTotal;
-    
+
     return {
-      stockValueAtFactory: regularReceiptsTotal - regularDispatchesTotal - rejectsTotal,
+      stockValueAtFactory: regularReceiptsTotal,
       stockValueSentToCustomer: regularDispatchesTotal,
       stockValueReturnFromCustomer: totalReturnsValue,
-      totalStockValue: (regularReceiptsTotal - regularDispatchesTotal - rejectsTotal) + totalReturnsValue
+      totalStockValue: (regularReceiptsTotal - regularDispatchesTotal - rejectsTotal - receiptReturnsTotal) + dispatchReturnsTotal
     };
   };
 
@@ -293,20 +284,19 @@ const StockMaster = () => {
   }
 
   return (
-    
+
     <div className="p-6 bg-gray-50">
 
       <div className="w-full mx-auto space-y-6">
         {/* Notification */}
         {notification.show && (
-          <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg ${
-            notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
-          } text-white`}>
+          <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg ${notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+            } text-white`}>
             {notification.message}
           </div>
         )}
 
-  
+
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -373,7 +363,7 @@ const StockMaster = () => {
             <InventorySummaryTable
               rowData={masterRowData}
               vendors={vendors}
-              reOrderLevel={0} 
+              reOrderLevel={0}
               receipts={allReceipts}
               dispatches={allDispatches}
               onRowCategoryChange={handleRowCategoryChange}

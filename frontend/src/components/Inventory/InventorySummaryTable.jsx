@@ -2,7 +2,7 @@ import React from 'react';
 
 const InventorySummaryTable = ({
   rowData,
-  vendors = [], 
+  vendors = [],
   reOrderLevel,
   receipts = [],
   dispatches = [],
@@ -14,71 +14,71 @@ const InventorySummaryTable = ({
   // Helper function to calculate stock values for a specific work category and part name
   const calculateStockForCombination = (workCategory, partName) => {
     // Filter receipts for this combination
-    const matchingReceipts = receipts.filter(r => 
+    const matchingReceipts = receipts.filter(r =>
       r.workCategory === workCategory && r.partName === partName
     );
-    
+
     // Filter dispatches for this combination
-    const matchingDispatches = dispatches.filter(d => 
+    const matchingDispatches = dispatches.filter(d =>
       d.workCategory === workCategory && d.partName === partName
     );
-    
+
     // Separate regular receipts (buy) from returns
     const regularReceipts = matchingReceipts.filter(r => r.receiptCategory !== 'return');
     const receiptReturns = matchingReceipts.filter(r => r.receiptCategory === 'return');
-    
+
     // Separate dispatches by category
     const regularDispatches = matchingDispatches.filter(d => d.dispatchCategory === 'dispatch');
     const dispatchReturns = matchingDispatches.filter(d => d.dispatchCategory === 'return');
     const dispatchRejects = matchingDispatches.filter(d => d.dispatchCategory === 'reject');
-    
+
     // Calculate totals for regular receipts only (excluding returns)
     const regularReceiptsTotal = regularReceipts.reduce((sum, r) => sum + (r.totalValue || 0), 0);
     const regularReceiptsQty = regularReceipts.reduce((sum, r) => sum + (r.quantity || 0), 0);
-    
+
     // Calculate regular dispatch totals (excluding returns and rejects)
     const regularDispatchesTotal = regularDispatches.reduce((sum, d) => sum + (d.totalValue || 0), 0);
     const regularDispatchesQty = regularDispatches.reduce((sum, d) => sum + (d.quantity || 0), 0);
-    
+
     // Calculate reject totals
     const rejectsTotal = dispatchRejects.reduce((sum, d) => sum + (d.totalValue || 0), 0);
     const rejectsQty = dispatchRejects.reduce((sum, d) => sum + (d.quantity || 0), 0);
-    
+
     // Calculate return totals separately
     // Receipt returns = Stock Return to Vendor
     const receiptReturnsTotal = receiptReturns.reduce((sum, r) => sum + (r.totalValue || 0), 0);
     const receiptReturnsQty = receiptReturns.reduce((sum, r) => sum + (r.quantity || 0), 0);
-    
+
     // Dispatch returns = Stock Return from Customer
     const dispatchReturnsTotal = dispatchReturns.reduce((sum, d) => sum + (d.totalValue || 0), 0);
     const dispatchReturnsQty = dispatchReturns.reduce((sum, d) => sum + (d.quantity || 0), 0);
-    
+
     // Total returns for overall stock calculation
     const totalReturnsQty = receiptReturnsQty + dispatchReturnsQty;
     const totalReturnsValue = receiptReturnsTotal + dispatchReturnsTotal;
-    
+
     return {
-      // Stock at Factory: Regular receipts minus regular dispatches minus rejects minus returns to vendor
-      stockAtFactory: Math.max(0, regularReceiptsQty - regularDispatchesQty - rejectsQty - receiptReturnsQty),
-      stockValueAtFactory: regularReceiptsTotal - regularDispatchesTotal - rejectsTotal - receiptReturnsTotal,
-      
+      // Stock at Factory: ONLY Regular receipts (no subtractions at all)
+      stockAtFactory: regularReceiptsQty,
+      stockValueAtFactory: regularReceiptsTotal,
+
       // Stock sent to customer (only regular dispatches, not returns or rejects)
       stockSentToCustomer: regularDispatchesQty,
       stockValueSentToCustomer: regularDispatchesTotal,
-      
+
       // Rejected stock
       stockRejected: rejectsQty,
       stockValueRejected: rejectsTotal,
-      
+
       // Returns from customer (dispatch returns only)
       stockReturnFromCustomer: dispatchReturnsQty,
       stockValueReturnFromCustomer: dispatchReturnsTotal,
-      
+
       // Returns to vendor (receipt returns only)
       stockReturnToVendor: receiptReturnsQty,
       stockValueReturnToVendor: receiptReturnsTotal,
-      
-      // Total stock: Factory stock + Returns from Customer (returns to vendor already subtracted)
+
+      // Total stock: Original formula (receipts - dispatches - rejects - returns to vendor + returns from customer)
       totalStock: Math.max(0, regularReceiptsQty - regularDispatchesQty - rejectsQty - receiptReturnsQty) + dispatchReturnsQty,
       totalStockValue: (regularReceiptsTotal - regularDispatchesTotal - rejectsTotal - receiptReturnsTotal) + dispatchReturnsTotal
     };
@@ -161,17 +161,17 @@ const InventorySummaryTable = ({
               </td>
               {/* Multi-select Vendor Name Column */}
               <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">
-                 <div className="flex flex-wrap gap-1">
-                   {row.vendorNames && row.vendorNames.length > 0 ? (
-                     row.vendorNames.map((vendorName, idx) => (
-                       <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                         {vendorName}
-                       </span>
-                     ))
-                   ) : (
-                     <span className="text-gray-500">-</span>
-                   )}
-                 </div>
+                <div className="flex flex-wrap gap-1">
+                  {row.vendorNames && row.vendorNames.length > 0 ? (
+                    row.vendorNames.map((vendorName, idx) => (
+                      <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                        {vendorName}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-500">-</span>
+                  )}
+                </div>
               </td>
               <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">
                 {row.reOrderLevel || '0'}

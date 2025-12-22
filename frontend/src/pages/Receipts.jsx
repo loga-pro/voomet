@@ -333,9 +333,19 @@ const Receipts = () => {
 
   const confirmDelete = async () => {
     try {
-      await receiptsAPI.delete(receiptToDelete._id);
+      // Find all receipts with the same invoice number to delete them all at once
+      const relatedReceipts = receipts.filter(r =>
+        r.invoiceNo === receiptToDelete.invoiceNo &&
+        r.receiptCategory === receiptToDelete.receiptCategory
+      );
+
+      // Delete all related receipts
+      await Promise.all(
+        relatedReceipts.map(receipt => receiptsAPI.delete(receipt._id))
+      );
+
       await fetchData();
-      showSuccess(`Receipt deleted successfully`);
+      showSuccess(`Receipt${relatedReceipts.length > 1 ? 's' : ''} deleted successfully`);
       setShowDeleteModal(false);
       setReceiptToDelete(null);
     } catch (error) {
@@ -1019,7 +1029,7 @@ const Receipts = () => {
       >
         <div className="p-4">
           <p className="mb-4 text-gray-700">
-            Are you sure you want to delete this receipt? This action cannot be undone.
+            Are you sure you want to delete this receipt{receiptToDelete?.lineItems?.length > 1 ? ' and all its line items' : ''}? This action cannot be undone.
           </p>
           <div className="flex justify-end space-x-3">
             <button

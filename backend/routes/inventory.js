@@ -21,16 +21,38 @@ router.get('/', auth, async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const inventoryItems = await Inventory.find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    // First, get all inventory items matching the filter
+    const allItems = await Inventory.find(filter)
+      .sort({ createdAt: -1 });
 
-    const total = await Inventory.countDocuments(filter);
+    console.log(`Total inventory items in DB: ${allItems.length}`);
+
+    // Filter out items that have no receipts AND no dispatches
+    // Only show items with actual transaction data
+    const itemsWithTransactions = allItems.filter(item => {
+      const hasReceipts = item.receipts && item.receipts.length > 0;
+      const hasDispatches = item.dispatches && item.dispatches.length > 0;
+      const hasTransactions = hasReceipts || hasDispatches;
+      
+      if (!hasTransactions) {
+        console.log(`Filtering out item: ${item.partName} (${item.workCategory}) - No receipts or dispatches`);
+      } else {
+        console.log(`Keeping item: ${item.partName} (${item.workCategory}) - Receipts: ${item.receipts?.length || 0}, Dispatches: ${item.dispatches?.length || 0}`);
+      }
+      
+      return hasTransactions;
+    });
+
+    console.log(`Items with transactions: ${itemsWithTransactions.length}`);
+
+    // Apply pagination to filtered results
+    const paginatedItems = itemsWithTransactions.slice(skip, skip + limit);
+    const total = itemsWithTransactions.length;
 
     // Return just the array of items as the frontend expects
-    res.json(inventoryItems);
+    res.json(paginatedItems);
   } catch (error) {
+    console.error('Error in inventory GET route:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

@@ -106,6 +106,15 @@ export const qualityAPI = {
   delete: (id) => api.delete(`/quality/${id}`),
   updateVendorName: (oldVendorName, newVendorName) => 
     api.patch('/quality/update-vendor-name', { oldVendorName, newVendorName }),
+  uploadImage: (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return api.post('/quality/upload-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  },
 };
 
 //inventory API

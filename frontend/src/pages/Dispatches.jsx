@@ -381,9 +381,19 @@ const Dispatches = () => {
 
   const confirmDelete = async () => {
     try {
-      await dispatchesAPI.delete(dispatchToDelete._id);
+      // Find all dispatches with the same invoice number to delete them all at once
+      const relatedDispatches = dispatches.filter(d =>
+        d.invoiceNo === dispatchToDelete.invoiceNo &&
+        d.dispatchCategory === dispatchToDelete.dispatchCategory
+      );
+
+      // Delete all related dispatches
+      await Promise.all(
+        relatedDispatches.map(dispatch => dispatchesAPI.delete(dispatch._id))
+      );
+
       await fetchData();
-      showSuccess(`Dispatch deleted successfully`);
+      showSuccess(`Dispatch${relatedDispatches.length > 1 ? 'es' : ''} deleted successfully`);
       setShowDeleteModal(false);
       setDispatchToDelete(null);
     } catch (error) {
@@ -1048,7 +1058,7 @@ const Dispatches = () => {
       >
         <div className="p-4">
           <p className="mb-4 text-gray-700">
-            Are you sure you want to delete this dispatch? This action cannot be undone.
+            Are you sure you want to delete this dispatch{dispatchToDelete?.lineItems?.length > 1 ? ' and all its line items' : ''}? This action cannot be undone.
           </p>
           <div className="flex justify-end space-x-3">
             <button

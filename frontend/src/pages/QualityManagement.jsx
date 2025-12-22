@@ -54,6 +54,10 @@ const QualityManagement = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [issueToDelete, setIssueToDelete] = useState(null);
 
+  // View details modal state
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [issueDetails, setIssueDetails] = useState(null);
+
   useEffect(() => {
     fetchQualityIssues();
   }, []);
@@ -247,6 +251,11 @@ const QualityManagement = () => {
     window.URL.revokeObjectURL(url);
   };
 
+  const handleViewDetails = (issue) => {
+    setIssueDetails(issue);
+    setShowDetailsModal(true);
+  };
+
   const handleEdit = (issue) => {
     setEditingIssue(issue);
     setShowModal(true);
@@ -281,15 +290,12 @@ const QualityManagement = () => {
 
       // Clean up form data to ensure proper data types
       const cleanedData = {
-        ...formData,
         customer: formData.customer?.trim() || undefined,
-        scopeOfWork: formData.scopeOfWork, // Already an array, no need to trim
-        scopeOfWorkText: formData.scopeOfWorkText?.trim() || undefined,
+        projectName: formData.projectName?.trim() || undefined,
         openIssues: formData.openIssues?.trim() || undefined,
         category: formData.category?.trim() || undefined,
         status: formData.status?.trim() || 'open',
-        responsibility: formData.responsibility?.trim() || undefined,
-        remarks: formData.remarks?.trim() || undefined
+        qualityIssues: formData.qualityIssues || []
       };
 
       // Remove any undefined values to prevent validation issues
@@ -377,8 +383,8 @@ const QualityManagement = () => {
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters || Object.values(filters).some(Boolean) || searchTerm
-                      ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
-                      : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                    ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
+                    : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
                     }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
@@ -511,25 +517,22 @@ const QualityManagement = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Client Name
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
-                        Scope of Work
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Project Name
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/6">
-                        Open Issues
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        View Issues
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Category
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
-                        Responsible person
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -538,65 +541,59 @@ const QualityManagement = () => {
                     {currentItems.length > 0 ? (
                       currentItems.map((issue) => (
                         <tr key={issue._id} className="hover:bg-gray-50 transition-colors duration-150">
-                          <td className="px-4 py-3 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">{issue.customer}</div>
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{Array.isArray(issue.scopeOfWork) ? issue.scopeOfWork.join(', ') : issue.scopeOfWork}</div>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{issue.projectName || 'N/A'}</div>
                           </td>
-                          <td className="px-4 py-3">
-                            <div className="text-sm text-gray-900 max-w-md">
-                              <div className="line-clamp-2">
-                                {truncateText(issue.openIssues, 150)}
-                              </div>
-                              {issue.openIssues && issue.openIssues.length > 150 && (
-                                <button
-                                  onClick={() => handleView(issue)}
-                                  className="text-blue-600 hover:text-blue-800 text-xs mt-1 font-medium"
-                                >
-                                  Read more
-                                </button>
-                              )}
-                            </div>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <button
+                              onClick={() => handleView(issue)}
+                              className="text-blue-600 hover:text-blue-900 p-2 transition-colors duration-150"
+                              title="View Issues"
+                            >
+                              <EyeIcon className="h-5 w-5" />
+                            </button>
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${issue.category === 'rectify'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-red-100 text-red-800'
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${issue.category === 'rectify' ? 'bg-yellow-100 text-yellow-800' :
+                              issue.category === 'replace' ? 'bg-orange-100 text-orange-800' :
+                                issue.category === 'possible' ? 'bg-green-100 text-green-800' :
+                                  issue.category === 'not possible' ? 'bg-red-100 text-red-800' :
+                                    issue.category === 'reject' ? 'bg-red-100 text-red-800' :
+                                      'bg-gray-100 text-gray-800'
                               }`}>
                               {issue.category?.charAt(0).toUpperCase() + issue.category?.slice(1)}
                             </span>
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${issue.status === 'open'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-green-100 text-green-800'
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${issue.status === 'open' ? 'bg-red-100 text-red-800' :
+                              issue.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                                'bg-green-100 text-green-800'
                               }`}>
-                              {issue.status?.charAt(0).toUpperCase() + issue.status?.slice(1)}
+                              {issue.status?.charAt(0).toUpperCase() + issue.status?.slice(1).replace('-', ' ')}
                             </span>
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{issue.responsibility}</div>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex justify-end space-x-2">
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <div className="flex justify-center space-x-2">
                               <button
-                                onClick={() => handleView(issue)}
-                                className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
+                                onClick={() => handleViewDetails(issue)}
+                                className="text-green-600 hover:text-green-900 p-2 transition-colors duration-150"
                                 title="View Details"
                               >
                                 <EyeIcon className="h-5 w-5" />
                               </button>
                               <button
                                 onClick={() => handleEdit(issue)}
-                                className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
+                                className="text-indigo-600 hover:text-indigo-900 p-2 transition-colors duration-150"
                                 title="Edit"
                               >
                                 <PencilSquareIcon className="h-5 w-5" />
                               </button>
                               <button
                                 onClick={() => handleDelete(issue)}
-                                className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
+                                className="text-red-600 hover:text-red-900 p-2 transition-colors duration-150"
                                 title="Delete"
                               >
                                 <TrashIcon className="h-5 w-5" />
@@ -607,7 +604,7 @@ const QualityManagement = () => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                        <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
                           {Object.values(filters).some(val => val !== '') || searchTerm
                             ? 'No quality issues found matching your filters.'
                             : 'No quality issues found. Add your first quality issue to get started.'
@@ -632,9 +629,16 @@ const QualityManagement = () => {
                       </div>
                       <div className="flex space-x-2 ml-2">
                         <button
+                          onClick={() => handleViewDetails(issue)}
+                          className="text-green-600 hover:text-green-900 p-1 transition-colors duration-150"
+                          title="View Details"
+                        >
+                          <EyeIcon className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => handleView(issue)}
                           className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
-                          title="View Details"
+                          title="View Issues"
                         >
                           <EyeIcon className="h-4 w-4" />
                         </button>
@@ -658,8 +662,8 @@ const QualityManagement = () => {
                       <div>
                         <span className="font-medium">Category:</span>
                         <span className={`ml-1 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${issue.category === 'rectify'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-red-100 text-red-800'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-red-100 text-red-800'
                           }`}>
                           {issue.category?.charAt(0).toUpperCase() + issue.category?.slice(1)}
                         </span>
@@ -667,8 +671,8 @@ const QualityManagement = () => {
                       <div>
                         <span className="font-medium">Status:</span>
                         <span className={`ml-1 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${issue.status === 'open'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-green-100 text-green-800'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-green-100 text-green-800'
                           }`}>
                           {issue.status?.charAt(0).toUpperCase() + issue.status?.slice(1)}
                         </span>
@@ -683,10 +687,10 @@ const QualityManagement = () => {
                         </p>
                         {issue.openIssues && issue.openIssues.length > 100 && (
                           <button
-                            onClick={() => handleView(issue)}
-                            className="text-blue-600 hover:text-blue-800 text-xs mt-1 font-medium"
+                            onClick={() => handleViewDetails(issue)}
+                            className="text-green-600 hover:text-green-800 text-xs mt-1 font-medium"
                           >
-                            Read more
+                            View All Details
                           </button>
                         )}
                       </div>
@@ -760,8 +764,8 @@ const QualityManagement = () => {
                           <button
                             onClick={() => paginate(page)}
                             className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
-                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                              ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                               }`}
                           >
                             {page}
@@ -792,162 +796,65 @@ const QualityManagement = () => {
             setViewingIssue(null);
           }}
           title={viewingIssue ? 'Quality Issue Details' : editingIssue ? 'Edit Quality Issue' : 'Add Quality Issue'}
-          size="lg"
+          size="xl"
           className="font-sans"
         >
           {viewingIssue ? (
             <div className="space-y-6">
-              {/* Main Content Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Left Column */}
-                <div className="space-y-6">
-                  {/* Basic Information */}
-                  <div className="space-y-3">
-                    <h3 className="font-semibold text-gray-900 flex items-center">
-                      <DocumentTextIcon className="h-5 w-5 mr-2 text-blue-600" />
-                      Basic Information
-                    </h3>
-
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Client</label>
-                        <div className="text-sm text-gray-900 p-2 rounded bg-blue-50 border border-blue-100">
-                          {viewingIssue.customer}
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Scope of Work</label>
-                        <div className="text-sm text-gray-900 p-2 rounded bg-gray-50 border border-gray-200">
-                          {Array.isArray(viewingIssue.scopeOfWork) ? viewingIssue.scopeOfWork.join(', ') : viewingIssue.scopeOfWork}
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Category</label>
-                        <div className="text-sm text-gray-900 p-2 rounded bg-purple-50 border border-purple-100 capitalize">
-                          {viewingIssue.category}
-                        </div>
-                      </div>
-                    </div>
+              {/* Quality Issues Table */}
+              <div className="bg-white rounded-lg border border-gray-200">
+                {viewingIssue.qualityIssues && viewingIssue.qualityIssues.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date of Issue</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Scope of Work</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Person Type</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Responsible Person</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date of Damage</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {viewingIssue.qualityIssues.map((issue, index) => (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                              {issue.dateOfIssue ? new Date(issue.dateOfIssue).toLocaleDateString() : 'N/A'}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                              {issue.scopeOfWork || 'N/A'}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${viewingIssue.category === 'rectify' ? 'bg-yellow-100 text-yellow-800' :
+                                viewingIssue.category === 'replace' ? 'bg-orange-100 text-orange-800' :
+                                  viewingIssue.category === 'possible' ? 'bg-green-100 text-green-800' :
+                                    viewingIssue.category === 'not possible' ? 'bg-red-100 text-red-800' :
+                                      'bg-gray-100 text-gray-800'
+                                }`}>
+                                {viewingIssue.category?.charAt(0).toUpperCase() + viewingIssue.category?.slice(1)}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                              {issue.personType === 'inhouse' ? 'Inhouse' :
+                                issue.personType === 'outsourced' ? 'Outsourced' : 'N/A'}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                              {issue.responsiblePerson || 'N/A'}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                              {issue.dateOfDamage ? new Date(issue.dateOfDamage).toLocaleDateString() : 'N/A'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-
-                  {/* Assignment Details */}
-                  <div className="space-y-3">
-                    <h3 className="font-semibold text-gray-900 flex items-center">
-                      <UserGroupIcon className="h-5 w-5 mr-2 text-green-600" />
-                      Assignment
-                    </h3>
-
-                    <div className="space-y-3">
-                      {viewingIssue.personType && (
-                        <div>
-                          <label className="block text-xs font-medium text-gray-500 mb-1">Person Type</label>
-                          <div className="text-sm text-gray-900 p-2 rounded bg-indigo-50 border border-indigo-100 capitalize">
-                            {viewingIssue.personType}
-                          </div>
-                        </div>
-                      )}
-
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Responsible</label>
-                        <div className="text-sm text-gray-900 p-2 rounded bg-green-50 border border-green-100">
-                          {viewingIssue.responsibility}
-                        </div>
-                      </div>
-                    </div>
+                ) : (
+                  <div className="px-4 py-8 text-center text-gray-500">
+                    No quality issues added yet
                   </div>
-                </div>
-
-                {/* Right Column */}
-                <div className="space-y-6">
-                  {/* Status Card */}
-                  <div className="space-y-3">
-                    <h3 className="font-semibold text-gray-900 flex items-center">
-                      <ExclamationTriangleIcon className="h-5 w-5 mr-2 text-yellow-600" />
-                      Status
-                    </h3>
-
-                    <div className={`p-4 rounded-lg border ${viewingIssue.status === 'open' ? 'bg-yellow-50 border-yellow-200' :
-                        viewingIssue.status === 'in progress' ? 'bg-blue-50 border-blue-200' :
-                          viewingIssue.status === 'resolved' ? 'bg-green-50 border-green-200' :
-                            'bg-gray-50 border-gray-200'
-                      }`}>
-                      <div className="text-center">
-                        <div className={`text-lg font-bold mb-1 ${viewingIssue.status === 'open' ? 'text-yellow-700' :
-                            viewingIssue.status === 'in progress' ? 'text-blue-700' :
-                              viewingIssue.status === 'resolved' ? 'text-green-700' :
-                                'text-gray-700'
-                          }`}>
-                          {viewingIssue.status?.toUpperCase()}
-                        </div>
-                        <div className="text-xs text-gray-600">
-                          Quality Issue Status
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Open Issues Card */}
-                  <div className="space-y-3">
-                    <h3 className="font-semibold text-gray-900 flex items-center">
-                      <ExclamationTriangleIcon className="h-5 w-5 mr-2 text-red-600" />
-                      Open Issues
-                    </h3>
-
-                    <div className="p-3 rounded bg-red-50 border border-red-200">
-                      <p className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">
-                        {viewingIssue.openIssues}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Additional Info (if any) */}
-                  {(viewingIssue.scopeOfWorkText || viewingIssue.remarks) && (
-                    <div className="space-y-3">
-                      {viewingIssue.scopeOfWorkText && (
-                        <div className="mb-3">
-                          <label className="block text-xs font-medium text-gray-500 mb-1">Scope Details</label>
-                          <div className="text-sm text-gray-900 p-3 rounded bg-gray-50 border border-gray-200 whitespace-pre-wrap">
-                            {viewingIssue.scopeOfWorkText}
-                          </div>
-                        </div>
-                      )}
-
-                      {viewingIssue.remarks && (
-                        <div>
-                          <label className="block text-xs font-medium text-gray-500 mb-1">Remarks</label>
-                          <div className="text-sm text-gray-900 p-3 rounded bg-amber-50 border border-amber-200 whitespace-pre-wrap">
-                            {viewingIssue.remarks}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                <button
-                  onClick={() => {
-                    setShowModal(false);
-                    setViewingIssue(null);
-                  }}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={() => {
-                    setEditingIssue(viewingIssue);
-                    setViewingIssue(null);
-                    setShowModal(true);
-                  }}
-                  className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-                >
-                  Edit Issue
-                </button>
+                )}
               </div>
             </div>
           ) : (
@@ -959,6 +866,156 @@ const QualityManagement = () => {
                 setEditingIssue(null);
               }}
             />
+          )}
+        </Modal>
+
+        {/* Details View Modal */}
+        <Modal
+          isOpen={showDetailsModal}
+          onClose={() => setShowDetailsModal(false)}
+          title="Quality Issue Details"
+          size="lg"
+        >
+          {issueDetails && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Client Information</h3>
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-xs text-gray-500">Client Name:</span>
+                      <p className="text-sm font-medium text-gray-900">{issueDetails.customer}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-500">Project Name:</span>
+                      <p className="text-sm font-medium text-gray-900">{issueDetails.projectName || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-500">Scope of Work:</span>
+                      <p className="text-sm font-medium text-gray-900">
+                        {Array.isArray(issueDetails.scopeOfWork) ? issueDetails.scopeOfWork.join(', ') : issueDetails.scopeOfWork}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Issue Details</h3>
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-xs text-gray-500">Category:</span>
+                      <span className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${issueDetails.category === 'rectify' ? 'bg-yellow-100 text-yellow-800' :
+                        issueDetails.category === 'replace' ? 'bg-orange-100 text-orange-800' :
+                          issueDetails.category === 'possible' ? 'bg-green-100 text-green-800' :
+                            issueDetails.category === 'not possible' ? 'bg-red-100 text-red-800' :
+                              issueDetails.category === 'reject' ? 'bg-red-100 text-red-800' :
+                                'bg-gray-100 text-gray-800'
+                        }`}>
+                        {issueDetails.category?.charAt(0).toUpperCase() + issueDetails.category?.slice(1)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-500">Status:</span>
+                      <span className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${issueDetails.status === 'open' ? 'bg-red-100 text-red-800' :
+                        issueDetails.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                          'bg-green-100 text-green-800'
+                        }`}>
+                        {issueDetails.status?.charAt(0).toUpperCase() + issueDetails.status?.slice(1).replace('-', ' ')}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-500">Responsible Person:</span>
+                      <p className="text-sm font-medium text-gray-900">{issueDetails.responsibility || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Open Issues</h3>
+                <div className="whitespace-pre-line text-sm text-gray-900 bg-white p-3 rounded border border-gray-200">
+                  {issueDetails.openIssues || 'No open issues recorded'}
+                </div>
+              </div>
+
+              {issueDetails.remarks && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Remarks</h3>
+                  <p className="text-sm text-gray-900 bg-white p-3 rounded border border-gray-200">
+                    {issueDetails.remarks}
+                  </p>
+                </div>
+              )}
+
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Quality Issues</h3>
+                {issueDetails.qualityIssues && issueDetails.qualityIssues.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Scope</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Person Type</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Responsible</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {issueDetails.qualityIssues.map((issue, index) => (
+                          <tr key={index}>
+                            <td className="px-3 py-2 text-sm text-gray-900">{issue.scopeOfWork || 'N/A'}</td>
+                            <td className="px-3 py-2 text-sm text-gray-900">
+                              {issue.personType === 'inhouse' ? 'Inhouse' :
+                               issue.personType === 'outsourced' ? 'Outsourced' : 'N/A'}
+                            </td>
+                            <td className="px-3 py-2 text-sm text-gray-900">{issue.responsiblePerson || 'N/A'}</td>
+                            <td className="px-3 py-2 text-sm text-gray-900">
+                              {issue.dateOfIssue ? new Date(issue.dateOfIssue).toLocaleDateString() : 'N/A'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No quality issues recorded</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Created</h3>
+                  <p className="text-sm font-medium text-gray-900">
+                    {new Date(issueDetails.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Last Updated</h3>
+                  <p className="text-sm font-medium text-gray-900">
+                    {new Date(issueDetails.updatedAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    setShowDetailsModal(false);
+                    handleEdit(issueDetails);
+                  }}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  <PencilSquareIcon className="h-4 w-4 mr-2" />
+                  Edit Issue
+                </button>
+                <button
+                  onClick={() => setShowDetailsModal(false)}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           )}
         </Modal>
 
