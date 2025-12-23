@@ -96,7 +96,7 @@ const InventorySummaryTable = ({
               Work Category
             </th>
             <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
-              Part Name
+              Item Name
             </th>
             <th className="sticky top-0 z-10 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase border border-gray-300 shadow-sm">
               Category

@@ -372,7 +372,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
     // Construct full URL - imageUrl is like "/uploads/quality/filename.jpg"
     const fullUrl = imageUrl.startsWith('http')
       ? imageUrl
-      : `http://localhost:5000${imageUrl}`;
+      : `https://voomet.onrender.com${imageUrl}`;
     setImagePreview({ show: true, url: fullUrl, title });
   };
 

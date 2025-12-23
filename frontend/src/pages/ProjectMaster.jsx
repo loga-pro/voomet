@@ -277,138 +277,163 @@ const ProjectMaster = () => {
   };
 
   const handleDownloadHistoryPDF = async () => {
-    try {
-      setPdfLoading(true);
+  try {
+    setPdfLoading(true);
 
-      // Dynamically import jsPDF and html2canvas
-      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
-        import('jspdf'),
-        import('html2canvas')
-      ]);
+    // Dynamically import jsPDF and html2canvas
+    const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+      import('jspdf'),
+      import('html2canvas')
+    ]);
 
-      // Create a temporary container for the PDF content
-      const container = document.createElement('div');
-      container.style.position = 'fixed';
-      container.style.left = '-9999px';
-      container.style.top = '0';
-      container.style.width = '210mm'; // A4 width
-      container.style.backgroundColor = 'white';
-      container.style.padding = '20px';
-      document.body.appendChild(container);
+    // Create a temporary container for the PDF content
+    const container = document.createElement('div');
+    container.style.position = 'fixed';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    container.style.width = '210mm'; // A4 width
+    container.style.backgroundColor = 'white';
+    container.style.padding = '20px';
+    document.body.appendChild(container);
 
-      // Build the HTML content
-      const htmlContent = `
-        <div style="font-family: Arial, sans-serif; color: #333;">
-          <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #3b82f6; padding-bottom: 15px;">
-            <h1 style="color: #1f2937; margin: 0; font-size: 24px;">Project History Report</h1>
-            <p style="color: #6b7280; margin: 10px 0 0 0; font-size: 14px;">Generated on ${new Date().toLocaleDateString()}</p>
-          </div>
+    // Build the HTML content
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; color: #333;">
+        <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #3b82f6; padding-bottom: 15px;">
+          <h1 style="color: #1f2937; margin: 0; font-size: 24px;">Project History Report</h1>
+          <p style="color: #6b7280; margin: 10px 0 0 0; font-size: 14px;">Generated on ${new Date().toLocaleDateString()}</p>
+        </div>
+        
+        <!-- Horizontal Project Information Section -->
+        <div style="margin-bottom: 25px; padding: 20px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <h2 style="color: #1f2937; margin: 0 0 15px 0; font-size: 18px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Project Information</h2>
           
-          <div style="margin-bottom: 25px; padding: 15px; background-color: #f3f4f6; border-radius: 8px;">
-            <h2 style="color: #1f2937; margin: 0 0 10px 0; font-size: 18px;">Project Information</h2>
-            <p style="margin: 5px 0;"><strong>Project Name:</strong> ${selectedProject?.projectName || 'N/A'}</p>
-            <p style="margin: 5px 0;"><strong>Client Name:</strong> ${selectedProject?.customerName || 'N/A'}</p>
-            <p style="margin: 5px 0;"><strong>Current Stage:</strong> ${selectedProject?.stage?.replace(/_/g, ' ').toUpperCase() || 'N/A'}</p>
-            <p style="margin: 5px 0;"><strong>Project Value:</strong> ₹${selectedProject?.totalProjectValue?.toLocaleString() || '0'}</p>
-            <p style="margin: 5px 0;"><strong>Total Changes:</strong> ${projectHistory.length}</p>
-          </div>
-
-          <div>
-            <h2 style="color: #1f2937; margin: 0 0 15px 0; font-size: 18px;">Change History</h2>
-            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-              <thead>
-                <tr style="background-color: #f9fafb; border-bottom: 2px solid #e5e7eb;">
-                  <th style="padding: 10px; text-align: left; font-weight: 600; color: #6b7280;">Date & Time</th>
-                  <th style="padding: 10px; text-align: left; font-weight: 600; color: #6b7280;">Changed By</th>
-                  <th style="padding: 10px; text-align: left; font-weight: 600; color: #6b7280;">Action</th>
-                  <th style="padding: 10px; text-align: left; font-weight: 600; color: #6b7280;">Field</th>
-                  <th style="padding: 10px; text-align: left; font-weight: 600; color: #6b7280;">Old Value</th>
-                  <th style="padding: 10px; text-align: left; font-weight: 600; color: #6b7280;">New Value</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${projectHistory.map((change, index) => {
-        const isCreation = change.field === 'created';
-        const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
-
-        return `
-                    <tr style="background-color: ${bgColor}; border-bottom: 1px solid #e5e7eb;">
-                      <td style="padding: 8px;">
-                        <div style="font-weight: 500;">${new Date(change.updatedAt).toLocaleDateString()}</div>
-                        <div style="font-size: 10px; color: #6b7280;">${new Date(change.updatedAt).toLocaleTimeString()}</div>
-                      </td>
-                      <td style="padding: 8px;">${change.updatedBy || 'System'}</td>
-                      <td style="padding: 8px;">
-                        <span style="padding: 4px 8px; border-radius: 12px; font-size: 10px; font-weight: 500; background-color: ${isCreation ? '#d1fae5' : '#fef3c7'}; color: ${isCreation ? '#065f46' : '#92400e'};">
-                          ${isCreation ? 'Created' : 'Modified'}
-                        </span>
-                      </td>
-                      <td style="padding: 8px; font-weight: 500; color: ${isCreation ? '#059669' : '#2563eb'};">
-                        ${isCreation ? 'Project Creation' : formatFieldName(change.field)}
-                      </td>
-                      <td style="padding: 8px; color: #6b7280;">
-                        ${isCreation ? '—' : formatValue(change.oldValue, change.field)}
-                      </td>
-                      <td style="padding: 8px; font-weight: 500; color: ${isCreation ? '#059669' : '#000'};">
-                        ${isCreation ? 'Initial Setup' : formatValue(change.newValue, change.field)}
-                      </td>
-                    </tr>
-                  `;
-      }).join('')}
-              </tbody>
-            </table>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e5e7eb;">
+              <div style="font-size: 11px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">PROJECT NAME</div>
+              <div style="font-size: 14px; font-weight: 600; color: #1f2937;">${selectedProject?.projectName || 'N/A'}</div>
+            </div>
+            
+            <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e5e7eb;">
+              <div style="font-size: 11px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">CLIENT NAME</div>
+              <div style="font-size: 14px; font-weight: 600; color: #1f2937;">${selectedProject?.customerName || 'N/A'}</div>
+            </div>
+            
+            <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e5e7eb;">
+              <div style="font-size: 11px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">CURRENT STAGE</div>
+              <div style="font-size: 14px; font-weight: 600; color: #1f2937;">
+                ${selectedProject?.stage?.replace(/_/g, ' ').toUpperCase() || 'N/A'}
+              </div>
+            </div>
+            
+            <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e5e7eb;">
+              <div style="font-size: 11px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">PROJECT VALUE</div>
+              <div style="font-size: 14px; font-weight: 600; color: #1f2937;">₹${selectedProject?.totalProjectValue?.toLocaleString() || '0'}</div>
+            </div>
+            
+            <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #e5e7eb;">
+              <div style="font-size: 11px; color: #6b7280; font-weight: 600; margin-bottom: 4px;">TOTAL CHANGES</div>
+              <div style="font-size: 14px; font-weight: 600; color: #1f2937;">${projectHistory.length}</div>
+            </div>
           </div>
         </div>
-      `;
 
-      container.innerHTML = htmlContent;
+        <div>
+          <h2 style="color: #1f2937; margin: 0 0 15px 0; font-size: 18px;">Change History</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            <thead>
+              <tr style="background-color: #f9fafb; border-bottom: 2px solid #e5e7eb;">
+                <th style="padding: 10px; text-align: left; font-weight: 600; color: #6b7280;">Date & Time</th>
+                <th style="padding: 10px; text-align: left; font-weight: 600; color: #6b7280;">Changed By</th>
+                <th style="padding: 10px; text-align: left; font-weight: 600; color: #6b7280;">Action</th>
+                <th style="padding: 10px; text-align: left; font-weight: 600; color: #6b7280;">Field</th>
+                <th style="padding: 10px; text-align: left; font-weight: 600; color: #6b7280;">Old Value</th>
+                <th style="padding: 10px; text-align: left; font-weight: 600; color: #6b7280;">New Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${projectHistory.map((change, index) => {
+                const isCreation = change.field === 'created';
+                const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
 
-      // Wait for content to render
-      await new Promise(resolve => setTimeout(resolve, 100));
+                return `
+                  <tr style="background-color: ${bgColor}; border-bottom: 1px solid #e5e7eb;">
+                    <td style="padding: 8px;">
+                      <div style="font-weight: 500;">${new Date(change.updatedAt).toLocaleDateString()}</div>
+                      <div style="font-size: 10px; color: #6b7280;">${new Date(change.updatedAt).toLocaleTimeString()}</div>
+                    </td>
+                    <td style="padding: 8px;">${change.updatedBy || 'System'}</td>
+                    <td style="padding: 8px;">
+                      <span style="padding: 4px 8px; border-radius: 12px; font-size: 10px; font-weight: 500; background-color: ${isCreation ? '#d1fae5' : '#fef3c7'}; color: ${isCreation ? '#065f46' : '#92400e'};">
+                        ${isCreation ? 'Created' : 'Modified'}
+                      </span>
+                    </td>
+                    <td style="padding: 8px; font-weight: 500; color: ${isCreation ? '#059669' : '#2563eb'};">
+                      ${isCreation ? 'Project Creation' : formatFieldName(change.field)}
+                    </td>
+                    <td style="padding: 8px; color: #6b7280;">
+                      ${isCreation ? '—' : formatValue(change.oldValue, change.field)}
+                    </td>
+                    <td style="padding: 8px; font-weight: 500; color: ${isCreation ? '#059669' : '#000'};">
+                      ${isCreation ? 'Initial Setup' : formatValue(change.newValue, change.field)}
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
 
-      // Generate canvas from HTML
-      const canvas = await html2canvas(container, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      });
+    container.innerHTML = htmlContent;
 
-      // Clean up container
-      document.body.removeChild(container);
+    // Wait for content to render
+    await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Create PDF
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgWidth = 210; // A4 width in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      const pageHeight = 297; // A4 height in mm
-      let heightLeft = imgHeight;
-      let position = 0;
+    // Generate canvas from HTML
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff'
+    });
 
-      // Add first page
+    // Clean up container
+    document.body.removeChild(container);
+
+    // Create PDF
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const imgWidth = 210; // A4 width in mm
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    const pageHeight = 297; // A4 height in mm
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    // Add first page
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+
+    // Add additional pages if needed
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
       pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
-
-      // Add additional pages if needed
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-
-      // Download PDF
-      const fileName = `Project_History_${selectedProject?.projectName?.replace(/\\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-      pdf.save(fileName);
-
-      showSuccess('PDF downloaded successfully');
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      showError('Failed to generate PDF');
-    } finally {
-      setPdfLoading(false);
     }
-  };
+
+    // Download PDF
+    const fileName = `Project_History_${selectedProject?.projectName?.replace(/\\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+    pdf.save(fileName);
+
+    showSuccess('PDF downloaded successfully');
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    showError('Failed to generate PDF');
+  } finally {
+    setPdfLoading(false);
+  }
+};
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState(null);

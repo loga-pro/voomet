@@ -1049,7 +1049,7 @@ const Reports = () => {
                 <p className="text-sm text-gray-900">{(data.workCategory || data.scopeOfWork)?.replace('_', ' ').toUpperCase() || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">Part Name</p>
+                <p className="text-sm font-medium text-gray-500">Item Name</p>
                 <p className="text-sm text-gray-900">{data.partName || 'N/A'}</p>
               </div>
               <div>
@@ -1674,7 +1674,7 @@ const Reports = () => {
     data: inventoryData,
     columns: [
       { header: 'Work Category', accessor: row => (row.workCategory || row.scopeOfWork)?.replace('_', ' ').toUpperCase() || 'N/A' },
-      { header: 'Part Name', accessor: 'partName' },
+      { header: 'Item Name', accessor: 'partName' },
       { header: 'Category', accessor: row => row.rowData?.[0]?.category || 'N/A' },
       { header: 'Vendor Name', accessor: row => row.rowData?.[0]?.vendorNames?.join(', ') || row.customerVendorName || 'N/A' },
       { header: 'Re-order level', accessor: row => row.reOrderLevel || 0 },
@@ -2545,7 +2545,7 @@ const Reports = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-white p-6 rounded-lg border border-gray-300">
               {/* Product/part name Bar Chart */}
               <div>
-                <h3 className="text-lg font-semibold mb-4">Product / Part Name (Top 10 by Quantity)</h3>
+                <h3 className="text-lg font-semibold mb-4">Product / Item Name (Top 10 by Quantity)</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={getInventoryQuantityDispatchedData()}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />

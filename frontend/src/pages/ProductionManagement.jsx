@@ -60,7 +60,7 @@ const ProductionManagement = () => {
     try {
       setLoading(true);
       const response = await productionAPI.getAll();
-      
+
       // Handle paginated response structure: { success, count, total, totalPages, currentPage, data }
       let data = [];
       if (response.data?.data && Array.isArray(response.data.data)) {
@@ -75,7 +75,7 @@ const ProductionManagement = () => {
         setFilteredProductions([]);
         return;
       }
-      
+
       // Process data
       const processedData = data.map((item) => ({
         ...item,
@@ -87,7 +87,7 @@ const ProductionManagement = () => {
         status: item.status || "active",
         createdAt: item.createdAt || new Date().toISOString(),
       }));
-      
+
       setProductions(processedData);
 
       // Extract unique values for filters
@@ -98,12 +98,12 @@ const ProductionManagement = () => {
       setUniqueProjects(projects);
 
       // Extract unique part names from production details
-      const allParts = processedData.flatMap(item => 
+      const allParts = processedData.flatMap(item =>
         item.productionDetails.map(detail => detail.partName)
       ).filter(Boolean);
       const parts = [...new Set(allParts)];
       setUniqueParts(parts);
-      
+
     } catch (error) {
       console.error("Error fetching productions:", error);
       showError("Failed to fetch production data");
@@ -122,33 +122,33 @@ const ProductionManagement = () => {
       const searchTerm = filters.searchTerm.toLowerCase();
       filtered = filtered.filter((item) => {
         // Search in main fields
-        const matchesMainFields = 
+        const matchesMainFields =
           (item.customerName?.toLowerCase().includes(searchTerm)) ||
           (item.projectName?.toLowerCase().includes(searchTerm)) ||
           (item.status?.toLowerCase().includes(searchTerm));
-        
+
         // Search in production details (part names)
         const matchesParts = item.productionDetails.some(detail =>
           detail.partName?.toLowerCase().includes(searchTerm)
         );
-        
+
         // Search in production details other fields
         const matchesDetailFields = item.productionDetails.some(detail =>
           detail.reasonForDelay?.toLowerCase().includes(searchTerm) ||
           detail.remarks?.toLowerCase().includes(searchTerm)
         );
-        
+
         // Search in date fields
         const searchDate = new Date(searchTerm);
         if (!isNaN(searchDate)) {
           const dateString = searchDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
-          const matchesDate = 
+          const matchesDate =
             item.overallProduction.startDate?.includes(dateString) ||
             item.overallProduction.endDate?.includes(dateString);
-          
+
           if (matchesDate) return true;
         }
-        
+
         return matchesMainFields || matchesParts || matchesDetailFields;
       });
     }
@@ -218,18 +218,18 @@ const ProductionManagement = () => {
   // Calculate KPIs
   const calculateKPIs = () => {
     const totalProductions = productions.length;
-    
+
     // Calculate total planned and actual production
     let totalPlanned = 0;
     let totalActual = 0;
-    
+
     productions.forEach(production => {
       production.productionDetails.forEach(detail => {
         totalPlanned += parseFloat(detail.productionQuantityPlan) || 0;
         totalActual += parseFloat(detail.actualProduction) || 0;
       });
     });
-    
+
     const totalGap = totalPlanned - totalActual;
     const efficiency = totalPlanned > 0 ? (totalActual / totalPlanned) * 100 : 0;
 
@@ -258,7 +258,7 @@ const ProductionManagement = () => {
         "Project Name",
         "Production Start Date",
         "Production End Date",
-        "Part Name",
+        "Item Name",
         "Planned Quantity",
         "Actual Quantity",
         "Gap",
@@ -377,6 +377,8 @@ const ProductionManagement = () => {
       fetchProductions();
     } catch (error) {
       console.error("Error saving production:", error);
+      console.error("Error response:", error.response);
+      console.error("Error data:", error.response?.data);
       showError(error.response?.data?.message || "Failed to save production record");
     }
   };
@@ -434,23 +436,22 @@ const ProductionManagement = () => {
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                    showFilters || Object.values(filters).some((value, key) => key !== 'searchTerm' && Boolean(value))
+                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters || Object.values(filters).some((value, key) => key !== 'searchTerm' && Boolean(value))
                       ? "border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100"
                       : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
-                  }`}
+                    }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
                   Filters
-                  {Object.values(filters).filter((value, index) => 
+                  {Object.values(filters).filter((value, index) =>
                     Object.keys(filters)[index] !== 'searchTerm' && Boolean(value)
                   ).length > 0 && (
-                    <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-600 rounded-full">
-                      {Object.values(filters).filter((value, index) => 
-                        Object.keys(filters)[index] !== 'searchTerm' && Boolean(value)
-                      ).length}
-                    </span>
-                  )}
+                      <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-600 rounded-full">
+                        {Object.values(filters).filter((value, index) =>
+                          Object.keys(filters)[index] !== 'searchTerm' && Boolean(value)
+                        ).length}
+                      </span>
+                    )}
                 </button>
 
                 {Object.values(filters).some(Boolean) && (
@@ -484,7 +485,7 @@ const ProductionManagement = () => {
             {/* Search help text */}
             {filters.searchTerm && (
               <div className="mt-2 text-xs text-gray-500">
-                Searching in: Client, Project, Part Name, Status, Remarks, Dates
+                Searching in: Client, Project, Item Name, Status, Remarks, Dates
               </div>
             )}
           </div>
@@ -535,7 +536,7 @@ const ProductionManagement = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Part Name
+                    Item Name
                   </label>
                   <select
                     value={filters.partName}
@@ -622,9 +623,9 @@ const ProductionManagement = () => {
                       acc.actual += parseFloat(detail.actualProduction) || 0;
                       return acc;
                     }, { planned: 0, actual: 0 });
-                    
+
                     const gap = totals.planned - totals.actual;
-                    
+
                     return (
                       <tr
                         key={item._id}
@@ -649,11 +650,11 @@ const ProductionManagement = () => {
                           <div className="text-sm text-gray-900">
                             <div className="flex items-center">
                               <CalendarIcon className="h-4 w-4 mr-1 text-gray-400" />
-                              {item.startDate ? 
+                              {item.startDate ?
                                 new Date(item.startDate).toLocaleDateString() : "N/A"}
                             </div>
                             <div className="flex items-center text-xs text-gray-500">
-                              to {item.endDate ? 
+                              to {item.endDate ?
                                 new Date(item.endDate).toLocaleDateString() : "N/A"}
                             </div>
                           </div>
@@ -678,14 +679,13 @@ const ProductionManagement = () => {
                           <div className="text-sm font-medium text-gray-900">
                             {totals.actual.toLocaleString()}
                           </div>
-                          <div className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                            gap > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
-                          }`}>
+                          <div className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${gap > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                            }`}>
                             Gap: {gap.toLocaleString()}
                           </div>
                         </td>
 
-          
+
 
                         {/* Actions */}
                         <td className="px-6 py-4 text-right">
@@ -728,9 +728,9 @@ const ProductionManagement = () => {
                   acc.actual += parseFloat(detail.actualProduction) || 0;
                   return acc;
                 }, { planned: 0, actual: 0 });
-                
+
                 const gap = totals.planned - totals.actual;
-                
+
                 return (
                   <div
                     key={item._id}
@@ -781,7 +781,7 @@ const ProductionManagement = () => {
                       <div className="bg-gray-50 rounded-md p-2 border border-gray-200">
                         <div className="text-xs text-gray-500">Production Period</div>
                         <div className="text-sm font-medium text-gray-900">
-                          {item.startDate ? 
+                          {item.startDate ?
                             new Date(item.startDate).toLocaleDateString() : "N/A"}
                         </div>
                       </div>
@@ -808,18 +808,16 @@ const ProductionManagement = () => {
                     {/* Status and Gap */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          item.status === 'completed' 
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${item.status === 'completed'
                             ? 'bg-green-100 text-green-800'
                             : item.status === 'in-progress'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
                           {item.status?.charAt(0).toUpperCase() + item.status?.slice(1) || 'Active'}
                         </span>
-                        <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                          gap > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
-                        }`}>
+                        <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${gap > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                          }`}>
                           Gap: {gap.toLocaleString()}
                         </span>
                       </div>
@@ -890,11 +888,10 @@ const ProductionManagement = () => {
                           )}
                           <button
                             onClick={() => paginate(page)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              currentPage === page
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
                                 ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
                                 : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
-                            }`}
+                              }`}
                           >
                             {page}
                           </button>
@@ -957,200 +954,199 @@ const ProductionManagement = () => {
 
       {/* View Production Details Modal */}
       <Modal
-  isOpen={viewModal}
-  onClose={() => {
-    setViewModal(false);
-    setSelectedProduction(null);
-  }}
-  title="Production Details"
-  size="xl"
->
-  {selectedProduction && (
-    <div className="space-y-6">
-      {/* Header Info */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-medium text-gray-900">
-              {selectedProduction.projectName}
-            </h3>
-            <p className="text-sm text-gray-500">
-              {selectedProduction.customerName}
-            </p>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Production Period
-            </label>
-            <div className="flex items-center text-sm text-gray-900">
-              <CalendarIcon className="h-4 w-4 mr-2 text-gray-400" />
-              {selectedProduction.startDate ? 
-                new Date(selectedProduction.startDate).toLocaleDateString() : "N/A"}
-              {" → "}
-              {selectedProduction.endDate ? 
-                new Date(selectedProduction.endDate).toLocaleDateString() : "N/A"}
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Created Date
-            </label>
-            <div className="text-sm text-gray-900">
-              {new Date(selectedProduction.createdAt).toLocaleDateString()}
-            </div>
-          </div>
-        </div>
-      </div>
+        isOpen={viewModal}
+        onClose={() => {
+          setViewModal(false);
+          setSelectedProduction(null);
+        }}
+        title="Production Details"
+        size="xl"
+      >
+        {selectedProduction && (
+          <div className="space-y-6">
+            {/* Header Info */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">
+                    {selectedProduction.projectName}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {selectedProduction.customerName}
+                  </p>
+                </div>
+              </div>
 
-      {/* Production Details Table */}
-      <div>
-        <h4 className="text-md font-medium text-gray-900 mb-4">Production Parts</h4>
-        {selectedProduction.productionDetails.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Part Name
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Planned Qty
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actual Qty
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Gap
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Reason for Delay
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Remarks
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {selectedProduction.productionDetails.map((detail, index) => {
-                  const gap = (parseFloat(detail.productionQuantityPlan) || 0) - 
-                             (parseFloat(detail.actualProduction) || 0);
-                  
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Production Period
+                  </label>
+                  <div className="flex items-center text-sm text-gray-900">
+                    <CalendarIcon className="h-4 w-4 mr-2 text-gray-400" />
+                    {selectedProduction.startDate ?
+                      new Date(selectedProduction.startDate).toLocaleDateString() : "N/A"}
+                    {" → "}
+                    {selectedProduction.endDate ?
+                      new Date(selectedProduction.endDate).toLocaleDateString() : "N/A"}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Created Date
+                  </label>
+                  <div className="text-sm text-gray-900">
+                    {new Date(selectedProduction.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Production Details Table */}
+            <div>
+              <h4 className="text-md font-medium text-gray-900 mb-4">Production Parts</h4>
+              {selectedProduction.productionDetails.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Item Name
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Planned Qty
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actual Qty
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Gap
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Reason for Delay
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Remarks
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {selectedProduction.productionDetails.map((detail, index) => {
+                        const gap = (parseFloat(detail.productionQuantityPlan) || 0) -
+                          (parseFloat(detail.actualProduction) || 0);
+
+                        return (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {detail.partName || ""}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                              {detail.productionQuantityPlan?.toLocaleString() || "0"}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                              {detail.actualProduction?.toLocaleString() || "0"}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${gap > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                                }`}>
+                                {gap.toLocaleString()}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-900">
+                              {detail.reasonForDelay || ""}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-900">
+                              {detail.remarks || ""}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                  <CubeIcon className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No parts added</h3>
+                  <p className="mt-1 text-sm text-gray-500">No production details available for this record.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Summary Statistics */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h4 className="text-md font-medium text-gray-900 mb-4">Summary</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-gray-900">
+                    {selectedProduction.productionDetails.length}
+                  </div>
+                  <div className="text-sm text-gray-500">Total Parts</div>
+                </div>
+
+                {(() => {
+                  const totals = selectedProduction.productionDetails.reduce((acc, detail) => {
+                    acc.planned += parseFloat(detail.productionQuantityPlan) || 0;
+                    acc.actual += parseFloat(detail.actualProduction) || 0;
+                    return acc;
+                  }, { planned: 0, actual: 0 });
+
+                  const gap = totals.planned - totals.actual;
+                  const efficiency = totals.planned > 0 ? (totals.actual / totals.planned) * 100 : 0;
+
                   return (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {detail.partName || ""}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                        {detail.productionQuantityPlan?.toLocaleString() || "0"}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                        {detail.actualProduction?.toLocaleString() || "0"}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          gap > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
-                        }`}>
-                          {gap.toLocaleString()}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {detail.reasonForDelay || ""}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {detail.remarks || ""}
-                      </td>
-                    </tr>
+                    <>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-gray-900">
+                          {totals.planned.toLocaleString()}
+                        </div>
+                        <div className="text-sm text-gray-500">Total Planned</div>
+                      </div>
+
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-gray-900">
+                          {totals.actual.toLocaleString()}
+                        </div>
+                        <div className="text-sm text-gray-500">Total Actual</div>
+                      </div>
+
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-gray-900">
+                          {efficiency.toFixed(1)}%
+                        </div>
+                        <div className={`text-sm ${gap > 0 ? 'text-yellow-600' : 'text-green-600'}`}>
+                          Efficiency (Gap: {gap.toLocaleString()})
+                        </div>
+                      </div>
+                    </>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
-            <CubeIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No parts added</h3>
-            <p className="mt-1 text-sm text-gray-500">No production details available for this record.</p>
+                })()}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => setViewModal(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setViewModal(false);
+                  // Assuming you have a handleEdit function
+                  handleEdit(selectedProduction);
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Edit Production
+              </button>
+            </div>
           </div>
         )}
-      </div>
-
-      {/* Summary Statistics */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <h4 className="text-md font-medium text-gray-900 mb-4">Summary</h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900">
-              {selectedProduction.productionDetails.length}
-            </div>
-            <div className="text-sm text-gray-500">Total Parts</div>
-          </div>
-          
-          {(() => {
-            const totals = selectedProduction.productionDetails.reduce((acc, detail) => {
-              acc.planned += parseFloat(detail.productionQuantityPlan) || 0;
-              acc.actual += parseFloat(detail.actualProduction) || 0;
-              return acc;
-            }, { planned: 0, actual: 0 });
-            
-            const gap = totals.planned - totals.actual;
-            const efficiency = totals.planned > 0 ? (totals.actual / totals.planned) * 100 : 0;
-            
-            return (
-              <>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-900">
-                    {totals.planned.toLocaleString()}
-                  </div>
-                  <div className="text-sm text-gray-500">Total Planned</div>
-                </div>
-                
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-900">
-                    {totals.actual.toLocaleString()}
-                  </div>
-                  <div className="text-sm text-gray-500">Total Actual</div>
-                </div>
-                
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-900">
-                    {efficiency.toFixed(1)}%
-                  </div>
-                  <div className={`text-sm ${gap > 0 ? 'text-yellow-600' : 'text-green-600'}`}>
-                    Efficiency (Gap: {gap.toLocaleString()})
-                  </div>
-                </div>
-              </>
-            );
-          })()}
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-4 border-t border-gray-200">
-        <button
-          onClick={() => setViewModal(false)}
-          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-        >
-          Close
-        </button>
-        <button
-          onClick={() => {
-            setViewModal(false);
-            // Assuming you have a handleEdit function
-            handleEdit(selectedProduction);
-          }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          Edit Production
-        </button>
-      </div>
-    </div>
-  )}
-</Modal>
+      </Modal>
 
       {/* Delete Confirmation Modal */}
       <Modal

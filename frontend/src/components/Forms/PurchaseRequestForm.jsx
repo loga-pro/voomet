@@ -321,7 +321,7 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
     formData.items.forEach((item, index) => {
       const itemError = {};
       if (!item.scopeOfWork) itemError.scopeOfWork = 'Scope of work is required';
-      if (!item.partName) itemError.partName = 'Part name is required';
+      if (!item.partName) itemError.partName = 'Item name is required';
       const quantityError = validateQuantityRequired(item.quantityRequired);
       if (quantityError) itemError.quantityRequired = quantityError;
       const purposeError = validatePurpose(item.purpose);
@@ -485,7 +485,7 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
             <div className="grid grid-cols-12 gap-4 px-4 py-3 items-center">
               <div className="col-span-1 text-sm font-medium text-gray-700">s.no</div>
               <div className="col-span-2 text-sm font-medium text-gray-700">Scope of Work*</div>
-              <div className="col-span-3 text-sm font-medium text-gray-700">Part name*</div>
+              <div className="col-span-3 text-sm font-medium text-gray-700">Item name*</div>
               <div className="col-span-1 text-sm font-medium text-gray-700">Qty*</div>
               <div className="col-span-3 text-sm font-medium text-gray-700">Purpose*</div>
               <div className="col-span-1 text-sm font-medium text-gray-700 text-right">Action</div>
@@ -527,7 +527,7 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
                         error={showValidation && errors.items?.[index]?.partName}
                         size="small"
                         hideLabel
-                        placeholder="Enter Part Name"
+                        placeholder="Enter Item Name"
                         className="w-full"
                       />
                     </div>

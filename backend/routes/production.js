@@ -34,7 +34,7 @@ router.get('/', auth, async (req, res) => {
       sortBy = 'createdAt',
       sortOrder = 'desc',
       page = 1,
-      limit = 10
+      limit = 100
     } = req.query;
 
     // Build filter object

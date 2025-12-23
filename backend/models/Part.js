@@ -9,6 +9,10 @@ const partSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  specification: {
+    type: String,
+    required: true
+  },
   category: {
     type: String,
     enum: ['inhouse', 'out_sourced', 'bought_out'],

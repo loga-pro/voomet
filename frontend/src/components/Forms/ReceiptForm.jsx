@@ -487,7 +487,7 @@ const ReceiptForm = ({
               <thead>
                 <tr className="bg-gray-50">
                   <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Work Category</th>
-                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Part Name</th>
+                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Item Name</th>
                   <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Unit</th>
                   <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
                   <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Price without GST (₹)</th>

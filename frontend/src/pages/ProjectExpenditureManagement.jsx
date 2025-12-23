@@ -994,7 +994,7 @@ const ProjectExpenditureManagement = () => {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Part Name</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Item Name</th>
                         <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Qty</th>
                         <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
                         <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>

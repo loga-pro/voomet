@@ -245,7 +245,7 @@ const Dispatches = () => {
 
   const exportToCSV = () => {
     const headers = [
-      'Date', 'Dispatch Category', 'Work Category', 'Part Name', 'Customer Name',
+      'Date', 'Dispatch Category', 'Work Category', 'Item Name', 'Customer Name',
       'Quantity', 'Unit'
     ];
 
@@ -567,7 +567,7 @@ const Dispatches = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Part Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
                   <select
                     value={filters.partName}
                     onChange={(e) => handleFilterChange('partName', e.target.value)}
@@ -965,7 +965,7 @@ const Dispatches = () => {
 
 
                 <div className="space-y-1">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Part Name</h4>
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Item Name</h4>
                   <p className="text-sm text-gray-900 font-medium">{selectedDispatch.partName}</p>
                 </div>
 
@@ -1107,7 +1107,7 @@ const Dispatches = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Part Name
+                    Item Name
                   </th>
                   <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Quantity

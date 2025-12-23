@@ -242,7 +242,7 @@ const Receipts = () => {
 
   const exportToCSV = () => {
     const headers = [
-      'Date', 'Receipt Category', 'Work Category', 'Part Name', 'Vendor Name',
+      'Date', 'Receipt Category', 'Work Category', 'Item Name', 'Vendor Name',
       'Invoice No', 'Invoice Date', 'Quantity', 'Unit',
       'Invoice Value', 'GST Value', 'Total Value', 'Status'
     ];
@@ -519,7 +519,7 @@ const Receipts = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Part Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
                   <select
                     value={filters.partName}
                     onChange={(e) => handleFilterChange('partName', e.target.value)}
@@ -911,7 +911,7 @@ const Receipts = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Part Name</h4>
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Item Name</h4>
                   <p className="text-sm text-gray-900 font-medium">{selectedReceipt.partName}</p>
                 </div>
 
@@ -1061,7 +1061,7 @@ const Receipts = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Part Name
+                    Item Name
                   </th>
                   <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Quantity

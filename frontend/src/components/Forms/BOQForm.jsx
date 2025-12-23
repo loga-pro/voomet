@@ -762,7 +762,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     }
 
     formData.items.forEach((item, index) => {
-      if (!item.partName) newErrors[`item-${index}-partName`] = 'Part name is required';
+      if (!item.partName) newErrors[`item-${index}-partName`] = 'Item name is required';
       if (!item.numberOfUnits || Number(item.numberOfUnits) <= 0) newErrors[`item-${index}-numberOfUnits`] = 'Valid number of units is required';
       if (item.numberOfUnits && !/^\d{1,8}$/.test(item.numberOfUnits)) {
         newErrors[`item-${index}-numberOfUnits`] = 'Maximum 8 digits allowed';
@@ -1144,7 +1144,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                   {/* First Row - Main Fields */}
                   <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
                     <FloatingInput
-                      label="Part Name"
+                      label="Item Name"
                       value={item.partName}
                       onChange={(e) => handlePartSelect(index, e.target.value)}
                       error={errors[`item-${index}-partName`]}

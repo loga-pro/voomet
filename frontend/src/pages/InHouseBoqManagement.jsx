@@ -353,7 +353,7 @@ const InHouseBoqManagement = () => {
       const headers = [
         "Customer",
         "Scope of Work",
-        "Part Name",
+        "Item Name",
         "Number of Units",
         "Unit Type",
         "Overall Remarks"
@@ -575,7 +575,7 @@ const InHouseBoqManagement = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Part Name
+                    Item Name
                   </label>
                   <select
                     value={filters.itemDescription}
@@ -1031,7 +1031,7 @@ const InHouseBoqManagement = () => {
                       <thead>
                         <tr className="border-b border-gray-200">
                           <th className="text-left py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                            Part Name
+                            Item Name
                           </th>
                           <th className="text-left py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                             Units

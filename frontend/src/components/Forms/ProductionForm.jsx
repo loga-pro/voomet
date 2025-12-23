@@ -71,6 +71,32 @@ const useFormData = (production) => {
   useEffect(() => {
     if (!production) return;
 
+    // Debug logging
+    console.log('=== Production Form Data Loading ===');
+    console.log('Full production object:', production);
+    console.log('production.productionDetails:', production.productionDetails);
+    console.log('production.items:', production.items);
+
+    // Handle both 'items' and 'productionDetails' from backend
+    const productionItems = production.productionDetails || production.items || [];
+    console.log('Resolved productionItems:', productionItems);
+    console.log('productionItems length:', productionItems.length);
+
+    // Log each item in detail
+    if (productionItems.length > 0) {
+      productionItems.forEach((item, idx) => {
+        console.log(`Item ${idx}:`, {
+          date: item.date,
+          partName: item.partName,
+          productionQuantityPlan: item.productionQuantityPlan,
+          actualProduction: item.actualProduction,
+          gap: item.gap,
+          reasonForDelay: item.reasonForDelay,
+          remarks: item.remarks
+        });
+      });
+    }
+
     const formattedData = {
       customerName: production.customerName || '',
       projectName: production.projectName || '',
@@ -78,19 +104,27 @@ const useFormData = (production) => {
       milestoneEndDate: production.milestoneEndDate ? formatDateForInput(production.milestoneEndDate) : '',
       startDate: production.startDate ? formatDateForInput(production.startDate) : '',
       endDate: production.endDate ? formatDateForInput(production.endDate) : '',
-      items: production.items?.length > 0
-        ? production.items.map((it, i) => ({
-          sNo: i + 1,
-          date: it.date ? formatDateForInput(it.date) : '',
-          partName: it.partName || '',
-          productionQuantityPlan: it.productionQuantityPlan || '',
-          actualProduction: it.actualProduction || '',
-          gap: calculateGap(it.productionQuantityPlan, it.actualProduction),
-          reasonForDelay: it.reasonForDelay || '',
-          remarks: it.remarks || ''
-        }))
+      items: productionItems.length > 0
+        ? productionItems.map((it, i) => {
+          const formattedItem = {
+            sNo: i + 1,
+            date: it.date ? formatDateForInput(it.date) : '',
+            partName: it.partName || '',
+            productionQuantityPlan: it.productionQuantityPlan || '',
+            actualProduction: it.actualProduction || '',
+            gap: calculateGap(it.productionQuantityPlan, it.actualProduction),
+            reasonForDelay: it.reasonForDelay || '',
+            remarks: it.remarks || ''
+          };
+          console.log(`Formatted item ${i}:`, formattedItem);
+          return formattedItem;
+        })
         : INITIAL_FORM_DATA.items
     };
+
+    console.log('Formatted form data:', formattedData);
+    console.log('Formatted items array:', formattedData.items);
+    console.log('=== End Production Form Data Loading ===');
 
     setFormData(formattedData);
   }, [production]);
@@ -228,7 +262,7 @@ const ProductionItemRow = ({
           {/* Part Name */}
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">
-              Part Name*
+              Item Name*
             </label>
             <FloatingInput
               value={item.partName}
@@ -237,7 +271,7 @@ const ProductionItemRow = ({
               error={showValidation && errors.items?.[index]?.partName}
               size="small"
               className="w-full"
-              placeholder="Enter part name"
+              placeholder="Enter item name"
               list={`partName-${index}`}
             />
             <datalist id={`partName-${index}`}>
@@ -364,7 +398,7 @@ const ProductionItemRow = ({
             size="small"
             hideLabel
             className="w-full"
-            placeholder="Enter part name"
+            placeholder="Enter item name"
             list={`partName-${index}`}
           />
           <datalist id={`partName-${index}`}>
@@ -481,7 +515,7 @@ const ItemsTableHeader = () => {
       <tr className="text-left text-sm font-medium text-gray-700">
         <th scope="col" className="px-4 py-3 text-center" style={{ minWidth: '80px' }}>S.No</th>
         <th scope="col" className="px-4 py-3" style={{ minWidth: '180px' }}>Date*</th>
-        <th scope="col" className="px-4 py-3" style={{ minWidth: '250px' }}>Part Name*</th>
+        <th scope="col" className="px-4 py-3" style={{ minWidth: '250px' }}>Item Name*</th>
         <th scope="col" className="px-4 py-3" style={{ minWidth: '180px' }}>
           <div className="flex flex-col">
             <span>Production*</span>
@@ -615,6 +649,11 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
   const { customers, parts, inhouseMilestones } = useExternalData();
   const filteredProjects = useFilteredProjects(formData.customerName, inhouseMilestones);
 
+  // Debug: Log formData.items whenever it changes
+  useEffect(() => {
+    console.log('🔍 formData.items changed:', formData.items);
+  }, [formData.items]);
+
   // Track window size for responsive behavior
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -631,7 +670,15 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
       gap: calculateGap(item.productionQuantityPlan, item.actualProduction)
     }));
 
-    setFormData(prev => ({ ...prev, items: updatedItems }));
+    // Only update if gaps actually changed
+    const hasChanged = updatedItems.some((item, idx) =>
+      item.gap !== formData.items[idx]?.gap
+    );
+
+    if (hasChanged) {
+      console.log('Gap calculation: updating gaps');
+      setFormData(prev => ({ ...prev, items: updatedItems }));
+    }
   }, [formData.items.map(i => `${i.productionQuantityPlan}-${i.actualProduction}`).join(',')]);
 
   // Auto-fetch milestone dates when project is selected

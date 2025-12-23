@@ -593,7 +593,7 @@ const ProjectExpenditureForm = ({
         
         // Validate part name
         if (!exp.partName) {
-          newErrors[`expenditures.${index}.partName`] = 'Part name is required';
+          newErrors[`expenditures.${index}.partName`] = 'Item name is required';
         }
         
         // Validate quantity to be ordered
@@ -821,7 +821,7 @@ const ProjectExpenditureForm = ({
             <thead className="bg-gray-100 text-gray-600">
               <tr>
                 <th className="px-3 py-2">Type of Work</th>
-                <th className="px-3 py-2">Part Name</th>
+                <th className="px-3 py-2">Item Name</th>
                 <th className="px-3 py-2">Qty to Order</th>
                 <th className="px-3 py-2">Unit</th>
                 <th className="px-3 py-2">Qty Actual</th>

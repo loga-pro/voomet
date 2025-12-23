@@ -358,7 +358,7 @@ const CustomerBoqManagement = () => {
       const headers = [
         "Customer",
         "Scope of Work",
-        "Part Name",
+        "Item Name",
         "QUANTITY",
         "Unit Type",
         "Unit Price (IN RUPEES)",
@@ -636,7 +636,7 @@ const CustomerBoqManagement = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Part Name
+                    Item Name
                   </label>
                   <select
                     value={filters.itemDescription}
@@ -1205,7 +1205,7 @@ const CustomerBoqManagement = () => {
     <thead>
       <tr className="border-b border-gray-200">
         <th className="text-center py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          Part Name
+          Item Name
         </th>
         <th className="text-center py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
           Units
@@ -1402,7 +1402,7 @@ const CustomerBoqManagement = () => {
         <thead className="bg-gray-50">
           <tr>
             <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Part Name
+              Item Name
             </th>
             <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
               Units

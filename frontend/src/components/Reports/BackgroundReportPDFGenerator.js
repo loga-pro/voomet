@@ -112,7 +112,7 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
       inventory: {
         headers: [
           { key: 'workCategory', displayName: 'Work Category' },
-          { key: 'partName', displayName: 'Part Name' },
+          { key: 'partName', displayName: 'Item Name' },
           { key: 'category', displayName: 'Category' },
           { key: 'vendorName', displayName: 'Vendor Name' },
           { key: 'reOrderLevel', displayName: 'Re-order Level' },

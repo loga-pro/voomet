@@ -7,6 +7,7 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
     scopeOfWork: '',
     partName: '',
+    specification: '',
     category: '',
     unitType: '',
     partPrice: '',
@@ -39,6 +40,7 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
       setFormData({
         scopeOfWork: part.scopeOfWork || 'electrical',
         partName: part.partName || '',
+        specification: part.specification || '',
         category: part.category || 'inhouse',
         unitType: part.unitType || '',
         partPrice: part.partPrice || '',
@@ -109,6 +111,14 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
           [name]: value
         }));
       }
+    } else if (name === 'specification') {
+      // Allow up to 100 characters for specification
+      if (value.length <= 100) {
+        setFormData(prev => ({
+          ...prev,
+          [name]: value
+        }));
+      }
     } else if (name === 'vendorName') {
       setFormData(prev => ({
         ...prev,
@@ -147,11 +157,19 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
     }
 
     if (!formData.partName.trim()) {
-      newErrors.partName = 'Part name is required';
+      newErrors.partName = 'Item name is required';
     } else if (/[^a-zA-Z0-9\s]/.test(formData.partName)) {
-      newErrors.partName = 'Part name should not contain special characters';
+      newErrors.partName = 'Item name should not contain special characters';
     } else if (formData.partName.length > 25) {
-      newErrors.partName = 'Part name cannot exceed 25 characters';
+      newErrors.partName = 'Item name cannot exceed 25 characters';
+    }
+
+    if (!formData.specification || !formData.specification.trim()) {
+      newErrors.specification = 'Specification is required';
+    } else if (formData.specification.trim().length < 2) {
+      newErrors.specification = 'Specification must be at least 2 characters';
+    } else if (formData.specification.length > 100) {
+      newErrors.specification = 'Specification cannot exceed 100 characters';
     }
 
     if (!formData.unitType || !formData.unitType.trim()) {
@@ -212,6 +230,7 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
       const submitData = {
         scopeOfWork: formData.scopeOfWork,
         partName: formData.partName.trim(),
+        specification: formData.specification.trim(),
         category: formData.category,
         unitType: formData.unitType.trim(),
         partPrice: parseFloat(formData.partPrice),
@@ -298,7 +317,7 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
       )}
 
       <FloatingInput
-        label="Part Name"
+        label="Item Name"
         name="partName"
         value={formData.partName}
         onChange={handleChange}
@@ -308,6 +327,16 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
         required
       />
 
+      <FloatingInput
+        label="Specification"
+        name="specification"
+        value={formData.specification}
+        onChange={handleChange}
+        type="text"
+        error={errors.specification}
+        maxLength={100}
+        required
+      />
 
 
       <FloatingInput

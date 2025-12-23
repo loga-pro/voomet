@@ -156,7 +156,7 @@ const DispatchInvoice = ({ invoiceData = {}, hideDownloadButton = false }) => {
           <div className="flex border-b font-bold text-center bg-gray-50 uppercase text-[9px]">
             <div className="w-[5%] border-r py-1">Sl</div>
             <div className="w-[45%] border-r py-1">Description of Goods</div>
-            <div className="w-[30%] border-r py-1">Part Name</div>
+            <div className="w-[30%] border-r py-1">Item Name</div>
             <div className="w-[20%] py-1">Qty</div>
           </div>
 
