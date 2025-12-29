@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import FloatingInput from './FloatingInput';
 import { FaTrash, FaPlus } from 'react-icons/fa';
+import { purchasesAPI } from '../../services/api';
 
 const formatDateForInput = (dateValue) => {
   if (!dateValue) return '';
@@ -28,6 +29,7 @@ const PurchaseForm = ({
   purchaseIndex = null
 }) => {
   const initialData = purchaseData || {};
+  const [allPurchasesForVoucher, setAllPurchasesForVoucher] = useState([]);
 
   // State for individual line items
   const [lineItems, setLineItems] = useState(() => {
@@ -79,7 +81,10 @@ const PurchaseForm = ({
     otherReference: initialData.otherReference || '',
     dispatchedThrough: initialData.dispatchedThrough || '',
     destination: initialData.destination || '',
-    termsOfDelivery: initialData.termsOfDelivery || ''
+    termsOfDelivery: initialData.termsOfDelivery || '',
+    supplier: initialData.supplier || '',
+    cgst: initialData.cgst || '',
+    sgst: initialData.sgst || ''
   });
 
   // Calculate totals
@@ -103,6 +108,39 @@ const PurchaseForm = ({
       setLineItems(updatedItems);
     }
   }, [lineItems.map(item => `${item.priceWithoutGST}-${item.quantity}-${item.gstPercentage}`).join('|')]);
+
+  // Fetch all purchases with the same voucher number when editing
+  useEffect(() => {
+    const fetchRelatedPurchases = async () => {
+      if (isEditing && initialData.voucherNo) {
+        try {
+          // Fetch all purchases and filter by voucher number
+          const response = await purchasesAPI.getAll();
+          const allPurchases = Array.isArray(response) ? response : response.data || [];
+          const relatedPurchases = allPurchases.filter(p => p.voucherNo === initialData.voucherNo);
+          
+          if (relatedPurchases.length > 1) {
+            // Multiple line items found - populate form with all of them
+            setAllPurchasesForVoucher(relatedPurchases);
+            const mappedItems = relatedPurchases.map(item => ({
+              workCategory: item.workCategory || '',
+              partName: item.partName || '',
+              unit: item.unit || '',
+              quantity: item.quantity?.toString() || '',
+              priceWithoutGST: (item.priceWithoutGST || item.invoiceValueWithoutGST)?.toString() || '',
+              gstPercentage: item.gstPercentage || 18,
+              gstAmount: (item.gstAmount || item.gstValue)?.toString() || '',
+              total: (item.total || item.totalValue)?.toString() || ''
+            }));
+            setLineItems(mappedItems);
+          }
+        } catch (error) {
+          console.error('Error fetching related purchases:', error);
+        }
+      }
+    };
+    fetchRelatedPurchases();
+  }, [isEditing, initialData.voucherNo]);
 
   // Auto-fill unit and price when part is selected for each line item
   const handlePartChange = (index, partName) => {
@@ -247,9 +285,12 @@ const PurchaseForm = ({
 
     try {
       if (isEditing && purchaseData?._id) {
-        // For editing, submit all line items
-        for (let i = 0; i < lineItems.length; i++) {
-          const item = lineItems[i];
+        // For editing, update all line items with the same voucher number
+        // First, delete all existing purchases with this voucher number
+        await purchasesAPI.deleteByVoucher(formData.voucherNo);
+
+        // Then create new purchases for each line item
+        for (const item of lineItems) {
           const purchase = {
             voucherNo: formData.voucherNo,
             date: formData.date,
@@ -260,22 +301,25 @@ const PurchaseForm = ({
             dispatchedThrough: formData.dispatchedThrough,
             destination: formData.destination,
             termsOfDelivery: formData.termsOfDelivery,
+            supplier: formData.supplier,
+            ...(formData.cgst !== '' && { cgst: parseFloat(formData.cgst) }),
+            ...(formData.sgst !== '' && { sgst: parseFloat(formData.sgst) }),
             workCategory: item.workCategory,
             partName: item.partName,
             unit: item.unit,
             quantity: parseFloat(item.quantity),
             invoiceValueWithoutGST: parseFloat(item.priceWithoutGST),
+            gstPercentage: parseFloat(item.gstPercentage),
             gstValue: parseFloat(item.gstAmount),
             totalValue: parseFloat(item.total)
           };
 
-          // Only pass the ID on the first iteration to trigger the edit flow
-          await onSubmit(purchase, i === 0 ? purchaseData._id : null);
+          await purchasesAPI.create(purchase);
         }
-        // Show success message and trigger refresh after all items are submitted
+
         showNotification?.('Purchase updated successfully');
         onCancel(); // Close the modal
-        window.location.reload(); // Refresh the page
+        if (onSubmit) onSubmit(); // Trigger parent refresh
       } else {
         // For creating new purchases, create one purchase per line item
         for (const item of lineItems) {
@@ -289,21 +333,25 @@ const PurchaseForm = ({
             dispatchedThrough: formData.dispatchedThrough,
             destination: formData.destination,
             termsOfDelivery: formData.termsOfDelivery,
+            supplier: formData.supplier,
+            ...(formData.cgst !== '' && { cgst: parseFloat(formData.cgst) }),
+            ...(formData.sgst !== '' && { sgst: parseFloat(formData.sgst) }),
             workCategory: item.workCategory,
             partName: item.partName,
             unit: item.unit,
             quantity: parseFloat(item.quantity),
             invoiceValueWithoutGST: parseFloat(item.priceWithoutGST),
+            gstPercentage: parseFloat(item.gstPercentage),
             gstValue: parseFloat(item.gstAmount),
             totalValue: parseFloat(item.total)
           };
 
-          await onSubmit(purchase);
+          await purchasesAPI.create(purchase);
         }
-        // Show success message and trigger refresh after all items are submitted
+
         showNotification?.('Purchase added successfully');
         onCancel(); // Close the modal
-        window.location.reload(); // Refresh the page
+        if (onSubmit) onSubmit(); // Trigger parent refresh
       }
     } catch (error) {
       console.error('Error submitting purchase:', error);
@@ -388,16 +436,48 @@ const PurchaseForm = ({
           maxLength={30}
         />
 
-        <div className="md:col-span-2">
-          <FloatingInput
-            label="Terms of Delivery"
-            name="termsOfDelivery"
-            value={formData.termsOfDelivery}
-            onChange={handleInputChange}
-            type="textarea"
-            rows={3}
-          />
-        </div>
+        <FloatingInput
+          label="Terms of Delivery"
+          name="termsOfDelivery"
+          value={formData.termsOfDelivery}
+          onChange={handleInputChange}
+          type="textarea"
+          rows={3}
+        />
+
+        <FloatingInput
+          label="Supplier (Bill from)"
+          name="supplier"
+          value={formData.supplier}
+          onChange={handleInputChange}
+          type="textarea"
+          rows={4}
+          placeholder="Enter supplier details here"
+        />
+
+        <FloatingInput
+          label="CGST (%)"
+          name="cgst"
+          value={formData.cgst}
+          onChange={handleInputChange}
+          type="number"
+          min="0"
+          max="100"
+          step="0.01"
+          placeholder="Optional"
+        />
+
+        <FloatingInput
+          label="SGST (%)"
+          name="sgst"
+          value={formData.sgst}
+          onChange={handleInputChange}
+          type="number"
+          min="0"
+          max="100"
+          step="0.01"
+          placeholder="Optional"
+        />
       </div>
 
       {/* Line Items Section */}

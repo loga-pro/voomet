@@ -30,6 +30,14 @@ const dispatchSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  poNo: {
+    type: String,
+    default: ''
+  },
+  contactNo: {
+    type: String,
+    default: ''
+  },
   customerName: {
     type: String,
     required: true

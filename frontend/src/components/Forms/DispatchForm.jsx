@@ -70,6 +70,8 @@ const DispatchForm = ({
     deliveryChalan: initialData.deliveryChalan || '',
     vehicleNo: initialData.vehicleNo || '',
     ewayBill: initialData.ewayBill || '',
+    poNo: initialData.poNo || '',
+    contactNo: initialData.contactNo || '',
     customerName: initialData.customerName || '',
     dispatchNo: initialData.dispatchNo || initialData.invoiceNo || '',
     dispatchDate: initialData.dispatchDate || initialData.invoiceDate || '',
@@ -404,6 +406,8 @@ const DispatchForm = ({
             deliveryChalan: formData.deliveryChalan,
             vehicleNo: formData.vehicleNo,
             ewayBill: formData.ewayBill,
+            poNo: formData.poNo,
+            contactNo: formData.contactNo,
             customerName: formData.customerName,
             invoiceNo: formData.dispatchNo,
             invoiceDate: formData.dispatchDate,
@@ -436,6 +440,8 @@ const DispatchForm = ({
             deliveryChalan: formData.deliveryChalan,
             vehicleNo: formData.vehicleNo,
             ewayBill: formData.ewayBill,
+            poNo: formData.poNo,
+            contactNo: formData.contactNo,
             customerName: formData.customerName,
             invoiceNo: formData.dispatchNo,
             invoiceDate: formData.dispatchDate,
@@ -481,7 +487,7 @@ const DispatchForm = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-     
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FloatingInput
@@ -507,13 +513,6 @@ const DispatchForm = ({
           ]}
         />
 
-        <FloatingInput
-          label="Delivery Chalan"
-          name="deliveryChalan"
-          value={formData.deliveryChalan}
-          onChange={handleInputChange}
-          maxLength={30}
-        />
 
         <FloatingInput
           label="Vehicle No"
@@ -532,6 +531,14 @@ const DispatchForm = ({
         />
 
         <FloatingInput
+          label="PO No"
+          name="poNo"
+          value={formData.poNo}
+          onChange={handleInputChange}
+          maxLength={30}
+        />
+        
+        <FloatingInput
           label="Customer Name"
           name="customerName"
           value={formData.customerName}
@@ -541,7 +548,15 @@ const DispatchForm = ({
         />
 
         <FloatingInput
-          label="Dispatch No "
+          label="Contact No"
+          name="contactNo"
+          value={formData.contactNo}
+          onChange={handleInputChange}
+          maxLength={15}
+        />
+
+        <FloatingInput
+          label="Delivery Chalan No"
           name="dispatchNo"
           value={formData.dispatchNo}
           onChange={handleInputChange}

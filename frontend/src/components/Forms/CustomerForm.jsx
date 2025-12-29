@@ -2,15 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { customersAPI, projectsAPI } from '../../services/api';
 import FloatingInput from './FloatingInput'; 
 import useNotification from '../../hooks/useNotification';
+import { InformationCircleIcon } from '@heroicons/react/24/outline';
 
 const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) => {
   const [formData, setFormData] = useState({
     customerName: '',
+    gstinUin: '',
     customerEmail: '',
     invoiceEmail: '',
     address: '',
     city: '',
     state: '',
+    stateCode: '',
     zipCode: '',
     country: ''
   });
@@ -20,6 +23,8 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [selectedProjects, setSelectedProjects] = useState([]);
   const [touchedFields, setTouchedFields] = useState({});
+  const [showGstinTooltip, setShowGstinTooltip] = useState(false);
+  const [showStateCodeTooltip, setShowStateCodeTooltip] = useState(false);
   const { showSuccess, showError } = useNotification();
 
   useEffect(() => {
@@ -30,11 +35,13 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
     if (customer) {
       setFormData({
         customerName: customer.customerName || '',
+        gstinUin: customer.gstinUin || '',
         customerEmail: customer.customerEmail || '',
         invoiceEmail: customer.invoiceEmail || '',
         address: customer.address || '',
         city: customer.city || '',
         state: customer.state || '',
+        stateCode: customer.stateCode || '',
         zipCode: customer.zipCode || '',
         country: customer.country || ''
       });
@@ -67,6 +74,15 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
           );
           if (isDuplicate) {
             error = 'Client name already exists';
+          }
+        }
+        break;
+        
+      case 'gstinUin':
+        if (value && value.length > 0) {
+          // GSTIN validation - 15 characters alphanumeric
+          if (!/^[0-9A-Z]{15}$/.test(value)) {
+            error = 'GSTIN/UIN must be 15 characters alphanumeric';
           }
         }
         break;
@@ -118,6 +134,15 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
           error = 'State/Province must be less than 50 characters';
         } else if (!/^[a-zA-Z\s\-']+$/.test(value.trim())) {
           error = 'State/Province can only contain letters, spaces, hyphens, and apostrophes';
+        }
+        break;
+        
+      case 'stateCode':
+        if (value && value.length > 0) {
+          // State code must be exactly 2 digits
+          if (!/^\d{2}$/.test(value)) {
+            error = 'State code must be exactly 2 digits';
+          }
         }
         break;
         
@@ -205,11 +230,23 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
       setTouchedFields(prev => ({ ...prev, [name]: true }));
     }
 
+    // Show tooltip when user starts typing
+    if (name === 'gstinUin' && value.length > 0 && !showGstinTooltip) {
+      setShowGstinTooltip(true);
+    }
+    
+    if (name === 'stateCode' && value.length > 0 && !showStateCodeTooltip) {
+      setShowStateCodeTooltip(true);
+    }
+
     // Format validation for specific fields
     let validatedValue = value;
     if (name === 'customerName') {
       // Allow only letters, spaces, and common punctuation
       validatedValue = value.replace(/[^a-zA-Z\s\-\'\.]/g, '').slice(0, 50);
+    } else if (name === 'gstinUin') {
+      // Convert to uppercase and allow only alphanumeric characters
+      validatedValue = value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 15);
     } else if (name === 'customerEmail' || name === 'invoiceEmail') {
       // No formatting, just store as-is for email validation
       validatedValue = value.toLowerCase();
@@ -217,6 +254,9 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
       validatedValue = value.slice(0, 200);
     } else if (name === 'city' || name === 'state' || name === 'country') {
       validatedValue = value.replace(/[^a-zA-Z\s\-']/g, '').slice(0, 50);
+    } else if (name === 'stateCode') {
+      // Allow only digits, max 2
+      validatedValue = value.replace(/\D/g, '').slice(0, 2);
     } else if (name === 'zipCode') {
       validatedValue = value.replace(/[^a-zA-Z0-9\s\-]/g, '').slice(0, 20);
     }
@@ -243,6 +283,15 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
       setTouchedFields(prev => ({ ...prev, [name]: true }));
     }
     
+    // Hide tooltip on blur
+    if (name === 'gstinUin' && value.length === 0) {
+      setShowGstinTooltip(false);
+    }
+    
+    if (name === 'stateCode' && value.length === 0) {
+      setShowStateCodeTooltip(false);
+    }
+    
     // Validate on blur
     const fieldError = validateField(name, value);
     if (fieldError) {
@@ -250,15 +299,30 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
     }
   };
 
+  const handleFocus = (e) => {
+    const { name } = e.target;
+    
+    // Show tooltip on focus if field has content
+    if (name === 'gstinUin' && formData.gstinUin.length > 0) {
+      setShowGstinTooltip(true);
+    }
+    
+    if (name === 'stateCode' && formData.stateCode.length > 0) {
+      setShowStateCodeTooltip(true);
+    }
+  };
+
   const validateForm = () => {
     const newErrors = {};
     const fieldsToValidate = [
       'customerName',
+      'gstinUin',
       'customerEmail',
       'invoiceEmail',
       'address',
       'city',
       'state',
+      'stateCode',
       'zipCode',
       'country'
     ];
@@ -352,12 +416,13 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
               Customer Information
             </h3>
             
-            {/* Customer Name */}
-            <div className="relative">
+            {/* Customer Name and GSTIN/UIN in a row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
               <FloatingInput
                 type="text"
                 name="customerName"
-                label="Client Name "
+                  label="Client Name"
                 value={formData.customerName}
                 onChange={handleChange}
                 onBlur={handleBlur}
@@ -366,12 +431,42 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
                 maxLength={50}
               />
             </div>
+              <div className="relative">
+                <FloatingInput
+                  type="text"
+                  name="gstinUin"
+                  label="GSTIN/UIN"
+                  value={formData.gstinUin}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  onFocus={handleFocus}
+                  error={errors.gstinUin}
+                  required={true}
+                  maxLength={15}
+                />
+                {/* {showGstinTooltip && (
+                  <div className="absolute right-0 top-0 mt-8 z-10">
+                    <div className="relative">
+                      <div className="bg-gray-900 text-white text-xs rounded py-1 px-2 w-48">
+                        <div className="font-semibold mb-1">GSTIN/UIN Format:</div>
+                        <div className="font-mono text-xs">• 15 characters</div>
+                        <div className="font-mono text-xs">• Alphanumeric (0-9, A-Z)</div>
+                        <div className="font-mono text-xs">• Example: 27ABCDE1234F1Z5</div>
+                      </div>
+                      <div className="absolute -top-2 right-2">
+                        <div className="w-3 h-3 bg-gray-900 transform rotate-45"></div>
+                      </div>
+                    </div>
+                  </div>
+                )} */}
+              </div>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FloatingInput
                 type="email"
                 name="customerEmail"
-                label="Client Email "
+                label="Client Email"
                 value={formData.customerEmail}
                 onChange={handleChange}
                 onBlur={handleBlur}
@@ -382,7 +477,7 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
               <FloatingInput
                 type="email"
                 name="invoiceEmail"
-                label="Invoice Email "
+                label="Invoice Email"
                 value={formData.invoiceEmail}
                 onChange={handleChange}
                 onBlur={handleBlur}
@@ -401,7 +496,7 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
             <FloatingInput
               type="text"
               name="address"
-              label="Street Address "
+              label="Street Address"
               value={formData.address}
               onChange={handleChange}
               onBlur={handleBlur}
@@ -411,11 +506,11 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
               maxLength={200}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FloatingInput
                 type="text"
                 name="city"
-                label="City "
+                label="City"
                 value={formData.city}
                 onChange={handleChange}
                 onBlur={handleBlur}
@@ -427,7 +522,7 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
               <FloatingInput
                 type="text"
                 name="state"
-                label="State/Province "
+                label="State/Province"
                 value={formData.state}
                 onChange={handleChange}
                 onBlur={handleBlur}
@@ -435,13 +530,42 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
                 required={true}
                 maxLength={50}
               />
+
+              <div className="relative">
+                <FloatingInput
+                  type="text"
+                  name="stateCode"
+                  label="State Code"
+                  value={formData.stateCode}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  onFocus={handleFocus}
+                  error={errors.stateCode}
+                  maxLength={2}
+                />
+                {/* {showStateCodeTooltip && (
+                  <div className="absolute right-0 top-0 mt-8 z-10">
+                    <div className="relative">
+                      <div className="bg-gray-900 text-white text-xs rounded py-1 px-2 w-48">
+                        <div className="font-semibold mb-1">State Code Format:</div>
+                        <div className="font-mono text-xs">• 2 digits only</div>
+                        <div className="font-mono text-xs">• Numeric (0-9)</div>
+                        <div className="font-mono text-xs">• Example: 27 (for Maharashtra)</div>
+                      </div>
+                      <div className="absolute -top-2 right-2">
+                        <div className="w-3 h-3 bg-gray-900 transform rotate-45"></div>
+                      </div>
+                    </div>
+                  </div>
+                )} */}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FloatingInput
                 type="text"
                 name="zipCode"
-                label="ZIP/Postal Code "
+                label="ZIP/Postal Code"
                 value={formData.zipCode}
                 onChange={handleChange}
                 onBlur={handleBlur}
@@ -453,7 +577,7 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
               <FloatingInput
                 type="text"
                 name="country"
-                label="Country "
+                label="Country"
                 value={formData.country}
                 onChange={handleChange}
                 onBlur={handleBlur}

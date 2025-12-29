@@ -16,33 +16,33 @@ import {
   DocumentTextIcon,
 
 } from '@heroicons/react/24/outline';
-import PurchaseForm  from '../components/Forms/PurchaseForm';
-import ProformaInvoice from '../components/ProformaInvoice/Purchase';
-import BOQPDFPreview from '../components/BOQ/BOQPDFPreview';
+import PurchaseForm from '../components/Forms/PurchaseForm';
+import Purchase from '../components/ProformaInvoice/Purchase';
 import Modal from '../components/Modals/Modal';
 import Notification from '../components/Notifications/Notification';
 import useNotification from '../hooks/useNotification';
-import api, { paymentsAPI, customersAPI, boqAPI } from '../services/api';
+import api, { purchasesAPI, partsAPI } from '../services/api';
 
-const PurchaseOrder  = () => {
-  const [payments, setPayments] = useState([]);
-  const [filteredPayments, setFilteredPayments] = useState([]);
+const PurchaseOrder = () => {
+  const [purchases, setPurchases] = useState([]);
+  const [filteredPurchases, setFilteredPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editingPayment, setEditingPayment] = useState(null);
-  const [viewingPayment, setViewingPayment] = useState(null);
+  const [editingPurchase, setEditingPurchase] = useState(null);
+  const [viewingPurchase, setViewingPurchase] = useState(null);
+  const [viewMode, setViewMode] = useState('full'); // 'full' or 'items'
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceData, setInvoiceData] = useState(null);
-  const [boqData, setBOQData] = useState(null);
+  const [parts, setParts] = useState([]);
+  const [workCategories, setWorkCategories] = useState([]);
   const [filters, setFilters] = useState({
-    customer: '',
-    projectName: '',
-    status: ''
+    voucherNo: '',
+    workCategory: '',
+    partName: ''
   });
   const [showFilters, setShowFilters] = useState(false);
-  const [customers, setCustomers] = useState([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [paymentToDelete, setPaymentToDelete] = useState(null);
+  const [purchaseToDelete, setPurchaseToDelete] = useState(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -55,79 +55,117 @@ const PurchaseOrder  = () => {
 
   const { notification, showSuccess, showError, hideNotification } = useNotification();
 
+  // Group purchases by voucher number and create summaries
+  const getGroupedPurchases = (purchasesList) => {
+    const grouped = {};
+
+    purchasesList.forEach(purchase => {
+      if (!grouped[purchase.voucherNo]) {
+        grouped[purchase.voucherNo] = {
+          voucherNo: purchase.voucherNo,
+          date: purchase.date,
+          modeOfPayment: purchase.modeOfPayment,
+          referenceNo: purchase.referenceNo,
+          referenceDate: purchase.referenceDate,
+          otherReference: purchase.otherReference,
+          dispatchedThrough: purchase.dispatchedThrough,
+          destination: purchase.destination,
+          termsOfDelivery: purchase.termsOfDelivery,
+          supplier: purchase.supplier,
+          cgst: purchase.cgst,
+          sgst: purchase.sgst,
+          firstItem: purchase,
+          items: [],
+          totalValue: 0,
+          totalQuantity: 0
+        };
+      }
+      grouped[purchase.voucherNo].items.push(purchase);
+      grouped[purchase.voucherNo].totalValue += (purchase.totalValue || 0);
+      grouped[purchase.voucherNo].totalQuantity += (purchase.quantity || 0);
+    });
+
+    return Object.values(grouped);
+  };
+
   useEffect(() => {
-    fetchPayments();
+    fetchPurchases();
+    fetchParts();
   }, []);
 
   useEffect(() => {
-    filterPayments();
-  }, [payments, filters]);
+    filterPurchases();
+  }, [purchases, filters]);
 
   // Calculate pagination for filtered results
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredPayments.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
+  const groupedPurchases = getGroupedPurchases(filteredPurchases);
+  const currentItems = groupedPurchases.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(groupedPurchases.length / itemsPerPage);
 
   const paginate = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
 
-  const fetchPayments = async (page = 1) => {
+  const fetchPurchases = async (page = 1) => {
     try {
       setLoading(true);
-      const response = await paymentsAPI.getAll({ page });
-      const list = response.payments || [];
-      const pg = response.pagination || {};
-      const total = typeof pg.total === 'number' ? pg.total : (Array.isArray(list) ? list.length : 0);
-      const pages = typeof pg.pages === 'number' ? pg.pages : Math.max(1, Math.ceil(total / 10));
+      const response = await purchasesAPI.getAll({ page });
+      const list = response || [];
 
-      setPayments(list);
-      setFilteredPayments(list);
+      setPurchases(list);
+      setFilteredPurchases(list);
       setPagination({
         current: page,
-        pages,
-        total
+        pages: Math.max(1, Math.ceil(list.length / 10)),
+        total: list.length
       });
       setCurrentPage(1); // Reset to first page when new data is fetched
-
-      // Extract unique customers from saved payment records
-      const uniqueCustomers = [...new Set(list.map(payment => payment.customer))].filter(Boolean);
-      const customerOptions = uniqueCustomers.map(name => ({
-        _id: name,
-        customerName: name
-      }));
-      setCustomers(customerOptions);
     } catch (error) {
-      console.error('Error fetching payments:', error);
-      showError('Failed to fetch payments');
+      console.error('Error fetching purchases:', error);
+      showError('Failed to fetch purchases');
     } finally {
       setLoading(false);
     }
   };
 
-  const filterPayments = () => {
-    let filtered = payments;
+  const fetchParts = async () => {
+    try {
+      const response = await partsAPI.getAll();
+      const partsList = response.data || response || [];
+      setParts(partsList);
 
-    if (filters.customer) {
-      filtered = filtered.filter(payment =>
-        payment.customer.toLowerCase().includes(filters.customer.toLowerCase())
+      // Extract unique work categories from parts
+      const uniqueCategories = [...new Set(partsList.map(p => p.scopeOfWork))].filter(Boolean);
+      setWorkCategories(uniqueCategories);
+    } catch (error) {
+      console.error('Error fetching parts:', error);
+    }
+  };
+
+  const filterPurchases = () => {
+    let filtered = purchases;
+
+    if (filters.voucherNo) {
+      filtered = filtered.filter(purchase =>
+        purchase.voucherNo.toLowerCase().includes(filters.voucherNo.toLowerCase())
       );
     }
 
-    if (filters.projectName) {
-      filtered = filtered.filter(payment =>
-        payment.projectName.toLowerCase().includes(filters.projectName.toLowerCase())
+    if (filters.workCategory) {
+      filtered = filtered.filter(purchase =>
+        purchase.workCategory === filters.workCategory
       );
     }
 
-    if (filters.status) {
-      filtered = filtered.filter(payment =>
-        payment.status === filters.status
+    if (filters.partName) {
+      filtered = filtered.filter(purchase =>
+        purchase.partName.toLowerCase().includes(filters.partName.toLowerCase())
       );
     }
 
-    setFilteredPayments(filtered);
+    setFilteredPurchases(filtered);
     setCurrentPage(1); // Reset to first page when filters change
   };
 
@@ -140,27 +178,30 @@ const PurchaseOrder  = () => {
 
   const clearFilters = () => {
     setFilters({
-      customer: '',
-      projectName: '',
-      status: ''
+      voucherNo: '',
+      workCategory: '',
+      partName: ''
     });
   };
 
   const exportToCSV = () => {
     const headers = [
-      'Customer', 'Project Name', 'Project Cost', 'Total Invoice Raised',
-      'Total Payments', 'Balance Amount', 'Status', 'Invoices Count'
+      'Voucher No', 'Date', 'Work Category', 'Part Name', 'Unit', 'Quantity',
+      'Price without GST', 'GST %', 'GST Amount', 'Total Value', 'Mode of Payment'
     ];
 
-    const csvData = filteredPayments.map(payment => [
-      payment.customer || '',
-      payment.projectName || '',
-      payment.projectCost ?? '',
-      payment.totalInvoiceRaised ?? '',
-      payment.totalPayments ?? '',
-      payment.balanceAmount ?? '',
-      payment.status || '',
-      (payment.invoices?.length) ?? 0
+    const csvData = filteredPurchases.map(purchase => [
+      purchase.voucherNo || '',
+      purchase.date ? new Date(purchase.date).toLocaleDateString() : '',
+      purchase.workCategory || '',
+      purchase.partName || '',
+      purchase.unit || '',
+      purchase.quantity ?? '',
+      purchase.invoiceValueWithoutGST ?? '',
+      purchase.gstPercentage ?? '',
+      purchase.gstValue ?? '',
+      purchase.totalValue ?? '',
+      purchase.modeOfPayment || ''
     ]);
 
     const csvContent = [
@@ -172,120 +213,124 @@ const PurchaseOrder  = () => {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'payments.csv';
+    link.download = `purchases_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     window.URL.revokeObjectURL(url);
 
     showSuccess('CSV exported successfully!');
   };
 
-  const handleEdit = (payment) => {
-    setEditingPayment(payment);
+  const handleEdit = (purchase) => {
+    setEditingPurchase(purchase);
     setShowModal(true);
   };
 
-  const handleView = (payment) => {
-    setViewingPayment(payment);
+  const handleView = (purchase, mode = 'full') => {
+    setViewingPurchase(purchase);
+    setViewMode(mode);
     setShowModal(true);
   };
 
   const handleDelete = (id) => {
-    setPaymentToDelete(id);
+    setPurchaseToDelete(id);
     setShowDeleteModal(true);
   };
 
-  const handleGenerateInvoice = async (payment) => {
-    try {
-      setInvoiceData(payment);
+  const handleGenerateInvoice = (purchase) => {
+    // Group all purchases with the same voucher number
+    const relatedPurchases = purchases.filter(p => p.voucherNo === purchase.voucherNo);
 
-      // Fetch BOQ data for this project
-      if (payment.customer && payment.projectName) {
-        const boqResponse = await boqAPI.getAll({
-          customer: payment.customer,
-          projectName: payment.projectName
-        });
+    // Calculate totals for all related purchases
+    const totalInvoiceValue = relatedPurchases.reduce((sum, p) => sum + (p.invoiceValueWithoutGST || 0), 0);
+    const totalGstValue = relatedPurchases.reduce((sum, p) => sum + (p.gstValue || 0), 0);
+    const cgstAmount = totalGstValue / 2;
+    const sgstAmount = totalGstValue / 2;
 
-        // Handle different response structures
-        let boqList = [];
-        if (boqResponse.data && boqResponse.data.data) {
-          boqList = boqResponse.data.data;
-        } else if (boqResponse.data && Array.isArray(boqResponse.data)) {
-          boqList = boqResponse.data;
-        } else if (Array.isArray(boqResponse)) {
-          boqList = boqResponse;
-        }
+    // Map related purchases to line items
+    const lineItems = relatedPurchases.map(p => ({
+      partName: p.partName,
+      workCategory: p.workCategory,
+      quantity: p.quantity,
+      unit: p.unit,
+      priceWithoutGST: p.invoiceValueWithoutGST,
+      gstPercentage: p.gstPercentage,
+      gstAmount: p.gstValue,
+      total: p.totalValue
+    }));
 
-        // Find the matching BOQ
-        const projectBOQ = boqList.find(boq =>
-          boq.projectName === payment.projectName && boq.customer === payment.customer
-        );
+    // Format data for Purchase (Proforma Invoice) component
+    const formattedData = {
+      customer: purchase.customer || 'Customer Name',
+      projectName: purchase.projectName || 'Project Name',
+      projectCost: relatedPurchases.reduce((sum, p) => sum + (p.totalValue || 0), 0),
+      invoices: [{
+        voucherNo: purchase.voucherNo,
+        invoiceNumber: purchase.voucherNo,
+        invoiceDate: purchase.date,
+        invoiceValue: totalInvoiceValue,
+        cgstAmount: cgstAmount,
+        sgstAmount: sgstAmount,
+        cgst: purchase.cgst || undefined,
+        sgst: purchase.sgst || undefined,
+        roundOff: 0,
+        paymentType: purchase.modeOfPayment || 'advance',
+        modeOfPayment: purchase.modeOfPayment || '',
+        buyersRef: purchase.referenceNo || 'N/A',
+        referenceNo: purchase.referenceNo || '',
+        referenceDate: purchase.referenceDate || '',
+        otherReference: purchase.otherReference || '',
+        dispatchedThrough: purchase.dispatchedThrough || '',
+        destination: purchase.destination || '',
+        termsForDelivery: purchase.termsOfDelivery || '',
+        termsOfDelivery: purchase.termsOfDelivery || '',
+        supplier: purchase.supplier || '',
+        hsnSac: '998391',
+        lineItems: lineItems // Add line items to invoice data
+      }]
+    };
 
-        if (projectBOQ) {
-          setBOQData(projectBOQ);
-        } else {
-          setBOQData(null);
-        }
-      }
-
-      setShowInvoiceModal(true);
-    } catch (error) {
-      console.error('Error fetching BOQ data:', error);
-      // Still show invoice even if BOQ fetch fails
-      setInvoiceData(payment);
-      setBOQData(null);
-      setShowInvoiceModal(true);
-    }
+    setInvoiceData(formattedData);
+    setShowInvoiceModal(true);
   };
 
   const confirmDelete = async () => {
-    if (paymentToDelete) {
+    if (purchaseToDelete) {
       try {
-        await paymentsAPI.delete(paymentToDelete);
-        showSuccess('Payment record deleted successfully!');
-        fetchPayments();
+        // If it looks like a voucher number (passed from grouped view), delete all with that voucher
+        const purchasesToDelete = purchases.filter(p => p.voucherNo === purchaseToDelete || p._id === purchaseToDelete);
+
+        if (purchasesToDelete.length > 1) {
+          // Multiple items with same voucher - delete all
+          for (const purchase of purchasesToDelete) {
+            await purchasesAPI.delete(purchase._id);
+          }
+        } else {
+          // Single item - delete by ID
+          await purchasesAPI.delete(purchaseToDelete);
+        }
+
+        showSuccess('Purchase deleted successfully!');
+        fetchPurchases();
       } catch (error) {
-        console.error('Error deleting payment:', error);
-        showError('Error deleting payment record');
+        console.error('Error deleting purchase:', error);
+        showError('Error deleting purchase');
       } finally {
         setShowDeleteModal(false);
-        setPaymentToDelete(null);
+        setPurchaseToDelete(null);
       }
     }
   };
 
-  const handleFormSubmit = async (formData) => {
-    try {
-      setLoading(true);
-      if (editingPayment) {
-        await paymentsAPI.update(editingPayment._id, formData);
-        showSuccess('Payment record updated successfully');
-      } else {
-        await paymentsAPI.create(formData);
-        showSuccess('Payment record added successfully');
-      }
-      setShowModal(false);
-      setEditingPayment(null);
-      setViewingPayment(null);
-      fetchPayments();
-    } catch (error) {
-      console.error('Error submitting form:', error);
-      showError('Failed to save payment record');
-    } finally {
-      setLoading(false);
-    }
+  const handleFormSubmit = async () => {
+    setShowModal(false);
+    setEditingPurchase(null);
+    setViewingPurchase(null);
+    fetchPurchases();
   };
 
   const handlePageChange = (page) => {
-    fetchPayments(page);
+    fetchPurchases(page);
   };
-
-  const getStatusColor = (balance) => {
-    if (balance === 0) return 'bg-green-100 text-green-800';
-    if (balance > 0) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-red-100 text-red-800';
-  };
-
-  const statusOptions = ['paid', 'pending', 'overdue'];
 
   if (loading) {
     return (
@@ -315,10 +360,10 @@ const PurchaseOrder  = () => {
                   </div>
                   <input
                     type="text"
-                    value={filters.customer}
-                    onChange={(e) => handleFilterChange('customer', e.target.value)}
+                    value={filters.voucherNo}
+                    onChange={(e) => handleFilterChange('voucherNo', e.target.value)}
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="Search by client..."
+                    placeholder="Search by voucher number..."
                   />
                 </div>
               </div>
@@ -363,7 +408,7 @@ const PurchaseOrder  = () => {
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   <PlusIcon className="h-5 w-5 mr-2" />
-                  Add Purchaseoder
+                  Add Purchase
                 </button>
               </div>
             </div>
@@ -372,53 +417,48 @@ const PurchaseOrder  = () => {
               <div className="px-4 py-5 sm:p-6 bg-gray-50 border-b border-gray-200 mt-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Client Name</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Voucher Number</label>
+                    <input
+                      type="text"
+                      value={filters.voucherNo}
+                      onChange={(e) => handleFilterChange('voucherNo', e.target.value)}
+                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
+                      placeholder="Search by voucher number"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Work Category</label>
                     <select
-                      value={filters.customer}
-                      onChange={(e) => handleFilterChange('customer', e.target.value)}
+                      value={filters.workCategory}
+                      onChange={(e) => handleFilterChange('workCategory', e.target.value)}
                       className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
                     >
-                      <option value="">All Client</option>
-                      {customers.map(customer => (
-                        <option key={customer._id} value={customer.customerName}>
-                          {customer.customerName}
+                      <option value="">All Categories</option>
+                      {workCategories.map(category => (
+                        <option key={category} value={category}>
+                          {category.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                         </option>
                       ))}
                     </select>
                   </div>
 
-                  {/* <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Part Name</label>
                     <input
                       type="text"
-                      value={filters.projectName}
-                      onChange={(e) => handleFilterChange('projectName', e.target.value)}
+                      value={filters.partName}
+                      onChange={(e) => handleFilterChange('partName', e.target.value)}
                       className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
-                      placeholder="Search by project name"
+                      placeholder="Search by part name"
                     />
-                  </div> */}
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select
-                      value={filters.status}
-                      onChange={(e) => handleFilterChange('status', e.target.value)}
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
-                    >
-                      <option value="">All Status</option>
-                      {statusOptions.map(status => (
-                        <option key={status} value={status}>
-                          {status.charAt(0).toUpperCase() + status.slice(1)}
-                        </option>
-                      ))}
-                    </select>
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Payments Table */}
+          {/* Purchases Table */}
           <div className="overflow-hidden">
             {/* Desktop Table View */}
             <div className="hidden sm:block">
@@ -427,28 +467,19 @@ const PurchaseOrder  = () => {
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Client Name
+                        Voucher No
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Project Name
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        View Items
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Project Cost
+                        Dispatch through
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Invoices Raised
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Total Payments
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Balance
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Invoices
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Total Value
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
@@ -457,66 +488,60 @@ const PurchaseOrder  = () => {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {currentItems.length > 0 ? (
-                      currentItems.map((payment) => (
-                        <tr key={payment._id} className="hover:bg-gray-50 transition-colors duration-150">
+                      currentItems.map((group) => (
+                        <tr key={group.voucherNo} className="hover:bg-gray-50 transition-colors duration-150">
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{payment.customer}</div>
+                            <div className="text-sm font-medium text-gray-900">{group.voucherNo}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{payment.projectName}</div>
+                            <div className="text-sm text-gray-900">
+                              {group.date ? new Date(group.date).toLocaleDateString() : 'N/A'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <button
+                              onClick={() => handleView(group, 'items')}
+                              className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            >
+                              <EyeIcon className="h-4 w-4 mr-1" />
+                              View Items
+                            </button>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">₹{payment.projectCost?.toFixed(2)?.toLocaleString()}</div>
+                            <div className="text-sm text-gray-900">
+                              {group.dispatchedThrough || '-'}
+                            </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">₹{payment.totalInvoiceRaised?.toFixed(2)?.toLocaleString()}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">₹{payment.totalPayments?.toFixed(2)?.toLocaleString()}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(payment.balanceAmount)}`}>
-                              ₹{payment.balanceAmount?.toFixed(2)?.toLocaleString()}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${payment.status === 'paid'
-                              ? 'bg-green-100 text-green-800'
-                              : payment.status === 'pending'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-red-100 text-red-800'
-                              }`}>
-                              {payment.status?.charAt(0).toUpperCase() + payment.status?.slice(1)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{payment.invoices?.length || 0}</div>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <div className="text-sm font-medium text-green-700">
+                              ₹{group.totalValue?.toFixed(2)?.toLocaleString()}
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex space-x-2">
                               <button
-                                onClick={() => handleView(payment)}
+                                onClick={() => handleView(group, 'full')}
                                 className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
                                 title="View Details"
                               >
                                 <EyeIcon className="h-5 w-5" />
                               </button>
                               <button
-                                onClick={() => handleGenerateInvoice(payment)}
+                                onClick={() => handleGenerateInvoice(group.firstItem)}
                                 className="text-green-600 hover:text-green-900 p-1 transition-colors duration-150"
-                                title="Generate Invoice PDF"
+                                title="Generate Proforma Invoice"
                               >
                                 <DocumentTextIcon className="h-5 w-5" />
                               </button>
                               <button
-                                onClick={() => handleEdit(payment)}
+                                onClick={() => handleEdit(group.firstItem)}
                                 className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
                                 title="Edit"
                               >
                                 <PencilSquareIcon className="h-5 w-5" />
                               </button>
                               <button
-                                onClick={() => handleDelete(payment._id)}
+                                onClick={() => handleDelete(group.voucherNo)}
                                 className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
                                 title="Delete"
                               >
@@ -528,10 +553,10 @@ const PurchaseOrder  = () => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="9" className="px-6 py-8 text-center text-gray-500">
+                        <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
                           {Object.values(filters).some(val => val !== '')
-                            ? 'No payments found matching your filters.'
-                            : 'No payments found.'
+                            ? 'No purchases found matching your filters.'
+                            : 'No purchases found.'
                           }
                         </td>
                       </tr>
@@ -544,37 +569,37 @@ const PurchaseOrder  = () => {
             {/* Mobile Card View */}
             <div className="sm:hidden">
               {currentItems.length > 0 ? (
-                currentItems.map((payment) => (
-                  <div key={payment._id} className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors duration-150">
+                currentItems.map((group) => (
+                  <div key={group.voucherNo} className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors duration-150">
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-medium text-gray-900 truncate">{payment.customer}</h3>
-                        <p className="text-sm text-gray-500 truncate">{payment.projectName}</p>
+                        <h3 className="text-sm font-medium text-gray-900 truncate">{group.voucherNo}</h3>
+                        <p className="text-sm text-gray-500 truncate">{group.items.map(item => item.partName).join(', ')}</p>
                       </div>
                       <div className="flex space-x-2 ml-2">
                         <button
-                          onClick={() => handleView(payment)}
+                          onClick={() => handleView(group.firstItem)}
                           className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
                           title="View Details"
                         >
                           <EyeIcon className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => handleGenerateInvoice(payment)}
+                          onClick={() => handleGenerateInvoice(group.firstItem)}
                           className="text-green-600 hover:text-green-900 p-1 transition-colors duration-150"
-                          title="Generate Invoice PDF"
+                          title="Generate Proforma Invoice"
                         >
                           <DocumentTextIcon className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => handleEdit(payment)}
+                          onClick={() => handleEdit(group.firstItem)}
                           className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
                           title="Edit"
                         >
                           <PencilSquareIcon className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(payment._id)}
+                          onClick={() => handleDelete(group.voucherNo)}
                           className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
                           title="Delete"
                         >
@@ -584,33 +609,16 @@ const PurchaseOrder  = () => {
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
                       <div>
-                        <span className="font-medium">Project Cost:</span> ₹{payment.projectCost?.toFixed(2)?.toLocaleString()}
+                        <span className="font-medium">Date:</span> {group.date ? new Date(group.date).toLocaleDateString() : 'N/A'}
                       </div>
                       <div>
-                        <span className="font-medium">Invoices Raised:</span> ₹{payment.totalInvoiceRaised?.toFixed(2)?.toLocaleString()}
+                        <span className="font-medium">Items:</span> {group.items.length}
                       </div>
                       <div>
-                        <span className="font-medium">Total Payments:</span> ₹{payment.totalPayments?.toFixed(2)?.toLocaleString()}
+                        <span className="font-medium">Quantity:</span> {group.totalQuantity}
                       </div>
                       <div>
-                        <span className="font-medium">Balance:</span>
-                        <span className={`ml-1 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusColor(payment.balanceAmount)}`}>
-                          ₹{payment.balanceAmount?.toFixed(2)?.toLocaleString()}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium">Status:</span>
-                        <span className={`ml-1 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${payment.status === 'paid'
-                          ? 'bg-green-100 text-green-800'
-                          : payment.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-red-100 text-red-800'
-                          }`}>
-                          {payment.status?.charAt(0).toUpperCase() + payment.status?.slice(1)}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium">Invoices:</span> {payment.invoices?.length || 0}
+                        <span className="font-medium">Total:</span> ₹{group.totalValue?.toFixed(2)?.toLocaleString()}
                       </div>
                     </div>
                   </div>
@@ -618,8 +626,8 @@ const PurchaseOrder  = () => {
               ) : (
                 <div className="p-8 text-center text-gray-500">
                   {Object.values(filters).some(val => val !== '')
-                    ? 'No payments found matching your filters.'
-                    : 'No payments found.'
+                    ? 'No purchases found matching your filters.'
+                    : 'No purchases found.'
                   }
                 </div>
               )}
@@ -627,7 +635,7 @@ const PurchaseOrder  = () => {
           </div>
 
           {/* Updated Pagination */}
-          {filteredPayments.length > 0 && (
+          {filteredPurchases.length > 0 && (
             <div className="bg-white px-4 py-3 flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 sm:px-6">
               <div className="flex items-center mb-4 sm:mb-0">
                 <span className="text-sm text-gray-700 mr-2">Items per page:</span>
@@ -648,7 +656,7 @@ const PurchaseOrder  = () => {
 
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-700">
-                  Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredPayments.length)} of {filteredPayments.length} results
+                  Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredPurchases.length)} of {filteredPurchases.length} results
                 </span>
 
                 <nav className="flex space-x-2">
@@ -701,155 +709,179 @@ const PurchaseOrder  = () => {
             </div>
           )}
         </div>
-        
+
         {/* view modal */}
         <Modal
-  isOpen={showModal || !!viewingPayment}
-  onClose={() => {
-    setShowModal(false);
-    setEditingPayment(null);
-    setViewingPayment(null);
-  }}
-  title={viewingPayment ? 'Payment Details' : editingPayment ? 'Edit Payment' : 'Add Purchase'}
-  size="lg"
-  className="font-sans"
->
-  {viewingPayment ? (
-    <div className="p-1">
-      <div className="space-y-6">
-        {/* Details Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Customer Information */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center mb-3">
-              <h3 className="text-md font-semibold text-gray-900">Customer Information</h3>
-            </div>
-            <div className="space-y-2">
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Customer</p>
-                <p className="text-sm text-gray-800">{viewingPayment.customer}</p>
-              </div>
-              {viewingPayment.customerEmail && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Email</p>
-                  <p className="text-sm text-gray-600">{viewingPayment.customerEmail}</p>
+          isOpen={showModal || !!viewingPurchase}
+          onClose={() => {
+            setShowModal(false);
+            setEditingPurchase(null);
+            setViewingPurchase(null);
+          }}
+          title={viewingPurchase ? 'Purchase Details' : editingPurchase ? 'Edit Purchase' : 'Add Purchase'}
+          size="xl"
+          className="font-sans"
+        >
+          {viewingPurchase ? (
+            <div className="p-1">
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  {viewMode === 'full' && (
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                      <div className="flex items-center mb-3">
+                        <h3 className="text-md font-semibold text-gray-900">Voucher Information</h3>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Voucher No</p>
+                          <p className="text-sm text-gray-800">{viewingPurchase.voucherNo}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Date</p>
+                          <p className="text-sm text-gray-600">{viewingPurchase.date ? new Date(viewingPurchase.date).toLocaleDateString() : 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Mode of Payment</p>
+                          <p className="text-sm text-gray-600">{viewingPurchase.modeOfPayment}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Dispatch Through</p>
+                          <p className="text-sm text-gray-600">{viewingPurchase.dispatchedThrough || '-'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Items Table */}
+                  <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm overflow-hidden">
+                    <div className="flex items-center mb-3">
+                      <h3 className="text-md font-semibold text-gray-900">Items List</h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work Category</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Part Name</th>
+                            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                            <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
+                            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {viewingPurchase.items && viewingPurchase.items.map((item, index) => (
+                            <tr key={index}>
+                              <td className="px-3 py-2 text-sm text-gray-900 whitespace-nowrap">
+                                {item.workCategory?.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                              </td>
+                              <td className="px-3 py-2 text-sm text-gray-900 whitespace-nowrap">{item.partName}</td>
+                              <td className="px-3 py-2 text-sm text-gray-900 text-right">{item.quantity}</td>
+                              <td className="px-3 py-2 text-sm text-gray-900 text-center">{item.unit}</td>
+                              <td className="px-3 py-2 text-sm text-gray-900 text-right">
+                                ₹{item.invoiceValueWithoutGST?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                              <td className="px-3 py-2 text-sm text-gray-900 text-right font-medium">
+                                ₹{item.totalValue?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {viewMode === 'full' && (
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                      <div className="flex items-center mb-3">
+                        <h3 className="text-md font-semibold text-gray-900">Financial Summary</h3>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Items</p>
+                          <p className="text-sm font-medium text-gray-800">
+                            {viewingPurchase.totalQuantity}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">GST (Approx)</p>
+                          <p className="text-sm font-medium text-gray-800">
+                            ₹{viewingPurchase.items?.reduce((acc, item) => acc + (item.gstValue || 0), 0)?.toFixed(2)?.toLocaleString()}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Value</p>
+                          <p className="text-sm font-bold text-green-700">
+                            ₹{viewingPurchase.totalValue?.toFixed(2)?.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
 
-          {/* Project Details */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center mb-3">
-              <h3 className="text-md font-semibold text-gray-900">Project Details</h3>
-            </div>
-            <div className="space-y-2">
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Name</p>
-                <p className="text-sm text-gray-800">{viewingPayment.projectName}</p>
-              </div>
-              {viewingPayment.projectCost && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Cost</p>
-                  <p className="text-sm font-medium text-green-700">
-                    ₹{viewingPayment.projectCost?.toFixed(2)?.toLocaleString()}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Financial Summary */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center mb-3">
-              <h3 className="text-md font-semibold text-gray-900">Financial Summary</h3>
-            </div>
-            <div className="space-y-2">
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Invoices Raised</p>
-                <p className="text-sm font-medium text-gray-800">
-                  ₹{viewingPayment.totalInvoiceRaised?.toFixed(2)?.toLocaleString()}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Payments Received</p>
-                <p className="text-sm font-medium text-green-700">
-                  ₹{viewingPayment.totalPayments?.toFixed(2)?.toLocaleString()}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Balance Amount</p>
-                <p className="text-sm font-bold text-amber-700">
-                  ₹{viewingPayment.balanceAmount?.toFixed(2)?.toLocaleString()}
-                </p>
+                {/* Action Buttons - Only show in full view */}
+                {viewMode === 'full' && (
+                  <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                    <button
+                      onClick={() => {
+                        setShowModal(false);
+                        setViewingPurchase(null);
+                      }}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Close
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingPurchase(viewingPurchase);
+                        setViewingPurchase(null);
+                        setShowModal(true);
+                      }}
+                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Edit Purchase
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-          <button
-            onClick={() => {
-              setShowModal(false);
-              setViewingPayment(null);
-            }}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Close
-          </button>
-          <button
-            onClick={() => {
-              handleGenerateInvoice(viewingPayment);
-            }}
-            className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 transition-colors"
-          >
-            Generate Invoice
-          </button>
-          <button
-            onClick={() => {
-              setEditingPayment(viewingPayment);
-              setViewingPayment(null);
-              setShowModal(true);
-            }}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Edit Payment
-          </button>
-        </div>
-      </div>
-    </div>
-  ) : (
-    <PurchaseForm
-      payment={editingPayment}
-      onSubmit={handleFormSubmit}
-      onCancel={() => {
-        setShowModal(false);
-        setEditingPayment(null);
-      }}
-    />
-  )}
-</Modal>
+          ) : (
+            <PurchaseForm
+              purchaseData={editingPurchase}
+              parts={parts}
+              workCategories={workCategories}
+              onSubmit={handleFormSubmit}
+              onCancel={() => {
+                setShowModal(false);
+                setEditingPurchase(null);
+              }}
+              showNotification={showSuccess}
+              showError={showError}
+              isEditing={!!editingPurchase}
+            />
+          )}
+        </Modal>
 
         {/* Delete Confirmation Modal */}
         <Modal
           isOpen={showDeleteModal}
           onClose={() => {
             setShowDeleteModal(false);
-            setPaymentToDelete(null);
+            setPurchaseToDelete(null);
           }}
           title="Confirm Delete"
           size="sm"
         >
           <div className="space-y-4">
             <p className="text-gray-700">
-              Are you sure you want to delete payment record for "{payments.find(p => p._id === paymentToDelete)?.customer || 'this customer'}"? This action cannot be undone.
+              Are you sure you want to delete this purchase record? This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-3 pt-4">
               <button
                 onClick={() => {
                   setShowDeleteModal(false);
-                  setPaymentToDelete(null);
+                  setPurchaseToDelete(null);
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
               >
@@ -865,129 +897,23 @@ const PurchaseOrder  = () => {
           </div>
         </Modal>
 
-        {/* Invoice Modal */}
+        {/* Proforma Invoice Modal */}
         <Modal
           isOpen={showInvoiceModal}
           onClose={() => {
             setShowInvoiceModal(false);
             setInvoiceData(null);
-            setBOQData(null);
           }}
-          title="Proforma Invoice & BOQ"
+          title="Purchase Order"
           size="xl"
         >
-          <div className="space-y-8">
-            {/* Download Button */}
-            {invoiceData && (
-              <div className="flex justify-end mb-4">
-                <button
-                  onClick={async () => {
-                    try {
-                      const jsPDF = (await import('jspdf')).default;
-                      const html2canvas = (await import('html2canvas')).default;
-
-                      const pdf = new jsPDF('p', 'mm', 'a4');
-                      let pageCount = 0;
-
-                      // Capture Invoice
-                      const invoiceElement = document.getElementById('invoiceContent');
-                      if (invoiceElement) {
-                        const invoiceCanvas = await html2canvas(invoiceElement, {
-                          scale: 2,
-                          useCORS: true,
-                          allowTaint: false,
-                          backgroundColor: '#ffffff',
-                          logging: false
-                        });
-
-                        const imgData = invoiceCanvas.toDataURL('image/png', 1.0);
-                        if (pageCount > 0) pdf.addPage();
-                        pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
-                        pageCount++;
-                      }
-
-                      // Capture BOQ if exists
-                      if (boqData) {
-                        const boqPages = document.querySelectorAll('.boq-pdf-page');
-                        for (let i = 0; i < boqPages.length; i++) {
-                          const canvas = await html2canvas(boqPages[i], {
-                            scale: 2,
-                            useCORS: true,
-                            allowTaint: false,
-                            backgroundColor: '#ffffff',
-                            logging: false,
-                            imageTimeout: 15000
-                          });
-
-                          const imgData = canvas.toDataURL('image/png', 1.0);
-                          if (pageCount > 0) pdf.addPage();
-                          pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
-                          pageCount++;
-                        }
-                      }
-
-                      // Generate filename
-                      const customer = invoiceData.customer?.replace(/[^a-zA-Z0-9]/g, '_') || 'Customer';
-                      const project = invoiceData.projectName?.replace(/[^a-zA-Z0-9]/g, '_') || 'Project';
-                      const fileName = `Invoice_BOQ_${customer}_${project}.pdf`;
-
-                      pdf.save(fileName);
-                      showSuccess('PDF downloaded successfully!');
-                    } catch (error) {
-                      console.error('Error generating PDF:', error);
-                      showError('Failed to generate PDF. Please try again.');
-                    }
-                  }}
-                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" x2="12" y1="15" y2="3" />
-                  </svg>
-                  Download PDF
-                </button>
-              </div>
-            )}
-
-            {/* Invoice Section */}
-            {invoiceData && (
-              <div id="invoice-section">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                  Proforma Invoice
-                </h3>
-                <ProformaInvoice invoiceData={invoiceData} hideDownloadButton={true} />
-              </div>
-            )}
-
-            {/* BOQ Section - Only PDF Preview */}
-            {boqData && (
-              <div className="mt-8 pt-8 border-t-2 border-gray-300">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                  Project BOQ
-                </h3>
-                {/* Simple BOQ PDF Preview without editable controls */}
-                <div className="bg-gray-100 p-4 rounded-lg">
-                  <BOQPDFPreview boqData={boqData} />
-                </div>
-              </div>
-            )}
-
-            {/* Message if no BOQ found */}
-            {invoiceData && !boqData && (
-              <div className="mt-8 pt-8 border-t-2 border-gray-300">
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
-                  <p className="text-yellow-800">
-                    No BOQ found for this project.
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
+          {invoiceData && (
+            <Purchase invoiceData={invoiceData} hideDownloadButton={false} />
+          )}
         </Modal>
       </div>
     </div>
   );
 };
 
-export default PurchaseOrder ;
+export default PurchaseOrder;

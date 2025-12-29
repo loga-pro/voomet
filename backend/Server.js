@@ -72,6 +72,7 @@ app.use('/api/project-expenditures', require('./routes/projectExpenditures'));
 app.use('/api/logistic-expenditures', require('./routes/logisticExpenditures'));
 app.use('/api/production', require('./routes/production'));
 app.use('/api/purchase-requests', require('./routes/purchaseRequests'));
+app.use('/api/purchases', require('./routes/purchases'));
 app.use('/api/receipts', require('./routes/receipts'));
 app.use('/api/dispatches', require('./routes/dispatches'));
 

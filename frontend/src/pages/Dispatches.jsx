@@ -335,14 +335,19 @@ const Dispatches = () => {
       projectName: dispatch.workCategory || 'Project',
       invoices: relatedDispatches.map(d => ({
         voucherNo: d.invoiceNo || 'N/A',
-        invoiceDate: d.date,
+        invoiceDate: d.invoiceDate || d.date,
+        supplyDate: d.date,
         deliveryNote: 'Immediate',
-        vehicleNo: 'NA',
+        vehicleNo: d.vehicleNo || '',
         destination: 'Karnataka',
         customerGSTIN: 'Unregistered',
         partName: d.partName || 'N/A',
         quantity: d.quantity || 0,
-        unit: d.unit || ''
+        unit: d.unit || '',
+        workCategory: d.workCategory || '',
+        poNo: d.poNo || '',
+        eWayBill: d.ewayBill || '',
+        contactNo: d.contactNo || ''
       })),
       companyName: 'VOOMET',
       companyAddress: {
@@ -618,7 +623,7 @@ const Dispatches = () => {
                         Customer
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Dispatch No
+                        Delivery Chalan No
                       </th>
                       <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
@@ -1084,7 +1089,7 @@ const Dispatches = () => {
           setShowPdfModal(false);
           setPdfInvoiceData(null);
         }}
-        title="Dispatch Invoice Preview"
+        title="Dispatch Preview"
         size="4xl"
       >
         {pdfInvoiceData && (

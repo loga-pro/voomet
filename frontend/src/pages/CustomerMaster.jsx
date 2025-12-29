@@ -115,6 +115,7 @@ const CustomerMaster = () => {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(customer => 
         customer.customerName.toLowerCase().includes(searchLower) ||
+        (customer.gstinUin && customer.gstinUin.toLowerCase().includes(searchLower)) ||
         customer.customerEmail.toLowerCase().includes(searchLower) ||
         customer.invoiceEmail.toLowerCase().includes(searchLower) ||
         customer.address?.toLowerCase().includes(searchLower) ||
@@ -172,12 +173,14 @@ const CustomerMaster = () => {
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   const exportToCSV = () => {
-    const headers = ['Client Name', 'Client Email', 'City', 'State', 'Address', 'Invoice Email', 'ZIP/Postal Code', 'Country'];
+    const headers = ['Client Name', 'GSTIN/UIN', 'Client Email', 'City', 'State', 'State Code', 'Address', 'Invoice Email', 'ZIP/Postal Code', 'Country'];
     const csvData = filteredCustomers.map(customer => [
       customer.customerName,
+      customer.gstinUin || '',
       customer.customerEmail,
       customer.city || '',
       customer.state || '',
+      customer.stateCode || '',
       customer.address || '',
       customer.invoiceEmail || '',
       customer.zipCode || '',
@@ -267,7 +270,7 @@ const CustomerMaster = () => {
                     value={searchTerm}
                     onChange={(e) => handleSearchChange(e.target.value)}
                     className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="Search clients, emails, addresses..."
+                    placeholder="Search clients, GSTIN, emails, addresses..."
                   />
                   {searchTerm && (
                     <button
@@ -389,6 +392,9 @@ const CustomerMaster = () => {
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Client Name
             </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        GSTIN/UIN
+                      </th>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Client Email
             </th>
@@ -398,6 +404,9 @@ const CustomerMaster = () => {
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               State
             </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        State Code
+                      </th>
             <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
               Actions
             </th>
@@ -410,6 +419,13 @@ const CustomerMaster = () => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">{customer.customerName}</div>
                 </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {customer.gstinUin || (
+                                <span className="text-gray-400 italic">Not specified</span>
+                              )}
+                            </div>
+                          </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">{customer.customerEmail}</div>
                 </td>
@@ -427,6 +443,13 @@ const CustomerMaster = () => {
                     )}
                   </div>
                 </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {customer.stateCode || (
+                                <span className="text-gray-400 italic">Not specified</span>
+                              )}
+                            </div>
+                          </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex justify-end space-x-2">
                     <button
@@ -456,7 +479,7 @@ const CustomerMaster = () => {
             ))
           ) : (
             <tr>
-              <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                        <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
                 {Object.values(filters).some(val => val !== '') || searchTerm
                   ? 'No customers found matching your filters.' 
                   : 'No customers found.'
@@ -478,6 +501,9 @@ const CustomerMaster = () => {
             <div className="flex-1 min-w-0">
               <h3 className="text-sm font-medium text-gray-900 truncate">{customer.customerName}</h3>
               <p className="text-sm text-gray-500 truncate">{customer.customerEmail}</p>
+                        {customer.gstinUin && (
+                          <p className="text-xs text-gray-400 font-mono truncate">GSTIN: {customer.gstinUin}</p>
+                        )}
               {customer.invoiceEmail && customer.invoiceEmail !== customer.customerEmail && (
                 <p className="text-xs text-gray-400 truncate">Invoice: {customer.invoiceEmail}</p>
               )}
@@ -513,6 +539,9 @@ const CustomerMaster = () => {
             <div>
               <span className="font-medium">State:</span> {customer.state || 'Not specified'}
             </div>
+                      <div>
+                        <span className="font-medium">State Code:</span> {customer.stateCode || 'Not specified'}
+                      </div>
           </div>
         </div>
       ))
@@ -652,6 +681,12 @@ const CustomerMaster = () => {
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Customer Name</p>
                 <p className="text-sm font-medium text-gray-800">{selectedCustomer.customerName}</p>
               </div>
+                    {selectedCustomer.gstinUin && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">GSTIN/UIN</p>
+                        <p className="text-sm text-gray-600 font-mono">{selectedCustomer.gstinUin}</p>
+                      </div>
+                    )}
               <div>
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Email</p>
                 <p className="text-sm text-gray-600">{selectedCustomer.customerEmail}</p>
@@ -692,12 +727,20 @@ const CustomerMaster = () => {
                   <p className="text-sm text-gray-800">{selectedCustomer.city}</p>
                 </div>
               )}
+                    <div className="grid grid-cols-2 gap-4">
               {selectedCustomer.state && (
                 <div>
                   <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">State</p>
                   <p className="text-sm text-gray-800">{selectedCustomer.state}</p>
                 </div>
               )}
+                      {selectedCustomer.stateCode && (
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">State Code</p>
+                          <p className="text-sm text-gray-800 font-mono">{selectedCustomer.stateCode}</p>
+                        </div>
+                      )}
+                    </div>
             </div>
           </div>
 
@@ -757,6 +800,7 @@ const CustomerMaster = () => {
     </div>
   </Modal>
 )}
+
       {/* Notification */}
       <Notification
         message={notification.message}

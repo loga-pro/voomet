@@ -5,6 +5,10 @@ const customerSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  gstinUin: {
+    type: String,
+    required: true
+  },
   customerEmail: {
     type: String,
     required: true
@@ -25,6 +29,17 @@ const customerSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  stateCode: {
+    type: String,
+    required: false,
+    validate: {
+      validator: function (v) {
+        // Allow empty or 2-digit state code
+        return !v || /^\d{2}$/.test(v);
+      },
+      message: 'State code must be exactly 2 digits'
+    }
+  },
   zipCode: {
     type: String,
     required: true
@@ -32,6 +47,10 @@ const customerSchema = new mongoose.Schema({
   country: {
     type: String,
     required: true
+  },
+  billingAddress: {
+    type: String,
+    required: false
   }
 }, {
   timestamps: true

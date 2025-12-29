@@ -355,6 +355,17 @@ export const purchaseRequestsAPI = {
   exportCSV: (filters) => api.post('/purchase-requests/export/csv', { filters }),
 };
 
+// Purchases API
+export const purchasesAPI = {
+  getAll: (filters) => api.get('/purchases', { params: filters }).then(res => res.data.data || res.data),
+  getById: (id) => api.get(`/purchases/${id}`),
+  create: (data) => api.post('/purchases', data),
+  update: (id, data) => api.put(`/purchases/${id}`, data),
+  delete: (id) => api.delete(`/purchases/${id}`),
+  deleteByVoucher: (voucherNo) => api.delete(`/purchases/voucher/${voucherNo}`),
+  getWorkCategories: () => api.get('/purchases/filters/work-categories'),
+};
+
 // Miscellaneous Expenditures API
 export const miscellaneousExpendituresAPI = {
   getAll: (filters) => api.get('/miscellaneous-expenditures', { params: filters }),

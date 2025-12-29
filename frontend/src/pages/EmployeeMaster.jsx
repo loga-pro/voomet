@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  PlusIcon, 
-  MagnifyingGlassIcon, 
+import {
+  PlusIcon,
+  MagnifyingGlassIcon,
   FunnelIcon,
   XMarkIcon,
   ArrowUpTrayIcon,
@@ -53,12 +53,12 @@ const EmployeeMaster = () => {
     try {
       const response = await employeesAPI.getAll();
       setEmployees(response.data);
-      
+
       // Extract unique values for dropdowns
       const departments = [...new Set(response.data.map(emp => emp.department))].filter(Boolean);
       const designations = [...new Set(response.data.map(emp => emp.designation))].filter(Boolean);
       const employeeNames = [...new Set(response.data.map(emp => emp.name))].filter(Boolean).sort();
-      
+
       setUniqueDepartments(departments);
       setUniqueDesignations(designations);
       setUniqueEmployeeNames(employeeNames);
@@ -75,7 +75,7 @@ const EmployeeMaster = () => {
     // Enhanced overall search - search across all relevant fields
     if (filters.searchTerm) {
       const searchTerm = filters.searchTerm.toLowerCase().trim();
-      
+
       filtered = filtered.filter(emp => {
         // Define all fields to search
         const searchableFields = [
@@ -98,7 +98,7 @@ const EmployeeMaster = () => {
         // Check if any field contains the search term
         return searchableFields.some(field => {
           if (!field) return false;
-          
+
           // Convert to string and check for match
           return String(field).toLowerCase().includes(searchTerm);
         });
@@ -107,35 +107,35 @@ const EmployeeMaster = () => {
 
     // Employee name filter (exact match from dropdown)
     if (filters.employeeName) {
-      filtered = filtered.filter(emp => 
+      filtered = filtered.filter(emp =>
         emp.name === filters.employeeName
       );
     }
 
     // Department filter
     if (filters.department) {
-      filtered = filtered.filter(emp => 
+      filtered = filtered.filter(emp =>
         emp.department === filters.department
       );
     }
 
     // Designation filter
     if (filters.designation) {
-      filtered = filtered.filter(emp => 
+      filtered = filtered.filter(emp =>
         emp.designation === filters.designation
       );
     }
 
     // Gender filter
     if (filters.gender) {
-      filtered = filtered.filter(emp => 
+      filtered = filtered.filter(emp =>
         emp.gender === filters.gender
       );
     }
 
     // UAN filter - exact match
     if (filters.uan) {
-      filtered = filtered.filter(emp => 
+      filtered = filtered.filter(emp =>
         emp.uan && emp.uan.includes(filters.uan)
       );
     }
@@ -148,17 +148,17 @@ const EmployeeMaster = () => {
       ...prev,
       [key]: value
     }));
-    setCurrentPage(1); 
+    setCurrentPage(1);
   };
 
   // Handle UAN input - only allow numbers and limit to 12 digits
   const handleUANChange = (value) => {
     // Remove any non-digit characters
     const numericValue = value.replace(/\D/g, '');
-    
+
     // Limit to 12 digits
     const limitedValue = numericValue.slice(0, 12);
-    
+
     handleFilterChange('uan', limitedValue);
   };
 
@@ -180,18 +180,18 @@ const EmployeeMaster = () => {
 
   // Debounced search for better performance
   const [searchTimeout, setSearchTimeout] = useState(null);
-  
+
   const handleSearchChange = (value) => {
     // Clear previous timeout
     if (searchTimeout) {
       clearTimeout(searchTimeout);
     }
-    
+
     // Set new timeout for debouncing
     const newTimeout = setTimeout(() => {
       handleSearch(value);
     }, 300); // 300ms delay
-    
+
     setSearchTimeout(newTimeout);
   };
 
@@ -218,7 +218,7 @@ const EmployeeMaster = () => {
       const today = new Date();
       let age = today.getFullYear() - birthDate.getFullYear();
       const monthDiff = today.getMonth() - birthDate.getMonth();
-      
+
       if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
         age--;
       }
@@ -239,25 +239,25 @@ const EmployeeMaster = () => {
   // Export to CSV function (unchanged)
   const exportToCSV = () => {
     const headers = [
-      'Name', 'Email', 'Department', 'Designation', 'Phone', 
+      'Name', 'Email', 'Department', 'Designation', 'Phone',
       'Aadhaar', 'PAN', 'Gender', 'Qualification', 'Address',
-      'UAN', 'Bank Name', 'Bank Account Number', 'Branch','Date of Birth'
+      'UAN', 'Bank Name', 'Bank Account Number', 'Branch', 'Date of Birth'
     ];
-    
+
     const csvData = filteredEmployees.map(emp => [
       emp.name || '',
       emp.email || '',
       emp.department || '',
       emp.designation || '',
       emp.phone || '',
-      emp.aadhar || '', 
+      emp.aadhar || '',
       emp.pan || '',
       emp.gender || '',
       emp.qualification || '',
       emp.address || '',
-      emp.uan || '', 
+      emp.uan || '',
       emp.bankName || '',
-      emp.bankAccountNumber || '', 
+      emp.bankAccountNumber || '',
       emp.branch || '',
       emp.dob ? formatDate(emp.dob) : ''
     ]);
@@ -317,7 +317,8 @@ const EmployeeMaster = () => {
     }
   };
 
-  const handleFormSubmit = (isEdit = false) => {
+  const handleFormSubmit = () => {
+    const isEdit = !!editingEmployee;
     setShowModal(false);
     setEditingEmployee(null);
     fetchEmployees(); // Refresh the list
@@ -366,15 +367,14 @@ const EmployeeMaster = () => {
                   )}
                 </div>
               </div>
-              
+
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                    showFilters || Object.values(filters).some(Boolean) 
-                      ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100' 
-                      : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
-                  }`}
+                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters || Object.values(filters).some(Boolean)
+                    ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
+                    : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                    }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
                   Filters
@@ -384,7 +384,7 @@ const EmployeeMaster = () => {
                     </span>
                   )}
                 </button>
-                
+
                 {Object.values(filters).some(Boolean) && (
                   <button
                     onClick={clearFilters}
@@ -394,7 +394,7 @@ const EmployeeMaster = () => {
                     Clear All
                   </button>
                 )}
-                
+
                 <button
                   onClick={exportToCSV}
                   className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -402,7 +402,7 @@ const EmployeeMaster = () => {
                   <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
                   Export CSV
                 </button>
-                
+
                 <button
                   onClick={() => setShowModal(true)}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -586,8 +586,8 @@ const EmployeeMaster = () => {
                     ) : (
                       <tr>
                         <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
-                          {Object.values(filters).some(val => val !== '') 
-                            ? 'No employees found matching your filters.' 
+                          {Object.values(filters).some(val => val !== '')
+                            ? 'No employees found matching your filters.'
                             : 'No employees found.'
                           }
                         </td>
@@ -597,7 +597,7 @@ const EmployeeMaster = () => {
                 </table>
               </div>
             </div>
-            
+
             {/* Mobile Card View */}
             <div className="sm:hidden">
               {currentItems.length > 0 ? (
@@ -650,8 +650,8 @@ const EmployeeMaster = () => {
                 ))
               ) : (
                 <div className="p-8 text-center text-gray-500">
-                  {Object.values(filters).some(val => val !== '') 
-                    ? 'No employees found matching your filters.' 
+                  {Object.values(filters).some(val => val !== '')
+                    ? 'No employees found matching your filters.'
                     : 'No employees found.'
                   }
                 </div>
@@ -679,12 +679,12 @@ const EmployeeMaster = () => {
                   <option value={100}>100</option>
                 </select>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-700">
                   Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredEmployees.length)} of {filteredEmployees.length} results
                 </span>
-                
+
                 <nav className="flex space-x-2">
                   <button
                     onClick={() => paginate(Math.max(1, currentPage - 1))}
@@ -693,11 +693,11 @@ const EmployeeMaster = () => {
                   >
                     <ChevronLeftIcon className="h-5 w-5" />
                   </button>
-                  
+
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter(page => 
-                      page === 1 || 
-                      page === totalPages || 
+                    .filter(page =>
+                      page === 1 ||
+                      page === totalPages ||
                       (page >= currentPage - 1 && page <= currentPage + 1)
                     )
                     .map((page, index, array) => {
@@ -712,18 +712,17 @@ const EmployeeMaster = () => {
                           )}
                           <button
                             onClick={() => paginate(page)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              currentPage === page
-                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                            }`}
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
+                              ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                              }`}
                           >
                             {page}
                           </button>
                         </React.Fragment>
                       );
                     })}
-                  
+
                   <button
                     onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
@@ -738,17 +737,37 @@ const EmployeeMaster = () => {
         </div>
       </div>
 
-      {/* Add/Edit Modal - Rest of the modals remain the same */}
+      {/* Add/Edit Employee Modal */}
       <Modal
-  isOpen={viewModal}
-  onClose={() => {
-    setViewModal(false);
-    setSelectedEmployee(null);
-  }}
-  title="Employee Profile"
-  size="lg"
->
-  {selectedEmployee && (
+        isOpen={showModal}
+        onClose={() => {
+          setShowModal(false);
+          setEditingEmployee(null);
+        }}
+        title={editingEmployee ? 'Edit Employee' : 'Add New Employee'}
+        size="lg"
+      >
+        <EmployeeForm
+          employee={editingEmployee}
+          onSubmit={handleFormSubmit}
+          onCancel={() => {
+            setShowModal(false);
+            setEditingEmployee(null);
+          }}
+        />
+      </Modal>
+
+      {/* View Employee Modal */}
+      <Modal
+        isOpen={viewModal}
+        onClose={() => {
+          setViewModal(false);
+          setSelectedEmployee(null);
+        }}
+        title="Employee Profile"
+        size="lg"
+      >
+        {selectedEmployee && (
           <div className="flex flex-col max-h-[100vh]">
 
             {/* ✅ Scrollable content */}
@@ -760,39 +779,39 @@ const EmployeeMaster = () => {
                   <div className="flex items-center mb-2">
                     <User className="w-4 h-4 text-indigo-600 mr-2" />
                     <h3 className="font-semibold">Personal Information</h3>
-            </div>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
+                    <div>
                       <span className="text-xs text-gray-500">Name</span>
                       <p>{selectedEmployee.name}</p>
-            </div>
-            <div>
+                    </div>
+                    <div>
                       <span className="text-xs text-gray-500">Gender</span>
                       <p>{selectedEmployee.gender || 'N/A'}</p>
-            </div>
-            <div>
+                    </div>
+                    <div>
                       <span className="text-xs text-gray-500">DOB</span>
                       <p>{formatDate(selectedEmployee.dob)}</p>
-            </div>
-          </div>
-        </div>
+                    </div>
+                  </div>
+                </div>
 
                 {/* Contact */}
                 <div className="bg-white border rounded p-3 md:col-span-2">
                   <div className="flex items-center mb-2">
                     <Phone className="w-4 h-4 text-blue-600 mr-2" />
                     <h3 className="font-semibold">Contact Information</h3>
-        </div>
+                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
+                    <div>
                       <span className="text-xs text-gray-500">Email</span>
                       <p className="break-all">{selectedEmployee.email}</p>
-            </div>
-            <div>
+                    </div>
+                    <div>
                       <span className="text-xs text-gray-500">Phone</span>
                       <p>{selectedEmployee.phone}</p>
-            </div>
+                    </div>
 
                     {/* ✅ Address fixed */}
                     <div className="md:col-span-2">
@@ -800,87 +819,87 @@ const EmployeeMaster = () => {
                       <p className="whitespace-pre-wrap break-words">
                         {selectedEmployee.address || 'N/A'}
                       </p>
-              </div>
-          </div>
-        </div>
+                    </div>
+                  </div>
+                </div>
 
                 {/* Employment */}
                 <div className="bg-white border rounded p-3 md:col-span-2">
                   <div className="flex items-center mb-2">
                     <Briefcase className="w-4 h-4 text-indigo-600 mr-2" />
                     <h3 className="font-semibold">Employment Details</h3>
-            </div>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
+                    <div>
                       <span className="text-xs text-gray-500">Department</span>
                       <p>{selectedEmployee.department}</p>
-            </div>
-            <div>
+                    </div>
+                    <div>
                       <span className="text-xs text-gray-500">Designation</span>
                       <p>{selectedEmployee.designation}</p>
-            </div>
-            <div>
+                    </div>
+                    <div>
                       <span className="text-xs text-gray-500">Qualification</span>
                       <p>{selectedEmployee.qualification || 'N/A'}</p>
-            </div>
-          </div>
-        </div>
+                    </div>
+                  </div>
+                </div>
 
                 {/* IDs */}
                 <div className="bg-white border rounded p-3 md:col-span-2">
                   <div className="flex items-center mb-2">
                     <IdCard className="w-4 h-4 text-green-600 mr-2" />
                     <h3 className="font-semibold">Government IDs</h3>
-            </div>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 font-mono">
                     <div><p>Aadhaar</p>{selectedEmployee.aadhar || 'N/A'}</div>
                     <div><p>PAN</p>{selectedEmployee.pan || 'N/A'}</div>
                     <div><p>UAN</p>{selectedEmployee.uan || 'N/A'}</div>
-          </div>
-            </div>
+                  </div>
+                </div>
 
                 {/* Bank */}
                 <div className="bg-white border rounded p-3 md:col-span-2">
                   <div className="flex items-center mb-2">
                     <Banknote className="w-4 h-4 text-amber-600 mr-2" />
                     <h3 className="font-semibold">Bank Details</h3>
-            </div>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>{selectedEmployee.bankName || 'N/A'}</div>
                     <div>{selectedEmployee.bankAccountNumber || 'N/A'}</div>
                     <div>{selectedEmployee.branch || 'N/A'}</div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  setViewModal(false);
+                  setSelectedEmployee(null);
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setViewModal(false);
+                  setSelectedEmployee(null);
+                  handleEdit(selectedEmployee);
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+              >
+                Edit Employee
+              </button>
             </div>
           </div>
-
-        </div>
-      </div>
-
-
-      {/* Action Buttons */}
-      <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
-        <button
-          onClick={() => {
-            setViewModal(false);
-            setSelectedEmployee(null);
-          }}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-        >
-          Close
-        </button>
-        <button
-          onClick={() => {
-            setViewModal(false);
-            setSelectedEmployee(null);
-            handleEdit(selectedEmployee);
-          }}
-          className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-        >
-          Edit Employee
-        </button>
-      </div>
-    </div>
-  )}
-</Modal>
+        )}
+      </Modal>
 
       {/* Notification */}
       <Notification

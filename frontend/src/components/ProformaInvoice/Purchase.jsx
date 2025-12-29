@@ -20,7 +20,7 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
       line3: 'Doddaballapur',
       line4: 'Bangalore'
     },
-    companyGSTIN = '29ANZPK9532D22B', // UPDATED FROM IMAGE
+    companyGSTIN = '29ANZPK9532D22B',
     companyState = 'Karnataka',
     companyStateCode = '29',
     companyEmail = 'Accounts@voomet.com',
@@ -36,16 +36,51 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
 
   // Calculate totals from all invoices
   const calculateTotals = () => {
-    if (invoices.length === 0) return { invoiceValue: 0, cgstAmount: 0, sgstAmount: 0, roundOff: 0, totalWithTax: 0 };
+    if (invoices.length === 0) return { invoiceValue: 0, cgstAmount: 0, sgstAmount: 0, roundOff: 0, totalQuantity: 0 };
 
     return invoices.reduce((acc, inv) => {
+      let invTotalQty = 0;
+      let invSubTotal = 0;
+
+      // Calculate from lineItems if available
+      if (inv.lineItems && inv.lineItems.length > 0) {
+        inv.lineItems.forEach(item => {
+          const qty = parseFloat(item.quantity) || 0;
+          // Handle both frontend state naming and backend model naming
+          const price = parseFloat(item.priceWithoutGST || item.invoiceValueWithoutGST) || 0;
+
+          invTotalQty += qty;
+          invSubTotal += (qty * price);
+        });
+      } else {
+        // Fallback if no line items (flat invoice structure)
+        const qty = parseFloat(inv.quantity) || 0;
+        const price = parseFloat(inv.priceWithoutGST || inv.invoiceValueWithoutGST) || 0;
+
+        invTotalQty = qty;
+        invSubTotal = qty * price;
+
+        // If calculated subtotal is 0, try using explicit invoiceValue field if present
+        if (invSubTotal === 0) {
+          invSubTotal = parseFloat(inv.invoiceValue || inv.invoiceValueWithoutGST) || 0;
+        }
+      }
+
+      // Calculate Taxes based on percentages found on the invoice
+      const cgstPercent = parseFloat(inv.cgst) || 0;
+      const sgstPercent = parseFloat(inv.sgst) || 0;
+
+      const cgstVal = (invSubTotal * cgstPercent) / 100;
+      const sgstVal = (invSubTotal * sgstPercent) / 100;
+
       return {
-        invoiceValue: acc.invoiceValue + (parseFloat(inv.invoiceValue) || 0),
-        cgstAmount: acc.cgstAmount + (parseFloat(inv.cgstAmount) || 0),
-        sgstAmount: acc.sgstAmount + (parseFloat(inv.sgstAmount) || 0),
-        roundOff: acc.roundOff + (parseFloat(inv.roundOff) || 0)
+        invoiceValue: acc.invoiceValue + invSubTotal,
+        cgstAmount: acc.cgstAmount + cgstVal,
+        sgstAmount: acc.sgstAmount + sgstVal,
+        roundOff: acc.roundOff + (parseFloat(inv.roundOff) || 0),
+        totalQuantity: acc.totalQuantity + invTotalQty
       };
-    }, { invoiceValue: 0, cgstAmount: 0, sgstAmount: 0, roundOff: 0 });
+    }, { invoiceValue: 0, cgstAmount: 0, sgstAmount: 0, roundOff: 0, totalQuantity: 0 });
   };
 
   const totals = calculateTotals();
@@ -57,6 +92,7 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
   const cgstAmount = totals.cgstAmount;
   const sgstAmount = totals.sgstAmount;
   const roundOff = totals.roundOff;
+  const totalQuantity = totals.totalQuantity;
   const totalWithTax = invoiceValue + cgstAmount + sgstAmount + roundOff;
 
   // Format date
@@ -188,31 +224,14 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
         {!hideDownloadButton && (
           <div className="print-hide mb-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-gray-700">Customer</div>
-                  <div className="text-lg font-semibold text-gray-900 truncate">{customer}</div>
-                  {projectName && (
-                    <div className="text-sm text-gray-600">Project: {projectName}</div>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    onClick={generatePDF}
-                    className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download PDF
-                  </button>
-                  {/* <button
-                    onClick={handlePrint}
-                    className="inline-flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md"
-                  >
-                    <Printer className="w-4 h-4" />
-                    Print Invoice
-                  </button> */}
-                </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={generatePDF}
+                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                  <Download className="w-4 h-4" />
+                  Download PDF
+                </button>
               </div>
             </div>
           </div>
@@ -246,7 +265,7 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
 
                     {/* Header: Title */}
                     <h1 className="text-center font-bold text-sm py-1 border-b border-black tracking-wide">
-                      Proforma Invoice
+                      Purchase Order
                     </h1>
 
                     {/* Top Section: Buyer/Seller Info */}
@@ -268,21 +287,20 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
 
                         {/* Consignee */}
                         <div className="border-t border-black p-2 flex-grow invoice-small">
-                          <div className="mb-1">Consignee (Ship to)</div>
-                          <div className="font-bold">{customer}</div>
-                          <div>{invoice.destination || 'As per order'}</div>
-                          <div className="mt-1">GSTIN/UIN : {invoice.customerGSTIN || ''}</div>
-                          <div>State Name : {companyState}, Code : {companyStateCode}</div>
+                          <div className="mb-1">Supplier (Bill from)</div>
+                          {invoice.supplier ? (
+                            <div className="whitespace-pre-wrap text-xs">{invoice.supplier}</div>
+                          ) : (
+                            <>
+                              <div className="font-bold">{customer}</div>
+                              <div>{invoice.destination || 'As per order'}</div>
+                              <div className="mt-1">GSTIN/UIN : {invoice.customerGSTIN || ''}</div>
+                              <div>State Name : {companyState}, Code : {companyStateCode}</div>
+                            </>
+                          )}
                         </div>
 
-                        {/* Buyer */}
-                        <div className="border-t border-black p-2 flex-grow invoice-small">
-                          <div className="mb-1">Buyer (Bill to)</div>
-                          <div className="font-bold">{customer}</div>
-                          <div>{invoice.destination || 'As per order'}</div>
-                          <div className="mt-1">GSTIN/UIN : {invoice.customerGSTIN || ''}</div>
-                          <div>State Name : {companyState}, Code : {companyStateCode}</div>
-                        </div>
+
                       </div>
 
                       {/* Right Column: Invoice Details */}
@@ -290,7 +308,7 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
                         <div className="flex border-b border-black">
                           <div className="w-1/2 p-2 border-r border-black">
                             <div className="invoice-small">Voucher No.</div>
-                            <div className="font-bold">{invoice.voucherNo || invoice.invoiceNumber || 'N/A'}</div>
+                            <div className="font-bold">{invoice.voucherNo || invoice.invoiceNumber }</div>
                           </div>
                           <div className="w-1/2 p-2">
                             <div className="invoice-small">Dated</div>
@@ -300,12 +318,17 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
 
                         <div className="flex border-b border-black">
                           <div className="w-1/2 p-2 border-r border-black">
-                            <div className="invoice-small">Buyer's Ref./Order No.</div>
-                            <div className="font-bold">{invoice.buyersRef || 'N/A'}</div>
+                            <div className="invoice-small">Refrence No. & Date</div>
+                            <div className="font-bold">
+                              {invoice.referenceNo || ''}
+                              {invoice.referenceNo && invoice.referenceDate ? ' & ' : ''}
+                              {invoice.referenceDate ? formatDate(invoice.referenceDate) : ''}
+                              {!invoice.referenceNo && !invoice.referenceDate ? 'N/A' : ''}
+                            </div>
                           </div>
                           <div className="w-1/2 p-2">
                             <div className="invoice-small">Mode/Terms of Payment</div>
-                            <div className="font-bold">{invoice.paymentType === 'advance' ? '100% Advance' : invoice.paymentType === 'final' ? 'Final Payment' : 'As per terms'}</div>
+                            <div className="font-bold">{invoice.modeOfPayment || invoice.paymentType || '\u00A0'}</div>
                           </div>
                         </div>
 
@@ -316,16 +339,19 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
                           </div>
                           <div className="w-1/2 p-2">
                             <div className="invoice-small">Other References</div>
-                            <div className="font-bold">{projectName || '\u00A0'}</div>
+                            <div className="font-bold">{invoice.otherReference || '\u00A0'}</div>
                           </div>
                         </div>
 
                         <div className="flex border-b border-black">
-                          <div className="w-1/2 p-2 border-r border-black">
+                          <div className="p-2">
                             <div className="invoice-small">Destination</div>
                             <div className="font-bold">{invoice.destination || '\u00A0'}</div>
                           </div>
-                          <div className="w-1/2 p-2">
+                        </div>
+
+                        <div className="flex">
+                          <div className="p-2 pb-8">
                             <div className="invoice-small">Terms of Delivery</div>
                             <div className="font-bold">{invoice.termsForDelivery || '\u00A0'}</div>
                           </div>
@@ -339,15 +365,8 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
                     {/* Items Table Header */}
                     <div className="flex text-center font-bold border-b border-black invoice-small">
                       <div className="w-[4%] border-r border-black p-1 flex items-end justify-center">Sl No.</div>
-                      <div className="w-[25%] border-r border-black p-1 flex items-end justify-center">Description of Goods</div>
-                      <div className="w-[8%] border-r border-black p-1 flex items-end justify-center">HSN/SAC</div>
-                      <div className="w-[14%] border-r border-black flex flex-col">
-                        <div className="border-b border-black p-1">Quantity</div>
-                        <div className="flex h-full">
-                          <div className="w-1/2 border-r border-black p-1 italic font-normal">To Ship</div>
-                          <div className="w-1/2 p-1 italic font-normal">To Bill</div>
-                        </div>
-                      </div>
+                      <div className="w-[40%] border-r border-black p-1 flex items-end justify-center">Description of Goods</div>
+                      <div className="w-[14%] border-r border-black p-1 flex items-end justify-center">Quantity</div>
                       <div className="w-[9%] border-r border-black p-1 flex items-end justify-center">Rate</div>
                       <div className="w-[6%] border-r border-black p-1 flex items-end justify-center">per</div>
                       <div className="w-[18%] p-1 flex items-end justify-center">Amount</div>
@@ -355,71 +374,79 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
 
                     {/* Items Table Body */}
                     <div className="flex-grow flex flex-col">
-                      {/* Render all invoices */}
-                      {invoices.length > 0 ? invoices.map((inv, index) => (
-                        <div key={index} className="flex invoice-small">
-                          <div className="w-[4%] border-r border-black p-1 text-center">{index + 1}</div>
-                          <div className="w-[25%] border-r border-black p-1">
-                            <span className="font-bold">{projectName || 'Interior Works'}</span>
-                            <div className="italic invoice-xsmall mt-1">As Per Attached Annexure</div>
+                      {/* Render all line items from invoices */}
+                      {invoices.length > 0 && invoices[0].lineItems && invoices[0].lineItems.length > 0 ? (
+                        invoices[0].lineItems.map((item, index) => (
+                          <div key={index} className="flex invoice-small">
+                            <div className="w-[4%] border-r border-black p-1 text-center">{index + 1}</div>
+                            <div className="w-[40%] border-r border-black p-1">
+                              <span className="font-bold">{item.partName || 'Item'}</span>
+                            </div>
+                            <div className="w-[14%] border-r border-black p-1 text-center">{item.quantity} {item.unit}</div>
+                            <div className="w-[9%] border-r border-black p-1 text-right">{(parseFloat(item.priceWithoutGST || item.invoiceValueWithoutGST) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                            <div className="w-[6%] border-r border-black p-1 text-center">{item.unit}</div>
+                            <div className="w-[18%] p-1 text-right font-bold">{((parseFloat(item.priceWithoutGST || item.invoiceValueWithoutGST) || 0) * (parseFloat(item.quantity) || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                           </div>
-                          <div className="w-[8%] border-r border-black p-1 text-center">{inv.hsnSac || '998391'}</div>
-                          <div className="w-[7%] border-r border-black p-1 text-center"></div>
-                          <div className="w-[7%] border-r border-black p-1 text-center"></div>
-                          <div className="w-[9%] border-r border-black p-1 text-right"></div>
-                          <div className="w-[6%] border-r border-black p-1 text-center"></div>
-                          <div className="w-[18%] p-1 text-right font-bold">{(parseFloat(inv.invoiceValue) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                        </div>
-                      )) : (
+                        ))
+                      ) : invoices.length > 0 ? (
+                        invoices.map((inv, index) => (
+                          <div key={index} className="flex invoice-small">
+                            <div className="w-[4%] border-r border-black p-1 text-center">{index + 1}</div>
+                            <div className="w-[40%] border-r border-black p-1">
+                              <span className="font-bold">{projectName || 'Interior Works'}</span>
+                            </div>
+                            <div className="w-[14%] border-r border-black p-1 text-center"></div>
+                            <div className="w-[9%] border-r border-black p-1 text-right"></div>
+                            <div className="w-[6%] border-r border-black p-1 text-center"></div>
+                            <div className="w-[18%] p-1 text-right font-bold">{(parseFloat(inv.invoiceValueWithoutGST || inv.totalValue || inv.invoiceValue) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                          </div>
+                        ))
+                      ) : (
                         <div className="flex invoice-small">
                           <div className="w-[4%] border-r border-black p-1 text-center">1</div>
-                          <div className="w-[25%] border-r border-black p-1">
+                          <div className="w-[40%] border-r border-black p-1">
                             <span className="font-bold">{projectName || 'Interior Works'}</span>
                             <div className="italic invoice-xsmall mt-1">As Per Attached Annexure</div>
                           </div>
-                          <div className="w-[8%] border-r border-black p-1 text-center">998391</div>
-                          <div className="w-[7%] border-r border-black p-1 text-center"></div>
-                          <div className="w-[7%] border-r border-black p-1 text-center"></div>
+                          <div className="w-[14%] border-r border-black p-1 text-center"></div>
                           <div className="w-[9%] border-r border-black p-1 text-right"></div>
                           <div className="w-[6%] border-r border-black p-1 text-center"></div>
                           <div className="w-[18%] p-1 text-right font-bold">0.00</div>
                         </div>
                       )}
 
-                      {/* Tax Rows (CGST/SGST) */}
-                      <div className="flex invoice-small">
-                        <div className="w-[4%] border-r border-black p-1 text-center"></div>
-                        <div className="w-[25%] border-r border-black p-1 text-right italic">
-                          <div>Output CGST</div>
-                          <div>Output SGST</div>
+                      {/* Tax Rows (CGST/SGST) - Only show if values are entered */}
+                      {(invoice.cgst || invoice.sgst) && (
+                        <div className="flex invoice-small">
+                          <div className="w-[4%] border-r border-black p-1 text-center"></div>
+                          <div className="w-[40%] border-r border-black p-1 text-right italic">
+                            <div>Input CGST</div>
+                            <div>Input SGST</div>
+                          </div>
+                          <div className="w-[14%] border-r border-black p-1 text-center"></div>
+                          <div className="w-[9%] border-r border-black p-1 text-center flex flex-col items-center">
+                            <div>{invoice.cgst || ''}</div>
+                            <div>{invoice.sgst || ''}</div>
+                          </div>
+                          <div className="w-[6%] border-r border-black p-1 text-center flex flex-col items-center">
+                            <div>%</div>
+                            <div>%</div>
+                          </div>
+                          <div className="w-[18%] p-1 text-right">
+                            <div>{cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                            <div>{sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                          </div>
                         </div>
-                        <div className="w-[8%] border-r border-black p-1 text-center"></div>
-                        <div className="w-[7%] border-r border-black p-1 text-center"></div>
-                        <div className="w-[7%] border-r border-black p-1 text-center"></div>
-                        <div className="w-[9%] border-r border-black p-1 text-center flex flex-col items-center">
-                          <div>{invoice.cgst || '9'}</div>
-                          <div>{invoice.sgst || '9'}</div>
-                        </div>
-                        <div className="w-[6%] border-r border-black p-1 text-center flex flex-col items-center">
-                          <div>%</div>
-                          <div>%</div>
-                        </div>
-                        <div className="w-[18%] p-1 text-right">
-                          <div>{cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                          <div>{sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                        </div>
-                      </div>
+                      )}
 
                       {/* Round Off - Only show if roundOff has a value */}
                       {roundOff !== 0 && (
                         <div className="flex invoice-small border-b border-black">
                           <div className="w-[4%] border-r border-black p-1 text-center"></div>
-                          <div className="w-[25%] border-r border-black p-1 text-right">
+                          <div className="w-[40%] border-r border-black p-1 text-right">
                             {roundOff >= 0 ? 'Add : ' : 'Less : '}<span className="font-bold">Round OFF</span>
                           </div>
-                          <div className="w-[8%] border-r border-black p-1 text-center"></div>
-                          <div className="w-[7%] border-r border-black p-1 text-center"></div>
-                          <div className="w-[7%] border-r border-black p-1 text-center"></div>
+                          <div className="w-[14%] border-r border-black p-1 text-center"></div>
                           <div className="w-[9%] border-r border-black p-1 text-right"></div>
                           <div className="w-[6%] border-r border-black p-1 text-center"></div>
                           <div className="w-[18%] p-1 text-right">{roundOff >= 0 ? '' : '(-)'}{Math.abs(roundOff).toFixed(2)}</div>
@@ -429,10 +456,8 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
                       {/* Vertical Spacer for empty rows and column lines */}
                       <div className="flex-grow flex relative">
                         <div className="w-[4%] border-r border-black h-full"></div>
-                        <div className="w-[25%] border-r border-black h-full"></div>
-                        <div className="w-[8%] border-r border-black h-full"></div>
-                        <div className="w-[7%] border-r border-black h-full"></div>
-                        <div className="w-[7%] border-r border-black h-full"></div>
+                        <div className="w-[40%] border-r border-black h-full"></div>
+                        <div className="w-[14%] border-r border-black h-full"></div>
                         <div className="w-[9%] border-r border-black h-full"></div>
                         <div className="w-[6%] border-r border-black h-full"></div>
                         <div className="w-[18%] h-full"></div>
@@ -442,10 +467,8 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
                     {/* Total Row */}
                     <div className="flex border-t border-b border-black">
                       <div className="w-[4%] border-r border-black p-1 text-center invoice-small"></div>
-                      <div className="w-[25%] border-r border-black p-1 text-right invoice-small font-bold">Total</div>
-                      <div className="w-[8%] border-r border-black p-1 text-center"></div>
-                      <div className="w-[7%] border-r border-black p-1 text-center"></div>
-                      <div className="w-[7%] border-r border-black p-1 text-center"></div>
+                      <div className="w-[40%] border-r border-black p-1 text-right invoice-small font-bold">Total</div>
+                      <div className="w-[14%] border-r border-black p-1 text-center font-bold invoice-small">{totalQuantity > 0 ? totalQuantity : ''}</div>
                       <div className="w-[9%] border-r border-black p-1 text-center"></div>
                       <div className="w-[6%] border-r border-black p-1 text-center"></div>
                       <div className="w-[18%] p-1 flex flex-col items-end justify-center">
@@ -463,16 +486,7 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
 
                       {/* Right Section: Bank Details and Signature */}
                       <div className="w-1/2 flex flex-col">
-                        {/* Bank Details */}
-                        <div className="border-b border-black p-2 invoice-small flex-grow">
-                          <div className="font-bold mb-1">Company's Bank Details</div>
-                          <div className="space-y-0.5">
-                            <div>A/c Holder's Name : <span className="font-bold">{bankDetails.accountHolder}</span></div>
-                            <div>Bank Name : <span className="font-bold">{bankDetails.bankName}</span></div>
-                            <div>A/c No. : <span className="font-bold">{bankDetails.accountNumber}</span></div>
-                            <div>Branch & IFS Code : <span className="font-bold">{bankDetails.branch} & {bankDetails.ifscCode}</span></div>
-                          </div>
-                        </div>
+
 
                         {/* Signature */}
                         <div className="p-2 flex justify-between items-end invoice-small">
