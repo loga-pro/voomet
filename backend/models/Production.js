@@ -28,6 +28,7 @@ const productionDetailSchema = new mongoose.Schema({
   reasonForDelay: {
     type: String,
     trim: true,
+    enum: ['', 'Yes', 'No'],
     default: ''
   },
   remarks: {

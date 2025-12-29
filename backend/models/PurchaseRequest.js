@@ -1,27 +1,52 @@
 const mongoose = require('mongoose');
 
 const purchaseRequestItemSchema = new mongoose.Schema({
-  scopeOfWork: {
+  description: {
     type: String,
-    enum: ['electrical', 'data', 'cctv', 'partition', 'fire_and_safety', 'access'],
-    required: [true, 'Scope of work is required']
+    required: [true, 'Description is required'],
+    trim: true,
+    maxlength: [200, 'Description cannot exceed 200 characters']
   },
-  partName: {
+  area: {
     type: String,
-    required: [true, 'Part name is required'],
+    required: [true, 'Area is required'],
+    trim: true,
+    maxlength: [100, 'Area cannot exceed 100 characters']
+  },
+  code: {
+    type: String,
+    required: [true, 'Code is required'],
+    trim: true,
+    maxlength: [50, 'Code cannot exceed 50 characters']
+  },
+  specification: {
+    type: String,
+    trim: true,
+    maxlength: [300, 'Specification cannot exceed 300 characters']
+  },
+  unitType: {
+    type: String,
     trim: true
   },
-  quantityRequired: {
+  quantity: {
     type: Number,
-    required: [true, 'Quantity required is required'],
-    min: [1, 'Quantity must be at least 1']
+    required: [true, 'Quantity is required'],
+    min: [0.01, 'Quantity must be at least 0.01']
   },
-  purpose: {
+  thickness: {
     type: String,
-    required: [true, 'Purpose is required'],
-    trim: true
+    trim: true,
+    maxlength: [50, 'Thickness cannot exceed 50 characters']
+  },
+  remark: {
+    type: String,
+    trim: true,
+    maxlength: [150, 'Remark cannot exceed 150 characters']
+  },
+  image: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
   }
-
 }, { _id: false });
 
 const purchaseRequestSchema = new mongoose.Schema({
@@ -107,8 +132,8 @@ const purchaseRequestSchema = new mongoose.Schema({
 // Calculate totals before saving
 purchaseRequestSchema.pre('save', function(next) {
   this.totalItems = this.items.length;
-  this.totalQuantity = this.items.reduce((sum, item) => sum + item.quantityRequired, 0);
-  this.totalEstimatedCost = this.items.reduce((sum, item) => sum + item.estimatedCost, 0);
+  this.totalQuantity = this.items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+  this.totalEstimatedCost = this.items.reduce((sum, item) => sum + (item.estimatedCost || 0), 0);
   next();
 });
 
@@ -117,7 +142,7 @@ purchaseRequestSchema.pre('findOneAndUpdate', function(next) {
   const update = this.getUpdate();
   if (update.items) {
     update.totalItems = update.items.length;
-    update.totalQuantity = update.items.reduce((sum, item) => sum + item.quantityRequired, 0);
+    update.totalQuantity = update.items.reduce((sum, item) => sum + (item.quantity || 0), 0);
     update.totalEstimatedCost = update.items.reduce((sum, item) => sum + (item.estimatedCost || 0), 0);
   }
   next();

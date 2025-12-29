@@ -773,101 +773,59 @@ const EmployeeAccess = () => {
       </Modal>
 
       {/* View User Modal */}
+      {/* View User Modal */}
        {viewingUser && (
   <Modal
     isOpen={!!viewingUser}
-    onClose={() => setViewingUser(null)}
+          onClose={()=>setViewingUser(null)}
     title="User Profile"
-    size="lg"
+          size="xl"
   >
-    <div className="p-1">
-      <div className="space-y-6">
-        {/* Details Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* User Information */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center mb-3">
-              <h3 className="ml-2 text-md font-semibold text-gray-900">User Information</h3>
-            </div>
-            <div className="space-y-2">
+          <div className="p-3 text-sm">
+            {/* HORIZONTAL DETAILS */}
+            <div className="border rounded-md p-3 mb-3">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Name</p>
-                <p className="text-sm font-medium text-gray-800">{viewingUser.name}</p>
+                  <p className="text-xs text-gray-500 uppercase">Name</p>
+                  <p className="font-medium text-gray-800">{viewingUser.name}</p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Email</p>
-                <p className="text-sm text-gray-600">{viewingUser.email}</p>
+                  <p className="text-xs text-gray-500 uppercase">Email</p>
+                  <p className="text-gray-700 break-all">{viewingUser.email}</p>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Role</p>
-                <p className="text-sm text-gray-800">{formatRole(viewingUser.role)}</p>
+                  <p className="text-xs text-gray-500 uppercase">Role</p>
+                  <p className="font-medium text-gray-800">{formatRole(viewingUser.role)}</p>
+              </div>
+              <div>
+                  <p className="text-xs text-gray-500 uppercase">Last Login</p>
+                  <p className="text-gray-700">{formatLastLogin(viewingUser.lastLogin)}</p>
               </div>
             </div>
           </div>
 
-          {/* Activity Information */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center mb-3">
-              <h3 className="ml-2 text-md font-semibold text-gray-900">Activity</h3>
-            </div>
-            <div className="space-y-2">
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Last Login</p>
-                <p className="text-sm text-gray-800">{formatLastLogin(viewingUser.lastLogin)}</p>
-              </div>
-              {viewingUser.status && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Status</p>
-                  <p className="text-sm text-gray-800">{viewingUser.status}</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Permissions Section - Spans full width with 3 columns */}
-          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 md:col-span-2">
-            <div className="flex items-center mb-3">
-              <h3 className="ml-2 text-md font-semibold text-gray-900">Access Permissions</h3>
-              <span className="ml-auto bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-1 rounded-full">
-                {viewingUser.permissions.length} permissions
-              </span>
+            {/* Permissions */}
+            <div className="border rounded-md p-3">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold text-gray-800">Access Permissions</h3>
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{viewingUser.permissions.length}</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {viewingUser.permissions.map((permission, index) => (
-                <div 
-                  key={index} 
-                  className="bg-white border border-blue-100 rounded-lg px-3 py-2 text-xs font-medium text-blue-700 flex items-center shadow-sm"
-                >
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></div>
-                  {formatPermission(permission)}
-                </div>
+                {viewingUser.permissions.map((permission,index)=>(
+                  <div key={index} className="text-xs border rounded px-2 py-1 bg-gray-50 text-gray-700">{formatPermission(permission)}</div>
               ))}
             </div>
           </div>
-        </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-          <button
-            onClick={() => setViewingUser(null)}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Close
-          </button>
-          <button
-            onClick={() => {
-              setViewingUser(null);
-              handleEdit(viewingUser);
-            }}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Edit Profile
-          </button>
-        </div>
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pt-3 mt-3 border-t">
+              <button onClick={()=>setViewingUser(null)} className="px-3 py-1.5 text-sm border rounded-md">Close</button>
+              <button onClick={()=>{setViewingUser(null); handleEdit(viewingUser);}} className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md">Edit User</button>
       </div>
     </div>
   </Modal>
 )}
+
 
       {/* Notification */}
       <Notification

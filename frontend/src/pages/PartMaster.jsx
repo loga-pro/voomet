@@ -658,88 +658,98 @@ const PartMaster = () => {
           setSelectedPart(null);
         }}
         title="Part Details"
-        size="lg"
-        className="font-sans"
+        size="xl"
       >
         {selectedPart && (
-          <div className="p-1">
-            <div className="space-y-6">
-              {/* Details Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Basic Information */}
-                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                  <div className="flex items-center mb-3">
-                    <h3 className="text-md font-semibold text-gray-900">Basic Information</h3>
+          <div className="p-3 text-sm">
+
+            {/* BASIC ITEM INFORMATION */}
+            <div className="mb-3">
+              <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                Basic Item Information
+              </h3>
+
+              <div className="border rounded-md p-3">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase">Item Name</p>
+                    <p className="font-medium text-gray-800">
+                      {selectedPart.partName}
+                    </p>
                   </div>
-                  <div className="space-y-2">
+
                     <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Item Name</p>
-                      <p className="text-sm font-medium text-gray-800">{selectedPart.partName}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Scope of Work</p>
-                      <p className="text-sm text-gray-800">{formatScopeOfWork(selectedPart.scopeOfWork)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Vendor Name</p>
-                      <p className="text-sm text-gray-800">{selectedPart.vendorName || 'Not specified'}</p>
-                    </div>
-                  </div>
+                    <p className="text-xs text-gray-500 uppercase">
+                      Specification
+                    </p>
+                    <p className="text-gray-700">
+                      {selectedPart.specification || "-"}
+                    </p>
                 </div>
 
-                {/* Classification Information */}
-                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                  <div className="flex items-center mb-3">
-                    <h3 className="text-md font-semibold text-gray-900">Classification</h3>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase">
+                      Scope of Work
+                    </p>
+                    <p className="text-gray-700">
+                      {formatScopeOfWork(selectedPart.scopeOfWork)}
+                    </p>
                   </div>
-                  <div className="space-y-2">
+
                     <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Category</p>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${categoryColors[selectedPart.category] || 'bg-gray-100 text-gray-800'}`}>
-                        {selectedPart.category.replace('_', ' ')}
+                    <p className="text-xs text-gray-500 uppercase">Category</p>
+                    <span
+                      className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${categoryColors[selectedPart.category]}`}
+                    >
+                      {selectedPart.category?.replace("_", " ").toUpperCase()}
                       </span>
                     </div>
+
                     <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Unit Type</p>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${unitTypeColors[selectedPart.unitType] || 'bg-gray-100 text-gray-800'}`}>
-                        {selectedPart.unitType}
+                    <p className="text-xs text-gray-500 uppercase">Unit Type</p>
+                    <span
+                      className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${unitTypeColors[selectedPart.unitType]}`}
+                    >
+                      {selectedPart.unitType?.toUpperCase()}
                       </span>
                     </div>
+
+                </div>
                   </div>
                 </div>
 
-                {/* Financial Information */}
-                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                  <div className="flex items-center mb-3">
-                    <h3 className="text-md font-semibold text-gray-900">Financial Information</h3>
+            {/* FINANCIAL INFORMATION */}
+            <div className="mb-3">
+              <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                Financial Information
+              </h3>
+
+              <div className="border rounded-md p-3">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase">Part Price</p>
+                    <p className="font-semibold text-gray-900">
+                      ₹{parseFloat(selectedPart.partPrice || 0).toFixed(2)}
+                    </p>
                   </div>
-                  <div className="space-y-2">
-                    <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Part Price</p>
-                      <p className="text-sm font-medium text-gray-800">₹{parseFloat(selectedPart.partPrice).toFixed(2)}</p>
-                    </div>
-                    {selectedPart.taxRate && (
+
                       <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Tax Rate</p>
-                        <p className="text-sm text-gray-800">{selectedPart.taxRate}%</p>
-                      </div>
-                    )}
-                    {selectedPart.discount && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Discount</p>
-                        <p className="text-sm text-gray-800">₹{selectedPart.discount}</p>
-                      </div>
-                    )}
+                    <p className="text-xs text-gray-500 uppercase">Vendor</p>
+                    <p className="text-gray-700">
+                      {selectedPart.vendorName || "-"}
+                    </p>
                   </div>
                 </div>
-
+              </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+            {/* ACTIONS */}
+            <div className="flex justify-end gap-3 pt-3 border-t">
                 <button
                   onClick={() => setViewModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-3 py-1.5 text-sm border rounded-md"
                 >
                   Close
                 </button>
@@ -749,12 +759,12 @@ const PartMaster = () => {
                     setEditingPart(selectedPart);
                     setShowModal(true);
                   }}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md"
                 >
                   Edit Part
                 </button>
               </div>
-            </div>
+
           </div>
         )}
       </Modal>

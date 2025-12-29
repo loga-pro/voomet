@@ -15,8 +15,20 @@ const dispatchSchema = new mongoose.Schema({
   },
   dispatchCategory: {
     type: String,
-    enum: ['dispatch', 'return', 'reject'],
+    enum: ['dispatch', 'return', 'reject', 'site'],
     default: 'dispatch'
+  },
+  deliveryChalan: {
+    type: String,
+    default: ''
+  },
+  vehicleNo: {
+    type: String,
+    default: ''
+  },
+  ewayBill: {
+    type: String,
+    default: ''
   },
   customerName: {
     type: String,

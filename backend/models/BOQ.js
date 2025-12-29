@@ -66,6 +66,7 @@ const boqSchema = new mongoose.Schema({
     trim: true
   }],
   items: [boqItemSchema],
+  others: [boqItemSchema],
   finalTotalWithoutGST: {
     type: Number,
     required: true,
@@ -118,6 +119,10 @@ const boqSchema = new mongoose.Schema({
     Installment: {
       type: Number,
       min: 1
+    },
+    dueDate: {
+      type: String,
+      trim: true
     }
   }],
   estimateNumber: {

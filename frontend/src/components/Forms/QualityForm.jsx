@@ -27,6 +27,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
     description: '',
     dateOfDamage: '',
     damageImage: null,
+    dateOfFixed: '',
     remarks: '',
     fixedImage: null,
     personType: '',
@@ -200,6 +201,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
       description: issue.description || '',
       dateOfDamage: formatDateForInput(issue.dateOfDamage),
       damageImage: null,
+      dateOfFixed: formatDateForInput(issue.dateOfFixed),
       remarks: issue.remarks || '',
       fixedImage: null,
       personType: issue.personType || '',
@@ -248,6 +250,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
       description: '',
       dateOfDamage: '',
       damageImage: null,
+      dateOfFixed: '',
       remarks: '',
       fixedImage: null,
       personType: '',
@@ -372,7 +375,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
     // Construct full URL - imageUrl is like "/uploads/quality/filename.jpg"
     const fullUrl = imageUrl.startsWith('http')
       ? imageUrl
-      : `https://voomet.onrender.com${imageUrl}`;
+      : `http://voomet.onrender.com${imageUrl}`;
     setImagePreview({ show: true, url: fullUrl, title });
   };
 
@@ -469,173 +472,222 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
 
               {/* Form to add new quality issue */}
               <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                <h4 className="text-md font-medium text-gray-900 mb-4">Add New Quality Issue</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <FloatingInput
-                    label="Date of Issue"
-                    name="dateOfIssue"
-                    value={newIssue.dateOfIssue}
-                    onChange={handleNewIssueChange}
-                    type="date"
-                    required={true}
-                  />
+  <h4 className="text-md font-medium text-gray-900 mb-6">
+    {editingIssueIndex !== null ? 'Edit Quality Issue' : 'Add New Quality Issue'}
+  </h4>
 
-                  <FloatingInput
-                    label="Scope of Work"
-                    name="scopeOfWork"
-                    value={newIssue.scopeOfWork}
-                    onChange={handleNewIssueChange}
-                    type="select"
-                    required={true}
-                    options={[
-                      { value: '', label: 'Select Scope' },
-                      ...allScopeOptions.map(scope => ({
-                        value: scope.value,
-                        label: scope.label
-                      }))
-                    ]}
-                  />
+  {/* Form Fields Grid */}
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {/* Date of Issue */}
+    <FloatingInput
+      label="Date of Issue"
+      name="dateOfIssue"
+      value={newIssue.dateOfIssue}
+      onChange={handleNewIssueChange}
+      type="date"
+      required={true}
+    />
 
-                  <FloatingInput
-                    label="Reason"
-                    name="reason"
-                    value={newIssue.reason}
-                    onChange={handleNewIssueChange}
-                    type="select"
-                    required={true}
-                    options={[
-                      { value: '', label: 'Select Reason' },
-                      ...reasonOptions.map(reason => ({
-                        value: reason,
-                        label: reason
-                      }))
-                    ]}
-                  />
+    {/* Scope of Work */}
+    <FloatingInput
+      label="Scope of Work"
+      name="scopeOfWork"
+      value={newIssue.scopeOfWork}
+      onChange={handleNewIssueChange}
+      type="select"
+      required={true}
+      options={[
+        { value: '', label: 'Select Scope' },
+        ...allScopeOptions.map(scope => ({
+          value: scope.value,
+          label: scope.label
+        }))
+      ]}
+    />
 
-                  <FloatingInput
-                    label="Description"
-                    name="description"
-                    value={newIssue.description}
-                    onChange={handleNewIssueChange}
-                    type="textarea"
-                    required={true}
-                    rows={2}
-                  />
+    {/* Reason */}
+    <FloatingInput
+      label="Reason"
+      name="reason"
+      value={newIssue.reason}
+      onChange={handleNewIssueChange}
+      type="select"
+      required={true}
+      options={[
+        { value: '', label: 'Select Reason' },
+        ...reasonOptions.map(reason => ({
+          value: reason,
+          label: reason
+        }))
+      ]}
+    />
 
-                  <FloatingInput
-                    label="Date of Damage"
-                    name="dateOfDamage"
-                    value={newIssue.dateOfDamage}
-                    onChange={handleNewIssueChange}
-                    type="date"
-                  />
+    {/* Description - Full Width */}
+    <div className="md:col-span-2 lg:col-span-3">
+      <FloatingInput
+        label="Description"
+        name="description"
+        value={newIssue.description}
+        onChange={handleNewIssueChange}
+        type="textarea"
+        required={true}
+        rows={3}
+      />
+    </div>
 
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Damage Image
-                      </label>
-                      <input
-                        type="file"
-                        name="damageImage"
-                        onChange={handleNewIssueChange}
-                        accept="image/"
-                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
-                      />
-                    </div>
+    {/* Date of Damage */}
+    <FloatingInput
+      label="Date of Damage"
+      name="dateOfDamage"
+      value={newIssue.dateOfDamage}
+      onChange={handleNewIssueChange}
+      type="date"
+    />
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Fixed Image
-                      </label>
-                      <input
-                        type="file"
-                        name="fixedImage"
-                        onChange={handleNewIssueChange}
-                        accept="image/"
-                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
-                      />
-                    </div>
-                  </div>
+    {/* Damage Image Upload */}
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Damage Image
+      </label>
+      <input
+        type="file"
+        name="damageImage"
+        onChange={handleNewIssueChange}
+        accept="image/*"
+        className="block w-full text-sm text-gray-500 
+          file:mr-4 file:py-2 file:px-4 
+          file:rounded-md file:border-0 
+          file:text-sm file:font-medium 
+          file:bg-primary-50 file:text-primary-700 
+          hover:file:bg-primary-100 
+          focus:outline-none focus:ring-2 focus:ring-primary-500"
+      />
+    </div>
 
-                  <FloatingInput
-                    label="Remarks"
-                    name="remarks"
-                    value={newIssue.remarks}
-                    onChange={handleNewIssueChange}
-                    type="text"
-                  />
+    {/* Date of Fixed */}
+    <FloatingInput
+      label="Date of Fixed"
+      name="dateOfFixed"
+      value={newIssue.dateOfFixed}
+      onChange={handleNewIssueChange}
+      type="date"
+    />
 
-                  <FloatingInput
-                    label="Person Type"
-                    name="personType"
-                    value={newIssue.personType}
-                    onChange={handleNewIssueChange}
-                    type="select"
-                    options={[
-                      { value: '', label: 'Select Type' },
-                      { value: 'inhouse', label: 'Inhouse' },
-                      { value: 'outsourced', label: 'Outsourced' }
-                    ]}
-                  />
+    {/* Fixed Image Upload */}
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Fixed Image
+      </label>
+      <input
+        type="file"
+        name="fixedImage"
+        onChange={handleNewIssueChange}
+        accept="image/*"
+        className="block w-full text-sm text-gray-500 
+          file:mr-4 file:py-2 file:px-4 
+          file:rounded-md file:border-0 
+          file:text-sm file:font-medium 
+          file:bg-primary-50 file:text-primary-700 
+          hover:file:bg-primary-100 
+          focus:outline-none focus:ring-2 focus:ring-primary-500"
+      />
+    </div>
 
-                  <FloatingInput
-                    label="Responsible Person"
-                    name="responsiblePerson"
-                    value={newIssue.responsiblePerson}
-                    onChange={handleNewIssueChange}
-                    type="select"
-                    disabled={!newIssue.personType}
-                    options={[
-                      { value: '', label: newIssue.personType ? 'Select Person' : 'Select Person Type First' },
-                      ...(newIssue.personType === 'inhouse'
-                        ? employees.map(emp => ({
-                          value: emp.name,
-                          label: emp.name
-                        }))
-                        : newIssue.personType === 'outsourced'
-                          ? vendors.map(vendor => ({
-                            value: vendor.vendorName,
-                            label: vendor.vendorName
-                          }))
-                          : [])
-                    ]}
-                  />
-                </div>
+    {/* Remarks */}
+    <FloatingInput
+      label="Remarks"
+      name="remarks"
+      value={newIssue.remarks}
+      onChange={handleNewIssueChange}
+      type="text"
+    />
 
-                <div className="mt-6 flex justify-end space-x-3">
-                  {editingIssueIndex !== null && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingIssueIndex(null);
-                        setNewIssue({
-                          dateOfIssue: '',
-                          scopeOfWork: '',
-                          reason: '',
-                          description: '',
-                          dateOfDamage: '',
-                          damageImage: null,
-                          remarks: '',
-                          fixedImage: null,
-                          personType: '',
-                          responsiblePerson: ''
-                        });
-                      }}
-                      className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                    >
-                      Cancel Edit
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={addNewIssue}
-                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                  >
-                    {editingIssueIndex !== null ? 'Update Issue' : 'Add Issue to Table'}
-                  </button>
-                </div>
-              </div>
+    {/* Person Type */}
+    <FloatingInput
+      label="Person Type"
+      name="personType"
+      value={newIssue.personType}
+      onChange={handleNewIssueChange}
+      type="select"
+      options={[
+        { value: '', label: 'Select Type' },
+        { value: 'inhouse', label: 'Inhouse' },
+        { value: 'outsourced', label: 'Outsourced' }
+      ]}
+    />
+
+    {/* Responsible Person */}
+    <FloatingInput
+      label="Responsible Person"
+      name="responsiblePerson"
+      value={newIssue.responsiblePerson}
+      onChange={handleNewIssueChange}
+      type="select"
+      disabled={!newIssue.personType}
+      options={[
+        { 
+          value: '', 
+          label: newIssue.personType ? 'Select Person' : 'Select Person Type First' 
+        },
+        ...(newIssue.personType === 'inhouse'
+          ? employees.map(emp => ({
+              value: emp.name,
+              label: emp.name
+            }))
+          : newIssue.personType === 'outsourced'
+            ? vendors.map(vendor => ({
+                value: vendor.vendorName,
+                label: vendor.vendorName
+              }))
+            : [])
+      ]}
+    />
+  </div>
+
+  {/* Action Buttons */}
+  <div className="mt-8 flex justify-end items-center gap-3">
+    {editingIssueIndex !== null && (
+      <button
+        type="button"
+        onClick={() => {
+          setEditingIssueIndex(null);
+          setNewIssue({
+            dateOfIssue: '',
+            scopeOfWork: '',
+            reason: '',
+            description: '',
+            dateOfDamage: '',
+            damageImage: null,
+            dateOfFixed: '',
+            remarks: '',
+            fixedImage: null,
+            personType: '',
+            responsiblePerson: ''
+          });
+        }}
+        className="px-5 py-2.5 border border-gray-300 rounded-lg shadow-sm 
+          text-sm font-medium text-gray-700 bg-white 
+          hover:bg-gray-50 focus:outline-none focus:ring-2 
+          focus:ring-offset-2 focus:ring-primary-500 
+          transition-colors"
+      >
+        Cancel Edit
+      </button>
+    )}
+    
+    <button
+      type="button"
+      onClick={addNewIssue}
+      className="px-5 py-2.5 border border-transparent rounded-lg shadow-sm 
+        text-sm font-medium text-white bg-primary-600 
+        hover:bg-primary-700 focus:outline-none focus:ring-2 
+        focus:ring-offset-2 focus:ring-primary-500 
+        transition-colors"
+    >
+      {editingIssueIndex !== null ? 'Update Issue' : 'Add Issue to Table'}
+    </button>
+  </div>
+</div>
               <h3 className="text-lg font-medium text-gray-900 mb-4">Quality Issues</h3>
 
               {/* Table for quality issues */}
@@ -656,6 +708,12 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
                         Description
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Person Type
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Responsible Person
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Date of Damage
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -665,14 +723,12 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
                         Remarks
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date of Fixed
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Fixed Image
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Person Type
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Responsible Person
-                      </th>
+
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
@@ -681,7 +737,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {formData.qualityIssues.length === 0 ? (
                       <tr>
-                        <td colSpan="11" className="px-6 py-4 text-center text-sm text-gray-500">
+                        <td colSpan="12" className="px-6 py-4 text-center text-sm text-gray-500">
                           No quality issues added yet
                         </td>
                       </tr>
@@ -701,6 +757,13 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
                             <div className="max-w-xs truncate" title={issue.description}>
                               {issue.description}
                             </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {issue.personType === 'inhouse' ? 'Inhouse' :
+                              issue.personType === 'outsourced' ? 'Outsourced' : 'N/A'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {issue.responsiblePerson || 'N/A'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {formatDate(issue.dateOfDamage)}
@@ -728,6 +791,9 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {formatDate(issue.dateOfFixed)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {issue.fixedImage ? (
                               <button
                                 type="button"
@@ -744,13 +810,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
                               <span className="text-gray-400">No image</span>
                             )}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {issue.personType === 'inhouse' ? 'Inhouse' :
-                              issue.personType === 'outsourced' ? 'Outsourced' : 'N/A'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {issue.responsiblePerson || 'N/A'}
-                          </td>
+
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex items-center space-x-3">
                               <button

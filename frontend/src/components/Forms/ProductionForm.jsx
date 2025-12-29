@@ -46,8 +46,9 @@ const calculateGap = (plan, actual) => {
   const planEmpty = plan === '' || plan == null;
   const actualEmpty = actual === '' || actual == null;
   if (planEmpty && actualEmpty) return '';
-  const planNum = parseInt(plan) || 0;
-  const actualNum = parseInt(actual) || 0;
+  const planNum = parseInt(plan) || 0; // Actual Production as per BOQ
+  const actualNum = parseInt(actual) || 0; // Inhouse Final Production
+  // Gap = BOQ - Inhouse (positive = shortage, negative = excess)
   return String(planNum - actualNum);
 };
 
@@ -184,15 +185,20 @@ const GapDisplay = ({ gap }) => {
   const gapNum = gap === '' ? null : parseInt(gap, 10);
   const showColor = gapNum !== null && !isNaN(gapNum) && gapNum !== 0;
 
+  // Positive gap = shortage (BOQ > Inhouse) = RED
+  // Negative gap = excess (Inhouse > BOQ) = GREEN
   const gapStyle = showColor
     ? (gapNum > 0
-      ? 'bg-red-50 text-red-700 border border-red-100'
-      : 'bg-yellow-50 text-yellow-700 border border-yellow-100')
+      ? 'bg-red-50 text-red-700 border border-red-200' // Shortage
+      : 'bg-green-50 text-green-700 border border-green-200') // Excess
     : 'bg-white text-gray-700 border border-gray-200';
+
+  // Display absolute value without minus sign
+  const displayValue = gapNum !== null && !isNaN(gapNum) ? Math.abs(gapNum) : '';
 
   return (
     <div className={`w-full px-3 py-2 rounded-md ${gapStyle}`}>
-      <span className="text-sm font-medium">{gap === '' ? '' : gap}</span>
+      <span className="text-sm font-medium">{displayValue === 0 ? '0' : displayValue}</span>
     </div>
   );
 };
@@ -333,10 +339,13 @@ const ProductionItemRow = ({
             <FloatingInput
               value={item.reasonForDelay}
               onChange={(e) => onItemChange(index, 'reasonForDelay', e.target.value)}
-              type="text"
+              type="select"
               size="small"
-              placeholder="Enter reason"
-              maxLength={VALIDATION_RULES.REASON_FOR_DELAY.maxLength}
+              options={[
+                { value: '', label: 'Select' },
+                { value: 'Yes', label: 'Yes' },
+                { value: 'No', label: 'No' }
+              ]}
               error={showValidation && errors.items?.[index]?.reasonForDelay}
               className="w-full"
             />
@@ -447,15 +456,18 @@ const ProductionItemRow = ({
       </td>
 
       {/* Reasons for Delay */}
-      <td className="px-4 py-3" style={{ minWidth: '250px' }}>
+      <td className="px-4 py-3" style={{ minWidth: '180px' }}>
         <FloatingInput
           value={item.reasonForDelay}
           onChange={(e) => onItemChange(index, 'reasonForDelay', e.target.value)}
-          type="text"
+          type="select"
           size="small"
           hideLabel
-          placeholder="Enter reason"
-          maxLength={VALIDATION_RULES.REASON_FOR_DELAY.maxLength}
+          options={[
+            { value: '', label: 'Select' },
+            { value: 'Yes', label: 'Yes' },
+            { value: 'No', label: 'No' }
+          ]}
           error={showValidation && errors.items?.[index]?.reasonForDelay}
           className="w-full"
         />
@@ -519,19 +531,19 @@ const ItemsTableHeader = () => {
         <th scope="col" className="px-4 py-3" style={{ minWidth: '180px' }}>
           <div className="flex flex-col">
             <span>Production*</span>
-            <span className="text-xs font-normal text-gray-500 mt-1">Planed Quantity*</span>
+            <span className="text-xs font-normal text-gray-500 mt-1">Actual Production as per BOQ</span>
           </div>
         </th>
         <th scope="col" className="px-4 py-3" style={{ minWidth: '180px' }}>
           <div className="flex flex-col">
             <span>Production*</span>
-            <span className="text-xs font-normal text-gray-500 mt-1">Actual Production*</span>
+            <span className="text-xs font-normal text-gray-500 mt-1">Inhouse Final Production</span>
           </div>
         </th>
-        <th scope="col" className="px-4 py-3" style={{ minWidth: '120px' }}>Gap</th>
-        <th scope="col" className="px-4 py-3" style={{ minWidth: '250px' }}>Reasons for Delay*</th>
+        <th scope="col" className="px-4 py-3" style={{ minWidth: '120px' }}>Pending items</th>
+        <th scope="col" className="px-4 py-3" style={{ minWidth: '180px' }}>Reasons for Delay*</th>
         <th scope="col" className="px-4 py-3" style={{ minWidth: '250px' }}>Remarks*</th>
-        <th scope="col" className="px-4 py-3 text-center" style={{ minWidth: '100px' }}>Action</th>
+        <th scope="col" className="px-4 py-3" style={{ minWidth: '100px' }}>Action</th>
       </tr>
     </thead>
   );
@@ -725,9 +737,6 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
       case 'actualProduction':
         processedValue = value.replace(/[^\d]/g, '');
         processedValue = processedValue.replace(/^0+/, '') || (value === '' ? '' : '0');
-        break;
-      case 'reasonForDelay':
-        if (value.length > VALIDATION_RULES.REASON_FOR_DELAY.maxLength) return;
         break;
       case 'remarks':
         if (value.length > VALIDATION_RULES.REMARKS.maxLength) return;

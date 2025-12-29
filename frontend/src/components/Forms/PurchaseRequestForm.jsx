@@ -5,6 +5,8 @@ import {
   CheckCircleIcon,
   InformationCircleIcon
 } from '@heroicons/react/24/outline';
+import { UploadOutlined } from '@ant-design/icons';
+import { Button, Upload } from 'antd';
 import FloatingInput from './FloatingInput';
 import { purchaseRequestsAPI, partsAPI, inhouseMilestonesAPI } from '../../services/api';
 
@@ -18,6 +20,19 @@ const scopeOptions = [
   { value: 'access', label: 'Access' }
 ];
 
+const unitTypeOptions = [
+  { value: '', label: 'Select Unit' },
+  { value: 'pcs', label: 'PCS' },
+  { value: 'm', label: 'Meter' },
+  { value: 'sqm', label: 'SQM' },
+  { value: 'kg', label: 'KG' },
+  { value: 'l', label: 'Liter' },
+  { value: 'roll', label: 'Roll' },
+  { value: 'set', label: 'Set' },
+  { value: 'box', label: 'Box' },
+  { value: 'pack', label: 'Pack' }
+];
+
 const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess, showError }) => {
   const [formData, setFormData] = useState({
     customerName: '',
@@ -29,12 +44,15 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
     items: [
       {
         sNo: 1,
-        scopeOfWork: '',
-        partName: '',
-        quantityRequired: '',
-        purpose: '',
+        description: '',
+        area: '',
+        code: '',
+        specification: '',
         unitType: '',
-        estimatedCost: ''
+        quantity: '',
+        thickness: '',
+        remark: '',
+        image: null
       }
     ],
     remarks: '',
@@ -45,7 +63,6 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
   const [loading, setLoading] = useState(false);
   const [availableParts, setAvailableParts] = useState([]);
   const [filteredProjects, setFilteredProjects] = useState([]);
-  const [filteredParts, setFilteredParts] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
   const [inhouseMilestones, setInhouseMilestones] = useState([]);
@@ -53,9 +70,18 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
 
   const VALIDATION_RULES = {
     REMARKS: { maxLength: 200 },
-    PURPOSE: { maxLength: 100 },
-    QUANTITY_REQUIRED: { maxDigits: 8, allowDecimal: false, minValue: 1, maxValue: 99999999 },
-    ESTIMATED_COST: { maxValue: 9999999999.99, decimalPlaces: 2 }
+    DESCRIPTION: { maxLength: 200 },
+    AREA: { maxLength: 100 },
+    CODE: { maxLength: 50 },
+    SPECIFICATION: { maxLength: 300 },
+    THICKNESS: { maxLength: 50 },
+    ITEM_REMARK: { maxLength: 150 },
+    QUANTITY: { maxDigits: 8, allowDecimal: true, minValue: 0.01, maxValue: 99999999 },
+    IMAGE: { maxSize: 5 * 1024 * 1024, allowedTypes: ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/bmp', 'image/webp', 'image/svg+xml', 'image/tiff', 'application/pdf'] }
+  };
+
+  const getAllowedFileTypesText = () => {
+    return "Images (JPEG, PNG, GIF, BMP, WebP, SVG, TIFF) and PDF files";
   };
 
   const formatDateForInput = (dateString) => {
@@ -79,21 +105,27 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
         items: purchaseRequest.items?.length > 0
           ? purchaseRequest.items.map((item, index) => ({
             sNo: index + 1,
-            scopeOfWork: item.scopeOfWork || '',
-            partName: item.partName || '',
-            quantityRequired: item.quantityRequired || '',
-            purpose: item.purpose || '',
+            description: item.description || '',
+            area: item.area || '',
+            code: item.code || '',
+            specification: item.specification || '',
             unitType: item.unitType || '',
-            estimatedCost: item.estimatedCost || ''
+            quantity: item.quantity || '',
+            thickness: item.thickness || '',
+            remark: item.remark || '',
+            image: item.image || null
           }))
           : [{
             sNo: 1,
-            scopeOfWork: '',
-            partName: '',
-            quantityRequired: '',
-            purpose: '',
+            description: '',
+            area: '',
+            code: '',
+            specification: '',
             unitType: '',
-            estimatedCost: ''
+            quantity: '',
+            thickness: '',
+            remark: '',
+            image: null
           }],
         remarks: purchaseRequest.remarks || '',
         status: purchaseRequest.status || 'pending'
@@ -139,71 +171,68 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
     }
   }, [formData.customerName, formData.projectName, inhouseMilestones]);
 
-  useEffect(() => {
-    const fetchParts = async () => {
-      try {
-        const partsResponse = await partsAPI.getAll();
-        if (partsResponse.data) {
-          setAvailableParts(partsResponse.data);
-        }
-      } catch (error) {
-        console.error('Error fetching parts:', error);
-      }
-    };
-    fetchParts();
-  }, []);
-
-  useEffect(() => {
-    const filtered = {};
-    formData.items.forEach((item, index) => {
-      if (item.scopeOfWork) {
-        filtered[index] = availableParts.filter(part => part.scopeOfWork === item.scopeOfWork);
-      }
-    });
-    setFilteredParts(filtered);
-  }, [formData.items, availableParts]);
-
-  const validateRemarks = (value, fieldName = 'Remarks') => {
-    const rules = VALIDATION_RULES.REMARKS;
-    if (!value) return '';
-    if (value.length > rules.maxLength) return `${fieldName} cannot exceed ${rules.maxLength} characters`;
+  const validateDescription = (value) => {
+    if (!value) return 'Description is required';
+    if (value.length > VALIDATION_RULES.DESCRIPTION.maxLength)
+      return `Maximum ${VALIDATION_RULES.DESCRIPTION.maxLength} characters allowed`;
     return '';
   };
 
-  const validatePurpose = (value) => {
-    const rules = VALIDATION_RULES.PURPOSE;
-    if (!value) return 'Purpose is required';
-    if (value.length > rules.maxLength) return `Maximum ${rules.maxLength} characters allowed`;
+  const validateArea = (value) => {
+    if (!value) return 'Area is required';
+    if (value.length > VALIDATION_RULES.AREA.maxLength)
+      return `Maximum ${VALIDATION_RULES.AREA.maxLength} characters allowed`;
     return '';
   };
 
-  const validateQuantityRequired = (value) => {
+  const validateCode = (value) => {
+    if (!value) return 'Code is required';
+    if (value.length > VALIDATION_RULES.CODE.maxLength)
+      return `Maximum ${VALIDATION_RULES.CODE.maxLength} characters allowed`;
+    return '';
+  };
+
+  const validateQuantity = (value) => {
     if (!value) return 'Quantity is required';
-    if (!/^\d+$/.test(value)) return 'Only whole numbers are allowed (no decimals)';
-    const numValue = parseInt(value, 10);
-    if (numValue < 1) return `Minimum value is 1`;
-    if (numValue > 99999999) return `Maximum value is 99,999,999`;
+    if (!/^\d*\.?\d+$/.test(value)) return 'Enter a valid number';
+    const numValue = parseFloat(value);
+    if (numValue < VALIDATION_RULES.QUANTITY.minValue)
+      return `Minimum value is ${VALIDATION_RULES.QUANTITY.minValue}`;
+    if (numValue > VALIDATION_RULES.QUANTITY.maxValue)
+      return `Maximum value is ${VALIDATION_RULES.QUANTITY.maxValue.toLocaleString()}`;
     return '';
   };
 
-  const validateEstimatedCost = (value) => {
-    const rules = VALIDATION_RULES.ESTIMATED_COST;
-    if (!value) return '';
-    if (!/^\d+(\.\d{0,2})?$/.test(value)) return 'Must be a valid number with up to 2 decimal places';
-    const numValue = parseFloat(value);
-    if (numValue > rules.maxValue) return `Maximum value is ${rules.maxValue.toLocaleString()}`;
-    const decimalPart = value.split('.')[1];
-    if (decimalPart && decimalPart.length > rules.decimalPlaces) return `Maximum ${rules.decimalPlaces} decimal places allowed`;
+  const validateThickness = (value) => {
+    if (value && value.length > VALIDATION_RULES.THICKNESS.maxLength)
+      return `Maximum ${VALIDATION_RULES.THICKNESS.maxLength} characters allowed`;
+    return '';
+  };
+
+  const validateItemRemark = (value) => {
+    if (value && value.length > VALIDATION_RULES.ITEM_REMARK.maxLength)
+      return `Maximum ${VALIDATION_RULES.ITEM_REMARK.maxLength} characters allowed`;
+    return '';
+  };
+
+  const validateImage = (file) => {
+    if (!file) return '';
+    if (!VALIDATION_RULES.IMAGE.allowedTypes.includes(file.type))
+      return 'Only JPG, PNG, GIF images are allowed';
+    if (file.size > VALIDATION_RULES.IMAGE.maxSize)
+      return `File size must be less than ${VALIDATION_RULES.IMAGE.maxSize / (1024 * 1024)}MB`;
     return '';
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     let validatedValue = value;
+
     if (name === 'remarks') {
       if (value.length <= VALIDATION_RULES.REMARKS.maxLength) validatedValue = value;
       else return;
     }
+
     setFormData(prev => ({ ...prev, [name]: validatedValue }));
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
 
@@ -216,21 +245,31 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
     const updatedItems = [...formData.items];
     let validatedValue = value;
 
-    if (field === 'quantityRequired') {
-      validatedValue = value.replace(/[^\d]/g, '');
-      validatedValue = validatedValue.replace(/^0+/, '') || '0';
-      updatedItems[index][field] = validatedValue;
-    } else if (field === 'partName') {
-      updatedItems[index][field] = value;
-    } else if (field === 'purpose') {
-      if (value.length <= VALIDATION_RULES.PURPOSE.maxLength) updatedItems[index][field] = value;
-      else return;
-    } else if (field === 'estimatedCost') {
+    if (field === 'quantity') {
       validatedValue = value.replace(/[^\d.]/g, '');
       const parts = validatedValue.split('.');
       if (parts.length > 2) validatedValue = parts[0] + '.' + parts.slice(1).join('');
       if (parts[1] && parts[1].length > 2) validatedValue = parts[0] + '.' + parts[1].slice(0, 2);
+      if (validatedValue.startsWith('.')) validatedValue = '0' + validatedValue;
       updatedItems[index][field] = validatedValue;
+    } else if (field === 'description') {
+      if (value.length <= VALIDATION_RULES.DESCRIPTION.maxLength) updatedItems[index][field] = value;
+      else return;
+    } else if (field === 'area') {
+      if (value.length <= VALIDATION_RULES.AREA.maxLength) updatedItems[index][field] = value;
+      else return;
+    } else if (field === 'code') {
+      if (value.length <= VALIDATION_RULES.CODE.maxLength) updatedItems[index][field] = value;
+      else return;
+    } else if (field === 'specification') {
+      if (value.length <= VALIDATION_RULES.SPECIFICATION.maxLength) updatedItems[index][field] = value;
+      else return;
+    } else if (field === 'thickness') {
+      if (value.length <= VALIDATION_RULES.THICKNESS.maxLength) updatedItems[index][field] = value;
+      else return;
+    } else if (field === 'remark') {
+      if (value.length <= VALIDATION_RULES.ITEM_REMARK.maxLength) updatedItems[index][field] = value;
+      else return;
     } else {
       updatedItems[index][field] = value;
     }
@@ -245,6 +284,71 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
     }
   };
 
+  const handleImageUpload = (index, file) => {
+    const isImage = file.type.startsWith('image/');
+    const isPDF = file.type === 'application/pdf';
+
+    if (!isImage && !isPDF) {
+      showError(`You can only upload ${getAllowedFileTypesText()}!`);
+      return false;
+    }
+
+    const isLt5M = file.size / 1024 / 1024 < 5;
+    if (!isLt5M) {
+      showError('File must be smaller than 5MB!');
+      return false;
+    }
+
+    const updatedItems = [...formData.items];
+    // Store the file object with all necessary properties
+    updatedItems[index].image = {
+      uid: file.uid || `upload-${Date.now()}-${index}`,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      status: 'done',
+      originFileObj: file // Store the actual file object
+    };
+    setFormData(prev => ({ ...prev, items: updatedItems }));
+
+    if (errors.items && errors.items[index] && errors.items[index].image) {
+      const updatedErrors = { ...errors };
+      delete updatedErrors.items[index].image;
+      setErrors(updatedErrors);
+    }
+
+    showSuccess(`${file.name} file added successfully`);
+    return false; // Prevent auto upload
+  };
+
+  const removeImage = (index) => {
+    const updatedItems = [...formData.items];
+    updatedItems[index].image = null;
+    setFormData(prev => ({ ...prev, items: updatedItems }));
+  };
+
+  const createUploadProps = (index) => {
+    const img = formData.items[index].image;
+
+    return {
+      name: 'file',
+      multiple: false,
+      beforeUpload: (file) => {
+        handleImageUpload(index, file);
+        return false;
+      },
+      onRemove: () => removeImage(index),
+      fileList: img
+        ? [{
+          uid: img.uid || `${index}`,
+          name: img.name,
+          status: img.status || 'done',
+          url: img.url
+        }]
+        : []
+    };
+  };
+
   const addItem = () => {
     const newSNo = formData.items.length + 1;
     setFormData(prev => ({
@@ -253,20 +357,20 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
         ...prev.items,
         {
           sNo: newSNo,
-          scopeOfWork: '',
-          partName: '',
-          quantityRequired: '',
-          purpose: '',
+          description: '',
+          area: '',
+          code: '',
+          specification: '',
           unitType: '',
-          estimatedCost: ''
+          quantity: '',
+          thickness: '',
+          remark: '',
+          image: null
         }
       ]
     }));
   };
 
-  // UPDATED: delete behavior now always shows a delete button.
-  // - If multiple rows: remove the row and reindex.
-  // - If single row: reset fields of that row (keeps the empty row visible).
   const removeItem = (index) => {
     const currentItems = [...formData.items];
     if (currentItems.length > 1) {
@@ -280,19 +384,20 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
         setErrors(updatedErrors);
       }
     } else {
-      // Reset the single row to defaults instead of removing it
       const resetRow = {
         sNo: 1,
-        scopeOfWork: '',
-        partName: '',
-        quantityRequired: '',
-        purpose: '',
+        description: '',
+        area: '',
+        code: '',
+        specification: '',
         unitType: '',
-        estimatedCost: ''
+        quantity: '',
+        thickness: '',
+        remark: '',
+        image: null
       };
       setFormData(prev => ({ ...prev, items: [resetRow] }));
 
-      // Clear any item errors
       if (errors.items) {
         const updatedErrors = { ...errors };
         delete updatedErrors.items;
@@ -312,7 +417,9 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
 
     if (!formData.endDate) newErrors.endDate = 'End date is required';
 
-    const remarksError = validateRemarks(formData.remarks);
+    const remarksError = formData.remarks && formData.remarks.length > VALIDATION_RULES.REMARKS.maxLength
+      ? `Remarks cannot exceed ${VALIDATION_RULES.REMARKS.maxLength} characters`
+      : '';
     if (remarksError) newErrors.remarks = remarksError;
 
     const itemErrors = [];
@@ -320,14 +427,24 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
 
     formData.items.forEach((item, index) => {
       const itemError = {};
-      if (!item.scopeOfWork) itemError.scopeOfWork = 'Scope of work is required';
-      if (!item.partName) itemError.partName = 'Item name is required';
-      const quantityError = validateQuantityRequired(item.quantityRequired);
-      if (quantityError) itemError.quantityRequired = quantityError;
-      const purposeError = validatePurpose(item.purpose);
-      if (purposeError) itemError.purpose = purposeError;
-      const costError = validateEstimatedCost(item.estimatedCost);
-      if (costError) itemError.estimatedCost = costError;
+
+      const descriptionError = validateDescription(item.description);
+      if (descriptionError) itemError.description = descriptionError;
+
+      const areaError = validateArea(item.area);
+      if (areaError) itemError.area = areaError;
+
+      const codeError = validateCode(item.code);
+      if (codeError) itemError.code = codeError;
+
+      const quantityError = validateQuantity(item.quantity);
+      if (quantityError) itemError.quantity = quantityError;
+
+      const thicknessError = validateThickness(item.thickness);
+      if (thicknessError) itemError.thickness = thicknessError;
+
+      const itemRemarkError = validateItemRemark(item.remark);
+      if (itemRemarkError) itemError.remark = itemRemarkError;
 
       if (Object.keys(itemError).length > 0) itemErrors[index] = itemError;
       else hasValidItems = true;
@@ -344,11 +461,8 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
     return Object.keys(newErrors).length === 0;
   };
 
-  const calculateTotalEstimatedCost = () =>
-    formData.items.reduce((total, item) => total + (parseFloat(item.estimatedCost) || 0), 0).toFixed(2);
-
   const calculateTotalQuantity = () =>
-    formData.items.reduce((total, item) => total + (parseInt(item.quantityRequired) || 0), 0);
+    formData.items.reduce((total, item) => total + (parseFloat(item.quantity) || 0), 0).toFixed(2);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -361,18 +475,34 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
     setLoading(true);
 
     try {
-      const { milestoneStartDate, milestoneEndDate, ...dataToSubmit } = formData;
-      const submitData = {
-        ...dataToSubmit,
-        items: formData.items.map(item => ({
-          scopeOfWork: item.scopeOfWork,
-          partName: item.partName,
-          quantityRequired: parseInt(item.quantityRequired),
-          purpose: item.purpose,
-          unitType: item.unitType,
-          estimatedCost: parseFloat(item.estimatedCost) || 0
-        }))
-      };
+      const submitData = new FormData();
+
+      // Process items - extract files and prepare data
+      const itemsForSubmit = formData.items.map((item, index) => {
+        // If item has an image with originFileObj (from Ant Design Upload)
+        if (item.image && item.image.originFileObj) {
+          submitData.append(`itemImage_${index}`, item.image.originFileObj);
+          const { image, ...rest } = item;
+          return rest;
+        }
+        // If item has an existing image (from edit mode)
+        else if (item.image && item.image.path) {
+          return item; // Keep existing image data
+        }
+        // No image
+        const { image, ...rest } = item;
+        return rest;
+      });
+
+      // Append all form data
+      submitData.append('items', JSON.stringify(itemsForSubmit));
+      submitData.append('customerName', formData.customerName);
+      submitData.append('projectName', formData.projectName);
+      submitData.append('startDate', formData.startDate);
+      submitData.append('endDate', formData.endDate);
+      submitData.append('overallProduction', formData.overallProduction || '');
+      submitData.append('remarks', formData.remarks || '');
+      submitData.append('status', formData.status);
 
       if (purchaseRequest) {
         await purchaseRequestsAPI.update(purchaseRequest._id, submitData);
@@ -413,15 +543,6 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
       setLoading(false);
       setIsSubmitting(false);
     }
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Not set';
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}-${month}-${year}`;
   };
 
   return (
@@ -471,119 +592,224 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
       {/* Body */}
       <div className="flex-1 overflow-hidden p-4 flex flex-col">
         <div className="mb-4 flex justify-between items-center">
-          <div className="text-sm text-gray-600">Add parts required for this request</div>
+          <div className="text-sm text-gray-600">Add items required for this request</div>
           <div className="flex items-center space-x-2">
             <button type="button" onClick={addItem} className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
               <PlusCircleIcon className="h-4 w-4 mr-2" /> Add Row
             </button>
-
           </div>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden flex flex-col">
-          <div className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
-            <div className="grid grid-cols-12 gap-4 px-4 py-3 items-center">
-              <div className="col-span-1 text-sm font-medium text-gray-700">s.no</div>
-              <div className="col-span-2 text-sm font-medium text-gray-700">Scope of Work*</div>
-              <div className="col-span-3 text-sm font-medium text-gray-700">Item name*</div>
-              <div className="col-span-1 text-sm font-medium text-gray-700">Qty*</div>
-              <div className="col-span-3 text-sm font-medium text-gray-700">Purpose*</div>
-              <div className="col-span-1 text-sm font-medium text-gray-700 text-right">Action</div>
-            </div>
-          </div>
-
-          <div className="overflow-y-auto" style={{ maxHeight: '320px' }}>
-            {formData.items.length === 0 ? (
-              <div className="px-4 py-8 text-center text-gray-500">No items added. Click "Add Row" to add items.</div>
-            ) : (
-              <div className="divide-y divide-gray-200">
-                {formData.items.map((item, index) => (
-                  <div key={index} className="grid grid-cols-12 gap-4 px-4 py-4 items-start">
-                    <div className="col-span-1 flex items-center">
-                      <div className="w-8 h-8 flex items-center justify-center rounded-md bg-gray-100">
-                        <span className="text-sm font-medium text-gray-900">{item.sNo}</span>
-                      </div>
-                    </div>
-
-                    <div className="col-span-2">
-                      <FloatingInput
-                        value={item.scopeOfWork}
-                        onChange={(e) => handleItemChange(index, 'scopeOfWork', e.target.value)}
-                        type="select"
-                        options={scopeOptions}
-                        error={showValidation && errors.items?.[index]?.scopeOfWork}
-                        size="small"
-                        hideLabel
-                        placeholder="Select Scope"
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div className="col-span-3">
-                      <FloatingInput
-                        value={item.partName}
-                        onChange={(e) => handleItemChange(index, 'partName', e.target.value)}
-                        type="text"
-                        error={showValidation && errors.items?.[index]?.partName}
-                        size="small"
-                        hideLabel
-                        placeholder="Enter Item Name"
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div className="col-span-1">
-                      <FloatingInput
-                        value={item.quantityRequired}
-                        onChange={(e) => handleItemChange(index, 'quantityRequired', e.target.value)}
-                        type="text"
-                        inputMode="numeric"
-                        error={showValidation && errors.items?.[index]?.quantityRequired}
-                        size="small"
-                        hideLabel
-                        className="w-full"
-                        placeholder="0"
-                      />
-                    </div>
-
-
-                    <div className="col-span-3">
-                      <FloatingInput
-                        value={item.purpose}
-                        onChange={(e) => handleItemChange(index, 'purpose', e.target.value)}
-                        type="text"
-                        error={showValidation && errors.items?.[index]?.purpose}
-                        size="small"
-                        hideLabel
-                        maxLength={VALIDATION_RULES.PURPOSE.maxLength}
-                        className="w-full"
-                        placeholder="Purpose / usage"
-                      />
-                    </div>
-
-
-
-                    {/* Action: Delete always visible */}
-                    <div className="col-span-1 flex items-center justify-end">
-                      <button
-                        type="button"
-                        onClick={() => removeItem(index)}
-                        className="inline-flex items-center justify-center h-8 w-8 rounded-md text-red-600 hover:bg-red-50"
-                        title={formData.items.length > 1 ? 'Delete Row' : 'Clear Row'}
-                      >
-                        <XMarkIcon className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+          {/* Table Container with Horizontal and Vertical Scroll */}
+          <div className="flex-1 overflow-x-auto" style={{ maxHeight: '450px', overflowY: 'auto' }}>
+            <div className="min-w-max">
+              <div className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
+                <div className="flex gap-2 px-4 py-3 items-center text-xs bg-gray-50" style={{ minWidth: '1600px' }}>
+                  <div className="w-16 font-medium text-gray-700">S.No</div>
+                  <div className="w-48 font-medium text-gray-700">Description*</div>
+                  <div className="w-32 font-medium text-gray-700">Area*</div>
+                  <div className="w-32 font-medium text-gray-700">Code*</div>
+                  <div className="w-48 font-medium text-gray-700">Specification</div>
+                  <div className="w-28 font-medium text-gray-700">Unit Type</div>
+                  <div className="w-24 font-medium text-gray-700">Qty*</div>
+                  <div className="w-32 font-medium text-gray-700">Thickness</div>
+                  <div className="w-32 font-medium text-gray-700">Remark</div>
+                  <div className="w-24 font-medium text-gray-700">Image</div>
+                  <div className="w-20 font-medium text-gray-700 text-center">Action</div>
+                </div>
               </div>
-            )}
+
+              <div>
+                {formData.items.length === 0 ? (
+                  <div className="px-4 py-8 text-center text-gray-500">No items added. Click "Add Row" to add items.</div>
+                ) : (
+                  <div className="divide-y divide-gray-200">
+                    {formData.items.map((item, index) => (
+                      <div key={index} className="flex gap-2 px-4 py-3 items-start border-b border-gray-200" style={{ minWidth: '1600px' }}>
+                        {/* S.No */}
+                        <div className="w-16 flex items-center">
+                          <div className="w-6 h-6 flex items-center justify-center rounded-md bg-gray-100">
+                            <span className="text-xs font-medium text-gray-900">{item.sNo}</span>
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        <div className="w-48">
+                          <FloatingInput
+                            value={item.description}
+                            onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                            type="text"
+                            error={showValidation && errors.items?.[index]?.description}
+                            size="small"
+                            hideLabel
+                            placeholder="Description"
+                            className="w-full text-xs"
+                          />
+                        </div>
+
+                        {/* Area */}
+                        <div className="w-32">
+                          <FloatingInput
+                            value={item.area}
+                            onChange={(e) => handleItemChange(index, 'area', e.target.value)}
+                            type="text"
+                            error={showValidation && errors.items?.[index]?.area}
+                            size="small"
+                            hideLabel
+                            placeholder="Area"
+                            className="w-full text-xs"
+                          />
+                        </div>
+
+                        {/* Code */}
+                        <div className="w-32">
+                          <FloatingInput
+                            value={item.code}
+                            onChange={(e) => handleItemChange(index, 'code', e.target.value)}
+                            type="text"
+                            error={showValidation && errors.items?.[index]?.code}
+                            size="small"
+                            hideLabel
+                            placeholder="Code"
+                            className="w-full text-xs"
+                          />
+                        </div>
+
+                        {/* Specification */}
+                        <div className="w-48">
+                          <FloatingInput
+                            value={item.specification}
+                            onChange={(e) => handleItemChange(index, 'specification', e.target.value)}
+                            type="text"
+                            error={showValidation && errors.items?.[index]?.specification}
+                            size="small"
+                            hideLabel
+                            placeholder="Specification"
+                            className="w-full text-xs"
+                          />
+                        </div>
+
+                        {/* Unit Type - Typeable with suggestions */}
+                        <div className="w-28">
+                          <FloatingInput
+                            value={item.unitType}
+                            onChange={(e) => handleItemChange(index, 'unitType', e.target.value)}
+                            type="text"
+                            size="small"
+                            hideLabel
+                            placeholder="Unit"
+                            className="w-full text-xs"
+                            list={`unitType-${index}`}
+                          />
+                          <datalist id={`unitType-${index}`}>
+                            <option value="PCS">PCS</option>
+                            <option value="Meter">Meter</option>
+                            <option value="SQM">SQM</option>
+                            <option value="KG">KG</option>
+                            <option value="Liter">Liter</option>
+                            <option value="Roll">Roll</option>
+                            <option value="Set">Set</option>
+                            <option value="Box">Box</option>
+                            <option value="Pack">Pack</option>
+                          </datalist>
+                        </div>
+
+                        {/* Quantity */}
+                        <div className="w-24">
+                          <FloatingInput
+                            value={item.quantity}
+                            onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                            type="text"
+                            inputMode="decimal"
+                            error={showValidation && errors.items?.[index]?.quantity}
+                            size="small"
+                            hideLabel
+                            className="w-full text-xs"
+                            placeholder="0"
+                          />
+                        </div>
+
+                        {/* Thickness */}
+                        <div className="w-32">
+                          <FloatingInput
+                            value={item.thickness}
+                            onChange={(e) => handleItemChange(index, 'thickness', e.target.value)}
+                            type="text"
+                            error={showValidation && errors.items?.[index]?.thickness}
+                            size="small"
+                            hideLabel
+                            className="w-full text-xs"
+                            placeholder="Thickness"
+                          />
+                        </div>
+
+                        {/* Item Remark */}
+                        <div className="w-32">
+                          <FloatingInput
+                            value={item.remark}
+                            onChange={(e) => handleItemChange(index, 'remark', e.target.value)}
+                            type="text"
+                            error={showValidation && errors.items?.[index]?.remark}
+                            size="small"
+                            hideLabel
+                            className="w-full text-xs"
+                            placeholder="Remark"
+                          />
+                        </div>
+
+                        {/* Image Upload */}
+                        <div className="w-24">
+                          <Upload
+                            {...createUploadProps(index)}
+                            accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.svg,.tiff,.pdf"
+                          >
+                            <Button
+                              icon={<UploadOutlined />}
+                              size="small"
+                              className="w-full text-xs"
+                              title={`Upload ${getAllowedFileTypesText()}, Max 5MB`}
+                            >
+                              {item.image ? 'File' : 'Upload'}
+                            </Button>
+                          </Upload>
+                          {errors.items?.[index]?.image && (
+                            <div className="text-xs text-red-500 mt-1">{errors.items[index].image}</div>
+                          )}
+                        </div>
+
+                        {/* Delete Button */}
+                        <div className="w-20 flex items-center justify-center">
+                          <button
+                            type="button"
+                            onClick={() => removeItem(index)}
+                            className="inline-flex items-center justify-center h-6 w-6 rounded-md text-red-600 hover:bg-red-50"
+                            title={formData.items.length > 1 ? 'Delete Row' : 'Clear Row'}
+                          >
+                            <XMarkIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
+        {/* Total Quantity Summary */}
+        <div className="mt-4 flex justify-end">
+          <div className="px-4 py-2 bg-blue-50 rounded-md">
+            <span className="text-sm font-medium text-gray-700">Total Quantity: </span>
+            <span className="text-sm font-bold text-blue-700">{calculateTotalQuantity()}</span>
+          </div>
+        </div>
+
+        {/* General Remarks */}
         <div className="mt-6 relative">
           <FloatingInput
-            label="Remarks (Optional)"
+            label="General Remarks (Optional)"
             name="remarks"
             value={formData.remarks}
             onChange={handleChange}
@@ -593,11 +819,9 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
             rows={3}
             maxLength={VALIDATION_RULES.REMARKS.maxLength}
           />
-          {formData.remarks && (
-            <div className="absolute right-2 top-2 text-xs text-gray-400">
-              {formData.remarks.length}/{VALIDATION_RULES.REMARKS.maxLength}
-            </div>
-          )}
+          <div className="absolute right-2 top-2 text-xs text-gray-400">
+            {formData.remarks.length}/{VALIDATION_RULES.REMARKS.maxLength}
+          </div>
         </div>
 
         {purchaseRequest && (

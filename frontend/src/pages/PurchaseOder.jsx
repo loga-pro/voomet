@@ -16,15 +16,15 @@ import {
   DocumentTextIcon,
 
 } from '@heroicons/react/24/outline';
-import PaymentForm from '../components/Forms/PaymentForm';
-import ProformaInvoice from '../components/ProformaInvoice/Invoice';
+import PurchaseForm  from '../components/Forms/PurchaseForm';
+import ProformaInvoice from '../components/ProformaInvoice/Purchase';
 import BOQPDFPreview from '../components/BOQ/BOQPDFPreview';
 import Modal from '../components/Modals/Modal';
 import Notification from '../components/Notifications/Notification';
 import useNotification from '../hooks/useNotification';
 import api, { paymentsAPI, customersAPI, boqAPI } from '../services/api';
 
-const PaymentManagement = () => {
+const PurchaseOrder  = () => {
   const [payments, setPayments] = useState([]);
   const [filteredPayments, setFilteredPayments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -269,16 +269,7 @@ const PaymentManagement = () => {
       fetchPayments();
     } catch (error) {
       console.error('Error submitting form:', error);
-      let serverError = error.response?.data?.error || error.response?.data?.message || error.message || 'Unknown error';
-
-      if (error.response?.data?.details) {
-        const details = error.response.data.details;
-        const detailMessages = Object.keys(details).map(key => `${key}: ${details[key].message}`).join(', ');
-        serverError += ` (${detailMessages})`;
-      }
-
-      showError(`Failed to save payment record: ${serverError}`);
-      throw error;
+      showError('Failed to save payment record');
     } finally {
       setLoading(false);
     }
@@ -372,7 +363,7 @@ const PaymentManagement = () => {
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   <PlusIcon className="h-5 w-5 mr-2" />
-                  Add Payment
+                  Add Purchaseoder
                 </button>
               </div>
             </div>
@@ -442,9 +433,6 @@ const PaymentManagement = () => {
                         Project Name
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Invoice Number
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Project Cost
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -452,6 +440,9 @@ const PaymentManagement = () => {
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Total Payments
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Balance
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
@@ -475,11 +466,6 @@ const PaymentManagement = () => {
                             <div className="text-sm text-gray-900">{payment.projectName}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900 max-w-xs truncate" title={payment.invoices?.map(inv => inv.invoiceNumber).filter(Boolean).join(', ')}>
-                              {payment.invoices?.map(inv => inv.invoiceNumber).filter(Boolean).join(', ') || '-'}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">₹{payment.projectCost?.toFixed(2)?.toLocaleString()}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -487,6 +473,11 @@ const PaymentManagement = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">₹{payment.totalPayments?.toFixed(2)?.toLocaleString()}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(payment.balanceAmount)}`}>
+                              ₹{payment.balanceAmount?.toFixed(2)?.toLocaleString()}
+                            </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${payment.status === 'paid'
@@ -592,9 +583,6 @@ const PaymentManagement = () => {
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
-                      <div className="col-span-2">
-                        <span className="font-medium">Invoice No:</span> {payment.invoices?.map(inv => inv.invoiceNumber).filter(Boolean).join(', ') || '-'}
-                      </div>
                       <div>
                         <span className="font-medium">Project Cost:</span> ₹{payment.projectCost?.toFixed(2)?.toLocaleString()}
                       </div>
@@ -603,6 +591,12 @@ const PaymentManagement = () => {
                       </div>
                       <div>
                         <span className="font-medium">Total Payments:</span> ₹{payment.totalPayments?.toFixed(2)?.toLocaleString()}
+                      </div>
+                      <div>
+                        <span className="font-medium">Balance:</span>
+                        <span className={`ml-1 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusColor(payment.balanceAmount)}`}>
+                          ₹{payment.balanceAmount?.toFixed(2)?.toLocaleString()}
+                        </span>
                       </div>
                       <div>
                         <span className="font-medium">Status:</span>
@@ -716,7 +710,7 @@ const PaymentManagement = () => {
     setEditingPayment(null);
     setViewingPayment(null);
   }}
-  title={viewingPayment ? 'Payment Details' : editingPayment ? 'Edit Payment' : 'Add Payment'}
+  title={viewingPayment ? 'Payment Details' : editingPayment ? 'Edit Payment' : 'Add Purchase'}
   size="lg"
   className="font-sans"
 >
@@ -826,7 +820,7 @@ const PaymentManagement = () => {
       </div>
     </div>
   ) : (
-    <PaymentForm
+    <PurchaseForm
       payment={editingPayment}
       onSubmit={handleFormSubmit}
       onCancel={() => {
@@ -996,4 +990,4 @@ const PaymentManagement = () => {
   );
 };
 
-export default PaymentManagement;
+export default PurchaseOrder ;

@@ -186,6 +186,11 @@ const Sidebar = ({ isOpen, onClose }) => {
           path: "/dispatches",
           permission: "inventory_management",
         },
+        {
+          name: "purchase-order",
+          path: "/purchase-order",
+          permission: "purchase_order",
+        }
       ],
     },
 

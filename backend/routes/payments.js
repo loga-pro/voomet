@@ -1,9 +1,35 @@
 const express = require('express');
 const Payment = require('../models/Payment');
 const Project = require('../models/Project');
+const BOQ = require('../models/BOQ');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
+
+// Helper function to safely parse dates from various formats
+const parseSafeDate = (dateVal) => {
+  if (!dateVal) return null;
+  if (dateVal instanceof Date) return isNaN(dateVal.getTime()) ? null : dateVal;
+
+  // Try direct parsing
+  let date = new Date(dateVal);
+  if (!isNaN(date.getTime())) return date;
+
+  // Try DD-MM-YYYY format
+  if (typeof dateVal === 'string' && dateVal.includes('-')) {
+    const parts = dateVal.split('-');
+    if (parts.length === 3) {
+      // Assuming DD-MM-YYYY
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+      date = new Date(year, month, day);
+      if (!isNaN(date.getTime())) return date;
+    }
+  }
+
+  return null;
+};
 
 // Get all payments with filtering
 router.get('/', auth, async (req, res) => {
@@ -104,7 +130,7 @@ router.post('/', auth, async (req, res) => {
     console.log('User:', user);
     
     // Validate required fields
-    const { customer, projectName, project, projectCost, invoices, payments } = req.body;
+    const { customer, projectName, project, projectCost, invoices, payments, consigneeAddress, buyerAddress } = req.body;
     
     if (!customer) {
       console.log('Validation failed: Customer is required');
@@ -121,19 +147,90 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ message: 'Valid project cost is required' });
     }
 
+    // Fetch BOQ data for validation
+    const boqData = await BOQ.findOne({
+      customer: customer,
+      projectName: projectName || project
+    });
+
+    const boqTotalWithGST = boqData ? boqData.totalWithGST : Infinity;
+    if (boqData) {
+      console.log('BOQ Total with GST:', boqTotalWithGST);
+    } else {
+      console.log('No BOQ found for this project. Skipping budget validation.');
+    }
+
+    // Validate invoice numbers are unique within this payment
+    const invoiceNumbers = (invoices || []).map(inv => inv.invoiceNumber).filter(Boolean);
+    const uniqueInvoiceNumbers = new Set(invoiceNumbers);
+    if (invoiceNumbers.length !== uniqueInvoiceNumbers.size) {
+      return res.status(400).json({ message: 'Invoice numbers must be unique within the payment' });
+    }
+
+    // Check for duplicate invoice numbers across all payments for this customer and project
+    const existingPayments = await Payment.find({
+      customer: customer,
+      $or: [
+        { project: projectName || project },
+        { projectName: projectName || project }
+      ]
+    });
+
+    const existingInvoiceNumbers = new Set();
+    existingPayments.forEach(payment => {
+      payment.invoices.forEach(invoice => {
+        if (invoice.invoiceNumber) {
+          existingInvoiceNumbers.add(invoice.invoiceNumber);
+        }
+      });
+    });
+
+    const duplicateInvoices = invoiceNumbers.filter(num => existingInvoiceNumbers.has(num));
+    if (duplicateInvoices.length > 0) {
+      return res.status(400).json({
+        message: `Invoice number(s) already exist for this project: ${duplicateInvoices.join(', ')}`
+      });
+    }
+
+    // Calculate total invoice value with tax
+    const totalInvoiceValue = (invoices || []).reduce((sum, invoice) => {
+      return sum + (parseFloat(invoice.totalWithTax) || parseFloat(invoice.invoiceValue) || 0);
+    }, 0);
+
+    // Calculate total of all existing invoices for this project
+    const existingInvoiceTotal = existingPayments.reduce((sum, payment) => {
+      return sum + payment.invoices.reduce((invSum, invoice) => {
+        return invSum + (invoice.totalWithTax || invoice.invoiceValue || 0);
+      }, 0);
+    }, 0);
+
+    const grandTotalInvoices = existingInvoiceTotal + totalInvoiceValue;
+    console.log('Existing invoice total:', existingInvoiceTotal);
+    console.log('New invoice total:', totalInvoiceValue);
+    console.log('Grand total invoices:', grandTotalInvoices);
+
+    // Validate that total invoices don't exceed BOQ total with GST (if BOQ exists)
+    if (boqData && grandTotalInvoices > boqTotalWithGST) {
+      return res.status(400).json({
+        message: `Total invoice amount (₹${grandTotalInvoices.toFixed(2)}) exceeds BOQ total with GST (₹${boqTotalWithGST.toFixed(2)}). Remaining amount: ₹${(boqTotalWithGST - existingInvoiceTotal).toFixed(2)}`
+      });
+    }
+
     const paymentData = {
       customer,
       project: projectName || project,
       projectName: projectName || project,
       projectCost: parseFloat(projectCost),
-      paymentType: req.body.paymentType || 'advance',
+      paymentType: req.body.paymentType || '',
       includeGST: req.body.includeGST || false,
       gstPercentage: req.body.gstPercentage || 0,
+      consigneeAddress: consigneeAddress || '',
+      buyerAddress: buyerAddress || '',
       invoices: (invoices || []).map(invoice => ({
         invoiceNumber: invoice.invoiceNumber,
         invoiceValue: parseFloat(invoice.invoiceValue) || 0,
-        invoiceDate: invoice.invoiceDate ? new Date(invoice.invoiceDate) : new Date(),
-        paymentType: invoice.paymentType || 'advance',
+        invoiceDate: parseSafeDate(invoice.invoiceDate) || new Date(),
+        paymentType: invoice.paymentType || '',
         voucherNo: invoice.voucherNo || '',
         buyersRef: invoice.buyersRef || '',
         dispatchedThrough: invoice.dispatchedThrough || '',
@@ -145,20 +242,22 @@ router.post('/', auth, async (req, res) => {
         roundOff: parseFloat(invoice.roundOff) || 0,
         cgstAmount: parseFloat(invoice.cgstAmount) || 0,
         sgstAmount: parseFloat(invoice.sgstAmount) || 0,
-        totalWithTax: parseFloat(invoice.totalWithTax) || 0
+        totalWithTax: parseFloat(invoice.totalWithTax) || 0,
+        overdueDate: parseSafeDate(invoice.overdueDate || invoice.dueDate)
       })),
       payments: (payments || []).map(payment => ({
         transactionId: payment.transactionId,
         bankName: payment.bankName,
         gst: payment.gst ? parseFloat(payment.gst) : 0,
         amount: parseFloat(payment.amount) || 0,
-        date: payment.paymentDate || payment.date ? new Date(payment.paymentDate || payment.date) : new Date(),
-        paymentDate: payment.paymentDate || payment.date ? new Date(payment.paymentDate || payment.date) : new Date(),
-        paymentType: payment.paymentType || 'advance',
+        date: parseSafeDate(payment.paymentDate || payment.date) || new Date(),
+        paymentDate: parseSafeDate(payment.paymentDate || payment.date) || new Date(),
+        paymentType: payment.paymentType || '',
         remarks: payment.remarks || ''
       })),
-      createdBy: user.name || user.username || 'Unknown'
+      createdBy: (user && (user.name || user.username)) || 'System'
     };
+    console.log('Mapped payment data:', JSON.stringify(paymentData, null, 2));
 
     console.log('Payment data to save:', JSON.stringify(paymentData, null, 2));
 
@@ -172,11 +271,12 @@ router.post('/', auth, async (req, res) => {
       data: payment
     });
   } catch (error) {
-    console.error('Payment creation error:', error);
-    console.error('Error stack:', error.stack);
+    console.error('Payment creation error detail:', error);
     res.status(500).json({ 
       message: 'Server error creating payment',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: error.message,
+      details: error.errors,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
@@ -184,7 +284,7 @@ router.post('/', auth, async (req, res) => {
 // Update payment (recalculates totals via pre-save)
 router.put('/:id', auth, async (req, res) => {
   try {
-    const { customer, projectName, project, projectCost, invoices, payments } = req.body;
+    const { customer, projectName, project, projectCost, invoices, payments, consigneeAddress, buyerAddress } = req.body;
     
     // Validate required fields
     if (!customer) {
@@ -199,19 +299,88 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(400).json({ message: 'Valid project cost is required' });
     }
 
+    // Fetch BOQ data for validation
+    const boqData = await BOQ.findOne({
+      customer: customer,
+      projectName: projectName || project
+    });
+
+    const boqTotalWithGST = boqData ? boqData.totalWithGST : Infinity;
+    if (boqData) {
+      console.log('BOQ Total with GST:', boqTotalWithGST);
+    } else {
+      console.log('No BOQ found for this project. Skipping budget validation.');
+    }
+
+    // Validate invoice numbers are unique within this payment
+    const invoiceNumbers = (invoices || []).map(inv => inv.invoiceNumber).filter(Boolean);
+    const uniqueInvoiceNumbers = new Set(invoiceNumbers);
+    if (invoiceNumbers.length !== uniqueInvoiceNumbers.size) {
+      return res.status(400).json({ message: 'Invoice numbers must be unique within the payment' });
+    }
+
+    // Check for duplicate invoice numbers across all OTHER payments for this customer and project
+    const existingPayments = await Payment.find({
+      _id: { $ne: req.params.id }, // Exclude current payment being updated
+      customer: customer,
+      $or: [
+        { project: projectName || project },
+        { projectName: projectName || project }
+      ]
+    });
+
+    const existingInvoiceNumbers = new Set();
+    existingPayments.forEach(payment => {
+      payment.invoices.forEach(invoice => {
+        if (invoice.invoiceNumber) {
+          existingInvoiceNumbers.add(invoice.invoiceNumber);
+        }
+      });
+    });
+
+    const duplicateInvoices = invoiceNumbers.filter(num => existingInvoiceNumbers.has(num));
+    if (duplicateInvoices.length > 0) {
+      return res.status(400).json({
+        message: `Invoice number(s) already exist for this project: ${duplicateInvoices.join(', ')}`
+      });
+    }
+
+    // Calculate total invoice value with tax
+    const totalInvoiceValue = (invoices || []).reduce((sum, invoice) => {
+      return sum + (parseFloat(invoice.totalWithTax) || parseFloat(invoice.invoiceValue) || 0);
+    }, 0);
+
+    // Calculate total of all existing invoices for this project (excluding current payment)
+    const existingInvoiceTotal = existingPayments.reduce((sum, payment) => {
+      return sum + payment.invoices.reduce((invSum, invoice) => {
+        return invSum + (invoice.totalWithTax || invoice.invoiceValue || 0);
+      }, 0);
+    }, 0);
+
+    const grandTotalInvoices = existingInvoiceTotal + totalInvoiceValue;
+
+    // Validate that total invoices don't exceed BOQ total with GST (if BOQ exists)
+    if (boqData && grandTotalInvoices > boqTotalWithGST) {
+      return res.status(400).json({
+        message: `Total invoice amount (₹${grandTotalInvoices.toFixed(2)}) exceeds BOQ total with GST (₹${boqTotalWithGST.toFixed(2)}). Remaining amount: ₹${(boqTotalWithGST - existingInvoiceTotal).toFixed(2)}`
+      });
+    }
+
     const updateData = {
       customer,
       project: projectName || project,
       projectName: projectName || project,
       projectCost: parseFloat(projectCost),
-      paymentType: req.body.paymentType || 'advance',
+      paymentType: req.body.paymentType || '',
       includeGST: req.body.includeGST || false,
       gstPercentage: req.body.gstPercentage || 0,
+      consigneeAddress: consigneeAddress || '',
+      buyerAddress: buyerAddress || '',
       invoices: (invoices || []).map(invoice => ({
         invoiceNumber: invoice.invoiceNumber,
         invoiceValue: parseFloat(invoice.invoiceValue) || 0,
-        invoiceDate: invoice.invoiceDate ? new Date(invoice.invoiceDate) : new Date(),
-        paymentType: invoice.paymentType || 'advance',
+        invoiceDate: parseSafeDate(invoice.invoiceDate) || new Date(),
+        paymentType: invoice.paymentType || '',
         voucherNo: invoice.voucherNo || '',
         buyersRef: invoice.buyersRef || '',
         dispatchedThrough: invoice.dispatchedThrough || '',
@@ -220,19 +389,19 @@ router.put('/:id', auth, async (req, res) => {
         hsnSac: invoice.hsnSac || '',
         cgst: parseFloat(invoice.cgst) || 0,
         sgst: parseFloat(invoice.sgst) || 0,
-        roundOff: parseFloat(invoice.roundOff) || 0,
         cgstAmount: parseFloat(invoice.cgstAmount) || 0,
         sgstAmount: parseFloat(invoice.sgstAmount) || 0,
-        totalWithTax: parseFloat(invoice.totalWithTax) || 0
+        totalWithTax: parseFloat(invoice.totalWithTax) || 0,
+        overdueDate: parseSafeDate(invoice.overdueDate || invoice.dueDate)
       })),
       payments: (payments || []).map(payment => ({
         transactionId: payment.transactionId,
         bankName: payment.bankName,
         gst: payment.gst ? parseFloat(payment.gst) : 0,
         amount: parseFloat(payment.amount) || 0,
-        date: payment.paymentDate || payment.date ? new Date(payment.paymentDate || payment.date) : new Date(),
-        paymentDate: payment.paymentDate || payment.date ? new Date(payment.paymentDate || payment.date) : new Date(),
-        paymentType: payment.paymentType || 'advance',
+        date: parseSafeDate(payment.paymentDate || payment.date) || new Date(),
+        paymentDate: parseSafeDate(payment.paymentDate || payment.date) || new Date(),
+        paymentType: payment.paymentType || '',
         remarks: payment.remarks || ''
       }))
     };
@@ -253,10 +422,12 @@ router.put('/:id', auth, async (req, res) => {
       data: payment
     });
   } catch (error) {
-    console.error('Payment update error:', error);
+    console.error('Payment update error detail:', error);
     res.status(500).json({ 
       message: 'Server error updating payment',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: error.message,
+      details: error.errors,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
@@ -273,7 +444,8 @@ router.delete('/:id', auth, async (req, res) => {
     console.error('Payment deletion error:', error);
     res.status(500).json({ 
       message: 'Server error deleting payment',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+      details: error.errors
     });
   }
 });

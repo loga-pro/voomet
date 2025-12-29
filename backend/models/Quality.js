@@ -43,6 +43,10 @@ const qualityIssueSchema = new mongoose.Schema({
     type: String   // file path or URL
   },
 
+  dateOfFixed: {
+    type: Date
+  },
+
   fixedImage: {
     type: String   // file path or URL
   },

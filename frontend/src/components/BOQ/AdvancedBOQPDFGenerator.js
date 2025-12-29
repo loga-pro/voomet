@@ -40,6 +40,14 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
   const [projects, setProjects] = useState([]);
   const [projectName, setProjectName] = useState('');
 
+  // Save states for individual fields
+  const [isSavingEstimate, setIsSavingEstimate] = useState(false);
+  const [isSavingDate, setIsSavingDate] = useState(false);
+  const [isSavingTerms, setIsSavingTerms] = useState(false);
+  const [estimateSaved, setEstimateSaved] = useState(false);
+  const [dateSaved, setDateSaved] = useState(false);
+  const [termsSaved, setTermsSaved] = useState(false);
+
   const [emailapiTrigger, setEmailapiTrigger] = useState({
     status: "default",   // "default" | "pending" | "success" | "error"
     message: "no"
@@ -106,88 +114,93 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
     return `VOO/${randomNum}/${day}${month}${year}`;
   };
 
-  const addTerm = async () => {
+  const addTerm = () => {
     const newTerms = [...termsAndConditions, "• New term..."];
     setTermsAndConditions(newTerms);
-    
-    // Auto-save to database
-    if (boqData._id) {
-      try {
-        await boqAPI.update(boqData._id, { termsAndConditions: newTerms });
-      } catch (error) {
-        console.error('Error saving terms and conditions:', error);
-      }
-    }
+    setTermsSaved(false); // Mark as unsaved when changed
   };
 
-  const removeTerm = async (index) => {
+  const removeTerm = (index) => {
     const newTerms = [...termsAndConditions];
     newTerms.splice(index, 1);
     setTermsAndConditions(newTerms);
-    
-    // Auto-save to database
-    if (boqData._id) {
-      try {
-        await boqAPI.update(boqData._id, { termsAndConditions: newTerms });
-      } catch (error) {
-        console.error('Error saving terms and conditions:', error);
-      }
-    }
+    setTermsSaved(false); // Mark as unsaved when changed
   };
 
-  const updateTerm = async (index, value) => {
+  const updateTerm = (index, value) => {
     const newTerms = [...termsAndConditions];
     newTerms[index] = value;
     setTermsAndConditions(newTerms);
-    
-    // Auto-save to database
+    setTermsSaved(false); // Mark as unsaved when changed
+  };
+
+  // Manual save function for Terms & Conditions
+  const saveTermsAndConditions = async () => {
     if (boqData._id) {
       try {
-        await boqAPI.update(boqData._id, { termsAndConditions: newTerms });
+        setIsSavingTerms(true);
+        await boqAPI.update(boqData._id, { termsAndConditions });
+        setTermsSaved(true);
+        setTimeout(() => setTermsSaved(false), 3000); // Hide success message after 3 seconds
       } catch (error) {
         console.error('Error saving terms and conditions:', error);
+        alert('Failed to save terms and conditions');
+      } finally {
+        setIsSavingTerms(false);
       }
     }
   };
 
   // Save custom estimate number to database
-  const handleEstimateNumberChange = async (value) => {
+  const handleEstimateNumberChange = (value) => {
     setCustomEstimateNumber(value);
-    
-    // Auto-save to database
+    setEstimateSaved(false); // Mark as unsaved when changed
+  };
+
+  // Manual save function for Estimate Number
+  const saveEstimateNumber = async () => {
     if (boqData._id) {
       try {
-        await boqAPI.update(boqData._id, { estimateNumber: value });
+        setIsSavingEstimate(true);
+        await boqAPI.update(boqData._id, { estimateNumber: customEstimateNumber });
+        setEstimateSaved(true);
+        setTimeout(() => setEstimateSaved(false), 3000); // Hide success message after 3 seconds
       } catch (error) {
         console.error('Error saving estimate number:', error);
+        alert('Failed to save estimate number');
+      } finally {
+        setIsSavingEstimate(false);
       }
     }
   };
 
   // Save custom date to database
-  const handleDateChange = async (value) => {
+  const handleDateChange = (value) => {
     // Convert from YYYY-MM-DD (input format) to DD/MM/YYYY (display format)
     if (value) {
       const [year, month, day] = value.split('-');
       const formattedDate = `${day}/${month}/${year}`;
       setCustomDate(formattedDate);
-      
-      // Auto-save to database
-      if (boqData._id) {
-        try {
-          await boqAPI.update(boqData._id, { customDate: formattedDate });
-        } catch (error) {
-          console.error('Error saving custom date:', error);
-        }
-      }
+      setDateSaved(false); // Mark as unsaved when changed
     } else {
       setCustomDate('');
-      if (boqData._id) {
-        try {
-          await boqAPI.update(boqData._id, { customDate: '' });
-        } catch (error) {
-          console.error('Error saving custom date:', error);
-        }
+      setDateSaved(false);
+    }
+  };
+
+  // Manual save function for Date
+  const saveDate = async () => {
+    if (boqData._id) {
+      try {
+        setIsSavingDate(true);
+        await boqAPI.update(boqData._id, { customDate });
+        setDateSaved(true);
+        setTimeout(() => setDateSaved(false), 3000); // Hide success message after 3 seconds
+      } catch (error) {
+        console.error('Error saving custom date:', error);
+        alert('Failed to save date');
+      } finally {
+        setIsSavingDate(false);
       }
     }
   };
@@ -544,19 +557,43 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
               {showEstimateNumber && (
                 <div>
                   <h3 className="font-semibold mb-3 text-blue-700">Estimate Number</h3>
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="text"
-                      value={customEstimateNumber}
-                      onChange={(e) => handleEstimateNumberChange(e.target.value)}
-                      placeholder="Leave empty for auto-generated number"
-                      className="flex-1 p-2 border rounded text-sm"
-                    />
-                    {!customEstimateNumber && (
-                      <span className="text-sm text-blue-600 whitespace-nowrap">
-                        Auto: {generateBOQCode()}
-                      </span>
-                    )}
+                  <div className="flex flex-col space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={customEstimateNumber}
+                        onChange={(e) => handleEstimateNumberChange(e.target.value)}
+                        placeholder="Leave empty for auto-generated number"
+                        className="flex-1 p-2 border rounded text-sm"
+                      />
+                      {!customEstimateNumber && (
+                        <span className="text-sm text-blue-600 whitespace-nowrap">
+                          Auto: {generateBOQCode()}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={saveEstimateNumber}
+                      disabled={isSavingEstimate || estimateSaved}
+                      className={`w-full px-4 py-2 rounded text-sm font-medium transition-colors ${
+                        estimateSaved
+                          ? 'bg-green-600 text-white cursor-not-allowed'
+                          : isSavingEstimate
+                          ? 'bg-blue-400 text-white cursor-wait'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      }`}
+                    >
+                      {estimateSaved ? (
+                        <span className="flex items-center justify-center">
+                          <CheckCircleIcon className="h-4 w-4 mr-2" />
+                          Saved!
+                        </span>
+                      ) : isSavingEstimate ? (
+                        'Saving...'
+                      ) : (
+                        'Save Estimate Number'
+                      )}
+                    </button>
                   </div>
                 </div>
               )}
@@ -564,18 +601,42 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
               {/* Date Editor */}
               <div>
                 <h3 className="font-semibold mb-3 text-blue-700">Date</h3>
-                <div className="flex items-center space-x-3">
-                  <input
-                    type="date"
-                    value={getDateInputValue()}
-                    onChange={(e) => handleDateChange(e.target.value)}
-                    className="flex-1 p-2 border rounded text-sm"
-                  />
-                  {!customDate && (
-                    <span className="text-sm text-blue-600 whitespace-nowrap">
-                      Auto: {defaultDate}
-                    </span>
-                  )}
+                <div className="flex flex-col space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="date"
+                      value={getDateInputValue()}
+                      onChange={(e) => handleDateChange(e.target.value)}
+                      className="flex-1 p-2 border rounded text-sm"
+                    />
+                    {!customDate && (
+                      <span className="text-sm text-blue-600 whitespace-nowrap">
+                        Auto: {defaultDate}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={saveDate}
+                    disabled={isSavingDate || dateSaved}
+                    className={`w-full px-4 py-2 rounded text-sm font-medium transition-colors ${
+                      dateSaved
+                        ? 'bg-green-600 text-white cursor-not-allowed'
+                        : isSavingDate
+                        ? 'bg-blue-400 text-white cursor-wait'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
+                  >
+                    {dateSaved ? (
+                      <span className="flex items-center justify-center">
+                        <CheckCircleIcon className="h-4 w-4 mr-2" />
+                        Saved!
+                      </span>
+                    ) : isSavingDate ? (
+                      'Saving...'
+                    ) : (
+                      'Save Date'
+                    )}
+                  </button>
                 </div>
               </div>
 
@@ -590,7 +651,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                     Add Term
                   </button>
                 </div>
-                <div className="space-y-2 max-h-40 overflow-y-auto">
+                <div className="space-y-2 max-h-40 overflow-y-auto mb-2">
                   {termsAndConditions.map((term, index) => (
                     <div key={index} className="flex items-center space-x-2">
                       <input
@@ -608,6 +669,28 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                     </div>
                   ))}
                 </div>
+                <button
+                  onClick={saveTermsAndConditions}
+                  disabled={isSavingTerms || termsSaved}
+                  className={`w-full px-4 py-2 rounded text-sm font-medium transition-colors ${
+                    termsSaved
+                      ? 'bg-green-600 text-white cursor-not-allowed'
+                      : isSavingTerms
+                      ? 'bg-blue-400 text-white cursor-wait'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
+                >
+                  {termsSaved ? (
+                    <span className="flex items-center justify-center">
+                      <CheckCircleIcon className="h-4 w-4 mr-2" />
+                      Saved!
+                    </span>
+                  ) : isSavingTerms ? (
+                    'Saving...'
+                  ) : (
+                    'Save Terms & Conditions'
+                  )}
+                </button>
               </div>
             </div>
           </div>

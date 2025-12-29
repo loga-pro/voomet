@@ -330,9 +330,7 @@ const ReceiptForm = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        {isEditing ? 'Edit Receipt' : 'Add New Receipt'}
-      </h3>
+     
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FloatingInput

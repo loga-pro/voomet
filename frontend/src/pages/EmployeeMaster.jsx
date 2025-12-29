@@ -29,7 +29,6 @@ const EmployeeMaster = () => {
   const [filters, setFilters] = useState({
     searchTerm: '', // Renamed from 'name' to 'searchTerm'
     employeeName: '',
-    uan: '',
     department: '',
     designation: '',
     gender: ''
@@ -486,7 +485,7 @@ const EmployeeMaster = () => {
                   </select>
                 </div>
 
-                {/* UAN Filter - Added for better search */}
+                {/* UAN Filter - Added for better search
                 <div className="lg:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">UAN Number</label>
                   <input
@@ -498,7 +497,7 @@ const EmployeeMaster = () => {
                     className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
                   />
                   <p className="text-xs text-gray-500 mt-1">Enter 12-digit UAN number</p>
-                </div>
+                </div> */}
               </div>
             </div>
           )}
@@ -741,25 +740,6 @@ const EmployeeMaster = () => {
 
       {/* Add/Edit Modal - Rest of the modals remain the same */}
       <Modal
-        isOpen={showModal}
-        onClose={() => {
-          setShowModal(false);
-          setEditingEmployee(null);
-        }}
-        title={editingEmployee ? 'Edit Employee' : 'Add Employee'}
-        size="lg"
-      >
-        <EmployeeForm
-          employee={editingEmployee}
-          onSubmit={() => handleFormSubmit(!!editingEmployee)}
-          onCancel={() => {
-            setShowModal(false);
-            setEditingEmployee(null);
-          }}
-        />
-      </Modal>
-
-        <Modal
   isOpen={viewModal}
   onClose={() => {
     setViewModal(false);
@@ -767,139 +747,114 @@ const EmployeeMaster = () => {
   }}
   title="Employee Profile"
   size="lg"
-  className="employee-modal"
 >
   {selectedEmployee && (
-    <div className="p-1">
-      {/* Details Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Personal Information */}
-        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-          <div className="flex items-center mb-3">
-            <div className="bg-purple-100 p-1.5 rounded-lg">
-              <User className="w-4 h-4 text-purple-600" />
+          <div className="flex flex-col max-h-[100vh]">
+
+            {/* ✅ Scrollable content */}
+            <div className="flex-1 overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-2 text-sm">
+
+                {/* Personal */}
+                <div className="bg-white border rounded p-3 md:col-span-2">
+                  <div className="flex items-center mb-2">
+                    <User className="w-4 h-4 text-indigo-600 mr-2" />
+                    <h3 className="font-semibold">Personal Information</h3>
             </div>
-            <h3 className="ml-2 text-md font-semibold text-gray-900">Personal Information</h3>
-          </div>
-          <div className="space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Name</p>
-              <p className="text-sm font-medium text-gray-800">{selectedEmployee.name}</p>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Gender</p>
-              <p className="text-sm text-gray-800">{selectedEmployee.gender || 'Not provided'}</p>
+                      <span className="text-xs text-gray-500">Name</span>
+                      <p>{selectedEmployee.name}</p>
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Date of Birth</p>
-              <p className="text-sm text-gray-800">{formatDate(selectedEmployee.dob)}</p>
+                      <span className="text-xs text-gray-500">Gender</span>
+                      <p>{selectedEmployee.gender || 'N/A'}</p>
+            </div>
+            <div>
+                      <span className="text-xs text-gray-500">DOB</span>
+                      <p>{formatDate(selectedEmployee.dob)}</p>
             </div>
           </div>
         </div>
 
-        {/* Contact Information */}
-        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-          <div className="flex items-center mb-3">
-            <div className="bg-blue-100 p-1.5 rounded-lg">
-              <Phone className="w-4 h-4 text-blue-600" />
-            </div>
-            <h3 className="ml-2 text-md font-semibold text-gray-900">Contact Information</h3>
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-start">
-              <Mail className="w-4 h-4 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
-              <span className="text-sm text-gray-600 break-all">{selectedEmployee.email}</span>
-            </div>
-            <div className="flex items-start">
-              <Phone className="w-4 h-4 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
-              <span className="text-sm text-gray-600">{selectedEmployee.phone}</span>
-            </div>
-            <div className="flex items-start">
-              <MapPin className="w-4 h-4 text-gray-400 mt-0.5 mr-2 flex-shrink-0" />
-              <span className="text-sm text-gray-600">{selectedEmployee.address || 'Not provided'}</span>
-            </div>
-          </div>
+                {/* Contact */}
+                <div className="bg-white border rounded p-3 md:col-span-2">
+                  <div className="flex items-center mb-2">
+                    <Phone className="w-4 h-4 text-blue-600 mr-2" />
+                    <h3 className="font-semibold">Contact Information</h3>
         </div>
 
-        {/* Employment Details */}
-        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-          <div className="flex items-center mb-3">
-            <div className="bg-indigo-100 p-1.5 rounded-lg">
-              <Briefcase className="w-4 h-4 text-indigo-600" />
-            </div>
-            <h3 className="ml-2 text-md font-semibold text-gray-900">Employment Details</h3>
-          </div>
-          <div className="space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Department</p>
-              <p className="text-sm text-gray-800">{selectedEmployee.department}</p>
+                      <span className="text-xs text-gray-500">Email</span>
+                      <p className="break-all">{selectedEmployee.email}</p>
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Designation</p>
-              <p className="text-sm text-gray-800">{selectedEmployee.designation}</p>
+                      <span className="text-xs text-gray-500">Phone</span>
+                      <p>{selectedEmployee.phone}</p>
             </div>
-            {selectedEmployee.qualification && (
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Qualification</p>
-                <p className="text-sm text-gray-800">{selectedEmployee.qualification}</p>
+
+                    {/* ✅ Address fixed */}
+                    <div className="md:col-span-2">
+                      <span className="text-xs text-gray-500">Address</span>
+                      <p className="whitespace-pre-wrap break-words">
+                        {selectedEmployee.address || 'N/A'}
+                      </p>
               </div>
-            )}
           </div>
         </div>
 
-        {/* Government IDs */}
-        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-          <div className="flex items-center mb-3">
-            <div className="bg-green-100 p-1.5 rounded-lg">
-              <IdCard className="w-4 h-4 text-green-600" />
+                {/* Employment */}
+                <div className="bg-white border rounded p-3 md:col-span-2">
+                  <div className="flex items-center mb-2">
+                    <Briefcase className="w-4 h-4 text-indigo-600 mr-2" />
+                    <h3 className="font-semibold">Employment Details</h3>
             </div>
-            <h3 className="ml-2 text-md font-semibold text-gray-900">Government IDs</h3>
-          </div>
-          <div className="space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Aadhaar</p>
-              <p className="text-sm text-gray-800 font-mono">{selectedEmployee.aadhar || 'Not provided'}</p>
+                      <span className="text-xs text-gray-500">Department</span>
+                      <p>{selectedEmployee.department}</p>
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">PAN</p>
-              <p className="text-sm text-gray-800 font-mono">{selectedEmployee.pan || 'Not provided'}</p>
+                      <span className="text-xs text-gray-500">Designation</span>
+                      <p>{selectedEmployee.designation}</p>
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">UAN</p>
-              <p className="text-sm text-gray-800 font-mono">
-                {selectedEmployee.uan ? 
-                  `${selectedEmployee.uan.slice(0, 4)} ${selectedEmployee.uan.slice(4, 8)} ${selectedEmployee.uan.slice(8, 12)}` 
-                  : 'Not provided'
-                }
-              </p>
+                      <span className="text-xs text-gray-500">Qualification</span>
+                      <p>{selectedEmployee.qualification || 'N/A'}</p>
             </div>
           </div>
         </div>
 
-        {/* Bank Details */}
-        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm md:col-span-2">
-          <div className="flex items-center mb-3">
-            <div className="bg-amber-100 p-1.5 rounded-lg">
-              <Banknote className="w-4 h-4 text-amber-600" />
+                {/* IDs */}
+                <div className="bg-white border rounded p-3 md:col-span-2">
+                  <div className="flex items-center mb-2">
+                    <IdCard className="w-4 h-4 text-green-600 mr-2" />
+                    <h3 className="font-semibold">Government IDs</h3>
             </div>
-            <h3 className="ml-2 text-md font-semibold text-gray-900">Bank Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 font-mono">
+                    <div><p>Aadhaar</p>{selectedEmployee.aadhar || 'N/A'}</div>
+                    <div><p>PAN</p>{selectedEmployee.pan || 'N/A'}</div>
+                    <div><p>UAN</p>{selectedEmployee.uan || 'N/A'}</div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Bank Name</p>
-              <p className="text-sm text-gray-800">{selectedEmployee.bankName || 'Not provided'}</p>
             </div>
-            <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Account Number</p>
-              <p className="text-sm text-gray-800 font-mono">{selectedEmployee.bankAccountNumber || 'Not provided'}</p>
+
+                {/* Bank */}
+                <div className="bg-white border rounded p-3 md:col-span-2">
+                  <div className="flex items-center mb-2">
+                    <Banknote className="w-4 h-4 text-amber-600 mr-2" />
+                    <h3 className="font-semibold">Bank Details</h3>
             </div>
-            <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Branch</p>
-              <p className="text-sm text-gray-800">{selectedEmployee.branch || 'Not provided'}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>{selectedEmployee.bankName || 'N/A'}</div>
+                    <div>{selectedEmployee.bankAccountNumber || 'N/A'}</div>
+                    <div>{selectedEmployee.branch || 'N/A'}</div>
             </div>
           </div>
+
         </div>
       </div>
+
 
       {/* Action Buttons */}
       <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">

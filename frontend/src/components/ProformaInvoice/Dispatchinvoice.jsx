@@ -105,7 +105,7 @@ const DispatchInvoice = ({ invoiceData = {}, hideDownloadButton = false }) => {
             <div className="w-1/2 flex flex-col">
               <div className="flex border-b flex-grow">
                 <div className="w-1/2 border-r p-1">
-                  <div className="text-[9px] text-gray-600">Invoice No.</div>
+                  <div className="text-[9px] text-gray-600">Dispatch No.</div>
                   <div className="font-bold">{invoice.voucherNo || 'VOO/24-25/001'}</div>
                 </div>
                 <div className="w-1/2 p-1">
@@ -194,12 +194,7 @@ const DispatchInvoice = ({ invoiceData = {}, hideDownloadButton = false }) => {
           {/* Bank & Footer */}
           <div className="flex h-[120px]">
             <div className="w-3/5 border-r p-2 flex flex-col justify-between">
-              <div>
-                <div className="font-bold text-[9px] underline">Company Bank Details:</div>
-                <div className="text-[9px]">Bank: <b>{bankDetails.bankName}</b></div>
-                <div className="text-[9px]">A/c: <b>{bankDetails.accountNumber}</b></div>
-                <div className="text-[9px]">IFSC: <b>{bankDetails.ifscCode}</b></div>
-              </div>
+              
             </div>
             <div className="w-2/5 p-2 flex flex-col justify-between text-right">
               <div className="text-[9px] font-bold italic">For {companyName}</div>

@@ -61,38 +61,38 @@ const PurchaseRequestManagement = () => {
   }, [purchaseRequests, filters, currentPage, itemsPerPage]);
 
   const fetchPurchaseRequests = async () => {
-  try {
-    setLoading(true);
-    const response = await purchaseRequestsAPI.getAll();
-    const requests = response.data || response;
-    
-    // Ensure items is an array
-    if (!Array.isArray(requests)) {
-      console.error('Expected array but got:', requests);
+    try {
+      setLoading(true);
+      const response = await purchaseRequestsAPI.getAll();
+      const requests = response.data || response;
+
+      // Ensure items is an array
+      if (!Array.isArray(requests)) {
+        console.error('Expected array but got:', requests);
+        setPurchaseRequests([]);
+        setFilteredRequests([]);
+        return;
+      }
+
+      setPurchaseRequests(requests);
+      setFilteredRequests(requests);
+
+      // Extract unique values for filters
+      const uniqueCustomers = [...new Set(requests.map((req) => req.customerName))].filter(Boolean);
+      setUniqueCustomers(uniqueCustomers);
+
+      const uniqueProjects = [...new Set(requests.map((req) => req.projectName))].filter(Boolean);
+      setUniqueProjects(uniqueProjects);
+
+    } catch (error) {
+      console.error("Error fetching purchase requests:", error);
+      showError("Failed to fetch purchase requests");
       setPurchaseRequests([]);
       setFilteredRequests([]);
-      return;
+    } finally {
+      setLoading(false);
     }
-    
-    setPurchaseRequests(requests);
-    setFilteredRequests(requests);
-
-    // Extract unique values for filters
-    const uniqueCustomers = [...new Set(requests.map((req) => req.customerName))].filter(Boolean);
-    setUniqueCustomers(uniqueCustomers);
-
-    const uniqueProjects = [...new Set(requests.map((req) => req.projectName))].filter(Boolean);
-    setUniqueProjects(uniqueProjects);
-    
-  } catch (error) {
-    console.error("Error fetching purchase requests:", error);
-    showError("Failed to fetch purchase requests");
-    setPurchaseRequests([]);
-    setFilteredRequests([]);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const fetchCustomers = async () => {
     try {
@@ -124,19 +124,21 @@ const PurchaseRequestManagement = () => {
       const query = filters.searchQuery.toLowerCase();
       filtered = filtered.filter((req) => {
         // Search in basic fields
-        const matchesBasicFields = 
+        const matchesBasicFields =
           req.customerName?.toLowerCase().includes(query) ||
           req.projectName?.toLowerCase().includes(query) ||
           req.overallProduction?.toLowerCase().includes(query) ||
           req.status?.toLowerCase().includes(query);
-        
-        // Search in items (part names, descriptions, etc.)
-        const matchesItems = req.items?.some(item => 
-          item.partName?.toLowerCase().includes(query) ||
+
+        // Search in items (descriptions, area, code, etc.)
+        const matchesItems = req.items?.some(item =>
           item.description?.toLowerCase().includes(query) ||
-          item.unit?.toLowerCase().includes(query)
+          item.area?.toLowerCase().includes(query) ||
+          item.code?.toLowerCase().includes(query) ||
+          item.specification?.toLowerCase().includes(query) ||
+          item.unitType?.toLowerCase().includes(query)
         );
-        
+
         return matchesBasicFields || matchesItems;
       });
     }
@@ -225,14 +227,16 @@ const PurchaseRequestManagement = () => {
         "Project Name",
         "Start Date",
         "End Date",
-        "Scope of Work",
-        "Item Name",
-        "Quantity Required",
-        "Purpose",
+        "Description",
+        "Area",
+        "Code",
+        "Specification",
         "Unit Type",
-        "Estimated Cost",
+        "Quantity",
+        "Thickness",
+        "Remark",
         "Status",
-        "Remarks",
+        "Overall Remarks",
         "Created At"
       ];
 
@@ -245,12 +249,14 @@ const PurchaseRequestManagement = () => {
               request.projectName,
               request.startDate ? new Date(request.startDate).toLocaleDateString() : "",
               request.endDate ? new Date(request.endDate).toLocaleDateString() : "",
-              item.scopeOfWork || "",
-              item.partName || "",
-              item.quantityRequired || 0,
-              item.purpose || "",
+              item.description || "",
+              item.area || "",
+              item.code || "",
+              item.specification || "",
               item.unitType || "",
-              item.estimatedCost || 0,
+              item.quantity || 0,
+              item.thickness || "",
+              item.remark || "",
               request.status,
               request.remarks || "",
               request.createdAt ? new Date(request.createdAt).toLocaleDateString() : ""
@@ -264,10 +270,12 @@ const PurchaseRequestManagement = () => {
             request.endDate ? new Date(request.endDate).toLocaleDateString() : "",
             "",
             "",
+            "",
+            "",
+            "",
             0,
             "",
             "",
-            0,
             request.status,
             request.remarks || "",
             request.createdAt ? new Date(request.createdAt).toLocaleDateString() : ""
@@ -354,10 +362,10 @@ const PurchaseRequestManagement = () => {
   // Calculate totals for a request
   const calculateRequestTotals = (request) => {
     if (!request?.items) return { totalItems: 0, totalQuantity: 0 };
-    
+
     const totalItems = request.items.length;
-    const totalQuantity = request.items.reduce((sum, item) => sum + (item.quantityRequired || 0), 0);
-    
+    const totalQuantity = request.items.reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0);
+
     return { totalItems, totalQuantity };
   };
 
@@ -404,11 +412,10 @@ const PurchaseRequestManagement = () => {
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                    showFilters || Object.values(filters).some(Boolean)
+                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters || Object.values(filters).some(Boolean)
                       ? "border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100"
                       : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
-                  }`}
+                    }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
                   Filters
@@ -567,7 +574,7 @@ const PurchaseRequestManagement = () => {
                   {currentItems.map((request) => {
                     const statusColor = getStatusColor(request.status);
                     const totals = calculateRequestTotals(request);
-                    
+
                     return (
                       <tr
                         key={request._id}
@@ -658,7 +665,7 @@ const PurchaseRequestManagement = () => {
               {currentItems.map((request) => {
                 const statusColor = getStatusColor(request.status);
                 const totals = calculateRequestTotals(request);
-                
+
                 return (
                   <div
                     key={request._id}
@@ -809,11 +816,10 @@ const PurchaseRequestManagement = () => {
                           )}
                           <button
                             onClick={() => paginate(page)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              currentPage === page
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
                                 ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
                                 : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
-                            }`}
+                              }`}
                           >
                             {page}
                           </button>
@@ -878,149 +884,147 @@ const PurchaseRequestManagement = () => {
 
       {/* View Modal */}
       <Modal
-  isOpen={viewModal}
-  onClose={() => {
-    setViewModal(false);
-    setSelectedRequest(null);
-  }}
-  title="Purchase Request Details"
-  size="xl"
->
-  {selectedRequest && (
-    <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
-      <div className="space-y-6 p-1">
-        {/* Project Details */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <UserIcon className="h-5 w-5 mr-2 text-blue-500" />
-              Customer & Project Details
-            </h3>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Client Name:</span>
-                <span className="text-sm font-medium text-gray-900">
-                  {selectedRequest.customerName}
-                </span>
+        isOpen={viewModal}
+        onClose={() => {
+          setViewModal(false);
+          setSelectedRequest(null);
+        }}
+        title="Purchase Request Details"
+        size="xl"
+      >
+        {selectedRequest && (
+          <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
+            <div className="space-y-6 p-1">
+              {/* Project Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <UserIcon className="h-5 w-5 mr-2 text-blue-500" />
+                    Customer & Project Details
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Client Name:</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {selectedRequest.customerName}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Project Name:</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {selectedRequest.projectName}
+                      </span>
+                    </div>
+
+                  </div>
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <CalendarIcon className="h-5 w-5 mr-2 text-orange-500" />
+                    Timeline Details
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Start Date:</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {selectedRequest.startDate ? new Date(selectedRequest.startDate).toLocaleDateString() : "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">End Date:</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {selectedRequest.endDate ? new Date(selectedRequest.endDate).toLocaleDateString() : "N/A"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Project Name:</span>
-                <span className="text-sm font-medium text-gray-900">
-                  {selectedRequest.projectName}
-                </span>
+
+              {/* Items Table */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <DocumentTextIcon className="h-5 w-5 mr-2 text-green-500" />
+                  Requested Items ({selectedRequest.items?.length || 0})
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Area</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Specification</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Type</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thickness</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remark</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {selectedRequest.items?.map((item, index) => (
+                        <tr key={index}>
+                          <td className="px-4 py-3 text-sm text-gray-900">{index + 1}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{item.description || 'N/A'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{item.area || 'N/A'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{item.code || 'N/A'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{item.specification || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{item.unitType || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{item.quantity || 0}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{item.thickness || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{item.remark || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {item.image && item.image.path ? (
+                              <a href={`${item.image.path}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
+                                View
+                              </a>
+                            ) : (
+                              '-'
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-              
+
+              {/* Remarks */}
+              {selectedRequest.remarks && (
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    Remarks
+                  </h3>
+                  <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-md">
+                    {selectedRequest.remarks}
+                  </p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-4 border-t border-gray-200 sticky bottom-0 bg-white pb-2">
+                <button
+                  onClick={() => setViewModal(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    setViewModal(false);
+                    handleEdit(selectedRequest);
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Edit Request
+                </button>
+              </div>
             </div>
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <CalendarIcon className="h-5 w-5 mr-2 text-orange-500" />
-              Timeline Details
-            </h3>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Start Date:</span>
-                <span className="text-sm font-medium text-gray-900">
-                  {selectedRequest.startDate ? new Date(selectedRequest.startDate).toLocaleDateString() : "N/A"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-500">End Date:</span>
-                <span className="text-sm font-medium text-gray-900">
-                  {selectedRequest.endDate ? new Date(selectedRequest.endDate).toLocaleDateString() : "N/A"}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Items Table */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <DocumentTextIcon className="h-5 w-5 mr-2 text-green-500" />
-            Requested Items ({selectedRequest.items?.length || 0})
-          </h3>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    S.No
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Scope of Work
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Item Name
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Quantity Required
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Purpose
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {selectedRequest.items?.map((item, index) => (
-                  <tr key={index}>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      {index + 1}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900 capitalize">
-                      {item.scopeOfWork}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      {item.partName}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      {item.quantityRequired}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      {item.purpose}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Remarks */}
-        {selectedRequest.remarks && (
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">
-              Remarks
-            </h3>
-            <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-md">
-              {selectedRequest.remarks}
-            </p>
           </div>
         )}
-
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-4 border-t border-gray-200 sticky bottom-0 bg-white pb-2">
-          <button
-            onClick={() => setViewModal(false)}
-            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-          >
-            Close
-          </button>
-          <button
-            onClick={() => {
-              setViewModal(false);
-              handleEdit(selectedRequest);
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Edit Request
-          </button>
-        </div>
-      </div>
-    </div>
-  )}
-</Modal>
+      </Modal>
 
       {/* Delete Confirmation Modal */}
       <Modal

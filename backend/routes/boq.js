@@ -139,6 +139,11 @@ router.post('/', auth, upload.any(), async (req, res) => {
       boqData.items = JSON.parse(boqData.items);
     }
 
+    // Parse others if it's a string
+    if (typeof boqData.others === 'string') {
+      boqData.others = JSON.parse(boqData.others);
+    }
+
     // Parse paymentTerms if it's a string
     if (typeof boqData.paymentTerms === 'string') {
       boqData.paymentTerms = JSON.parse(boqData.paymentTerms);
@@ -169,12 +174,32 @@ router.post('/', auth, upload.any(), async (req, res) => {
       }));
     }
 
+    // Process others
+    if (boqData.others && Array.isArray(boqData.others)) {
+      boqData.others = boqData.others.map(item => ({
+        ...item,
+        numberOfUnits: parseFloat(item.numberOfUnits || 0),
+        unitPrice: parseFloat(item.unitPrice || 0),
+        totalPrice: parseFloat(item.totalPrice || 0)
+      }));
+    }
+
     if (req.files && req.files.length > 0) {
       req.files.forEach(file => {
         if (file.fieldname.startsWith('itemImage_')) {
           const index = Number(file.fieldname.split('_')[1]);
           if (boqData.items[index]) {
             boqData.items[index].image = {
+              filename: file.filename,
+              originalName: file.originalname,
+              path: `/uploads/boq/${file.filename}`,
+              size: file.size
+            };
+          }
+        } else if (file.fieldname.startsWith('otherImage_')) {
+          const index = Number(file.fieldname.split('_')[1]);
+          if (boqData.others && boqData.others[index]) {
+            boqData.others[index].image = {
               filename: file.filename,
               originalName: file.originalname,
               path: `/uploads/boq/${file.filename}`,
@@ -255,6 +280,11 @@ router.put('/:id', auth, upload.any(), async (req, res) => {
       updateData.items = JSON.parse(updateData.items);
     }
 
+    // Parse others if it's a string
+    if (typeof updateData.others === 'string') {
+      updateData.others = JSON.parse(updateData.others);
+    }
+
     // Parse paymentTerms if it's a string
     if (typeof updateData.paymentTerms === 'string') {
       updateData.paymentTerms = JSON.parse(updateData.paymentTerms);
@@ -276,12 +306,32 @@ router.put('/:id', auth, upload.any(), async (req, res) => {
       }));
     }
 
+    // Process others
+    if (updateData.others && Array.isArray(updateData.others)) {
+      updateData.others = updateData.others.map(item => ({
+        ...item,
+        numberOfUnits: parseFloat(item.numberOfUnits || 0),
+        unitPrice: parseFloat(item.unitPrice || 0),
+        totalPrice: parseFloat(item.totalPrice || 0)
+      }));
+    }
+
     if (req.files && req.files.length > 0) {
       req.files.forEach(file => {
         if (file.fieldname.startsWith('itemImage_')) {
           const index = Number(file.fieldname.split('_')[1]);
           if (updateData.items[index]) {
             updateData.items[index].image = {
+              filename: file.filename,
+              originalName: file.originalname,
+              path: `/uploads/boq/${file.filename}`,
+              size: file.size
+            };
+          }
+        } else if (file.fieldname.startsWith('otherImage_')) {
+          const index = Number(file.fieldname.split('_')[1]);
+          if (updateData.others && updateData.others[index]) {
+            updateData.others[index].image = {
               filename: file.filename,
               originalName: file.originalname,
               path: `/uploads/boq/${file.filename}`,

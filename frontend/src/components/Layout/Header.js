@@ -39,6 +39,7 @@ const Header = ({ onMenuClick }) => {
       '/inhouse-part-master': 'Inhouse Part Master',
       '/receipts': 'Receipts',
       '/dispatches': 'Dispatches',
+      '/purchase-order': 'Purchase Order',
     };
     
     // Check for milestone-tracking with ID

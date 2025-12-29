@@ -34,7 +34,7 @@ import InhouseMilestoneForm from './components/Forms/InhouseMilestoneForm';
 import ReceiptsPage from './pages/Receipts';
 import DispatchesPage from './pages/Dispatches';
 import MiscellaneousExpenditures from './pages/MiscellaneousExpenditures';
-
+import PurchaseOder from './pages/PurchaseOder';
 
 function App() {
   return (
@@ -138,6 +138,12 @@ function App() {
             <Route path="dispatches" element={
               <ProtectedRoute requiredPermissions={['inventory_management']}>
                 <DispatchesPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="purchase-order" element={
+              <ProtectedRoute requiredPermissions={['purchase_order']}>
+                <PurchaseOder />
               </ProtectedRoute>
             } />
 

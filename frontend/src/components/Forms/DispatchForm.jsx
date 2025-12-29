@@ -67,6 +67,9 @@ const DispatchForm = ({
   const [formData, setFormData] = useState({
     date: initialData.date || '',
     dispatchCategory: initialData.dispatchCategory || 'dispatch',
+    deliveryChalan: initialData.deliveryChalan || '',
+    vehicleNo: initialData.vehicleNo || '',
+    ewayBill: initialData.ewayBill || '',
     customerName: initialData.customerName || '',
     dispatchNo: initialData.dispatchNo || initialData.invoiceNo || '',
     dispatchDate: initialData.dispatchDate || initialData.invoiceDate || '',
@@ -265,7 +268,7 @@ const DispatchForm = ({
     }
 
     // Validate text fields (max 30 characters)
-    if (['dispatchNo', 'reasonForRejection'].includes(name) && value.length > 30) {
+    if (['dispatchNo', 'reasonForRejection', 'deliveryChalan', 'vehicleNo', 'ewayBill'].includes(name) && value.length > 30) {
       showError?.('Maximum 30 characters allowed');
       return;
     }
@@ -398,6 +401,9 @@ const DispatchForm = ({
           const dispatch = {
             date: formData.date,
             dispatchCategory: formData.dispatchCategory,
+            deliveryChalan: formData.deliveryChalan,
+            vehicleNo: formData.vehicleNo,
+            ewayBill: formData.ewayBill,
             customerName: formData.customerName,
             invoiceNo: formData.dispatchNo,
             invoiceDate: formData.dispatchDate,
@@ -427,6 +433,9 @@ const DispatchForm = ({
           const dispatch = {
             date: formData.date,
             dispatchCategory: formData.dispatchCategory,
+            deliveryChalan: formData.deliveryChalan,
+            vehicleNo: formData.vehicleNo,
+            ewayBill: formData.ewayBill,
             customerName: formData.customerName,
             invoiceNo: formData.dispatchNo,
             invoiceDate: formData.dispatchDate,
@@ -472,9 +481,7 @@ const DispatchForm = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        {isEditing ? 'Edit Dispatch' : 'Add New Dispatch'}
-      </h3>
+     
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FloatingInput
@@ -495,8 +502,33 @@ const DispatchForm = ({
           options={[
             { value: 'dispatch', label: 'Dispatch' },
             { value: 'return', label: 'Return' },
-            { value: 'reject', label: 'Reject' }
+            { value: 'reject', label: 'Reject' },
+            { value: 'site', label: 'Site' }
           ]}
+        />
+
+        <FloatingInput
+          label="Delivery Chalan"
+          name="deliveryChalan"
+          value={formData.deliveryChalan}
+          onChange={handleInputChange}
+          maxLength={30}
+        />
+
+        <FloatingInput
+          label="Vehicle No"
+          name="vehicleNo"
+          value={formData.vehicleNo}
+          onChange={handleInputChange}
+          maxLength={30}
+        />
+
+        <FloatingInput
+          label="E-way Bill"
+          name="ewayBill"
+          value={formData.ewayBill}
+          onChange={handleInputChange}
+          maxLength={30}
         />
 
         <FloatingInput

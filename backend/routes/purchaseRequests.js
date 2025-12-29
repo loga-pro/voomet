@@ -1,8 +1,39 @@
 const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const auth = require('../middleware/auth');
 const PurchaseRequest = require('../models/PurchaseRequest');
+
+// Configure multer for file uploads
+const uploadDir = path.join('uploads', 'purchase-requests');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only images and PDF files are allowed'), false);
+    }
+  }
+});
 
 // Validation middleware
 const validatePurchaseRequest = [
@@ -12,10 +43,14 @@ const validatePurchaseRequest = [
   body('endDate').isISO8601().toDate().withMessage('Valid end date is required'),
   body('overallProduction').optional().trim(),
   body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
-  body('items.*.scopeOfWork').notEmpty().trim().withMessage('Scope of work is required'),
-  body('items.*.partName').notEmpty().trim().withMessage('Part name is required'),
-  body('items.*.quantityRequired').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
-  body('items.*.purpose').notEmpty().trim().withMessage('Purpose is required'),
+  body('items.*.description').notEmpty().trim().withMessage('Description is required'),
+  body('items.*.area').notEmpty().trim().withMessage('Area is required'),
+  body('items.*.code').notEmpty().trim().withMessage('Code is required'),
+  body('items.*.specification').optional().trim(),
+  body('items.*.unitType').optional().trim(),
+  body('items.*.quantity').isFloat({ min: 0.01 }).withMessage('Quantity must be at least 0.01'),
+  body('items.*.thickness').optional().trim(),
+  body('items.*.remark').optional().trim(),
   body('status').optional().isIn(['pending', 'approved', 'rejected', 'completed']).withMessage('Invalid status'),
   body('remarks').optional().trim()
 ];
@@ -56,7 +91,7 @@ router.get('/', auth, async (req, res) => {
         { customerName: { $regex: search, $options: 'i' } },
         { projectName: { $regex: search, $options: 'i' } },
         { overallProduction: { $regex: search, $options: 'i' } },
-        { 'items.partName': { $regex: search, $options: 'i' } }
+        { 'items.description': { $regex: search, $options: 'i' } }
       ];
     }
 
@@ -182,19 +217,54 @@ router.get('/:id', auth, async (req, res) => {
 // @route   POST /api/purchase-requests
 // @desc    Create a new purchase request
 // @access  Private
-router.post('/', auth, validatePurchaseRequest, async (req, res) => {
+router.post('/', auth, upload.any(), async (req, res) => {
   try {
-    // Check for validation errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        success: false, 
-        errors: errors.array() 
+    console.log('Creating purchase request with data:', req.body);
+    console.log('Files received:', req.files);
+
+    const purchaseData = { ...req.body };
+
+    // Parse items if it's a string
+    if (typeof purchaseData.items === 'string') {
+      purchaseData.items = JSON.parse(purchaseData.items);
+    }
+
+    // Process items - convert numeric fields
+    if (purchaseData.items && Array.isArray(purchaseData.items)) {
+      purchaseData.items = purchaseData.items.map(item => ({
+        ...item,
+        quantity: parseFloat(item.quantity || 0)
+      }));
+    }
+
+    // Process uploaded files
+    if (req.files && req.files.length > 0) {
+      req.files.forEach(file => {
+        if (file.fieldname.startsWith('itemImage_')) {
+          const index = Number(file.fieldname.split('_')[1]);
+          if (purchaseData.items[index]) {
+            purchaseData.items[index].image = {
+              filename: file.filename,
+              originalName: file.originalname,
+              path: `/uploads/purchase-requests/${file.filename}`,
+              size: file.size,
+              type: file.mimetype
+            };
+          }
+        }
+      });
+    }
+
+    // Check for validation errors (manual validation since we're using upload.any())
+    if (!purchaseData.customerName || !purchaseData.projectName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Customer name and project name are required'
       });
     }
 
     // Check if end date is after start date
-    if (new Date(req.body.endDate) <= new Date(req.body.startDate)) {
+    if (new Date(purchaseData.endDate) <= new Date(purchaseData.startDate)) {
       return res.status(400).json({
         success: false,
         message: 'End date must be after start date'
@@ -203,7 +273,7 @@ router.post('/', auth, validatePurchaseRequest, async (req, res) => {
 
     // Create new purchase request
     const purchaseRequest = new PurchaseRequest({
-      ...req.body,
+      ...purchaseData,
       createdBy: req.user.id
     });
 
@@ -230,19 +300,46 @@ router.post('/', auth, validatePurchaseRequest, async (req, res) => {
 // @route   PUT /api/purchase-requests/:id
 // @desc    Update a purchase request
 // @access  Private
-router.put('/:id', auth, validatePurchaseRequest, async (req, res) => {
+router.put('/:id', auth, upload.any(), async (req, res) => {
   try {
-    // Check for validation errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        success: false, 
-        errors: errors.array() 
+    console.log('Updating purchase request:', req.params.id, 'with data:', req.body);
+    console.log('Files received:', req.files);
+
+    const updateData = { ...req.body };
+
+    // Parse items if it's a string
+    if (typeof updateData.items === 'string') {
+      updateData.items = JSON.parse(updateData.items);
+    }
+
+    // Process items - convert numeric fields
+    if (updateData.items && Array.isArray(updateData.items)) {
+      updateData.items = updateData.items.map(item => ({
+        ...item,
+        quantity: parseFloat(item.quantity || 0)
+      }));
+    }
+
+    // Process uploaded files
+    if (req.files && req.files.length > 0) {
+      req.files.forEach(file => {
+        if (file.fieldname.startsWith('itemImage_')) {
+          const index = Number(file.fieldname.split('_')[1]);
+          if (updateData.items[index]) {
+            updateData.items[index].image = {
+              filename: file.filename,
+              originalName: file.originalname,
+              path: `/uploads/purchase-requests/${file.filename}`,
+              size: file.size,
+              type: file.mimetype
+            };
+          }
+        }
       });
     }
 
     // Check if end date is after start date
-    if (new Date(req.body.endDate) <= new Date(req.body.startDate)) {
+    if (new Date(updateData.endDate) <= new Date(updateData.startDate)) {
       return res.status(400).json({
         success: false,
         message: 'End date must be after start date'
@@ -268,8 +365,8 @@ router.put('/:id', auth, validatePurchaseRequest, async (req, res) => {
     }
 
     // Update fields
-    Object.keys(req.body).forEach(key => {
-      purchaseRequest[key] = req.body[key];
+    Object.keys(updateData).forEach(key => {
+      purchaseRequest[key] = updateData[key];
     });
 
     await purchaseRequest.save();

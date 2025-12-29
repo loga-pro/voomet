@@ -42,7 +42,8 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       totalPrice: '',
       remarks: '',
       uploadImg: '',
-      image: null
+      image: null,
+      isCustom: false
     }],
     finalTotalWithoutGST: '0',
     discountPercentage: '0',
@@ -52,7 +53,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     gstPercentage: '18',
     totalWithGST: '0',
     overallRemarks: '',
-    paymentTerms: [{ discount: '', Installment: 1 }],
+    paymentTerms: [{ discount: '', Installment: 1, dueDate: '' }],
   });
   const [selectedProject, setSelectedProject] = useState('');
   const [parts, setParts] = useState([]);
@@ -144,6 +145,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       margin: String(item.margin || '0'),
       totalPrice: String(item.totalPrice || ''),
       remarks: item.remarks || '',
+      isCustom: item.isCustom || false,
       image: item.image
         ? {
           ...item.image,
@@ -165,7 +167,8 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
         margin: '0',
         totalPrice: '',
         remarks: '',
-        image: null
+        image: null,
+        isCustom: false
       }];
     }
 
@@ -509,20 +512,27 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     setFormData({ ...newData, ...calculated });
   };
 
-  // When a part is selected
-  const handlePartSelect = (index, partName) => {
+  // When a part is selected or custom input is used
+  const handlePartSelect = (index, partName, isCustomInput = false) => {
     const selectedPart = filteredParts.find(part => part.partName === partName);
     let updatedItems = [...formData.items];
 
-    if (selectedPart) {
+    if (selectedPart && !isCustomInput) {
+      // Selected from dropdown
       updatedItems[index] = {
         ...updatedItems[index],
         partName: selectedPart.partName,
         unitType: selectedPart.unitType || '',
-        unitPrice: String(selectedPart.partPrice ?? '')
+        unitPrice: String(selectedPart.partPrice ?? ''),
+        isCustom: false
       };
     } else {
-      updatedItems[index] = { ...updatedItems[index], partName };
+      // Custom input or manual entry
+      updatedItems[index] = {
+        ...updatedItems[index],
+        partName,
+        isCustom: true
+      };
     }
 
     const newData = { ...formData, items: updatedItems };
@@ -657,7 +667,30 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
           totalPrice: '',
           remarks: '',
           uploadImg: '',
-          image: null
+          image: null,
+          isCustom: false  // Items from parts master
+        }
+      ]
+    }));
+  };
+
+  const addCustomItemRow = () => {
+    setFormData(prev => ({
+      ...prev,
+      items: [
+        ...prev.items,
+        {
+          partName: '',
+          numberOfUnits: '',
+          specification: '',
+          unitType: '',
+          unitPrice: '',
+          margin: '0',
+          totalPrice: '',
+          remarks: '',
+          uploadImg: '',
+          image: null,
+          isCustom: true  // Custom items with text input
         }
       ]
     }));
@@ -667,7 +700,142 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     if (formData.items.length > 1) {
       const updatedItems = [...formData.items];
       updatedItems.splice(index, 1);
-      setFormData(prev => ({ ...prev, items: updatedItems }));
+      const newData = { ...formData, items: updatedItems };
+      const calculated = calculateBoqMetrics(newData);
+      setFormData({ ...newData, ...calculated });
+    }
+  };
+
+  // Handlers for "Others" section
+  const handleOtherItemChange = (index, field, value) => {
+    if (field === 'unitPrice') {
+      if (value !== '' && !/^\d{0,8}(\.\d{0,2})?$/.test(value)) {
+        return;
+      }
+    }
+    if (field === 'numberOfUnits') {
+      if (value !== '' && !/^\d{0,8}$/.test(value)) {
+        return;
+      }
+    }
+    if (field === 'margin') {
+      if (value !== '' && !/^\d{0,3}(\.\d{0,2})?$/.test(value)) {
+        return;
+      }
+      const numValue = parseFloat(value);
+      if (value !== '' && (isNaN(numValue) || numValue < 0 || numValue > 100)) {
+        return;
+      }
+    }
+
+    const updatedOthers = [...formData.others];
+    updatedOthers[index] = { ...updatedOthers[index], [field]: value };
+
+    const newData = { ...formData, others: updatedOthers };
+    const calculated = calculateBoqMetrics(newData);
+
+    setFormData({ ...newData, ...calculated });
+  };
+
+  const handleOtherFileChange = (index, file) => {
+    const isImage = file.type.startsWith('image/');
+    const isPDF = file.type === 'application/pdf';
+
+    if (!isImage && !isPDF) {
+      showLocalNotification(
+        `You can only upload ${getAllowedFileTypesText()}!`,
+        "error"
+      );
+      return false;
+    }
+
+    const isLt5M = file.size / 1024 / 1024 < 5;
+    if (!isLt5M) {
+      showLocalNotification(
+        'File must be smaller than 5MB!',
+        "error"
+      );
+      return false;
+    }
+
+    setFormData(prev => {
+      const updatedOthers = [...prev.others];
+      updatedOthers[index] = {
+        ...updatedOthers[index],
+        image: file,
+        uploadImg: file.name
+      };
+      return { ...prev, others: updatedOthers };
+    });
+    showLocalNotification(
+      `${file.name} file added successfully`,
+      "success"
+    );
+  };
+
+  const handleRemoveOtherFile = (index) => {
+    setFormData(prev => {
+      const updatedOthers = [...prev.others];
+      updatedOthers[index] = {
+        ...updatedOthers[index],
+        image: null,
+        uploadImg: ''
+      };
+      return { ...prev, others: updatedOthers };
+    });
+  };
+
+  const createOtherUploadProps = (index) => {
+    const img = formData.others[index].image;
+
+    return {
+      name: 'file',
+      multiple: false,
+      beforeUpload: (file) => {
+        handleOtherFileChange(index, file);
+        return false;
+      },
+      onRemove: () => handleRemoveOtherFile(index),
+
+      fileList: img
+        ? [{
+          uid: img.uid || `other_${index}`,
+          name: img.name,
+          status: img.status || 'done',
+          url: img.url
+        }]
+        : []
+    };
+  };
+
+  const addOtherRow = () => {
+    setFormData(prev => ({
+      ...prev,
+      others: [
+        ...prev.others,
+        {
+          partName: '',
+          numberOfUnits: '',
+          specification: '',
+          unitType: '',
+          unitPrice: '',
+          margin: '0',
+          totalPrice: '',
+          remarks: '',
+          uploadImg: '',
+          image: null
+        }
+      ]
+    }));
+  };
+
+  const removeOtherRow = (index) => {
+    if (formData.others.length > 1) {
+      const updatedOthers = [...formData.others];
+      updatedOthers.splice(index, 1);
+      const newData = { ...formData, others: updatedOthers };
+      const calculated = calculateBoqMetrics(newData);
+      setFormData({ ...newData, ...calculated });
     }
   };
 
@@ -761,17 +929,19 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       }
     }
 
-    formData.items.forEach((item, index) => {
-      if (!item.partName) newErrors[`item-${index}-partName`] = 'Item name is required';
-      if (!item.numberOfUnits || Number(item.numberOfUnits) <= 0) newErrors[`item-${index}-numberOfUnits`] = 'Valid number of units is required';
-      if (item.numberOfUnits && !/^\d{1,8}$/.test(item.numberOfUnits)) {
-        newErrors[`item-${index}-numberOfUnits`] = 'Maximum 8 digits allowed';
-      }
-      if (!item.unitPrice || Number(item.unitPrice) <= 0) newErrors[`item-${index}-unitPrice`] = 'Valid unit price is required';
-      if (item.unitPrice && !/^\d{1,8}(\.\d{1,2})?$/.test(item.unitPrice)) {
-        newErrors[`item-${index}-unitPrice`] = 'Maximum 8 digits and 2 decimal places allowed';
-      }
-    });
+    if (formData.items && Array.isArray(formData.items)) {
+      formData.items.forEach((item, index) => {
+        if (!item.partName) newErrors[`item-${index}-partName`] = 'Item name is required';
+        if (!item.numberOfUnits || Number(item.numberOfUnits) <= 0) newErrors[`item-${index}-numberOfUnits`] = 'Valid number of units is required';
+        if (item.numberOfUnits && !/^\d{1,8}$/.test(item.numberOfUnits)) {
+          newErrors[`item-${index}-numberOfUnits`] = 'Maximum 8 digits allowed';
+        }
+        if (!item.unitPrice || Number(item.unitPrice) <= 0) newErrors[`item-${index}-unitPrice`] = 'Valid unit price is required';
+        if (item.unitPrice && !/^\d{1,8}(\.\d{1,2})?$/.test(item.unitPrice)) {
+          newErrors[`item-${index}-unitPrice`] = 'Maximum 8 digits and 2 decimal places allowed';
+        }
+      });
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -889,6 +1059,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       margin: String(item.margin || '0'),
       totalPrice: String(item.totalPrice || ''),
       remarks: item.remarks || '',
+      isCustom: item.isCustom || false,
       image: item.image
         ? {
           ...item.image,
@@ -910,6 +1081,41 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
         margin: '0',
         totalPrice: '',
         remarks: '',
+        image: null,
+        isCustom: false
+      }];
+    }
+
+    let formattedOthers = Array.isArray(project.others) ? project.others : [];
+    formattedOthers = formattedOthers.map(item => ({
+      partName: item.partName || '',
+      numberOfUnits: String(item.numberOfUnits || ''),
+      specification: item.specification || '',
+      unitType: item.unitType || '',
+      unitPrice: String(item.unitPrice || ''),
+      margin: String(item.margin || '0'),
+      totalPrice: String(item.totalPrice || ''),
+      remarks: item.remarks || '',
+      image: item.image
+        ? {
+          ...item.image,
+          name: item.image.originalName || item.image.filename,
+          url: `${API_BASE_URL}${item.image.path}`,
+          status: 'done'
+        }
+        : null
+    }));
+
+    if (formattedOthers.length === 0) {
+      formattedOthers = [{
+        partName: '',
+        numberOfUnits: '',
+        specification: '',
+        unitType: '',
+        unitPrice: '',
+        margin: '0',
+        totalPrice: '',
+        remarks: '',
         image: null
       }];
     }
@@ -919,6 +1125,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       projectName: project.projectName || '',
       scopeOfWork: scopeOfWorkArray,
       items: formattedItems,
+      others: formattedOthers,
 
       discountPercentage: String(project.discountPercentage || '0'),
       discountAmount: String(project.discountAmount || '0'),
@@ -958,7 +1165,8 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
           totalPrice: '',
           remarks: '',
           uploadImg: '',
-          image: null
+          image: null,
+          isCustom: false
         },
       ],
       finalTotalWithoutGST: '0',
@@ -1117,13 +1325,22 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
               <h3 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">
                 Items
               </h3>
-              <button
-                type="button"
-                onClick={addItemRow}
-                className="px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                + Add Item
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={addItemRow}
+                  className="px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                >
+                  + Add Item
+                </button>
+                <button
+                  type="button"
+                  onClick={addCustomItemRow}
+                  className="px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  + Add Other
+                </button>
+              </div>
             </div>
 
             <div className="space-y-4 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4 bg-gray-50">
@@ -1143,23 +1360,35 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
 
                   {/* First Row - Main Fields */}
                   <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-                    <FloatingInput
-                      label="Item Name"
-                      value={item.partName}
-                      onChange={(e) => handlePartSelect(index, e.target.value)}
-                      error={errors[`item-${index}-partName`]}
-                      type="select"
-                      options={
-                        formData.scopeOfWork && formData.scopeOfWork.length > 0
-                          ? [{ value: '', label: 'Select Part' }, ...filteredParts.map(part => ({
-                            value: part.partName,
-                            label: `${part.partName}`
-                          }))]
-                          : [{ value: '', label: 'Select Scope of Work first' }]
-                      }
-                      disabled={!formData.scopeOfWork || formData.scopeOfWork.length === 0}
-                      required
-                    />
+                    {/* Item Name - Dropdown for first item or if not custom, Text input for custom items */}
+                    {item.isCustom ? (
+                      <FloatingInput
+                        label="Item Name"
+                        value={item.partName}
+                        onChange={(e) => handlePartSelect(index, e.target.value, true)}
+                        error={errors[`item-${index}-partName`]}
+                        type="text"
+                        required
+                      />
+                    ) : (
+                      <FloatingInput
+                        label="Item Name"
+                        value={item.partName}
+                        onChange={(e) => handlePartSelect(index, e.target.value)}
+                        error={errors[`item-${index}-partName`]}
+                        type="select"
+                        options={
+                          formData.scopeOfWork && formData.scopeOfWork.length > 0
+                            ? [{ value: '', label: 'Select Part' }, ...filteredParts.map(part => ({
+                              value: part.partName,
+                              label: `${part.partName}`
+                            }))]
+                            : [{ value: '', label: 'Select Scope of Work first' }]
+                        }
+                        disabled={!formData.scopeOfWork || formData.scopeOfWork.length === 0}
+                        required
+                      />
+                    )}
 
                     <FloatingInput
                       label="No of Quantity"
@@ -1183,7 +1412,8 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                       label="Unit Type"
                       value={item.unitType}
                       onChange={(e) => handleItemChange(index, 'unitType', e.target.value)}
-                      readOnly
+                      type="text"
+                      readOnly={!item.isCustom}
                     />
 
                     <FloatingInput
@@ -1194,7 +1424,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                       type="number"
                       step="0.01"
                       min="0"
-                      readOnly
+                      readOnly={!item.isCustom}
                       required
                     />
 
@@ -1385,6 +1615,9 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                         Value (₹)
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Due Date
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -1415,6 +1648,18 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                             ₹{parseFloat(calculatedValue).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <input
+                              type="date"
+                              value={term.dueDate || ''}
+                              onChange={(e) => {
+                                const newTerms = [...formData.paymentTerms];
+                                newTerms[index] = { ...newTerms[index], dueDate: e.target.value };
+                                setFormData(prev => ({ ...prev, paymentTerms: newTerms }));
+                              }}
+                              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2 border"
+                            />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex items-center space-x-2">

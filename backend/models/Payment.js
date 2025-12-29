@@ -20,11 +20,7 @@ const paymentSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  paymentType: {
-    type: String,
-    enum: ['advance', 'final'],
-    default: 'advance'
-  },
+  paymentType: String,
   includeGST: {
     type: Boolean,
     default: false
@@ -32,6 +28,14 @@ const paymentSchema = new mongoose.Schema({
   gstPercentage: {
     type: Number,
     default: 0
+  },
+  consigneeAddress: {
+    type: String,
+    trim: true
+  },
+  buyerAddress: {
+    type: String,
+    trim: true
   },
   invoices: [{
     invoiceNumber: {
@@ -41,11 +45,7 @@ const paymentSchema = new mongoose.Schema({
     invoiceValue: {
       type: Number
     },
-    paymentType: {
-      type: String,
-      enum: ['advance', 'final'],
-      default: 'advance'
-    },
+    paymentType: String,
     invoiceDate: {
       type: Date,
       default: Date.now
@@ -97,6 +97,9 @@ const paymentSchema = new mongoose.Schema({
     totalWithTax: {
       type: Number,
       default: 0
+    },
+    overdueDate: {
+      type: Date
     }
   }],
   payments: [{
@@ -123,11 +126,7 @@ const paymentSchema = new mongoose.Schema({
       type: Date,
       default: Date.now
     },
-    paymentType: {
-      type: String,
-      enum: ['advance', 'final'],
-      default: 'advance'
-    },
+    paymentType: String,
     remarks: {
       type: String,
       trim: true
@@ -152,7 +151,7 @@ const paymentSchema = new mongoose.Schema({
   },
   createdBy: {
     type: String,
-    required: true
+    default: 'System'
   },
   createdAt: {
     type: Date,
@@ -165,9 +164,9 @@ const paymentSchema = new mongoose.Schema({
 });
 
 // Update pre-save hook to calculate balance and status
-paymentSchema.pre('save', function(next) {
+paymentSchema.pre('save', function (next) {
   this.totalInvoiceRaised = this.invoices.reduce((total, invoice) => {
-    return total + (invoice.invoiceValue || 0);
+    return total + (invoice.totalWithTax || invoice.invoiceValue || 0);
   }, 0);
   
   // Calculate total payments from the separate payments array
@@ -177,12 +176,23 @@ paymentSchema.pre('save', function(next) {
   
   this.balanceAmount = this.totalInvoiceRaised - this.totalPayments;
   
-  if (this.balanceAmount === 0) {
+  if (this.balanceAmount <= 0) {
     this.status = 'paid';
-  } else if (this.balanceAmount > 0) {
-    this.status = 'pending';
   } else {
-    this.status = 'overdue';
+    // Check if any invoice is overdue
+    const now = new Date();
+    // Normalize today to start of day for comparison
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    const isAnyOverdue = (this.invoices || []).some(invoice => {
+      if (!invoice.overdueDate) return false;
+      const dueDate = new Date(invoice.overdueDate);
+      // Normalize due date to start of day as well
+      const normalizedDueDate = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+      return normalizedDueDate < today;
+    });
+
+    this.status = isAnyOverdue ? 'overdue' : 'pending';
   }
   
   // Ensure both project fields are set

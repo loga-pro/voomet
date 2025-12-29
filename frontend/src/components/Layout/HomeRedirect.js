@@ -27,6 +27,7 @@ const permissionRouteMap = [
     { permission: 'inhouse_partmaster', path: '/inhouse-part-master' },
     { permission: 'receipts', path: '/receipts' },
     { permission: 'dispatches', path: '/dispatches' },
+    { permission: 'purchase_order', path: '/purchase-order' },
     { permission: 'miscellaneous_expenditure', path: '/miscellaneous-expenditures' },
 ];
 
