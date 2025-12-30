@@ -139,7 +139,15 @@ const PurchaseRequestManagement = () => {
           item.unitType?.toLowerCase().includes(query)
         );
 
-        return matchesBasicFields || matchesItems;
+        // Search in hardware items
+        const matchesHardwareItems = req.hardwareItems?.some(item =>
+          item.description?.toLowerCase().includes(query) ||
+          item.size?.toLowerCase().includes(query) ||
+          item.thickness?.toLowerCase().includes(query) ||
+          item.specification?.toLowerCase().includes(query)
+        );
+
+        return matchesBasicFields || matchesItems || matchesHardwareItems;
       });
     }
 
@@ -227,8 +235,9 @@ const PurchaseRequestManagement = () => {
         "Project Name",
         "Start Date",
         "End Date",
+        "Item Type",
         "Description",
-        "Area",
+        "Area/Size",
         "Code",
         "Specification",
         "Unit Type",
@@ -242,6 +251,7 @@ const PurchaseRequestManagement = () => {
 
       const csvData = [];
       filteredRequests.forEach((request) => {
+        // Export material items
         if (request.items && request.items.length > 0) {
           request.items.forEach((item) => {
             csvData.push([
@@ -249,6 +259,7 @@ const PurchaseRequestManagement = () => {
               request.projectName,
               request.startDate ? new Date(request.startDate).toLocaleDateString() : "",
               request.endDate ? new Date(request.endDate).toLocaleDateString() : "",
+              "Material",
               item.description || "",
               item.area || "",
               item.code || "",
@@ -262,12 +273,40 @@ const PurchaseRequestManagement = () => {
               request.createdAt ? new Date(request.createdAt).toLocaleDateString() : ""
             ]);
           });
-        } else {
+        }
+
+        // Export hardware items
+        if (request.hardwareItems && request.hardwareItems.length > 0) {
+          request.hardwareItems.forEach((item) => {
+            csvData.push([
+              request.customerName,
+              request.projectName,
+              request.startDate ? new Date(request.startDate).toLocaleDateString() : "",
+              request.endDate ? new Date(request.endDate).toLocaleDateString() : "",
+              "Hardware",
+              item.description || "",
+              item.size || "",
+              "",
+              item.specification || "",
+              "",
+              item.quantity || 0,
+              item.thickness || "",
+              "",
+              request.status,
+              request.remarks || "",
+              request.createdAt ? new Date(request.createdAt).toLocaleDateString() : ""
+            ]);
+          });
+        }
+
+        // If no items at all
+        if ((!request.items || request.items.length === 0) && (!request.hardwareItems || request.hardwareItems.length === 0)) {
           csvData.push([
             request.customerName,
             request.projectName,
             request.startDate ? new Date(request.startDate).toLocaleDateString() : "",
             request.endDate ? new Date(request.endDate).toLocaleDateString() : "",
+            "",
             "",
             "",
             "",
@@ -361,12 +400,15 @@ const PurchaseRequestManagement = () => {
 
   // Calculate totals for a request
   const calculateRequestTotals = (request) => {
-    if (!request?.items) return { totalItems: 0, totalQuantity: 0 };
+    const materialItems = request?.items?.length || 0;
+    const hardwareItems = request?.hardwareItems?.length || 0;
+    const totalItems = materialItems + hardwareItems;
 
-    const totalItems = request.items.length;
-    const totalQuantity = request.items.reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0);
+    const materialQuantity = request?.items?.reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0) || 0;
+    const hardwareQuantity = request?.hardwareItems?.reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0) || 0;
+    const totalQuantity = materialQuantity + hardwareQuantity;
 
-    return { totalItems, totalQuantity };
+    return { totalItems, totalQuantity, materialItems, hardwareItems };
   };
 
   if (loading) {
@@ -413,8 +455,8 @@ const PurchaseRequestManagement = () => {
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters || Object.values(filters).some(Boolean)
-                      ? "border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100"
-                      : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+                    ? "border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100"
+                    : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
                     }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
@@ -817,8 +859,8 @@ const PurchaseRequestManagement = () => {
                           <button
                             onClick={() => paginate(page)}
                             className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
-                                ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
-                                : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                              ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
+                              : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
                               }`}
                           >
                             {page}
@@ -941,11 +983,11 @@ const PurchaseRequestManagement = () => {
                 </div>
               </div>
 
-              {/* Items Table */}
+              {/* Material Items Table */}
               <div className="bg-white border border-gray-200 rounded-lg p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                   <DocumentTextIcon className="h-5 w-5 mr-2 text-green-500" />
-                  Requested Items ({selectedRequest.items?.length || 0})
+                  Material Items ({selectedRequest.items?.length || 0})
                 </h3>
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
@@ -990,6 +1032,52 @@ const PurchaseRequestManagement = () => {
                   </table>
                 </div>
               </div>
+
+              {/* Hardware Items Table */}
+              {selectedRequest.hardwareItems && selectedRequest.hardwareItems.length > 0 && (
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <DocumentTextIcon className="h-5 w-5 mr-2 text-indigo-500" />
+                    Hardware Items ({selectedRequest.hardwareItems?.length || 0})
+                  </h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.No</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thickness</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Specification</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {selectedRequest.hardwareItems?.map((item, index) => (
+                          <tr key={index}>
+                            <td className="px-4 py-3 text-sm text-gray-900">{index + 1}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900">{item.description || 'N/A'}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900">{item.size || '-'}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900">{item.thickness || '-'}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900">{item.specification || '-'}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900">{item.quantity || 0}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900">
+                              {item.image && item.image.path ? (
+                                <a href={`${item.image.path}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
+                                  View
+                                </a>
+                              ) : (
+                                '-'
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
 
               {/* Remarks */}
               {selectedRequest.remarks && (

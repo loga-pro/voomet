@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import FloatingInput from './FloatingInput';
 import { FaEye, FaTrash, FaEdit, FaPlus } from 'react-icons/fa';
+import { purchasesAPI } from '../../services/api';
 
 const formatDateForInput = (dateValue) => {
   if (!dateValue) return '';
@@ -30,6 +31,14 @@ const ReceiptForm = ({
 }) => {
   const initialData = receiptData || {};
 
+  // State for purchases from purchase orders
+  const [purchases, setPurchases] = useState([]);
+  const [selectedVendor, setSelectedVendor] = useState(
+    initialData.vendorNames?.[0] || (initialData.vendorName ? initialData.vendorName : null)
+  );
+  const [availableVouchers, setAvailableVouchers] = useState([]);
+  const [selectedVoucherNo, setSelectedVoucherNo] = useState(initialData.voucherNo || null);
+
   // State for individual line items
   const [lineItems, setLineItems] = useState(() => {
     // If editing and lineItems array exists, map the fields correctly
@@ -42,7 +51,8 @@ const ReceiptForm = ({
         priceWithoutGST: (item.priceWithoutGST || item.invoiceValueWithoutGST)?.toString() || '',
         gstPercentage: item.gstPercentage || 18,
         gstAmount: (item.gstAmount || item.gstValue)?.toString() || '',
-        total: (item.total || item.totalValue)?.toString() || ''
+        total: (item.total || item.totalValue)?.toString() || '',
+        remark: item.remark || ''
       }));
     }
     // If editing a single receipt (has individual fields), convert to lineItems format
@@ -55,7 +65,8 @@ const ReceiptForm = ({
         priceWithoutGST: initialData.invoiceValueWithoutGST?.toString() || '',
         gstPercentage: initialData.gstPercentage || 18,
         gstAmount: initialData.gstValue?.toString() || '',
-        total: initialData.totalValue?.toString() || ''
+        total: initialData.totalValue?.toString() || '',
+        remark: initialData.remark || ''
       }];
     }
     // Default empty line item for new receipts
@@ -67,7 +78,8 @@ const ReceiptForm = ({
       priceWithoutGST: '',
       gstPercentage: 18,
       gstAmount: '',
-      total: ''
+      total: '',
+      remark: ''
     }];
   });
 
@@ -76,6 +88,7 @@ const ReceiptForm = ({
     receiptCategory: initialData.receiptCategory || 'buy',
     category: initialData.category || 'In house',
     vendorNames: initialData.vendorNames || (initialData.vendorName ? [initialData.vendorName] : []),
+    voucherNo: initialData.voucherNo || '',
     invoiceNo: initialData.invoiceNo || '',
     invoiceDate: formatDateForInput(initialData.invoiceDate),
     upload: initialData.upload || '',
@@ -104,6 +117,54 @@ const ReceiptForm = ({
     }
   }, [lineItems.map(item => `${item.priceWithoutGST}-${item.quantity}-${item.gstPercentage}`).join('|')]);
 
+  // Fetch purchases when vendor is selected in bought-out mode
+  useEffect(() => {
+    const fetchPurchases = async () => {
+      if (formData.category === 'Bought-out' && selectedVendor) {
+        try {
+          const response = await purchasesAPI.getAll();
+          const allPurchases = Array.isArray(response) ? response : response.data || [];
+
+          // Filter purchases by selected vendor
+          const vendorPurchases = allPurchases.filter(p => p.vendorName === selectedVendor);
+          setPurchases(vendorPurchases);
+
+          // Get unique voucher numbers for this vendor
+          const uniqueVouchers = [...new Set(vendorPurchases.map(p => p.voucherNo))].filter(Boolean);
+          setAvailableVouchers(uniqueVouchers);
+
+        } catch (error) {
+          console.error('Error fetching purchases:', error);
+        }
+      }
+    };
+    fetchPurchases();
+  }, [selectedVendor, formData.category]);
+
+  // Populate line items when voucher number is selected
+  useEffect(() => {
+    if (formData.category === 'Bought-out' && selectedVoucherNo && purchases.length > 0) {
+      // Filter purchases by selected voucher number
+      const voucherPurchases = purchases.filter(p => p.voucherNo === selectedVoucherNo);
+
+      if (voucherPurchases.length > 0) {
+        const mappedItems = voucherPurchases.map(item => ({
+          workCategory: item.workCategory || '',
+          partName: item.partName || '',
+          unit: item.unit || '',
+          actualOrder: item.quantity?.toString() || '', // Store original purchase order quantity
+          quantity: item.quantity?.toString() || '',
+          priceWithoutGST: item.invoiceValueWithoutGST?.toString() || '',
+          gstPercentage: item.gstPercentage || 18,
+          gstAmount: item.gstValue?.toString() || '',
+          total: item.totalValue?.toString() || ''
+        }));
+        setLineItems(mappedItems);
+      }
+    }
+  }, [selectedVoucherNo, purchases, formData.category]);
+
+
   // Auto-fill unit and price when part is selected for each line item
   const handlePartChange = (index, partName) => {
     const selectedPart = parts.find(p => p.partName === partName);
@@ -121,22 +182,32 @@ const ReceiptForm = ({
   };
 
   const handleVendorChange = (vendorName) => {
-    setFormData(prev => {
-      const currentVendors = prev.vendorNames || [];
-      const isSelected = currentVendors.includes(vendorName);
-
-      let newVendors;
-      if (isSelected) {
-        newVendors = currentVendors.filter(v => v !== vendorName);
-      } else {
-        newVendors = [...currentVendors, vendorName];
-      }
-
-      return {
+    if (formData.category === 'Bought-out') {
+      // Single selection for bought-out
+      setSelectedVendor(vendorName);
+      setFormData(prev => ({
         ...prev,
-        vendorNames: newVendors
-      };
-    });
+        vendorNames: [vendorName]
+      }));
+    } else {
+      // Multiple selection for in-house
+      setFormData(prev => {
+        const currentVendors = prev.vendorNames || [];
+        const isSelected = currentVendors.includes(vendorName);
+
+        let newVendors;
+        if (isSelected) {
+          newVendors = currentVendors.filter(v => v !== vendorName);
+        } else {
+          newVendors = [...currentVendors, vendorName];
+        }
+
+        return {
+          ...prev,
+          vendorNames: newVendors
+        };
+      });
+    }
   };
 
   const handleInputChange = (e) => {
@@ -162,9 +233,34 @@ const ReceiptForm = ({
       return;
     }
 
-    // Validate text fields (max 30 characters)
+    // Validate text fields (max 30 characters for invoiceNo and reasonForReturn)
     if (['invoiceNo', 'reasonForReturn'].includes(name) && value.length > 30) {
       showError?.('Maximum 30 characters allowed');
+      return;
+    }
+
+    // Reset vendor selection and line items when category changes
+    if (name === 'category') {
+      setSelectedVendor(null);
+      setSelectedVoucherNo(null);
+      setAvailableVouchers([]);
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        vendorNames: [],
+        voucherNo: ''
+      }));
+      // Reset line items to default
+      setLineItems([{
+        workCategory: '',
+        partName: '',
+        unit: '',
+        quantity: '',
+        priceWithoutGST: '',
+        gstPercentage: 18,
+        gstAmount: '',
+        total: ''
+      }]);
       return;
     }
 
@@ -173,6 +269,15 @@ const ReceiptForm = ({
       [name]: type === 'number' ? parseFloat(value) || 0 : value
     }));
   };
+
+  const handleVoucherChange = (voucherNo) => {
+    setSelectedVoucherNo(voucherNo);
+    setFormData(prev => ({
+      ...prev,
+      voucherNo: voucherNo
+    }));
+  };
+
 
   const handleLineItemChange = (index, field, value) => {
     const newLineItems = [...lineItems];
@@ -232,7 +337,8 @@ const ReceiptForm = ({
         priceWithoutGST: '',
         gstPercentage: 18,
         gstAmount: '',
-        total: ''
+        total: '',
+        remark: ''
       }
     ]);
   };
@@ -278,13 +384,15 @@ const ReceiptForm = ({
             invoiceDate: formData.invoiceDate,
             upload: formData.upload,
             reasonForReturn: formData.reasonForReturn,
+            voucherNo: formData.voucherNo || '',
             workCategory: item.workCategory,
             partName: item.partName,
             unit: item.unit,
             quantity: parseFloat(item.quantity),
             invoiceValueWithoutGST: parseFloat(item.priceWithoutGST),
             gstValue: parseFloat(item.gstAmount),
-            totalValue: parseFloat(item.total)
+            totalValue: parseFloat(item.total),
+            remark: item.remark || ''
           };
 
           // Only pass the ID on the first iteration to trigger the edit flow
@@ -302,6 +410,7 @@ const ReceiptForm = ({
             receiptCategory: formData.receiptCategory,
             category: formData.category,
             vendorNames: formData.vendorNames,
+            voucherNo: formData.voucherNo || '',
             invoiceNo: formData.invoiceNo,
             invoiceDate: formData.invoiceDate,
             upload: formData.upload,
@@ -312,7 +421,8 @@ const ReceiptForm = ({
             quantity: parseFloat(item.quantity),
             invoiceValueWithoutGST: parseFloat(item.priceWithoutGST),
             gstValue: parseFloat(item.gstAmount),
-            totalValue: parseFloat(item.total)
+            totalValue: parseFloat(item.total),
+            remark: item.remark || ''
           };
 
           await onSubmit(receipt);
@@ -330,9 +440,9 @@ const ReceiptForm = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-     
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <FloatingInput
           label="Date "
           name="date"
@@ -366,39 +476,43 @@ const ReceiptForm = ({
           ]}
         />
 
-        <div className="relative">
-          <label className="text-xs text-gray-500 absolute -top-2 left-2 bg-white px-1 z-10">
-            Vendor Names
-          </label>
-          <details className="w-full group">
-            <summary className="w-full h-[42px] px-3 py-2 border border-gray-300 rounded-md bg-white cursor-pointer flex items-center justify-between list-none">
-              <span className="truncate block text-sm text-gray-900">
-                {formData.vendorNames && formData.vendorNames.length > 0
-                  ? formData.vendorNames.join(', ')
-                  : <span className="text-gray-400">Select vendors...</span>
-                }
-              </span>
-              <span className="text-gray-400 text-xs">▼</span>
-            </summary>
-            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-              {vendors && vendors.length > 0 ? (
-                vendors.map((vendor) => (
-                  <label key={vendor._id} className="flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.vendorNames?.includes(vendor.vendorName)}
-                      onChange={() => handleVendorChange(vendor.vendorName)}
-                      className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-900">{vendor.vendorName}</span>
-                  </label>
-                ))
-              ) : (
-                <div className="px-3 py-2 text-sm text-gray-500">No vendors available</div>
-              )}
-            </div>
-          </details>
-        </div>
+        {/* Only show vendor field for Bought-out category */}
+        {formData.category === 'Bought-out' && (
+          <>
+            <FloatingInput
+              label="Vendor Name"
+              name="vendorName"
+              value={selectedVendor || ''}
+              onChange={(e) => handleVendorChange(e.target.value)}
+              type="select"
+              options={[
+                { value: '', label: 'Select Vendor' },
+                ...vendors.map(vendor => ({
+                  value: vendor.vendorName,
+                  label: vendor.vendorName
+                }))
+              ]}
+            />
+
+            {/* Show voucher number dropdown after vendor is selected */}
+            {selectedVendor && (
+              <FloatingInput
+                label="Voucher No"
+                name="voucherNo"
+                value={selectedVoucherNo || ''}
+                onChange={(e) => handleVoucherChange(e.target.value)}
+                type="select"
+                options={[
+                  { value: '', label: 'Select Voucher No' },
+                  ...availableVouchers.map(voucher => ({
+                    value: voucher,
+                    label: voucher
+                  }))
+                ]}
+              />
+            )}
+          </>
+        )}
 
         {formData.receiptCategory === 'buy' && (
           <>
@@ -480,19 +594,21 @@ const ReceiptForm = ({
             </button>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-white border border-gray-300">
+          <div className="overflow-x-auto shadow-sm border border-gray-200 rounded-lg">
+            <table className="min-w-[1400px] w-full bg-white">
               <thead>
                 <tr className="bg-gray-50">
-                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Work Category</th>
-                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Item Name</th>
-                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Unit</th>
-                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
-                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Price without GST (₹)</th>
-                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">GST %</th>
-                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">GST Amount (₹)</th>
-                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Total (₹)</th>
-                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-56">Work Category</th>
+                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-56">Item Name</th>
+                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">Unit</th>
+                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">Actual Order</th>
+                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">Quantity</th>
+                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-44">Price without GST (₹)</th>
+                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-24">GST %</th>
+                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-40">GST Amount (₹)</th>
+                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-40">Total (₹)</th>
+                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-64">Remark</th>
+                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-24">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -504,6 +620,7 @@ const ReceiptForm = ({
                         onChange={(e) => handleLineItemChange(index, 'workCategory', e.target.value)}
                         className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         required
+                        disabled={formData.category === 'Bought-out'}
                       >
                         <option value="">Select Work Category</option>
                         {workCategories.map(cat => (
@@ -519,6 +636,7 @@ const ReceiptForm = ({
                         onChange={(e) => handlePartChange(index, e.target.value)}
                         className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         required
+                        disabled={formData.category === 'Bought-out'}
                       >
                         <option value="">Select Part</option>
                         {parts
@@ -534,6 +652,14 @@ const ReceiptForm = ({
                       <input
                         type="text"
                         value={item.unit}
+                        readOnly
+                        className="w-full text-sm bg-gray-50 border border-gray-300 rounded px-2 py-1"
+                      />
+                    </td>
+                    <td className="py-2 px-3 border-b">
+                      <input
+                        type="text"
+                        value={item.actualOrder || ''}
                         readOnly
                         className="w-full text-sm bg-gray-50 border border-gray-300 rounded px-2 py-1"
                       />
@@ -559,6 +685,7 @@ const ReceiptForm = ({
                         step="0.01"
                         className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         required
+                        disabled={formData.category === 'Bought-out'}
                       />
                     </td>
                     <td className="py-2 px-3 border-b">
@@ -570,6 +697,7 @@ const ReceiptForm = ({
                         max="100"
                         step="0.01"
                         className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        disabled={formData.category === 'Bought-out'}
                       />
                     </td>
                     <td className="py-2 px-3 border-b">
@@ -589,6 +717,15 @@ const ReceiptForm = ({
                       />
                     </td>
                     <td className="py-2 px-3 border-b">
+                      <input
+                        type="text"
+                        value={item.remark}
+                        onChange={(e) => handleLineItemChange(index, 'remark', e.target.value)}
+                        className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="Remark"
+                      />
+                    </td>
+                    <td className="py-2 px-3 border-b">
                       <button
                         type="button"
                         onClick={() => removeLineItem(index)}
@@ -603,7 +740,7 @@ const ReceiptForm = ({
               </tbody>
               <tfoot>
                 <tr className="bg-gray-50">
-                  <td colSpan="7" className="py-2 px-3 text-right font-medium">Grand Total:</td>
+                  <td colSpan="9" className="py-2 px-3 text-right font-medium">Grand Total:</td>
                   <td className="py-2 px-3 font-bold text-blue-600">
                     ₹{lineItems.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0).toFixed(2)}
                   </td>

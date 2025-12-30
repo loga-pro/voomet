@@ -100,9 +100,13 @@ router.get('/:id', async (req, res) => {
 // Create new purchase
 router.post('/', async (req, res) => {
   try {
+    // Note: Multiple purchases can have the same voucher number (for different line items)
+    // So we don't check for duplicate voucher numbers here
+
     const purchaseData = {
       voucherNo: req.body.voucherNo,
       date: req.body.date,
+      vendorName: req.body.vendorName,
       modeOfPayment: req.body.modeOfPayment || 'Cash',
       referenceNo: req.body.referenceNo,
       referenceDate: req.body.referenceDate,
@@ -170,6 +174,7 @@ router.put('/:id', async (req, res) => {
     const updateData = {
       voucherNo: req.body.voucherNo,
       date: req.body.date,
+      vendorName: req.body.vendorName,
       modeOfPayment: req.body.modeOfPayment,
       referenceNo: req.body.referenceNo,
       referenceDate: req.body.referenceDate,
@@ -287,6 +292,26 @@ router.get('/filters/work-categories', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching work categories',
+      error: error.message
+    });
+  }
+});
+
+// Check if voucher number exists
+router.get('/check-voucher/:voucherNo', async (req, res) => {
+  try {
+    const existingPurchase = await Purchase.findOne({ voucherNo: req.params.voucherNo });
+    
+    res.json({
+      success: true,
+      exists: !!existingPurchase,
+      data: existingPurchase
+    });
+  } catch (error) {
+    console.error('Error checking voucher:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error checking voucher',
       error: error.message
     });
   }

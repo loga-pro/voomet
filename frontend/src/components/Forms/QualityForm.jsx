@@ -44,7 +44,12 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
       console.log('Loading quality record:', quality);
 
       // Initialize qualityIssues from existing data or empty array
-      const qualityIssues = quality.qualityIssues || [];
+      const qualityIssues = (quality.qualityIssues || []).map(issue => ({
+        ...issue,
+        dateOfIssue: issue.dateOfIssue ? issue.dateOfIssue.split('T')[0] : '',
+        dateOfDamage: issue.dateOfDamage ? issue.dateOfDamage.split('T')[0] : '',
+        dateOfFixed: issue.dateOfFixed ? issue.dateOfFixed.split('T')[0] : ''
+      }));
 
       setFormData({
         customer: quality.customer || '',
@@ -141,19 +146,19 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
 
     setFormData(prev => {
       const updatedIssues = [...prev.qualityIssues];
-      
+
       if (type === 'file' && files[0]) {
         // Upload image immediately when selected
         (async () => {
           try {
             const response = await qualityAPI.uploadImage(files[0]);
             const imageUrl = response.data.imageUrl;
-            
+
             updatedIssues[index] = {
               ...updatedIssues[index],
               [name]: imageUrl
             };
-            
+
             setFormData(prevForm => ({
               ...prevForm,
               qualityIssues: updatedIssues
@@ -163,7 +168,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
             alert('Failed to upload image. Please try again.');
           }
         })();
-        
+
         return prev;
       } else {
         // If person type changes, clear responsible person
@@ -179,7 +184,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
             [name]: value
           };
         }
-        
+
         return {
           ...prev,
           qualityIssues: updatedIssues
@@ -439,304 +444,304 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
             </div>
 
             {/* SECTION 2: Quality Issues Table */}
-<div className="bg-white p-6 rounded-lg border border-gray-200">
-  <div className="flex justify-between items-center mb-4">
-    <h3 className="text-lg font-medium text-gray-900">Quality Issues</h3>
-    <button
-      type="button"
-      onClick={addNewIssueRow}
-      className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
-    >
-      + Add Row
-    </button>
-  </div>
-
-  {/* Table for quality issues */}
-  <div className="overflow-x-auto">
-    <table className="min-w-full divide-y divide-gray-200">
-      <thead className="bg-gray-50">
-        <tr>
-          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
-            Date of Issue *
-          </th>
-          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
-            Scope of Work *
-          </th>
-          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
-            Reason *
-          </th>
-          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">
-            Description *
-          </th>
-          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
-            Person Type
-          </th>
-          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
-            Responsible Person
-          </th>
-          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
-            Date of Damage
-          </th>
-          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
-            Damage Image
-          </th>
-          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
-            Remarks
-          </th>
-          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
-            Date of Fixed
-          </th>
-          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
-            Fixed Image
-          </th>
-          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[80px]">
-            Actions
-          </th>
-        </tr>
-      </thead>
-      <tbody className="bg-white divide-y divide-gray-200">
-        {formData.qualityIssues.map((issue, index) => (
-          <tr key={index} className="hover:bg-gray-50">
-            {/* Date of Issue - Full date input */}
-            <td className="px-3 py-3 whitespace-nowrap">
-              <div className="flex flex-col">
-                <input
-                  type="date"
-                  name="dateOfIssue"
-                  value={issue.dateOfIssue}
-                  onChange={(e) => handleIssueChange(index, e)}
-                  className={`w-full px-3 py-2 border rounded-md text-sm ${errors[`issue_date_${index}`] ? 'border-red-300' : 'border-gray-300'}`}
-                  required
-                />
-               
+            <div className="bg-white p-6 rounded-lg border border-gray-200">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Quality Issues</h3>
+                <button
+                  type="button"
+                  onClick={addNewIssueRow}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  + Add Row
+                </button>
               </div>
-              {errors[`issue_date_${index}`] && (
-                <p className="text-red-500 text-xs mt-1">{errors[`issue_date_${index}`]}</p>
-              )}
-            </td>
 
-            {/* Scope of Work - Full select dropdown */}
-            <td className="px-3 py-3 whitespace-nowrap">
-              <select
-                name="scopeOfWork"
-                value={issue.scopeOfWork}
-                onChange={(e) => handleIssueChange(index, e)}
-                className={`w-full px-3 py-2 border rounded-md text-sm ${errors[`issue_scope_${index}`] ? 'border-red-300' : 'border-gray-300'}`}
-                required
-              >
-                <option value="">Select Scope of Work</option>
-                {allScopeOptions.map(scope => (
-                  <option key={scope.value} value={scope.value}>
-                    {scope.label}
-                  </option>
-                ))}
-              </select>
-              {errors[`issue_scope_${index}`] && (
-                <p className="text-red-500 text-xs mt-1">{errors[`issue_scope_${index}`]}</p>
-              )}
-            </td>
+              {/* Table for quality issues */}
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                        Date of Issue *
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
+                        Scope of Work *
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
+                        Reason *
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">
+                        Description *
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                        Person Type
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
+                        Responsible Person
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                        Date of Damage
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
+                        Damage Image
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                        Remarks
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                        Date of Fixed
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
+                        Fixed Image
+                      </th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[80px]">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {formData.qualityIssues.map((issue, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        {/* Date of Issue - Full date input */}
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <div className="flex flex-col">
+                            <input
+                              type="date"
+                              name="dateOfIssue"
+                              value={issue.dateOfIssue}
+                              onChange={(e) => handleIssueChange(index, e)}
+                              className={`w-full px-3 py-2 border rounded-md text-sm ${errors[`issue_date_${index}`] ? 'border-red-300' : 'border-gray-300'}`}
+                              required
+                            />
 
-            {/* Reason - Full select dropdown */}
-            <td className="px-3 py-3 whitespace-nowrap">
-              <select
-                name="reason"
-                value={issue.reason}
-                onChange={(e) => handleIssueChange(index, e)}
-                className={`w-full px-3 py-2 border rounded-md text-sm ${errors[`issue_reason_${index}`] ? 'border-red-300' : 'border-gray-300'}`}
-                required
-              >
-                <option value="">Select Reason</option>
-                {reasonOptions.map(reason => (
-                  <option key={reason} value={reason}>
-                    {reason}
-                  </option>
-                ))}
-              </select>
-              {errors[`issue_reason_${index}`] && (
-                <p className="text-red-500 text-xs mt-1">{errors[`issue_reason_${index}`]}</p>
-              )}
-            </td>
+                          </div>
+                          {errors[`issue_date_${index}`] && (
+                            <p className="text-red-500 text-xs mt-1">{errors[`issue_date_${index}`]}</p>
+                          )}
+                        </td>
 
-            {/* Description - Full textarea */}
-            <td className="px-3 py-3">
-              <textarea
-                name="description"
-                value={issue.description}
-                onChange={(e) => handleIssueChange(index, e)}
-                rows="3"
-                placeholder="Enter issue description"
-                className={`w-full px-3 py-2 border rounded-md text-sm ${errors[`issue_description_${index}`] ? 'border-red-300' : 'border-gray-300'}`}
-                required
-              />
-              {errors[`issue_description_${index}`] && (
-                <p className="text-red-500 text-xs mt-1">{errors[`issue_description_${index}`]}</p>
-              )}
-            </td>
+                        {/* Scope of Work - Full select dropdown */}
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <select
+                            name="scopeOfWork"
+                            value={issue.scopeOfWork}
+                            onChange={(e) => handleIssueChange(index, e)}
+                            className={`w-full px-3 py-2 border rounded-md text-sm ${errors[`issue_scope_${index}`] ? 'border-red-300' : 'border-gray-300'}`}
+                            required
+                          >
+                            <option value="">Select Scope of Work</option>
+                            {allScopeOptions.map(scope => (
+                              <option key={scope.value} value={scope.value}>
+                                {scope.label}
+                              </option>
+                            ))}
+                          </select>
+                          {errors[`issue_scope_${index}`] && (
+                            <p className="text-red-500 text-xs mt-1">{errors[`issue_scope_${index}`]}</p>
+                          )}
+                        </td>
 
-            {/* Person Type - Full select dropdown */}
-            <td className="px-3 py-3 whitespace-nowrap">
-              <select
-                name="personType"
-                value={issue.personType}
-                onChange={(e) => handleIssueChange(index, e)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-              >
-                <option value="">Select Type</option>
-                <option value="inhouse">Inhouse</option>
-                <option value="outsourced">Outsourced</option>
-              </select>
-            </td>
+                        {/* Reason - Full select dropdown */}
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <select
+                            name="reason"
+                            value={issue.reason}
+                            onChange={(e) => handleIssueChange(index, e)}
+                            className={`w-full px-3 py-2 border rounded-md text-sm ${errors[`issue_reason_${index}`] ? 'border-red-300' : 'border-gray-300'}`}
+                            required
+                          >
+                            <option value="">Select Reason</option>
+                            {reasonOptions.map(reason => (
+                              <option key={reason} value={reason}>
+                                {reason}
+                              </option>
+                            ))}
+                          </select>
+                          {errors[`issue_reason_${index}`] && (
+                            <p className="text-red-500 text-xs mt-1">{errors[`issue_reason_${index}`]}</p>
+                          )}
+                        </td>
 
-            {/* Responsible Person - Full select dropdown */}
-            <td className="px-3 py-3 whitespace-nowrap">
-              <select
-                name="responsiblePerson"
-                value={issue.responsiblePerson}
-                onChange={(e) => handleIssueChange(index, e)}
-                disabled={!issue.personType}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-              >
-                <option value="">
-                  {issue.personType === 'inhouse' ? 'Select Employee' : 
-                   issue.personType === 'outsourced' ? 'Select Vendor' : 
-                   'Select Type First'}
-                </option>
-                {issue.personType === 'inhouse'
-                  ? employees.map(emp => (
-                      <option key={emp._id} value={emp.name}>
-                        {emp.name}
-                      </option>
-                    ))
-                  : issue.personType === 'outsourced'
-                    ? vendors.map(vendor => (
-                        <option key={vendor._id} value={vendor.vendorName}>
-                          {vendor.vendorName}
-                        </option>
-                      ))
-                    : null}
-              </select>
-            </td>
+                        {/* Description - Full textarea */}
+                        <td className="px-3 py-3">
+                          <textarea
+                            name="description"
+                            value={issue.description}
+                            onChange={(e) => handleIssueChange(index, e)}
+                            rows="3"
+                            placeholder="Enter issue description"
+                            className={`w-full px-3 py-2 border rounded-md text-sm ${errors[`issue_description_${index}`] ? 'border-red-300' : 'border-gray-300'}`}
+                            required
+                          />
+                          {errors[`issue_description_${index}`] && (
+                            <p className="text-red-500 text-xs mt-1">{errors[`issue_description_${index}`]}</p>
+                          )}
+                        </td>
 
-            {/* Date of Damage - Full date input */}
-            <td className="px-3 py-3 whitespace-nowrap">
-              <div className="flex flex-col">
-                <input
-                  type="date"
-                  name="dateOfDamage"
-                  value={issue.dateOfDamage}
-                  onChange={(e) => handleIssueChange(index, e)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                />
-                <div className="text-xs text-gray-500 mt-1">
-                  Optional
-                </div>
+                        {/* Person Type - Full select dropdown */}
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <select
+                            name="personType"
+                            value={issue.personType}
+                            onChange={(e) => handleIssueChange(index, e)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                          >
+                            <option value="">Select Type</option>
+                            <option value="inhouse">Inhouse</option>
+                            <option value="outsourced">Outsourced</option>
+                          </select>
+                        </td>
+
+                        {/* Responsible Person - Full select dropdown */}
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <select
+                            name="responsiblePerson"
+                            value={issue.responsiblePerson}
+                            onChange={(e) => handleIssueChange(index, e)}
+                            disabled={!issue.personType}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                          >
+                            <option value="">
+                              {issue.personType === 'inhouse' ? 'Select Employee' :
+                                issue.personType === 'outsourced' ? 'Select Vendor' :
+                                  'Select Type First'}
+                            </option>
+                            {issue.personType === 'inhouse'
+                              ? employees.map(emp => (
+                                <option key={emp._id} value={emp.name}>
+                                  {emp.name}
+                                </option>
+                              ))
+                              : issue.personType === 'outsourced'
+                                ? vendors.map(vendor => (
+                                  <option key={vendor._id} value={vendor.vendorName}>
+                                    {vendor.vendorName}
+                                  </option>
+                                ))
+                                : null}
+                          </select>
+                        </td>
+
+                        {/* Date of Damage - Full date input */}
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <div className="flex flex-col">
+                            <input
+                              type="date"
+                              name="dateOfDamage"
+                              value={issue.dateOfDamage}
+                              onChange={(e) => handleIssueChange(index, e)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                            />
+                            <div className="text-xs text-gray-500 mt-1">
+                              Optional
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Damage Image - Full file input */}
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <div className="space-y-2">
+                            <div className="relative">
+                              <input
+                                type="file"
+                                name="damageImage"
+                                onChange={(e) => handleIssueChange(index, e)}
+                                accept="image/*"
+                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                              />
+                            </div>
+                            {hasImage(issue.damageImage) && (
+                              <button
+                                type="button"
+                                onClick={() => handleImagePreview(issue.damageImage, 'Damage Image')}
+                                className="w-full px-3 py-1.5 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+                              >
+                                View Uploaded Image
+                              </button>
+                            )}
+                            <div className="text-xs text-gray-500">
+                              Max 5MB
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Remarks - Full text input */}
+                        <td className="px-3 py-3">
+                          <input
+                            type="text"
+                            name="remarks"
+                            value={issue.remarks || ''}
+                            onChange={(e) => handleIssueChange(index, e)}
+                            placeholder="Enter remarks"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                          />
+                        </td>
+
+                        {/* Date of Fixed - Full date input */}
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <div className="flex flex-col">
+                            <input
+                              type="date"
+                              name="dateOfFixed"
+                              value={issue.dateOfFixed}
+                              onChange={(e) => handleIssueChange(index, e)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                            />
+                            <div className="text-xs text-gray-500 mt-1">
+                              Optional
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Fixed Image - Full file input */}
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <div className="space-y-2">
+                            <div className="relative">
+                              <input
+                                type="file"
+                                name="fixedImage"
+                                onChange={(e) => handleIssueChange(index, e)}
+                                accept="image/*"
+                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                              />
+                            </div>
+                            {hasImage(issue.fixedImage) && (
+                              <button
+                                type="button"
+                                onClick={() => handleImagePreview(issue.fixedImage, 'Fixed Image')}
+                                className="w-full px-3 py-1.5 text-xs text-white bg-green-600 hover:bg-green-700 rounded-md"
+                              >
+                                View Uploaded Image
+                              </button>
+                            )}
+                            <div className="text-xs text-gray-500">
+                              Max 5MB
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Actions - Delete button */}
+                        <td className="px-3 py-3 whitespace-nowrap text-sm font-medium">
+                          <button
+                            type="button"
+                            onClick={() => removeIssueRow(index)}
+                            disabled={formData.qualityIssues.length === 1}
+                            className={`p-2 rounded-md ${formData.qualityIssues.length === 1 ?
+                              'bg-gray-100 text-gray-400 cursor-not-allowed' :
+                              'bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-900'}`}
+                            title={formData.qualityIssues.length === 1 ? "Cannot delete the only row" : "Delete this row"}
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </td>
-
-            {/* Damage Image - Full file input */}
-            <td className="px-3 py-3 whitespace-nowrap">
-              <div className="space-y-2">
-                <div className="relative">
-                  <input
-                    type="file"
-                    name="damageImage"
-                    onChange={(e) => handleIssueChange(index, e)}
-                    accept="image/*"
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
-                  />
-                </div>
-                {hasImage(issue.damageImage) && (
-                  <button
-                    type="button"
-                    onClick={() => handleImagePreview(issue.damageImage, 'Damage Image')}
-                    className="w-full px-3 py-1.5 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-md"
-                  >
-                    View Uploaded Image
-                  </button>
-                )}
-                <div className="text-xs text-gray-500">
-                  Max 5MB
-                </div>
-              </div>
-            </td>
-
-            {/* Remarks - Full text input */}
-            <td className="px-3 py-3">
-              <input
-                type="text"
-                name="remarks"
-                value={issue.remarks || ''}
-                onChange={(e) => handleIssueChange(index, e)}
-                placeholder="Enter remarks"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-              />
-            </td>
-
-            {/* Date of Fixed - Full date input */}
-            <td className="px-3 py-3 whitespace-nowrap">
-              <div className="flex flex-col">
-                <input
-                  type="date"
-                  name="dateOfFixed"
-                  value={issue.dateOfFixed}
-                  onChange={(e) => handleIssueChange(index, e)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                />
-                <div className="text-xs text-gray-500 mt-1">
-                  Optional
-                </div>
-              </div>
-            </td>
-
-            {/* Fixed Image - Full file input */}
-            <td className="px-3 py-3 whitespace-nowrap">
-              <div className="space-y-2">
-                <div className="relative">
-                  <input
-                    type="file"
-                    name="fixedImage"
-                    onChange={(e) => handleIssueChange(index, e)}
-                    accept="image/*"
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
-                  />
-                </div>
-                {hasImage(issue.fixedImage) && (
-                  <button
-                    type="button"
-                    onClick={() => handleImagePreview(issue.fixedImage, 'Fixed Image')}
-                    className="w-full px-3 py-1.5 text-xs text-white bg-green-600 hover:bg-green-700 rounded-md"
-                  >
-                    View Uploaded Image
-                  </button>
-                )}
-                <div className="text-xs text-gray-500">
-                  Max 5MB
-                </div>
-              </div>
-            </td>
-
-            {/* Actions - Delete button */}
-            <td className="px-3 py-3 whitespace-nowrap text-sm font-medium">
-              <button
-                type="button"
-                onClick={() => removeIssueRow(index)}
-                disabled={formData.qualityIssues.length === 1}
-                className={`p-2 rounded-md ${formData.qualityIssues.length === 1 ? 
-                  'bg-gray-100 text-gray-400 cursor-not-allowed' : 
-                  'bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-900'}`}
-                title={formData.qualityIssues.length === 1 ? "Cannot delete the only row" : "Delete this row"}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-</div>
+            </div>
 
             {/* SECTION 3: Open Issues */}
             <div className="bg-white p-6 rounded-lg border border-gray-200">

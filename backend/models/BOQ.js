@@ -112,6 +112,7 @@ const boqSchema = new mongoose.Schema({
   paymentTerms: [{
     discount: {
       type: Number,
+      required: true,
       trim: true,
       min: 0,
       max: 100
@@ -122,6 +123,7 @@ const boqSchema = new mongoose.Schema({
     },
     dueDate: {
       type: String,
+      required: true,
       trim: true
     }
   }],

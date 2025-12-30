@@ -943,6 +943,28 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       });
     }
 
+    // Payment Terms Validation
+    if (formData.paymentTerms && Array.isArray(formData.paymentTerms)) {
+      let totalPercent = 0;
+      formData.paymentTerms.forEach((term, index) => {
+        if (!term.discount || parseFloat(term.discount) <= 0) {
+          newErrors[`paymentTerm-${index}-discount`] = 'Required';
+        } else {
+          totalPercent += parseFloat(term.discount);
+        }
+        if (!term.dueDate) {
+          newErrors[`paymentTerm-${index}-dueDate`] = 'Required';
+        }
+      });
+
+      // Optional: Check if total is 100% (User asked for fields mandatory, but usually 100% is required for BOQ)
+      if (Math.abs(totalPercent - 100) > 0.1) {
+        if (!newErrors.submit) {
+          newErrors.submit = `Total payment percentage must be 100% (Current: ${totalPercent.toFixed(2)}%)`;
+        }
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -1338,7 +1360,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                   onClick={addCustomItemRow}
                   className="px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                 >
-                  + Add Other
+                  + Add Another
                 </button>
               </div>
             </div>
@@ -1609,13 +1631,13 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                         Installment
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Payment  (%)
+                        Payment  (%) <span className="text-red-500">*</span>
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Value (₹)
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Due Date
+                        Due Date <span className="text-red-500">*</span>
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
@@ -1634,6 +1656,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                             Installment {index + 1}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="space-y-1">
                             <input
                               type="number"
                               min="0"
@@ -1642,14 +1665,22 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                               onChange={(e) => handlePaymentTermChange(index, e.target.value)}
                               onBlur={(e) => handlePaymentTermBlur(index, e.target.value)}
                               readOnly={isOriginalTerm}
-                              className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2 border ${isOriginalTerm ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                                className={`block w-full rounded-md shadow-sm focus:ring-primary-500 sm:text-sm p-2 border ${errors[`paymentTerm-${index}-discount`]
+                                  ? 'border-red-500 focus:border-red-500'
+                                  : 'border-gray-300 focus:border-primary-500'
+                                  } ${isOriginalTerm ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                               placeholder="0-100"
                             />
+                              {errors[`paymentTerm-${index}-discount`] && (
+                                <p className="text-xs text-red-600">{errors[`paymentTerm-${index}-discount`]}</p>
+                              )}
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                             ₹{parseFloat(calculatedValue).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="space-y-1">
                             <input
                               type="date"
                               value={term.dueDate || ''}
@@ -1658,8 +1689,15 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                                 newTerms[index] = { ...newTerms[index], dueDate: e.target.value };
                                 setFormData(prev => ({ ...prev, paymentTerms: newTerms }));
                               }}
-                              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2 border"
+                                className={`block w-full rounded-md shadow-sm focus:ring-primary-500 sm:text-sm p-2 border ${errors[`paymentTerm-${index}-dueDate`]
+                                  ? 'border-red-500 focus:border-red-500'
+                                  : 'border-gray-300 focus:border-primary-500'
+                                  }`}
                             />
+                              {errors[`paymentTerm-${index}-dueDate`] && (
+                                <p className="text-xs text-red-600">{errors[`paymentTerm-${index}-dueDate`]}</p>
+                              )}
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex items-center space-x-2">

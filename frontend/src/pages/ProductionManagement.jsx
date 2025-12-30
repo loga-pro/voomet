@@ -379,7 +379,20 @@ const ProductionManagement = () => {
       console.error("Error saving production:", error);
       console.error("Error response:", error.response);
       console.error("Error data:", error.response?.data);
-      showError(error.response?.data?.message || "Failed to save production record");
+
+      let errorMessage = "Failed to save production record";
+
+      if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+        // Handle express-validator errors
+        errorMessage = error.response.data.errors.map(err => err.msg || err).join(', ');
+      } else if (error.response?.data?.message) {
+        // Handle standard message
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      showError(errorMessage);
     }
   };
 
@@ -437,8 +450,8 @@ const ProductionManagement = () => {
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters || Object.values(filters).some((value, key) => key !== 'searchTerm' && Boolean(value))
-                      ? "border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100"
-                      : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+                    ? "border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100"
+                    : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
                     }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
@@ -679,9 +692,9 @@ const ProductionManagement = () => {
                           <div className="text-sm font-medium text-gray-900">
                             {totals.actual.toLocaleString()}
                           </div>
-                          <div className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${gap > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                          <div className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${gap > 0 ? 'bg-red-100 text-red-800' : gap < 0 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
                             }`}>
-                            Gap: {gap.toLocaleString()}
+                            {gap > 0 ? 'Shortage' : gap < 0 ? 'Excess' : 'Balanced'}: {Math.abs(gap).toLocaleString()}
                           </div>
                         </td>
 
@@ -809,16 +822,16 @@ const ProductionManagement = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${item.status === 'completed'
-                            ? 'bg-green-100 text-green-800'
-                            : item.status === 'in-progress'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-gray-100 text-gray-800'
+                          ? 'bg-green-100 text-green-800'
+                          : item.status === 'in-progress'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-gray-100 text-gray-800'
                           }`}>
                           {item.status?.charAt(0).toUpperCase() + item.status?.slice(1) || 'Active'}
                         </span>
-                        <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${gap > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                        <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${gap > 0 ? 'bg-red-100 text-red-800' : gap < 0 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
                           }`}>
-                          Gap: {gap.toLocaleString()}
+                          {gap > 0 ? 'Shortage' : gap < 0 ? 'Excess' : 'Balanced'}: {Math.abs(gap).toLocaleString()}
                         </span>
                       </div>
                       <div className="text-xs text-gray-500">
@@ -889,8 +902,8 @@ const ProductionManagement = () => {
                           <button
                             onClick={() => paginate(page)}
                             className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
-                                ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
-                                : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                              ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
+                              : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
                               }`}
                           >
                             {page}
@@ -1048,9 +1061,9 @@ const ProductionManagement = () => {
                               {detail.actualProduction?.toLocaleString() || "0"}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${gap > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${gap > 0 ? 'bg-red-100 text-red-800' : gap < 0 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
                                 }`}>
-                                {gap.toLocaleString()}
+                                {gap > 0 ? 'Shortage: ' : gap < 0 ? 'Excess: ' : 'Balanced: '}{Math.abs(gap).toLocaleString()}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-sm text-gray-900">
@@ -1115,8 +1128,8 @@ const ProductionManagement = () => {
                         <div className="text-2xl font-bold text-gray-900">
                           {efficiency.toFixed(1)}%
                         </div>
-                        <div className={`text-sm ${gap > 0 ? 'text-yellow-600' : 'text-green-600'}`}>
-                          Efficiency (Gap: {gap.toLocaleString()})
+                        <div className={`text-sm ${gap > 0 ? 'text-red-600' : gap < 0 ? 'text-green-600' : 'text-blue-600'}`}>
+                          Efficiency ({gap > 0 ? 'Shortage' : gap < 0 ? 'Excess' : 'Balanced'}: {Math.abs(gap).toLocaleString()})
                         </div>
                       </div>
                     </>

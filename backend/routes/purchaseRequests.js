@@ -229,9 +229,22 @@ router.post('/', auth, upload.any(), async (req, res) => {
       purchaseData.items = JSON.parse(purchaseData.items);
     }
 
+    // Parse hardwareItems if it's a string
+    if (typeof purchaseData.hardwareItems === 'string') {
+      purchaseData.hardwareItems = JSON.parse(purchaseData.hardwareItems);
+    }
+
     // Process items - convert numeric fields
     if (purchaseData.items && Array.isArray(purchaseData.items)) {
       purchaseData.items = purchaseData.items.map(item => ({
+        ...item,
+        quantity: parseFloat(item.quantity || 0)
+      }));
+    }
+
+    // Process hardwareItems - convert numeric fields
+    if (purchaseData.hardwareItems && Array.isArray(purchaseData.hardwareItems)) {
+      purchaseData.hardwareItems = purchaseData.hardwareItems.map(item => ({
         ...item,
         quantity: parseFloat(item.quantity || 0)
       }));
@@ -244,6 +257,17 @@ router.post('/', auth, upload.any(), async (req, res) => {
           const index = Number(file.fieldname.split('_')[1]);
           if (purchaseData.items[index]) {
             purchaseData.items[index].image = {
+              filename: file.filename,
+              originalName: file.originalname,
+              path: `/uploads/purchase-requests/${file.filename}`,
+              size: file.size,
+              type: file.mimetype
+            };
+          }
+        } else if (file.fieldname.startsWith('hardwareItemImage_')) {
+          const index = Number(file.fieldname.split('_')[1]);
+          if (purchaseData.hardwareItems && purchaseData.hardwareItems[index]) {
+            purchaseData.hardwareItems[index].image = {
               filename: file.filename,
               originalName: file.originalname,
               path: `/uploads/purchase-requests/${file.filename}`,
@@ -312,9 +336,22 @@ router.put('/:id', auth, upload.any(), async (req, res) => {
       updateData.items = JSON.parse(updateData.items);
     }
 
+    // Parse hardwareItems if it's a string
+    if (typeof updateData.hardwareItems === 'string') {
+      updateData.hardwareItems = JSON.parse(updateData.hardwareItems);
+    }
+
     // Process items - convert numeric fields
     if (updateData.items && Array.isArray(updateData.items)) {
       updateData.items = updateData.items.map(item => ({
+        ...item,
+        quantity: parseFloat(item.quantity || 0)
+      }));
+    }
+
+    // Process hardwareItems - convert numeric fields
+    if (updateData.hardwareItems && Array.isArray(updateData.hardwareItems)) {
+      updateData.hardwareItems = updateData.hardwareItems.map(item => ({
         ...item,
         quantity: parseFloat(item.quantity || 0)
       }));
@@ -327,6 +364,17 @@ router.put('/:id', auth, upload.any(), async (req, res) => {
           const index = Number(file.fieldname.split('_')[1]);
           if (updateData.items[index]) {
             updateData.items[index].image = {
+              filename: file.filename,
+              originalName: file.originalname,
+              path: `/uploads/purchase-requests/${file.filename}`,
+              size: file.size,
+              type: file.mimetype
+            };
+          }
+        } else if (file.fieldname.startsWith('hardwareItemImage_')) {
+          const index = Number(file.fieldname.split('_')[1]);
+          if (updateData.hardwareItems && updateData.hardwareItems[index]) {
+            updateData.hardwareItems[index].image = {
               filename: file.filename,
               originalName: file.originalname,
               path: `/uploads/purchase-requests/${file.filename}`,

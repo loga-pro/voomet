@@ -47,6 +47,10 @@ const purchaseSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  vendorName: {
+    type: String,
+    trim: true
+  },
   cgst: {
     type: Number,
     min: [0, 'CGST cannot be negative'],

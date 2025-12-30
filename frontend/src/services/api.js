@@ -363,6 +363,7 @@ export const purchasesAPI = {
   update: (id, data) => api.put(`/purchases/${id}`, data),
   delete: (id) => api.delete(`/purchases/${id}`),
   deleteByVoucher: (voucherNo) => api.delete(`/purchases/voucher/${voucherNo}`),
+  checkVoucher: (voucherNo) => api.get(`/purchases/check-voucher/${voucherNo}`),
   getWorkCategories: () => api.get('/purchases/filters/work-categories'),
 };
 

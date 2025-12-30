@@ -183,22 +183,27 @@ const useFilteredProjects = (customerName, inhouseMilestones) => {
 
 const GapDisplay = ({ gap }) => {
   const gapNum = gap === '' ? null : parseInt(gap, 10);
-  const showColor = gapNum !== null && !isNaN(gapNum) && gapNum !== 0;
+  const showText = gapNum !== null && !isNaN(gapNum);
 
   // Positive gap = shortage (BOQ > Inhouse) = RED
   // Negative gap = excess (Inhouse > BOQ) = GREEN
-  const gapStyle = showColor
+  const gapStyle = showText
     ? (gapNum > 0
       ? 'bg-red-50 text-red-700 border border-red-200' // Shortage
-      : 'bg-green-50 text-green-700 border border-green-200') // Excess
+      : (gapNum < 0
+        ? 'bg-green-50 text-green-700 border border-green-200' // Excess
+        : 'bg-blue-50 text-blue-700 border border-blue-200')) // Balanced
     : 'bg-white text-gray-700 border border-gray-200';
 
   // Display absolute value without minus sign
   const displayValue = gapNum !== null && !isNaN(gapNum) ? Math.abs(gapNum) : '';
+  const label = gapNum > 0 ? 'Shortage' : (gapNum < 0 ? 'Excess' : 'Balanced');
 
   return (
     <div className={`w-full px-3 py-2 rounded-md ${gapStyle}`}>
-      <span className="text-sm font-medium">{displayValue === 0 ? '0' : displayValue}</span>
+      <span className="text-sm font-medium">
+        {showText ? `${label}: ${displayValue}` : ''}
+      </span>
     </div>
   );
 };
@@ -632,9 +637,11 @@ const SummaryRow = ({ summary }) => {
             <div className="text-lg font-bold text-gray-900">{summary.totalActual}</div>
           </div>
           <div className="text-center p-3 bg-white rounded border">
-            <div className="text-xs text-gray-500 mb-1">Total Gap</div>
-            <div className={`text-lg font-bold ${summary.totalGap !== 0 ? 'text-red-600' : 'text-gray-900'}`}>
-              {summary.totalGap}
+            <div className="text-xs text-gray-500 mb-1">
+              {summary.totalGap > 0 ? 'Total Shortage' : summary.totalGap < 0 ? 'Total Excess' : 'Total Gap'}
+            </div>
+            <div className={`text-lg font-bold ${summary.totalGap > 0 ? 'text-red-600' : summary.totalGap < 0 ? 'text-green-600' : 'text-gray-900'}`}>
+              {Math.abs(summary.totalGap)}
             </div>
           </div>
           <div className="text-center p-3 bg-white rounded border">

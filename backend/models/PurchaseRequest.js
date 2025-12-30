@@ -49,6 +49,39 @@ const purchaseRequestItemSchema = new mongoose.Schema({
   }
 }, { _id: false });
 
+const hardwareItemSchema = new mongoose.Schema({
+  description: {
+    type: String,
+    required: [true, 'Description is required'],
+    trim: true,
+    maxlength: [200, 'Description cannot exceed 200 characters']
+  },
+  size: {
+    type: String,
+    trim: true,
+    maxlength: [50, 'Size cannot exceed 50 characters']
+  },
+  thickness: {
+    type: String,
+    trim: true,
+    maxlength: [50, 'Thickness cannot exceed 50 characters']
+  },
+  specification: {
+    type: String,
+    trim: true,
+    maxlength: [300, 'Specification cannot exceed 300 characters']
+  },
+  quantity: {
+    type: Number,
+    required: [true, 'Quantity is required'],
+    min: [0.01, 'Quantity must be at least 0.01']
+  },
+  image: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  }
+}, { _id: false });
+
 const purchaseRequestSchema = new mongoose.Schema({
   customerName: {
     type: String,
@@ -88,6 +121,10 @@ const purchaseRequestSchema = new mongoose.Schema({
       },
       message: 'At least one item is required'
     }
+  },
+  hardwareItems: {
+    type: [hardwareItemSchema],
+    default: []
   },
   status: {
     type: String,
@@ -131,8 +168,9 @@ const purchaseRequestSchema = new mongoose.Schema({
 
 // Calculate totals before saving
 purchaseRequestSchema.pre('save', function(next) {
-  this.totalItems = this.items.length;
-  this.totalQuantity = this.items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+  this.totalItems = this.items.length + (this.hardwareItems?.length || 0);
+  this.totalQuantity = this.items.reduce((sum, item) => sum + (item.quantity || 0), 0) + 
+                       (this.hardwareItems?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0);
   this.totalEstimatedCost = this.items.reduce((sum, item) => sum + (item.estimatedCost || 0), 0);
   next();
 });
@@ -140,10 +178,11 @@ purchaseRequestSchema.pre('save', function(next) {
 // Update totals before updating
 purchaseRequestSchema.pre('findOneAndUpdate', function(next) {
   const update = this.getUpdate();
-  if (update.items) {
-    update.totalItems = update.items.length;
-    update.totalQuantity = update.items.reduce((sum, item) => sum + (item.quantity || 0), 0);
-    update.totalEstimatedCost = update.items.reduce((sum, item) => sum + (item.estimatedCost || 0), 0);
+  if (update.items || update.hardwareItems) {
+    update.totalItems = (update.items?.length || 0) + (update.hardwareItems?.length || 0);
+    update.totalQuantity = (update.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0) +
+                           (update.hardwareItems?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0);
+    update.totalEstimatedCost = (update.items?.reduce((sum, item) => sum + (item.estimatedCost || 0), 0) || 0);
   }
   next();
 });

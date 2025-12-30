@@ -31,6 +31,10 @@ const receiptSchema = new mongoose.Schema({
     type: String,
     maxlength: 30
   },
+  voucherNo: {
+    type: String,
+    maxlength: 30
+  },
   invoiceDate: {
     type: Date
   },
@@ -61,6 +65,10 @@ const receiptSchema = new mongoose.Schema({
   totalValue: {
     type: Number,
     default: 0
+  },
+  remark: {
+    type: String,
+    maxlength: 200
   },
   status: {
     type: String,

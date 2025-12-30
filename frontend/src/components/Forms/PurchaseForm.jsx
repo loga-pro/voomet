@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import FloatingInput from './FloatingInput';
 import { FaTrash, FaPlus } from 'react-icons/fa';
-import { purchasesAPI } from '../../services/api';
+import { purchasesAPI, vendorsAPI } from '../../services/api';
 
 const formatDateForInput = (dateValue) => {
   if (!dateValue) return '';
@@ -30,6 +30,7 @@ const PurchaseForm = ({
 }) => {
   const initialData = purchaseData || {};
   const [allPurchasesForVoucher, setAllPurchasesForVoucher] = useState([]);
+  const [vendors, setVendors] = useState([]);
 
   // State for individual line items
   const [lineItems, setLineItems] = useState(() => {
@@ -83,9 +84,24 @@ const PurchaseForm = ({
     destination: initialData.destination || '',
     termsOfDelivery: initialData.termsOfDelivery || '',
     supplier: initialData.supplier || '',
+    vendorName: initialData.vendorName || '',
     cgst: initialData.cgst || '',
     sgst: initialData.sgst || ''
   });
+
+  // Fetch vendors on component mount
+  useEffect(() => {
+    const fetchVendors = async () => {
+      try {
+        const response = await vendorsAPI.getAll();
+        const vendorsList = Array.isArray(response.data) ? response.data : response.data?.data || [];
+        setVendors(vendorsList);
+      } catch (error) {
+        console.error('Error fetching vendors:', error);
+      }
+    };
+    fetchVendors();
+  }, []);
 
   // Calculate totals
   useEffect(() => {
@@ -118,7 +134,7 @@ const PurchaseForm = ({
           const response = await purchasesAPI.getAll();
           const allPurchases = Array.isArray(response) ? response : response.data || [];
           const relatedPurchases = allPurchases.filter(p => p.voucherNo === initialData.voucherNo);
-          
+
           if (relatedPurchases.length > 1) {
             // Multiple line items found - populate form with all of them
             setAllPurchasesForVoucher(relatedPurchases);
@@ -158,6 +174,37 @@ const PurchaseForm = ({
     }
   };
 
+  // Handle vendor selection and auto-fill address
+  const handleVendorChange = (e) => {
+    const selectedVendorName = e.target.value;
+    const selectedVendor = vendors.find(v => v.vendorName === selectedVendorName);
+
+    if (selectedVendor) {
+      // Format the address from vendor data
+      const addressParts = [
+        selectedVendor.address,
+        selectedVendor.city,
+        selectedVendor.state,
+        selectedVendor.zipCode,
+        selectedVendor.country
+      ].filter(Boolean); // Remove empty values
+
+      const formattedAddress = addressParts.join(', ');
+
+      setFormData(prev => ({
+        ...prev,
+        vendorName: selectedVendorName,
+        supplier: formattedAddress
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        vendorName: selectedVendorName,
+        supplier: ''
+      }));
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value, type, files } = e.target;
 
@@ -181,10 +228,25 @@ const PurchaseForm = ({
       return;
     }
 
+
     // Validate text fields (max 30 characters)
     if (['voucherNo', 'referenceNo', 'otherReference', 'dispatchedThrough', 'destination'].includes(name) && value.length > 30) {
       showError?.('Maximum 30 characters allowed');
       return;
+    }
+
+    // Validate CGST and SGST (0-100, whole numbers only)
+    if (['cgst', 'sgst'].includes(name)) {
+      const numValue = parseInt(value);
+      if (value !== '' && (numValue < 0 || numValue > 100)) {
+        showError?.('Value must be between 0 and 100');
+        return;
+      }
+      // Don't allow decimals
+      if (value.includes('.')) {
+        showError?.('Only whole numbers allowed');
+        return;
+      }
     }
 
     setFormData(prev => ({
@@ -302,6 +364,7 @@ const PurchaseForm = ({
             destination: formData.destination,
             termsOfDelivery: formData.termsOfDelivery,
             supplier: formData.supplier,
+            vendorName: formData.vendorName,
             ...(formData.cgst !== '' && { cgst: parseFloat(formData.cgst) }),
             ...(formData.sgst !== '' && { sgst: parseFloat(formData.sgst) }),
             workCategory: item.workCategory,
@@ -321,7 +384,15 @@ const PurchaseForm = ({
         onCancel(); // Close the modal
         if (onSubmit) onSubmit(); // Trigger parent refresh
       } else {
-        // For creating new purchases, create one purchase per line item
+        // For creating new purchases, check if voucher number already exists
+        const voucherCheck = await purchasesAPI.checkVoucher(formData.voucherNo);
+
+        if (voucherCheck.data.exists) {
+          showError?.('Voucher number already exists. Please use a unique voucher number.');
+          return;
+        }
+
+        // Create one purchase per line item
         for (const item of lineItems) {
           const purchase = {
             voucherNo: formData.voucherNo,
@@ -334,6 +405,7 @@ const PurchaseForm = ({
             destination: formData.destination,
             termsOfDelivery: formData.termsOfDelivery,
             supplier: formData.supplier,
+            vendorName: formData.vendorName,
             ...(formData.cgst !== '' && { cgst: parseFloat(formData.cgst) }),
             ...(formData.sgst !== '' && { sgst: parseFloat(formData.sgst) }),
             workCategory: item.workCategory,
@@ -361,7 +433,22 @@ const PurchaseForm = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <FloatingInput
+          label="Vendor Name"
+          name="vendorName"
+          value={formData.vendorName}
+          onChange={handleVendorChange}
+          type="select"
+          options={[
+            { value: '', label: 'Select Vendor' },
+            ...vendors.map(vendor => ({
+              value: vendor.vendorName,
+              label: vendor.vendorName
+            }))
+          ]}
+        />
+
         <FloatingInput
           label="Voucher No"
           name="voucherNo"
@@ -442,7 +529,7 @@ const PurchaseForm = ({
           value={formData.termsOfDelivery}
           onChange={handleInputChange}
           type="textarea"
-          rows={3}
+          rows={4}
         />
 
         <FloatingInput
@@ -452,32 +539,34 @@ const PurchaseForm = ({
           onChange={handleInputChange}
           type="textarea"
           rows={4}
-          placeholder="Enter supplier details here"
         />
 
-        <FloatingInput
-          label="CGST (%)"
-          name="cgst"
-          value={formData.cgst}
-          onChange={handleInputChange}
-          type="number"
-          min="0"
-          max="100"
-          step="0.01"
-          placeholder="Optional"
-        />
-
-        <FloatingInput
-          label="SGST (%)"
-          name="sgst"
-          value={formData.sgst}
-          onChange={handleInputChange}
-          type="number"
-          min="0"
-          max="100"
-          step="0.01"
-          placeholder="Optional"
-        />
+        <div className="flex gap-2 items-center">
+          <div className="flex-1">
+            <FloatingInput
+              label="CGST (%)"
+              name="cgst"
+              value={formData.cgst}
+              onChange={handleInputChange}
+              type="number"
+              min="0"
+              max="100"
+              step="1"
+            />
+          </div>
+          <div className="flex-1">
+            <FloatingInput
+              label="SGST (%)"
+              name="sgst"
+              value={formData.sgst}
+              onChange={handleInputChange}
+              type="number"
+              min="0"
+              max="100"
+              step="1"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Line Items Section */}
@@ -497,15 +586,15 @@ const PurchaseForm = ({
           <table className="min-w-full bg-white border border-gray-300">
             <thead>
               <tr className="bg-gray-50">
-                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Work Category</th>
-                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Item Name</th>
-                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Unit</th>
-                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
-                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Price without GST (₹)</th>
-                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">GST %</th>
-                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">GST Amount (₹)</th>
-                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Total (₹)</th>
-                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-48">Work Category</th>
+                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-48">Item Name</th>
+                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-24">Unit</th>
+                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-28">Quantity</th>
+                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-36">Price without GST (₹)</th>
+                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-24">GST %</th>
+                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-32">GST Amount (₹)</th>
+                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-32">Total (₹)</th>
+                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-20">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -561,7 +650,6 @@ const PurchaseForm = ({
                       min="0"
                       max="9999"
                       step="1"
-                      required
                       hideLabel
                     />
                   </td>
@@ -573,7 +661,6 @@ const PurchaseForm = ({
                       type="number"
                       min="0"
                       step="0.01"
-                      required
                       hideLabel
                     />
                   </td>

@@ -244,7 +244,7 @@ const Receipts = () => {
     const headers = [
       'Date', 'Receipt Category', 'Work Category', 'Item Name', 'Vendor Name',
       'Invoice No', 'Invoice Date', 'Quantity', 'Unit',
-      'Invoice Value', 'GST Value', 'Total Value', 'Status'
+      'Invoice Value', 'GST Value', 'Total Value', 'Remark', 'Status'
     ];
 
     const csvData = filteredReceipts.map(receipt => [
@@ -260,6 +260,7 @@ const Receipts = () => {
       formatCurrency(receipt.invoiceValueWithoutGST || 0),
       formatCurrency(receipt.gstValue || 0),
       formatCurrency(receipt.totalValue || 0),
+      receipt.remark || '',
       receipt.status || 'active'
     ]);
 
@@ -307,7 +308,8 @@ const Receipts = () => {
           priceWithoutGST: r.invoiceValueWithoutGST?.toString() || '',
           gstPercentage: r.gstPercentage || 18,
           gstAmount: r.gstValue?.toString() || '',
-          total: r.totalValue?.toString() || ''
+          total: r.totalValue?.toString() || '',
+          remark: r.remark || ''
         })),
         relatedReceiptIds: relatedReceipts.map(r => r._id) // Store all IDs for deletion/update
       };
@@ -554,27 +556,27 @@ const Receipts = () => {
             {/* Desktop Table View */}
             <div className="hidden lg:block">
               <div className="max-h-[60vh] overflow-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-[1000px] w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-40">
                         Date
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">
                         Category
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">
                         View Items
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-64">
                         Vendor
                       </th>
 
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-48">
                         Invoice No
                       </th>
 
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">
                         Actions
                       </th>
                     </tr>
@@ -1056,24 +1058,27 @@ const Receipts = () => {
         size="xl"
       >
         {selectedGroupedReceipt && selectedGroupedReceipt.lineItems && selectedGroupedReceipt.lineItems.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div className="overflow-x-auto border border-gray-200 rounded-lg">
+            <table className="min-w-[800px] w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-56">
                     Item Name
                   </th>
-                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">
                     Quantity
                   </th>
-                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">
                     Units
                   </th>
-                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-40">
                     Unit Price
                   </th>
-                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-40">
                     Total
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-64">
+                    Remark
                   </th>
                 </tr>
               </thead>
@@ -1095,6 +1100,9 @@ const Receipts = () => {
                     <td className="px-4 py-3 text-center text-sm font-medium text-gray-900">
                       ₹{(item.totalValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
+                    <td className="px-4 py-3 text-center text-sm text-gray-500">
+                      {item.remark || '-'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1106,6 +1114,7 @@ const Receipts = () => {
                   <td className="px-4 py-3 text-sm font-bold text-green-700 text-center">
                     ₹{(selectedGroupedReceipt.totalValue || 0).toLocaleString('en-IN')}
                   </td>
+                  <td></td>
                 </tr>
               </tfoot>
             </table>

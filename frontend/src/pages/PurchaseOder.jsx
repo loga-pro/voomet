@@ -64,6 +64,7 @@ const PurchaseOrder = () => {
         grouped[purchase.voucherNo] = {
           voucherNo: purchase.voucherNo,
           date: purchase.date,
+          vendorName: purchase.vendorName,
           modeOfPayment: purchase.modeOfPayment,
           referenceNo: purchase.referenceNo,
           referenceDate: purchase.referenceDate,
@@ -296,16 +297,14 @@ const PurchaseOrder = () => {
   const confirmDelete = async () => {
     if (purchaseToDelete) {
       try {
-        // If it looks like a voucher number (passed from grouped view), delete all with that voucher
-        const purchasesToDelete = purchases.filter(p => p.voucherNo === purchaseToDelete || p._id === purchaseToDelete);
+        // Check if purchaseToDelete is a voucher number or an ID
+        const isVoucherNumber = purchases.some(p => p.voucherNo === purchaseToDelete);
 
-        if (purchasesToDelete.length > 1) {
-          // Multiple items with same voucher - delete all
-          for (const purchase of purchasesToDelete) {
-            await purchasesAPI.delete(purchase._id);
-          }
+        if (isVoucherNumber) {
+          // Delete by voucher number (deletes all purchases with this voucher)
+          await purchasesAPI.deleteByVoucher(purchaseToDelete);
         } else {
-          // Single item - delete by ID
+          // Delete by ID (single purchase)
           await purchasesAPI.delete(purchaseToDelete);
         }
 
@@ -470,6 +469,9 @@ const PurchaseOrder = () => {
                         Voucher No
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Vendor Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Date
                       </th>
                       <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -492,6 +494,9 @@ const PurchaseOrder = () => {
                         <tr key={group.voucherNo} className="hover:bg-gray-50 transition-colors duration-150">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">{group.voucherNo}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{group.vendorName || '-'}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
@@ -553,7 +558,7 @@ const PurchaseOrder = () => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                        <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
                           {Object.values(filters).some(val => val !== '')
                             ? 'No purchases found matching your filters.'
                             : 'No purchases found.'

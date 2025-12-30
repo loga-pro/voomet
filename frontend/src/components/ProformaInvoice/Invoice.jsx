@@ -363,7 +363,7 @@ const ProformaInvoice = ({ invoiceData = {}, hideDownloadButton = false }) => {
                             <span className="font-bold">{projectName || 'Interior Works'}</span>
                             <div className="italic invoice-xsmall mt-1">As Per Attached Annexure</div>
                           </div>
-                          <div className="w-[8%] border-r border-black p-1 text-center">{inv.hsnSac || '998391'}</div>
+                          <div className="w-[8%] border-r border-black p-1 text-center">{(inv.hsnSac && inv.hsnSac !== '0') ? inv.hsnSac : ''}</div>
                           <div className="w-[7%] border-r border-black p-1 text-center"></div>
                           <div className="w-[7%] border-r border-black p-1 text-center"></div>
                           <div className="w-[9%] border-r border-black p-1 text-right"></div>
@@ -377,7 +377,7 @@ const ProformaInvoice = ({ invoiceData = {}, hideDownloadButton = false }) => {
                             <span className="font-bold">{projectName || 'Interior Works'}</span>
                             <div className="italic invoice-xsmall mt-1">As Per Attached Annexure</div>
                           </div>
-                          <div className="w-[8%] border-r border-black p-1 text-center">998391</div>
+                          <div className="w-[8%] border-r border-black p-1 text-center"></div>
                           <div className="w-[7%] border-r border-black p-1 text-center"></div>
                           <div className="w-[7%] border-r border-black p-1 text-center"></div>
                           <div className="w-[9%] border-r border-black p-1 text-right"></div>
@@ -386,29 +386,31 @@ const ProformaInvoice = ({ invoiceData = {}, hideDownloadButton = false }) => {
                         </div>
                       )}
 
-                      {/* Tax Rows (CGST/SGST) */}
-                      <div className="flex invoice-small">
-                        <div className="w-[4%] border-r border-black p-1 text-center"></div>
-                        <div className="w-[25%] border-r border-black p-1 text-right italic">
-                          <div>Output CGST</div>
-                          <div>Output SGST</div>
+                      {/* Tax Rows (CGST/SGST) - Only show if taxes are present */}
+                      {(cgstAmount > 0 || sgstAmount > 0) && (
+                        <div className="flex invoice-small">
+                          <div className="w-[4%] border-r border-black p-1 text-center"></div>
+                          <div className="w-[25%] border-r border-black p-1 text-right italic">
+                            <div>Output CGST</div>
+                            <div>Output SGST</div>
+                          </div>
+                          <div className="w-[8%] border-r border-black p-1 text-center"></div>
+                          <div className="w-[7%] border-r border-black p-1 text-center"></div>
+                          <div className="w-[7%] border-r border-black p-1 text-center"></div>
+                          <div className="w-[9%] border-r border-black p-1 text-center flex flex-col items-center">
+                            <div>{invoice.cgst}</div>
+                            <div>{invoice.sgst}</div>
+                          </div>
+                          <div className="w-[6%] border-r border-black p-1 text-center flex flex-col items-center">
+                            <div>%</div>
+                            <div>%</div>
+                          </div>
+                          <div className="w-[18%] p-1 text-right">
+                            <div>{cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                            <div>{sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                          </div>
                         </div>
-                        <div className="w-[8%] border-r border-black p-1 text-center"></div>
-                        <div className="w-[7%] border-r border-black p-1 text-center"></div>
-                        <div className="w-[7%] border-r border-black p-1 text-center"></div>
-                        <div className="w-[9%] border-r border-black p-1 text-center flex flex-col items-center">
-                          <div>{invoice.cgst || '9'}</div>
-                          <div>{invoice.sgst || '9'}</div>
-                        </div>
-                        <div className="w-[6%] border-r border-black p-1 text-center flex flex-col items-center">
-                          <div>%</div>
-                          <div>%</div>
-                        </div>
-                        <div className="w-[18%] p-1 text-right">
-                          <div>{cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                          <div>{sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                        </div>
-                      </div>
+                      )}
 
                       {/* Round Off - Only show if roundOff has a value */}
                       {roundOff !== 0 && (
