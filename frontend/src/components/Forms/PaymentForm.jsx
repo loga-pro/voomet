@@ -51,6 +51,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
   const [loading, setLoading] = useState(false);
   const [invoiceErrors, setInvoiceErrors] = useState({});
   const [usedInvoiceNumbers, setUsedInvoiceNumbers] = useState(new Set());
+  const [boqData, setBoqData] = useState(null);
 
   const fetchProjectInvoicedAmount = async (customerName, projectName) => {
     try {
@@ -66,7 +67,6 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       const usedNumbers = new Set();
 
       const total = paymentsList.reduce((sum, p) => {
-        // Collect invoice numbers
         if (p.invoices) {
           p.invoices.forEach(inv => {
             if (inv.invoiceNumber) usedNumbers.add(inv.invoiceNumber.toLowerCase());
@@ -154,7 +154,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
 
       setFormData({
         customer: payment.customer || '',
-        project: payment.project || '',
+        project: payment.projectName || payment.project || '',
         projectName: payment.projectName || '',
         projectCost: payment.projectCost !== undefined ? payment.projectCost : '',
         paymentType: payment.paymentType || 'advance',
@@ -208,7 +208,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       }
     } catch (error) {
       console.error('Error fetching BOQ terms:', error);
-      }
+    }
   };
 
   const fetchCustomers = async () => {
@@ -222,17 +222,17 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       } else if (Array.isArray(boqResponse)) {
         boqList = boqResponse;
       }
-      
+
       if (!Array.isArray(boqList)) {
         throw new Error('BOQ data is not in expected format');
       }
-      
+
       const uniqueCustomerNames = [...new Set(boqList.map(boq => boq.customer))].filter(Boolean);
       const customersWithBOQ = uniqueCustomerNames.map(name => ({
         _id: name,
         customerName: name
       }));
-      
+
       setCustomers(customersWithBOQ);
     } catch (error) {
       console.error('Error fetching customers with BOQ:', error);
@@ -251,10 +251,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         setProjects([]);
         return [];
       }
-      
-      const projectsResponse = await projectsAPI.getAll({ customerName });
-      const allProjects = projectsResponse.data || [];
-      
+
       const boqResponse = await boqAPI.getAll({ customer: customerName });
       let boqList = [];
       if (boqResponse.data && boqResponse.data.data) {
@@ -264,9 +261,16 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       } else if (Array.isArray(boqResponse)) {
         boqList = boqResponse;
       }
-      
-      setProjects(allProjects);
-      return allProjects;
+
+      const projectList = boqList.map(boq => ({
+        _id: boq._id || boq.id,
+        projectName: boq.projectName,
+        customer: boq.customer,
+        boqData: boq // Store full BOQ data
+      }));
+
+      setProjects(projectList);
+      return projectList;
     } catch (error) {
       console.error('Error fetching projects:', error);
       setErrors(prev => ({ ...prev, submit: 'Failed to load projects for selected customer' }));
@@ -293,31 +297,38 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         boqList = [];
       }
 
-      const projectBOQ = boqList.find(boq => 
-        boq.projectName === projectName || 
+      const projectBOQ = boqList.find(boq =>
+        boq.projectName === projectName ||
         boq.projectName?.toLowerCase() === projectName?.toLowerCase()
       );
 
       if (projectBOQ) {
+        setBoqData(projectBOQ);
+        
+        // Always use finalTotalWithoutGST as the base project cost
+        const baseCost = projectBOQ.finalTotalWithoutGST || '';
+        
         setFormData(prev => ({
           ...prev,
-          project: selectedProject?._id || projectName,
+          project: selectedProject?.projectName || projectName,
           projectName: projectName,
-          projectCost: projectBOQ.totalWithGST || '',
-          includeGST: false,
+          projectCost: baseCost, // Set to finalTotalWithoutGST
+          // Keep includeGST as is, but update gstPercentage from BOQ
           gstPercentage: projectBOQ.gstPercentage || 18,
         }));
         setBoqInstallments(projectBOQ.paymentTerms || []);
       } else {
+        setBoqData(null);
         setFormData(prev => ({
           ...prev,
-          project: selectedProject?._id || projectName,
+          project: selectedProject?.projectName || projectName,
           projectName: projectName,
           projectCost: ''
         }));
       }
     } catch (error) {
       console.error('Error fetching BOQ data:', error);
+      setBoqData(null);
       setFormData(prev => ({
         ...prev,
         project: selectedProject?._id || projectName,
@@ -355,17 +366,20 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
+
     if (name === 'customer') {
       setFormData(prev => ({
         ...prev,
         customer: value,
         project: '',
         projectName: '',
-        projectCost: ''
+        projectCost: '',
+        includeGST: false,
+        gstPercentage: 18
       }));
       setErrors(prev => ({ ...prev, submit: '', customer: '' }));
       setProjects([]);
+      setBoqData(null);
       if (value) {
         fetchProjects(value);
         fetchCustomerDetails(value);
@@ -378,12 +392,32 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       if (selectedProject) {
         setFormData(prev => ({
           ...prev,
-          project: selectedProject._id || selectedProject.projectName,
+          project: selectedProject.projectName,
           projectName: selectedProject.projectName
         }));
         fetchBOQData(formData.customer, selectedProject.projectName, selectedProject);
         fetchProjectInvoicedAmount(formData.customer, selectedProject.projectName);
       }
+      return;
+    }
+
+    if (name === 'includeGST') {
+      // When GST is toggled, update the form data
+      setFormData(prev => ({
+        ...prev,
+        [name]: checked,
+        // If turning on GST and we have BOQ data with GST percentage, use it
+        gstPercentage: checked && boqData?.gstPercentage ? boqData.gstPercentage : prev.gstPercentage
+      }));
+      return;
+    }
+
+    if (name === 'gstPercentage') {
+      // Allow manual editing of GST percentage
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
       return;
     }
 
@@ -398,19 +432,26 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
   };
 
   const calculateAmounts = () => {
-    const cost = parseFloat(formData.projectCost) || 0;
-    const gst = formData.includeGST ? (cost * parseFloat(formData.gstPercentage || 0)) / 100 : 0;
-    const totalAmount = cost + gst;
+    // Base amount is always the finalTotalWithoutGST from BOQ
+    const baseAmount = parseFloat(formData.projectCost) || 0;
     
+    // Calculate GST amount if includeGST is checked
+    const gstAmount = formData.includeGST 
+      ? (baseAmount * parseFloat(formData.gstPercentage || 0)) / 100 
+      : 0;
+    
+    // Total amount is base + GST
+    const totalAmount = baseAmount + gstAmount;
+
     const paidAmount = formData.payments.reduce((sum, payment) => {
       return sum + (parseFloat(payment.amount) || 0);
     }, 0);
-    
+
     const remainingAmount = totalAmount - paidAmount;
-    
+
     return {
-      baseAmount: cost,
-      gstAmount: gst,
+      baseAmount,
+      gstAmount,
       totalAmount,
       paidAmount,
       remainingAmount
@@ -450,9 +491,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
   const validateInvoiceNumberUniqueness = (number, invoiceIndex) => {
     if (!number) return true;
 
-    // Check against database used numbers
     if (usedInvoiceNumbers.has(number.toLowerCase())) {
-      // If editing existing payment, allow its own invoice numbers
       const isOwnInvoice = payment?.invoices?.some(inv => inv.invoiceNumber?.toLowerCase() === number.toLowerCase());
       if (!isOwnInvoice) {
         setErrors(prev => ({
@@ -463,7 +502,6 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       }
     }
 
-    // Check against other invoices in current form
     const isDuplicateInForm = formData.invoices.some((inv, idx) =>
       idx !== invoiceIndex && inv.invoiceNumber?.toLowerCase() === number.toLowerCase()
     );
@@ -476,7 +514,6 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       return false;
     }
 
-    // Clear error if valid
     if (errors[`invoiceNumber_${invoiceIndex}`]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -519,6 +556,8 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         newErrors[`invoiceValue_${index}`] = 'Valid invoice value is required';
       } else if (!invoice.invoiceDate) {
         newErrors[`invoiceDate_${index}`] = 'Invoice date is required';
+      } else if (new Date(invoice.invoiceDate) > new Date()) {
+        newErrors[`invoiceDate_${index}`] = 'Invoice date cannot be in the future';
       } else {
         hasValidInvoice = true;
       }
@@ -532,7 +571,6 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       newErrors.submit = 'Please fix invoice amount errors before proceeding';
     }
 
-    // Check for invoice number uniqueness/errors
     formData.invoices.forEach((invoice, index) => {
       if (invoice.invoiceNumber && !validateInvoiceNumberUniqueness(invoice.invoiceNumber, index)) {
         newErrors[`invoiceNumber_${index}`] = 'Invoice Number already exists or is duplicate';
@@ -567,6 +605,8 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         newErrors[`invoiceValue_${index}`] = 'Valid invoice value is required';
       } else if (!invoice.invoiceDate) {
         newErrors[`invoiceDate_${index}`] = 'Invoice date is required';
+      } else if (new Date(invoice.invoiceDate) > new Date()) {
+        newErrors[`invoiceDate_${index}`] = 'Invoice date cannot be in the future';
       } else {
         hasValidInvoice = true;
       }
@@ -579,6 +619,13 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     if (Object.keys(invoiceErrors).length > 0) {
       newErrors.submit = 'Please fix invoice amount errors before submitting';
     }
+
+    formData.payments.forEach((payment, index) => {
+      if (payment.paymentDate && new Date(payment.paymentDate) > new Date()) {
+        newErrors[`paymentDate_${index}`] = 'Payment date cannot be in the future';
+        newErrors.submit = 'Payment date cannot be in the future';
+      }
+    });
 
     const currentInvoicesTotal = formData.invoices.reduce((sum, inv) => {
       return sum + (parseFloat(inv.totalWithTax) || parseFloat(inv.invoiceValue) || 0);
@@ -601,22 +648,22 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
 
   const addInvoice = () => {
     const newInvoice = {
-          id: Date.now().toString(),
-          invoiceNumber: '',
-          invoiceValue: '',
-          invoiceDate: new Date().toISOString().split('T')[0],
-          paymentType: 'advance',
-          voucherNo: '',
-          buyersRef: '',
-          dispatchedThrough: '',
-          destination: '',
-          termsForDelivery: '',
-          hsnSac: '',
+      id: Date.now().toString(),
+      invoiceNumber: '',
+      invoiceValue: '',
+      invoiceDate: new Date().toISOString().split('T')[0],
+      paymentType: 'advance',
+      voucherNo: '',
+      buyersRef: '',
+      dispatchedThrough: '',
+      destination: '',
+      termsForDelivery: '',
+      hsnSac: '',
       cgst: '9',
       sgst: '9',
-          cgstAmount: 0,
-          sgstAmount: 0,
-          totalWithTax: 0
+      cgstAmount: 0,
+      sgstAmount: 0,
+      totalWithTax: 0
     };
 
     setFormData(prev => ({
@@ -656,7 +703,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     setFormData(prev => {
       const updatedInvoices = [...prev.invoices];
       let invoice = { ...updatedInvoices[index], [field]: value };
-    
+
       if (field === 'cgst' || field === 'sgst') {
         if (value === '') {
           invoice = { ...invoice, [field]: '' };
@@ -681,22 +728,22 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       }
 
       if (field === 'invoiceValue' || field === 'cgst' || field === 'sgst' || field === 'hsnSac') {
-      const invoiceValue = parseFloat(invoice.invoiceValue) || 0;
+        const invoiceValue = parseFloat(invoice.invoiceValue) || 0;
         const cgstRate = parseFloat(invoice.cgst) || 0;
         const sgstRate = parseFloat(invoice.sgst) || 0;
-      
-      const cgstAmount = (invoiceValue * cgstRate) / 100;
-      const sgstAmount = (invoiceValue * sgstRate) / 100;
+
+        const cgstAmount = (invoiceValue * cgstRate) / 100;
+        const sgstAmount = (invoiceValue * sgstRate) / 100;
         const totalWithTax = invoiceValue + cgstAmount + sgstAmount;
-      
+
         invoice = {
           ...invoice,
-        cgstAmount,
-        sgstAmount,
-        totalWithTax
-      };
-    }
-    
+          cgstAmount,
+          sgstAmount,
+          totalWithTax
+        };
+      }
+
       updatedInvoices[index] = invoice;
 
       if (field === 'invoiceValue') {
@@ -720,22 +767,21 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       }
 
       return {
-      ...prev,
-      invoices: updatedInvoices
+        ...prev,
+        invoices: updatedInvoices
       };
     });
   };
 
-  // Add a new payment
   const addPayment = () => {
     const newPayment = {
-          id: Date.now().toString(),
-          transactionId: '',
-          bankName: '',
-          amount: '',
-          paymentDate: new Date().toISOString().split('T')[0],
-          paymentType: 'advance',
-          remarks: ''
+      id: Date.now().toString(),
+      transactionId: '',
+      bankName: '',
+      amount: '',
+      paymentDate: new Date().toISOString().split('T')[0],
+      paymentType: 'advance',
+      remarks: ''
     };
 
     setFormData(prev => ({
@@ -744,7 +790,6 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     }));
   };
 
-  // Remove a payment
   const removePayment = (index) => {
     if (formData.payments.length <= 1) return;
 
@@ -754,7 +799,6 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     }));
   };
 
-  // Update payment field
   const updatePayment = (index, field, value) => {
     setFormData(prev => {
       const updatedPayments = [...prev.payments];
@@ -764,7 +808,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       };
 
       return {
-      ...prev,
+        ...prev,
         payments: updatedPayments
       };
     });
@@ -816,7 +860,6 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
           overdueDate: invoice.overdueDate || invoice.dueDate
         };
       }).filter(invoice => invoice.invoiceNumber && invoice.invoiceValue >= 0),
-      // Preserve existing payments if updating, otherwise empty array
       payments: payment ? formData.payments : []
     };
 
@@ -841,7 +884,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     const cleanedData = {
@@ -889,7 +932,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         paymentDate: payment.paymentDate || new Date().toISOString(),
         paymentType: payment.paymentType?.trim() || 'advance',
         remarks: payment.remarks?.trim() || ''
-      })).filter(payment => payment.amount !== 0) // Only send payments with amount
+      })).filter(payment => payment.amount !== 0)
     };
 
     console.log('Sending Payment Data:', cleanedData);
@@ -899,12 +942,12 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       await onSubmit(cleanedData);
     } catch (error) {
       console.error('Error submitting form:', error);
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.error || 
-                          error.message || 
+      const errorMessage = error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
         JSON.stringify(error.response?.data) ||
-                          'Failed to save payment';
-      
+        'Failed to save payment';
+
       setErrors({ submit: `Failed to save payment: ${errorMessage}` });
     } finally {
       setLoading(false);
@@ -932,7 +975,6 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
   };
 
   const handleTabClick = (tab) => {
-    // If we are in edit mode, allow navigating to any tab directly
     if (payment) {
       setActiveTab(tab);
       return;
@@ -972,39 +1014,44 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
   const projectTotalCost = parseFloat(formData.projectCost || 0);
   const remainingBudget = Math.max(0, Math.round((projectTotalCost - totalInvoicedSoFar) * 100) / 100);
 
+  const isProjectFullyInvoiced = projectTotalCost > 0 && totalAlreadyInvoiced >= projectTotalCost;
+
+  // Calculate if project cost comes from BOQ
+  const isProjectCostFromBOQ = boqData && formData.projectCost === (boqData.finalTotalWithoutGST || '');
+
   return (
-    <div className="h-full flex flex-col max-h-[80vh] min-h-[600px]">
-      {/* Tabs */}
+    <div className="h-full flex flex-col max-h-[90vh] min-h-[450px]">
+      {/* Tabs - Compact */}
       <div className="flex-shrink-0 border-b border-gray-200">
         <div className="flex">
           <button
             onClick={() => setActiveTab('project')}
-            className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-colors ${activeTab === 'project'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-800'
-            }`}
+            className={`flex items-center gap-1 px-3 py-1.5 border-b-2 transition-colors text-xs ${activeTab === 'project'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-600 hover:text-gray-800'
+              }`}
           >
-            <Building2 size={18} />
-            <span className="font-medium">Project Information</span>
+            <Building2 size={14} />
+            <span className="font-medium">Project</span>
           </button>
           <button
             onClick={() => handleTabClick('invoices')}
-            className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-colors ${activeTab === 'invoices'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-800'
-            }`}
+            className={`flex items-center gap-1 px-3 py-1.5 border-b-2 transition-colors text-xs ${activeTab === 'invoices'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-600 hover:text-gray-800'
+              }`}
           >
-            <FileText size={18} />
+            <FileText size={14} />
             <span className="font-medium">Invoices</span>
           </button>
           <button
             onClick={() => handleTabClick('payments')}
-            className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-colors ${activeTab === 'payments'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-800'
-            }`}
+            className={`flex items-center gap-1 px-3 py-1.5 border-b-2 transition-colors text-xs ${activeTab === 'payments'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-600 hover:text-gray-800'
+              }`}
           >
-            <Wallet size={18} />
+            <Wallet size={14} />
             <span className="font-medium">Payments</span>
           </button>
         </div>
@@ -1012,23 +1059,23 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
 
       {/* Scrollable form content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="p-6">
+        <div className="p-3">
           {errors.submit && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded mb-6">
+            <div className="bg-red-50 border border-red-200 text-red-600 px-2 py-1.5 rounded mb-3 text-xs">
               {errors.submit}
             </div>
           )}
 
           {activeTab === 'project' && (
-            <div className="space-y-6">
+            <div className="space-y-3">
               {/* Project Information Section */}
               <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <Building2 size={20} className="text-blue-600" />
-                  <h3 className="text-lg font-semibold text-gray-800">Project Information</h3>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Building2 size={16} className="text-blue-600" />
+                  <h3 className="text-sm font-semibold text-gray-800">Project Information</h3>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   <FloatingInput
                     label="Client Name"
                     name="customer"
@@ -1053,108 +1100,157 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                     required={true}
                     options={[
                       { value: '', label: 'Select Project' },
-                      ...projects.map(p => ({ value: p.projectName, label: p.projectName }))
+                      ...projects.map(p => ({ value: p._id, label: p.projectName }))
                     ]}
                   />
                 </div>
 
+                {/* BOQ Info if available */}
+                {boqData && (
+                  <div className="mt-2 bg-green-50 p-2 rounded border border-green-200 text-xs">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <FileText size={14} className="text-green-600" />
+                      <span className="font-medium">BOQ Information</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-gray-600">Base Amount:</span>
+                        <span className="ml-1 font-semibold text-green-700">
+                          ₹{boqData.finalTotalWithoutGST?.toLocaleString() || 'N/A'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">GST %:</span>
+                        <span className="ml-1 font-semibold text-blue-700">
+                          {boqData.gstPercentage || 0}%
+                        </span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-gray-600">Total with GST:</span>
+                        <span className="ml-1 font-semibold text-purple-700">
+                          ₹{boqData.totalWithGST?.toLocaleString() || 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Address Fields Section */}
-                <div className="mt-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Truck size={20} className="text-green-600" />
-                    <h3 className="text-lg font-semibold text-gray-800">Shipping & Billing Information</h3>
+                <div className="mt-3">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Truck size={16} className="text-green-600" />
+                    <h3 className="text-sm font-semibold text-gray-800">Shipping & Billing</h3>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <FloatingInput
-                      label="Consignee (Ship To) Address"
+                      label="Consignee Address"
                       name="consigneeAddress"
                       type="textarea"
                       value={formData.consigneeAddress}
                       onChange={handleChange}
-                      rows={4}
+                      rows={2}
                     />
 
                     <FloatingInput
-                      label="Buyer (Bill To) Address"
+                      label="Buyer Address"
                       name="buyerAddress"
                       type="textarea"
                       value={formData.buyerAddress}
                       onChange={handleChange}
-                      rows={4}
+                      rows={2}
                     />
                   </div>
                 </div>
 
                 {/* Project Cost & GST Section */}
-                <div className="mt-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FloatingInput
-                    label="Project Cost (₹)"
-                    name="projectCost"
-                    type="number"
-                    value={formData.projectCost}
-                    onChange={handleChange}
-                    error={errors.projectCost}
-                    required={true}
-                  />
-                </div>
-
-                <div className="mt-4 flex items-center gap-3">
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="includeGST"
-                      checked={formData.includeGST}
+                <div className="mt-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <FloatingInput
+                      label="Project Cost (Base Amount) (₹)"
+                      name="projectCost"
+                      type="number"
+                      value={formData.projectCost}
                       onChange={handleChange}
-                      className="sr-only peer"
+                      error={errors.projectCost}
+                      required={true}
+                      readOnly={isProjectCostFromBOQ}
+                      className={isProjectCostFromBOQ ? "bg-gray-100" : ""}
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                  <span className="text-sm font-medium text-gray-700">Include GST</span>
-                  
-                  {formData.includeGST && (
-                    <div className="ml-4 w-32">
-                      <FloatingInput
-                        label="GST %"
-                        name="gstPercentage"
-                        type="number"
-                        value={formData.gstPercentage}
+                    {isProjectCostFromBOQ && (
+                      <div className="text-xs text-green-600 flex items-center gap-1">
+                        <FileText size={12} />
+                        <span>Auto-filled from BOQ (without GST)</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-2 flex items-center gap-1.5">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="includeGST"
+                        checked={formData.includeGST}
                         onChange={handleChange}
-                        error={errors.gstPercentage}
-                        required={true}
+                        className="sr-only peer"
                       />
-                    </div>
-                  )}
+                      <div className="w-8 h-4 bg-gray-200 peer-focus:outline-none peer-focus:ring-1 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                    <span className="text-xs font-medium text-gray-700">Include GST</span>
+
+                    {formData.includeGST && (
+                      <div className="ml-2 w-24">
+                        <FloatingInput
+                          label="GST %"
+                          name="gstPercentage"
+                          type="number"
+                          value={formData.gstPercentage}
+                          onChange={handleChange}
+                          error={errors.gstPercentage}
+                          required={true}
+                        />
+                        {boqData?.gstPercentage && (
+                          <div className="text-xs text-blue-600 mt-0.5">
+                            (BOQ GST: {boqData.gstPercentage}%)
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
               </div>
 
-              {/* Amount Calculation Section */}
-              <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <Building2 size={20} className="text-blue-600" />
-                  <h3 className="text-lg font-semibold text-gray-800">Amount Calculation</h3>
+              {/* Amount Calculation Section - Compact */}
+              <div className="bg-blue-50 rounded p-3 border border-blue-200">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Building2 size={16} className="text-blue-600" />
+                  <h3 className="text-sm font-semibold text-gray-800">Amount Calculation</h3>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-white rounded-lg p-4 border border-blue-200">
-                    <p className="text-sm text-gray-600 mb-1">Base Amount</p>
-                    <p className="text-2xl font-bold text-blue-600">
+
+                <div className="space-y-2">
+                  <div className="bg-white rounded p-2 border border-blue-200">
+                    <p className="text-xs text-gray-600 mb-0.5">Base Amount (from BOQ)</p>
+                    <p className="text-base font-bold text-blue-600">
                       ₹{amounts.baseAmount.toFixed(2)}
                     </p>
                   </div>
-                  
-                  <div className="bg-white rounded-lg p-4 border border-green-200">
-                    <p className="text-sm text-gray-600 mb-1">Total Amount</p>
-                    <p className="text-2xl font-bold text-green-600">
+
+                  {formData.includeGST && (
+                    <div className="bg-white rounded p-2 border border-green-200">
+                      <p className="text-xs text-gray-600 mb-0.5">GST Amount ({formData.gstPercentage}%)</p>
+                      <p className="text-base font-bold text-green-600">
+                        ₹{amounts.gstAmount.toFixed(2)}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="bg-white rounded p-2 border border-purple-200">
+                    <p className="text-xs text-gray-600 mb-0.5">
+                      {formData.includeGST ? 'Total Amount (with GST)' : 'Total Amount (without GST)'}
+                    </p>
+                    <p className="text-lg font-bold text-purple-600">
                       ₹{amounts.totalAmount.toFixed(2)}
                     </p>
-                    {formData.includeGST && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        (incl. GST ₹{amounts.gstAmount.toFixed(2)})
-                      </p>
-                    )}
                   </div>
                 </div>
               </div>
@@ -1162,81 +1258,78 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
           )}
 
           {(activeTab === 'invoices' || activeTab === 'payments') && (
-            <div className="bg-blue-50 p-4 rounded-lg flex items-center justify-between border border-blue-200 mb-6 mx-0">
-              <div>
-                <h4 className="text-sm font-medium text-blue-900">Project Financial Summary</h4>
-                <div className="flex flex-wrap gap-x-6 gap-y-2 mt-1 text-sm text-blue-800">
-                  <span>Total Budget: <span className="font-bold whitespace-nowrap">₹{projectTotalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></span>
-                  <span>Total Invoiced: <span className="font-bold whitespace-nowrap">₹{totalInvoicedSoFar.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></span>
-                  <span>Remaining: <span className={`font-bold whitespace-nowrap ${remainingBudget === 0 ? 'text-red-600' : 'text-green-700'}`}>₹{remainingBudget.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></span>
-                </div>
+            <div className="bg-blue-50 p-2 rounded border border-blue-200 mb-3 text-xs">
+              <h4 className="font-medium text-blue-900">Project Financial Summary</h4>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 mt-0.5 text-xs text-blue-800">
+                <span>Budget: <span className="font-bold">₹{projectTotalCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></span>
+                <span>Invoiced: <span className="font-bold">₹{totalInvoicedSoFar.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></span>
+                <span>Remaining: <span className={`font-bold ${remainingBudget === 0 ? 'text-red-600' : 'text-green-700'}`}>₹{remainingBudget.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></span>
               </div>
             </div>
           )}
 
           {activeTab === 'invoices' && (
-            <div className="space-y-6">
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FileText size={20} className="text-orange-600" />
-                  <h3 className="text-lg font-semibold text-gray-800">Invoices</h3>
+                <div className="flex items-center gap-1.5">
+                  <FileText size={16} className="text-orange-600" />
+                  <h3 className="text-sm font-semibold text-gray-800">Invoices</h3>
                 </div>
                 {!payment && (
-                <button
-                  type="button"
-                  onClick={addInvoice}
+                  <button
+                    type="button"
+                    onClick={addInvoice}
                     disabled={projectTotalCost > 0 && totalInvoicedSoFar >= projectTotalCost}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${projectTotalCost > 0 && totalInvoicedSoFar >= projectTotalCost
+                    className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${projectTotalCost > 0 && totalInvoicedSoFar >= projectTotalCost
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : 'bg-blue-600 text-white hover:bg-blue-700'
                       }`}
                     title={projectTotalCost > 0 && totalInvoicedSoFar >= projectTotalCost ? "Project full amount already invoiced" : "Add New Invoice"}
-                >
-                  <Plus size={18} />
-                  Add Invoice
-                </button>
+                  >
+                    <Plus size={14} />
+                    Add Invoice
+                  </button>
                 )}
               </div>
 
               {formData.invoices.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <FileText size={48} className="mx-auto mb-4 text-gray-300" />
-                  <p>No invoices added yet. Click "Add Invoice" to get started.</p>
+                <div className="text-center py-6 text-gray-500 text-xs">
+                  <FileText size={32} className="mx-auto mb-2 text-gray-300" />
+                  <p>No invoices added yet.</p>
                 </div>
               ) : (
-                <div className="space-y-6 max-h-96 overflow-y-auto pr-2">
+                <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                   {formData.invoices.map((invoice, invoiceIndex) => (
-                    <div key={invoice.id} className="border border-gray-200 rounded-lg bg-gray-50">
+                    <div key={invoice.id} className="border border-gray-200 rounded bg-gray-50">
                       {/* Invoice Header */}
-                      <div className="bg-orange-50 px-4 py-3 flex items-center justify-between rounded-t-lg border-b border-orange-200">
-                        <div className="flex items-center gap-2">
-                          <FileText size={18} className="text-orange-600" />
-                          <span className="font-semibold text-gray-800">Invoice #{invoiceIndex + 1}</span>
+                      <div className="bg-orange-50 px-2 py-1.5 flex items-center justify-between rounded-t border-b border-orange-200">
+                        <div className="flex items-center gap-1">
+                          <FileText size={14} className="text-orange-600" />
+                          <span className="font-semibold text-gray-800 text-xs">Invoice #{invoiceIndex + 1}</span>
                         </div>
                         <button
                           type="button"
                           onClick={() => removeInvoice(invoiceIndex)}
-                          disabled={formData.invoices.length <= 1}
-                          className={`${formData.invoices.length <= 1
+                          disabled={formData.invoices.length <= 1 || isProjectFullyInvoiced}
+                          className={`${(formData.invoices.length <= 1 || isProjectFullyInvoiced)
                             ? 'text-gray-300 cursor-not-allowed'
                             : 'text-red-600 hover:text-red-800'
-                            } transition-colors p-1 rounded-full hover:bg-red-50`}
-                          title={formData.invoices.length <= 1 ? "At least one invoice is required" : "Remove Invoice"}
+                            } transition-colors p-0.5 rounded hover:bg-red-50`}
+                          title={isProjectFullyInvoiced ? "Project fully invoiced" : formData.invoices.length <= 1 ? "At least one invoice is required" : "Remove Invoice"}
                         >
-                          <Trash2 size={18} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
 
                       {/* Invoice Details */}
-                      <div className="p-4">
-                        {/* Invoice Amount Error Display */}
+                      <div className="p-2">
                         {invoiceErrors[invoiceIndex] && (
-                          <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
+                          <div className="mb-2 bg-red-50 border border-red-200 text-red-600 px-2 py-1.5 rounded text-xs">
                             {invoiceErrors[invoiceIndex]}
                           </div>
                         )}
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
                           <FloatingInput
                             label="Invoice Date"
                             name="invoiceDate"
@@ -1245,6 +1338,8 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                             onChange={(e) => updateInvoice(invoiceIndex, 'invoiceDate', e.target.value)}
                             error={errors[`invoiceDate_${invoiceIndex}`]}
                             required
+                            max={new Date().toISOString().split('T')[0]}
+                            disabled={isProjectFullyInvoiced}
                           />
                           <FloatingInput
                             label="Invoice Number"
@@ -1253,6 +1348,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                             onChange={(e) => updateInvoice(invoiceIndex, 'invoiceNumber', e.target.value)}
                             error={errors[`invoiceNumber_${invoiceIndex}`]}
                             required
+                            disabled={isProjectFullyInvoiced}
                           />
                           <FloatingInput
                             label="Invoice Value (₹)"
@@ -1262,15 +1358,17 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                             onChange={(e) => updateInvoice(invoiceIndex, 'invoiceValue', e.target.value)}
                             error={errors[`invoiceValue_${invoiceIndex}`]}
                             required
+                            disabled={isProjectFullyInvoiced}
                           />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
                           <FloatingInput
                             label="Payment Type"
                             name="paymentType"
                             type="select"
                             value={invoice.paymentType || ''}
+                            disabled={isProjectFullyInvoiced}
                             onChange={(e) => {
                               const selectedValue = e.target.value;
                               updateInvoice(invoiceIndex, 'paymentType', selectedValue);
@@ -1300,20 +1398,23 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                           <FloatingInput
                             label="Overdue Date"
                             name="overdueDate"
-                            type="text"
-                            value={formatDateForDisplay(invoice.overdueDate) || '-'}
-                            readOnly={true}
+                            type={invoice.paymentType?.startsWith('installment-') ? 'text' : 'date'}
+                            value={invoice.paymentType?.startsWith('installment-')
+                              ? (formatDateForDisplay(invoice.overdueDate) || '-')
+                              : formatDateForInput(invoice.overdueDate)}
+                            readOnly={invoice.paymentType?.startsWith('installment-') || isProjectFullyInvoiced}
+                            disabled={isProjectFullyInvoiced}
                             onChange={(e) => updateInvoice(invoiceIndex, 'overdueDate', e.target.value)}
                           />
                         </div>
 
-                        {/* Voucher and Buyer's Reference */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
                           <FloatingInput
                             label="Buyer's Ref / Order No"
                             name="buyersRef"
                             value={invoice.buyersRef}
                             onChange={(e) => updateInvoice(invoiceIndex, 'buyersRef', e.target.value)}
+                            disabled={isProjectFullyInvoiced}
                           />
                           <FloatingInput
                             label="Buyer's Ref Date"
@@ -1322,16 +1423,17 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                             value={invoice.buyersRefDate}
                             onChange={(e) => updateInvoice(invoiceIndex, 'buyersRefDate', e.target.value)}
                             error={errors[`buyersRefDate_${invoiceIndex}`]}
+                            max={new Date().toISOString().split('T')[0]}
+                            disabled={isProjectFullyInvoiced}
                           />
                         </div>
 
-                        {/* Delivery Information */}
-                        <div className="flex items-center gap-2 mb-4 text-gray-700">
-                          <Truck size={18} />
+                        <div className="flex items-center gap-1.5 mb-2 text-gray-700 text-xs">
+                          <Truck size={14} />
                           <span className="font-medium">Delivery Information</span>
                         </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
                           <FloatingInput
                             label="Dispatched Through"
                             name="dispatchedThrough"
@@ -1339,6 +1441,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                             value={invoice.dispatchedThrough}
                             onChange={(e) => updateInvoice(invoiceIndex, 'dispatchedThrough', e.target.value)}
                             options={dispatchedThroughOptions}
+                            disabled={isProjectFullyInvoiced}
                           />
                           <FloatingInput
                             label="Destination"
@@ -1346,6 +1449,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                             type="text"
                             value={invoice.destination}
                             onChange={(e) => updateInvoice(invoiceIndex, 'destination', e.target.value)}
+                            disabled={isProjectFullyInvoiced}
                           />
                           <FloatingInput
                             label="Terms for Delivery"
@@ -1353,22 +1457,24 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                             type="text"
                             value={invoice.termsForDelivery}
                             onChange={(e) => updateInvoice(invoiceIndex, 'termsForDelivery', e.target.value)}
+                            disabled={isProjectFullyInvoiced}
                           />
                         </div>
 
-                        {/* Tax Information */}
-                        <div className="bg-white rounded-lg p-4 border border-gray-200 mb-4">
-                          <div className="flex items-center gap-2 mb-3">
-                            <FileText size={18} className="text-blue-600" />
-                            <span className="font-semibold text-gray-800">Tax Information</span>
+                        {/* Tax Information - Compact */}
+                        <div className="bg-white rounded p-2 border border-gray-200 mb-2">
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <FileText size={14} className="text-blue-600" />
+                            <span className="font-semibold text-gray-800 text-xs">Tax Information</span>
                           </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
                             <FloatingInput
                               label="HSN/SAC Code"
                               name="hsnSac"
                               value={invoice.hsnSac}
                               onChange={(e) => updateInvoice(invoiceIndex, 'hsnSac', e.target.value)}
+                              disabled={isProjectFullyInvoiced}
                             />
                             <FloatingInput
                               label="CGST %"
@@ -1376,15 +1482,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                               type="text"
                               value={invoice.cgst}
                               onChange={(e) => updateInvoice(invoiceIndex, 'cgst', e.target.value)}
-                              onBlur={(e) => {
-                                const value = e.target.value;
-                                const numValue = parseFloat(value);
-                                if (!isNaN(numValue) && numValue > 100) {
-                                  updateInvoice(invoiceIndex, 'cgst', '100');
-                                } else if (value === '') {
-                                  updateInvoice(invoiceIndex, 'cgst', '');
-                                }
-                              }}
+                              disabled={isProjectFullyInvoiced}
                             />
                             <FloatingInput
                               label="SGST %"
@@ -1392,36 +1490,27 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                               type="text"
                               value={invoice.sgst}
                               onChange={(e) => updateInvoice(invoiceIndex, 'sgst', e.target.value)}
-                              onBlur={(e) => {
-                                const value = e.target.value;
-                                const numValue = parseFloat(value);
-                                if (!isNaN(numValue) && numValue > 100) {
-                                  updateInvoice(invoiceIndex, 'sgst', '100');
-                                } else if (value === '') {
-                                  updateInvoice(invoiceIndex, 'sgst', '');
-                                }
-                              }}
+                              disabled={isProjectFullyInvoiced}
                             />
                           </div>
 
-                          {/* Calculated Tax Amounts */}
                           {invoice.invoiceValue && (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
                               <div className="text-center">
-                                <p className="text-sm text-gray-600">CGST Amount</p>
-                                <p className="text-lg font-semibold text-blue-600">
+                                <p className="text-xs text-gray-600">CGST</p>
+                                <p className="text-sm font-semibold text-blue-600">
                                   ₹{(invoice.cgstAmount || 0).toFixed(2)}
                                 </p>
                               </div>
                               <div className="text-center">
-                                <p className="text-sm text-gray-600">SGST Amount</p>
-                                <p className="text-lg font-semibold text-green-600">
+                                <p className="text-xs text-gray-600">SGST</p>
+                                <p className="text-sm font-semibold text-green-600">
                                   ₹{(invoice.sgstAmount || 0).toFixed(2)}
                                 </p>
                               </div>
                               <div className="text-center">
-                                <p className="text-sm text-gray-600">Gross Total</p>
-                                <p className="text-lg font-bold text-purple-600">
+                                <p className="text-xs text-gray-600">Total</p>
+                                <p className="text-sm font-bold text-purple-600">
                                   ₹{(Math.round((parseFloat(invoice.totalWithTax) || parseFloat(invoice.invoiceValue) || 0) * 100) / 100).toFixed(2)}
                                 </p>
                               </div>
@@ -1437,38 +1526,38 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
           )}
 
           {activeTab === 'payments' && (
-            <div className="space-y-6">
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Wallet size={20} className="text-green-600" />
-                  <h3 className="text-lg font-semibold text-gray-800">Payments</h3>
+                <div className="flex items-center gap-1.5">
+                  <Wallet size={16} className="text-green-600" />
+                  <h3 className="text-sm font-semibold text-gray-800">Payments</h3>
                 </div>
                 <button
                   type="button"
                   onClick={addPayment}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors"
                 >
-                  <Plus size={18} />
+                  <Plus size={14} />
                   Add Payment
                 </button>
               </div>
 
               {formData.payments.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <Wallet size={48} className="mx-auto mb-4 text-gray-300" />
-                  <p>No payments added yet. Click "Add Payment" to get started.</p>
+                <div className="text-center py-6 text-gray-500 text-xs">
+                  <Wallet size={32} className="mx-auto mb-2 text-gray-300" />
+                  <p>No payments added yet.</p>
                 </div>
               ) : (
-                <div className="space-y-6 max-h-96 overflow-y-auto pr-2">
+                <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                   {formData.payments.map((payment, paymentIndex) => (
-                    <div key={payment.id} className="border border-gray-200 rounded-lg bg-gray-50">
+                    <div key={payment.id} className="border border-gray-200 rounded bg-gray-50">
                       {/* Payment Header */}
-                      <div className="bg-green-50 px-4 py-3 flex items-center justify-between rounded-t-lg border-b border-green-200">
-                        <div className="flex items-center gap-2">
-                          <Wallet size={18} className="text-green-600" />
-                          <span className="font-semibold text-gray-800">Payment #{paymentIndex + 1}</span>
-                          <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
-                            {payment.paymentType || 'Advance Payment'}
+                      <div className="bg-green-50 px-2 py-1.5 flex items-center justify-between rounded-t border-b border-green-200">
+                        <div className="flex items-center gap-1">
+                          <Wallet size={14} className="text-green-600" />
+                          <span className="font-semibold text-gray-800 text-xs">Payment #{paymentIndex + 1}</span>
+                          <span className="px-1 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                            {payment.paymentType || 'Advance'}
                           </span>
                         </div>
                         <button
@@ -1478,72 +1567,77 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                           className={`${formData.payments.length <= 1
                             ? 'text-gray-100 cursor-not-allowed'
                             : 'text-red-600 hover:text-red-800'
-                            } transition-colors p-1 rounded-full hover:bg-red-50`}
+                            } transition-colors p-0.5 rounded hover:bg-red-50`}
                           title={formData.payments.length <= 1 ? "At least one payment record is required" : "Remove Payment"}
                         >
-                          <Trash2 size={18} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
-                      
+
                       {/* Payment Details */}
-                      <div className="p-4">
-                        {/* Transaction ID and Bank Name */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <FloatingInput
-                          label="Transaction ID"
-                          name="transactionId"
-                          value={payment.transactionId}
-                          onChange={(e) => updatePayment(paymentIndex, 'transactionId', e.target.value)}
-                        />
-                        <FloatingInput
-                          label="Bank Name"
-                          name="bankName"
-                          value={payment.bankName}
-                          onChange={(e) => updatePayment(paymentIndex, 'bankName', e.target.value)}
-                        />
+                      <div className="p-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
+                          <FloatingInput
+                            label="Transaction ID"
+                            name="transactionId"
+                            value={payment.transactionId}
+                            onChange={(e) => updatePayment(paymentIndex, 'transactionId', e.target.value)}
+                          />
+                          <FloatingInput
+                            label="Bank Name"
+                            name="bankName"
+                            value={payment.bankName}
+                            onChange={(e) => updatePayment(paymentIndex, 'bankName', e.target.value)}
+                          />
                         </div>
 
-                        {/* Amount */}
-                        <div className="mb-4">
-                        <FloatingInput
-                          label="Amount (₹)"
-                          name="amount"
-                          type="number"
-                          value={payment.amount}
-                          onChange={(e) => updatePayment(paymentIndex, 'amount', e.target.value)}
+                        <div className="mb-2">
+                          <FloatingInput
+                            label="Amount (₹)"
+                            name="amount"
+                            type="number"
+                            value={payment.amount}
+                            onChange={(e) => updatePayment(paymentIndex, 'amount', e.target.value)}
                             required
-                        />
-                      </div>
-                      
-                        {/* Payment Date and Type */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <FloatingInput
-                          label="Payment Date"
-                          name="paymentDate"
-                          type="date"
-                          value={payment.paymentDate}
-                          onChange={(e) => updatePayment(paymentIndex, 'paymentDate', e.target.value)}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
+                          <FloatingInput
+                            label="Payment Date"
+                            name="paymentDate"
+                            type="date"
+                            value={payment.paymentDate}
+                            onChange={(e) => updatePayment(paymentIndex, 'paymentDate', e.target.value)}
                             required
-                        />
-                        <FloatingInput
-                          label="Payment Type"
-                          name="paymentType"
-                          type="select"
+                            max={new Date().toISOString().split('T')[0]}
+                            error={errors[`paymentDate_${paymentIndex}`]}
+                          />
+                          <FloatingInput
+                            label="Payment Type"
+                            name="paymentType"
+                            type="select"
                             value={payment.paymentType || 'advance'}
-                          onChange={(e) => updatePayment(paymentIndex, 'paymentType', e.target.value)}
-                          options={paymentTypeOptions}
+                            onChange={(e) => updatePayment(paymentIndex, 'paymentType', e.target.value)}
+                            options={[
+                              { value: 'advance', label: 'Advance Payment' },
+                              { value: 'final', label: 'Final Payment' },
+                              ...boqInstallments.map((inst, idx) => ({
+                                value: `installment-${idx}`,
+                                label: `Installment ${inst.Installment || idx + 1}`
+                              }))
+                            ]}
                             required
-                        />
-                      </div>
-                      
-                        {/* Remarks */}
+                          />
+                        </div>
+
                         <FloatingInput
                           label="Remarks"
                           name="remarks"
                           type="textarea"
                           value={payment.remarks}
                           onChange={(e) => updatePayment(paymentIndex, 'remarks', e.target.value)}
-                          rows={3}
+                          rows={2}
                         />
                       </div>
                     </div>
@@ -1555,35 +1649,35 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         </div>
       </div>
 
-      {/* Fixed actions at bottom */}
-      <div className="flex-shrink-0 border-t border-gray-200 bg-white px-6 py-4">
+      {/* Fixed actions at bottom - Compact */}
+      <div className="flex-shrink-0 border-t border-gray-200 bg-white px-3 py-2">
         <div className="flex items-center justify-between">
           <div>
             {activeTab !== 'project' && (
               <button
                 type="button"
                 onClick={handlePreviousClick}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                className="flex items-center gap-1 px-2 py-1 border border-gray-300 rounded text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-primary-500"
               >
-                <ChevronLeft size={18} />
+                <ChevronLeft size={14} />
                 Previous
               </button>
             )}
           </div>
-          <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-          >
-            Cancel
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-2 py-1 border border-gray-300 rounded text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-primary-500"
+            >
+              Cancel
+            </button>
             {activeTab === 'project' && (
-          <button
+              <button
                 type="button"
                 onClick={handleNextClick}
                 disabled={loading}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+                className="px-2 py-1 border border-transparent rounded text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-primary-500 disabled:opacity-50"
               >
                 Next
               </button>
@@ -1594,7 +1688,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                   type="button"
                   onClick={handleCreateInvoice}
                   disabled={loading}
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                  className="px-2 py-1 border border-transparent rounded text-xs font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-green-500 disabled:opacity-50"
                 >
                   {loading ? 'Creating...' : payment ? 'Update Invoice' : 'Create Invoice'}
                 </button>
@@ -1602,22 +1696,22 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                   type="button"
                   onClick={handleNextClick}
                   disabled={loading}
-                  className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+                  className="px-2 py-1 border border-gray-300 rounded text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-primary-500 disabled:opacity-50"
                 >
-                  Next to Payments
-                  <ChevronRight size={18} className="ml-2 inline" />
+                  Next
+                  <ChevronRight size={14} className="ml-0.5 inline" />
                 </button>
               </>
             )}
             {activeTab === 'payments' && (
               <button
                 type="button"
-            onClick={handleSubmit}
-            disabled={loading}
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
-          >
+                onClick={handleSubmit}
+                disabled={loading}
+                className="px-2 py-1 border border-transparent rounded text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-1 focus:ring-offset-1 focus:ring-primary-500 disabled:opacity-50"
+              >
                 {loading ? 'Saving...' : payment ? 'Update Payment' : 'Create Payment'}
-          </button>
+              </button>
             )}
           </div>
         </div>

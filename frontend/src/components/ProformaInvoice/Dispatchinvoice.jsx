@@ -1,10 +1,12 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { Download, Printer } from 'lucide-react';
+import { customersAPI } from '../../services/api';
 
 const DispatchInvoice = ({ invoiceData = {}, hideDownloadButton = false }) => {
   const invoiceRef = useRef(null);
+  const [customerData, setCustomerData] = useState(null);
 
   const {
     customer = 'QPIVOLTA TECHNOLOGIES PVT LTD',
@@ -20,6 +22,23 @@ const DispatchInvoice = ({ invoiceData = {}, hideDownloadButton = false }) => {
     companyGSTIN = '29ANZPK9532D22B',
     companyEmail = 'Accounts@voomet.com'
   } = invoiceData;
+
+  // Fetch customer data when customer name is available
+  useEffect(() => {
+    const fetchCustomerData = async () => {
+      if (customer) {
+        try {
+          const response = await customersAPI.getAll();
+          const customers = response.data?.data || response.data || [];
+          const foundCustomer = customers.find(c => c.customerName === customer);
+          setCustomerData(foundCustomer);
+        } catch (error) {
+          console.error('Error fetching customer data:', error);
+        }
+      }
+    };
+    fetchCustomerData();
+  }, [customer]);
 
   const calculateTotals = () => {
     return invoices.reduce((acc, inv) => ({
@@ -104,7 +123,7 @@ const DispatchInvoice = ({ invoiceData = {}, hideDownloadButton = false }) => {
               <div className="flex flex-grow border-b">
                 <div className="w-1/2 border-r p-1">
                   <div className="text-[9px] text-gray-600">PO No.</div>
-                  <div className="font-bold">{invoice.poNo }</div>
+                  <div className="font-bold">{invoice.poNo}</div>
                 </div>
                 <div className="w-1/2 p-1">
                   <div className="text-[9px] text-gray-600">E-Way Bill</div>
@@ -115,7 +134,7 @@ const DispatchInvoice = ({ invoiceData = {}, hideDownloadButton = false }) => {
               <div className="flex flex-grow">
                 <div className="w-1/2 border-r p-1">
                   <div className="text-[9px] text-gray-600">Vehicle No.</div>
-                  <div className="font-bold uppercase">{invoice.vehicleNo }</div>
+                  <div className="font-bold uppercase">{invoice.vehicleNo}</div>
                 </div>
                 <div className="w-1/2 p-1">
                   <div className="text-[9px] text-gray-600">Date of Supply</div>
@@ -129,8 +148,19 @@ const DispatchInvoice = ({ invoiceData = {}, hideDownloadButton = false }) => {
             <div className="w-1/2 border-r p-2">
               <div className="text-[9px] mb-1 italic">TO:</div>
               <div className="font-bold uppercase">{customer}</div>
-              <div>{invoice.destination || 'Karnataka'}</div>
-              <div className="mt-1 font-bold">GSTIN/UIN: {invoice.customerGSTIN || 'Unregistered'}</div>
+              {customerData ? (
+                <>
+                  <div>{customerData.address}</div>
+                  <div>{customerData.city}, {customerData.state}</div>
+                  <div>{customerData.zipCode}, {customerData.country}</div>
+                  <div className="mt-1 font-bold">GSTIN/UIN: {customerData.gstinUin || 'Unregistered'}</div>
+                </>
+              ) : (
+                <>
+                  <div>{invoice.destination || 'Karnataka'}</div>
+                  <div className="mt-1 font-bold">GSTIN/UIN: {invoice.customerGSTIN || 'Unregistered'}</div>
+                </>
+              )}
               {invoice.contactNo && <div className="mt-1">Contact: {invoice.contactNo}</div>}
             </div>
           </div>

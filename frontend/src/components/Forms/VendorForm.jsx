@@ -346,18 +346,10 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
         contactPerson: formData.contactPerson.trim()
       };
 
-      // Only include optional fields if they have values
-      if (formData.email && formData.email.trim()) {
-        submitData.email = formData.email.trim().toLowerCase();
-      }
-
-      if (formData.gstNumber && formData.gstNumber.trim()) {
-        submitData.gstNumber = formData.gstNumber.replace(/\s+/g, '').toUpperCase();
-      }
-
-      if (formData.address && formData.address.trim()) {
-        submitData.address = formData.address.trim();
-      }
+      // Include optional fields (empty strings will clear the field in DB)
+      submitData.email = formData.email ? formData.email.trim().toLowerCase() : "";
+      submitData.gstNumber = formData.gstNumber ? formData.gstNumber.replace(/\s+/g, '').toUpperCase() : "";
+      submitData.address = formData.address ? formData.address.trim() : "";
 
       if (vendor) {
         await vendorsAPI.update(vendor._id, submitData);

@@ -601,7 +601,9 @@ const ReceiptForm = ({
                   <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-56">Work Category</th>
                   <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-56">Item Name</th>
                   <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">Unit</th>
-                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">Actual Order</th>
+                  {formData.category !== 'In house' && (
+                    <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">Actual Order</th>
+                  )}
                   <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">Quantity</th>
                   <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-44">Price without GST (₹)</th>
                   <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-24">GST %</th>
@@ -656,14 +658,16 @@ const ReceiptForm = ({
                         className="w-full text-sm bg-gray-50 border border-gray-300 rounded px-2 py-1"
                       />
                     </td>
-                    <td className="py-2 px-3 border-b">
-                      <input
-                        type="text"
-                        value={item.actualOrder || ''}
-                        readOnly
-                        className="w-full text-sm bg-gray-50 border border-gray-300 rounded px-2 py-1"
-                      />
-                    </td>
+                    {formData.category !== 'In house' && (
+                      <td className="py-2 px-3 border-b">
+                        <input
+                          type="text"
+                          value={item.actualOrder || ''}
+                          readOnly
+                          className="w-full text-sm bg-gray-50 border border-gray-300 rounded px-2 py-1"
+                        />
+                      </td>
+                    )}
                     <td className="py-2 px-3 border-b">
                       <input
                         type="number"
@@ -740,7 +744,7 @@ const ReceiptForm = ({
               </tbody>
               <tfoot>
                 <tr className="bg-gray-50">
-                  <td colSpan="9" className="py-2 px-3 text-right font-medium">Grand Total:</td>
+                  <td colSpan={formData.category === 'In house' ? 8 : 9} className="py-2 px-3 text-right font-medium">Grand Total:</td>
                   <td className="py-2 px-3 font-bold text-blue-600">
                     ₹{lineItems.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0).toFixed(2)}
                   </td>

@@ -79,7 +79,10 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
         break;
         
       case 'gstinUin':
-        if (value && value.length > 0) {
+        if (!value.trim()) {
+          // GSTIN is required - show red when empty
+          error = 'GSTIN/UIN is required';
+        } else if (value && value.length > 0) {
           // GSTIN validation - 15 characters alphanumeric
           if (!/^[0-9A-Z]{15}$/.test(value)) {
             error = 'GSTIN/UIN must be 15 characters alphanumeric';
@@ -138,7 +141,9 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
         break;
         
       case 'stateCode':
-        if (value && value.length > 0) {
+        if (!value.trim()) {
+          error = 'State code is required';
+        } else if (value && value.length > 0) {
           // State code must be exactly 2 digits
           if (!/^\d{2}$/.test(value)) {
             error = 'State code must be exactly 2 digits';
@@ -314,9 +319,9 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
 
   const validateForm = () => {
     const newErrors = {};
-    const fieldsToValidate = [
+    const requiredFields = [
       'customerName',
-      'gstinUin',
+      'gstinUin', // GSTIN is now required
       'customerEmail',
       'invoiceEmail',
       'address',
@@ -327,7 +332,7 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
       'country'
     ];
     
-    fieldsToValidate.forEach(field => {
+    requiredFields.forEach(field => {
       const value = formData[field];
       const error = validateField(field, value);
       if (error) {
@@ -374,11 +379,13 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
   const isFormComplete = () => {
     const requiredFields = [
       'customerName',
+      'gstinUin', // Include GSTIN/UIN in required fields
       'customerEmail',
       'invoiceEmail',
       'address',
       'city',
       'state',
+      'stateCode',
       'zipCode',
       'country'
     ];
@@ -419,18 +426,18 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
             {/* Customer Name and GSTIN/UIN in a row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-              <FloatingInput
-                type="text"
-                name="customerName"
+                <FloatingInput
+                  type="text"
+                  name="customerName"
                   label="Client Name"
-                value={formData.customerName}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                error={errors.customerName}
-                required={true}
-                maxLength={50}
-              />
-            </div>
+                  value={formData.customerName}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  error={errors.customerName}
+                  required={true}
+                  maxLength={50}
+                />
+              </div>
               <div className="relative">
                 <FloatingInput
                   type="text"
@@ -441,7 +448,7 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
                   onBlur={handleBlur}
                   onFocus={handleFocus}
                   error={errors.gstinUin}
-                  required={true}
+                  required={true} // Make it required
                   maxLength={15}
                 />
                 {/* {showGstinTooltip && (
@@ -541,6 +548,7 @@ const CustomerForm = ({ customer, onSubmit, onCancel, existingCustomers = [] }) 
                   onBlur={handleBlur}
                   onFocus={handleFocus}
                   error={errors.stateCode}
+                  required={true} // Make state code required too
                   maxLength={2}
                 />
                 {/* {showStateCodeTooltip && (

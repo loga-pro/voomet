@@ -24,6 +24,7 @@ import Modal from '../components/Modals/Modal';
 import Notification from '../components/Notifications/Notification';
 import useNotification from '../hooks/useNotification';
 import { vendorsAPI } from '../services/api';
+import { Phone, Briefcase, MapPin } from "lucide-react";
 
 const VendorMaster = () => {
   const [vendors, setVendors] = useState([]);
@@ -114,10 +115,10 @@ const VendorMaster = () => {
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(vendor =>
-        vendor.vendorName.toLowerCase().includes(searchLower) ||
-        vendor.email.toLowerCase().includes(searchLower) ||
-        vendor.gstNumber.toLowerCase().includes(searchLower) ||
-        vendor.mobileNumber.toLowerCase().includes(searchLower) ||
+        (vendor.vendorName && vendor.vendorName.toLowerCase().includes(searchLower)) ||
+        (vendor.email && vendor.email.toLowerCase().includes(searchLower)) ||
+        (vendor.gstNumber && vendor.gstNumber.toLowerCase().includes(searchLower)) ||
+        (vendor.mobileNumber && vendor.mobileNumber.toLowerCase().includes(searchLower)) ||
         (vendor.address && vendor.address.toLowerCase().includes(searchLower)) ||
         (vendor.contactPerson && vendor.contactPerson.toLowerCase().includes(searchLower)) ||
         (vendor.category && vendor.category.toLowerCase().includes(searchLower)) ||
@@ -432,14 +433,15 @@ const VendorMaster = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Work Type
-                      </th>
+                      
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Category
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Vendor/Contractor Name
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Work Type
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Email
@@ -460,11 +462,7 @@ const VendorMaster = () => {
                     {currentItems.length > 0 ? (
                       currentItems.map((vendor) => (
                         <tr key={vendor._id} className="hover:bg-gray-50 transition-colors duration-150">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                              {vendor.vendorType ? vendor.vendorType.charAt(0).toUpperCase() + vendor.vendorType.slice(1) : 'N/A'}
-                            </span>
-                          </td>
+                          
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(vendor.category)}`}>
                               {formatCategory(vendor.category)}
@@ -472,6 +470,11 @@ const VendorMaster = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">{vendor.vendorName}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                              {vendor.vendorType ? vendor.vendorType.charAt(0).toUpperCase() + vendor.vendorType.slice(1) : 'N/A'}
+                            </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">{vendor.email}</div>
@@ -697,156 +700,139 @@ const VendorMaster = () => {
         className="font-sans"
       >
         {selectedVendor && (
-          <div className="p-1">
-            <div className="space-y-6">
-              {/* Details Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex flex-col max-h-[100vh]">
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-2 text-sm">
+
                 {/* Vendor Information */}
-                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                  <div className="flex items-center mb-3">
-                    <h3 className="text-md font-semibold text-gray-900">Vendor Information</h3>
+                <div className="bg-white border rounded p-3 md:col-span-2">
+                  <div className="flex items-center mb-2">
+                    <BuildingOfficeIcon className="w-4 h-4 text-indigo-600 mr-2" />
+                    <h3 className="font-semibold">Vendor Information</h3>
                   </div>
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Work Type</p>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                        {selectedVendor.vendorType ? selectedVendor.vendorType.charAt(0).toUpperCase() + selectedVendor.vendorType.slice(1) : 'N/A'}
-                      </span>
+                      <span className="text-xs text-gray-500">Work Type</span>
+                      <p className="mt-1">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          {selectedVendor.vendorType ? selectedVendor.vendorType.charAt(0).toUpperCase() + selectedVendor.vendorType.slice(1) : 'N/A'}
+                        </span>
+                      </p>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Vendor Name</p>
-                      <p className="text-sm font-medium text-gray-800">{selectedVendor.vendorName}</p>
+                      <span className="text-xs text-gray-500">Vendor Name</span>
+                      <p className="font-medium">{selectedVendor.vendorName}</p>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Email</p>
-                      <p className="text-sm text-gray-600">{selectedVendor.email}</p>
+                      <span className="text-xs text-gray-500">Category</span>
+                      <p className="mt-1">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(selectedVendor.category)}`}>
+                          {formatCategory(selectedVendor.category)}
+                        </span>
+                      </p>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Category</p>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(selectedVendor.category)}`}>
-                        {formatCategory(selectedVendor.category)}
-                      </span>
+                      <span className="text-xs text-gray-500">Email</span>
+                      <p className="break-all">{selectedVendor.email}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Contact Information */}
-                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                  <div className="flex items-center mb-3">
-                    <h3 className="text-md font-semibold text-gray-900">Contact Info</h3>
+                <div className="bg-white border rounded p-3 md:col-span-2">
+                  <div className="flex items-center mb-2">
+                    <Phone className="w-4 h-4 text-blue-600 mr-2" />
+                    <h3 className="font-semibold">Contact Information</h3>
                   </div>
-                  <div className="space-y-2">
-                    {selectedVendor.contactPerson && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Contact Person</p>
-                        <p className="text-sm text-gray-800">{selectedVendor.contactPerson}</p>
-                      </div>
-                    )}
-                    {selectedVendor.mobileNumber && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Mobile</p>
-                        <p className="text-sm text-gray-800">{selectedVendor.mobileNumber}</p>
-                      </div>
-                    )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <span className="text-xs text-gray-500">Contact Person</span>
+                      <p>{selectedVendor.contactPerson || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-500">Mobile Number</span>
+                      <p>{selectedVendor.mobileNumber || 'N/A'}</p>
+                    </div>
                   </div>
                 </div>
 
                 {/* Business Information */}
-                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                  <div className="flex items-center mb-3">
-                    <h3 className="text-md font-semibold text-gray-900">Business Info</h3>
+                <div className="bg-white border rounded p-3 md:col-span-2">
+                  <div className="flex items-center mb-2">
+                    <Briefcase className="w-4 h-4 text-green-600 mr-2" />
+                    <h3 className="font-semibold">Business Information</h3>
                   </div>
-                  <div className="space-y-2">
-                    {selectedVendor.gstNumber && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">GST Number</p>
-                        <p className="text-sm font-mono text-gray-800">{selectedVendor.gstNumber}</p>
-                      </div>
-                    )}
-                    {selectedVendor.bankAccountNumber && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Bank Account</p>
-                        <p className="text-sm font-mono text-gray-800">{selectedVendor.bankAccountNumber}</p>
-                      </div>
-                    )}
-                    {selectedVendor.ifscCode && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">IFSC Code</p>
-                        <p className="text-sm font-mono text-gray-800">{selectedVendor.ifscCode}</p>
-                      </div>
-                    )}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <span className="text-xs text-gray-500">GST Number</span>
+                      <p className="font-mono">{selectedVendor.gstNumber || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-500">Bank Account</span>
+                      <p className="font-mono">{selectedVendor.bankAccountNumber || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-500">IFSC Code</span>
+                      <p className="font-mono">{selectedVendor.ifscCode || 'N/A'}</p>
+                    </div>
                   </div>
                 </div>
 
                 {/* Location Information */}
-                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                  <div className="flex items-center mb-3">
-                    <h3 className="text-md font-semibold text-gray-900">Location</h3>
+                <div className="bg-white border rounded p-3 md:col-span-2">
+                  <div className="flex items-center mb-2">
+                    <MapPin className="w-4 h-4 text-red-600 mr-2" />
+                    <h3 className="font-semibold">Location Information</h3>
                   </div>
-                  <div className="space-y-2">
-                    {selectedVendor.city && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">City</p>
-                        <p className="text-sm text-gray-800">{selectedVendor.city}</p>
-                      </div>
-                    )}
-                    {selectedVendor.state && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">State</p>
-                        <p className="text-sm text-gray-800">{selectedVendor.state}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Address Information - Spans 2 columns like Customer Master */}
-                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm md:col-span-2">
-                  <div className="flex items-center mb-3">
-                    <h3 className="text-md font-semibold text-gray-900">Address</h3>
-                  </div>
-                  <div className="space-y-2">
-                    {selectedVendor.address && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Full Address</p>
-                        <p className="text-sm text-gray-800 leading-relaxed">{selectedVendor.address}</p>
-                      </div>
-                    )}
-                    <div className="grid grid-cols-2 gap-4 pt-2">
-                      {selectedVendor.zipCode && (
-                        <div>
-                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">ZIP Code</p>
-                          <p className="text-sm text-gray-800">{selectedVendor.zipCode}</p>
-                        </div>
-                      )}
-                      {selectedVendor.country && (
-                        <div>
-                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Country</p>
-                          <p className="text-sm text-gray-800">{selectedVendor.country}</p>
-                        </div>
-                      )}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <div>
+                      <span className="text-xs text-gray-500">City</span>
+                      <p>{selectedVendor.city || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-500">State</span>
+                      <p>{selectedVendor.state || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-500">ZIP Code</span>
+                      <p>{selectedVendor.zipCode || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-500">Country</span>
+                      <p>{selectedVendor.country || 'N/A'}</p>
                     </div>
                   </div>
+                  <div className="mt-3">
+                    <span className="text-xs text-gray-500">Street Address</span>
+                    <p className="whitespace-pre-wrap break-words">{selectedVendor.address || 'N/A'}</p>
+                  </div>
                 </div>
-              </div>
 
-              {/* Action Buttons */}
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                <button
-                  onClick={() => {
-                    setViewModal(false);
-                    handleEdit(selectedVendor);
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Edit Vendor
-                </button>
-                <button
-                  onClick={() => setViewModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Close
-                </button>
               </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  setViewModal(false);
+                  setSelectedVendor(null);
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setViewModal(false);
+                  setSelectedVendor(null);
+                  handleEdit(selectedVendor);
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+              >
+                Edit Vendor
+              </button>
             </div>
           </div>
         )}

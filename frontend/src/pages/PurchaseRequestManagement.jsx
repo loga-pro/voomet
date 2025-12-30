@@ -29,6 +29,8 @@ const PurchaseRequestManagement = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [viewModal, setViewModal] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [editingRequest, setEditingRequest] = useState(null);
   const [filters, setFilters] = useState({
@@ -409,6 +411,13 @@ const PurchaseRequestManagement = () => {
     const totalQuantity = materialQuantity + hardwareQuantity;
 
     return { totalItems, totalQuantity, materialItems, hardwareItems };
+  };
+
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    const backendUrl = 'http://localhost:5000'; // Fallback for local development
+    return `${backendUrl}${path}`;
   };
 
   if (loading) {
@@ -1018,10 +1027,30 @@ const PurchaseRequestManagement = () => {
                           <td className="px-4 py-3 text-sm text-gray-900">{item.thickness || '-'}</td>
                           <td className="px-4 py-3 text-sm text-gray-900">{item.remark || '-'}</td>
                           <td className="px-4 py-3 text-sm text-gray-900">
-                            {item.image && item.image.path ? (
-                              <a href={`${item.image.path}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
-                                View
-                              </a>
+                            {item.image && (item.image.path || item.image.url) ? (
+                              <div className="flex items-center space-x-2">
+                                <img
+                                  src={getImageUrl(item.image.path || item.image.url)}
+                                  alt="Item"
+                                  className="h-10 w-10 object-cover rounded cursor-pointer hover:opacity-75"
+                                  onClick={() => {
+                                    setPreviewImage(getImageUrl(item.image.path || item.image.url));
+                                    setShowPreviewModal(true);
+                                  }}
+                                  onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = 'https://via.placeholder.com/40?text=IMG';
+                                  }}
+                                />
+                                <a
+                                  href={getImageUrl(item.image.path || item.image.url)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 text-xs"
+                                >
+                                  View Full
+                                </a>
+                              </div>
                             ) : (
                               '-'
                             )}
@@ -1063,10 +1092,30 @@ const PurchaseRequestManagement = () => {
                             <td className="px-4 py-3 text-sm text-gray-900">{item.specification || '-'}</td>
                             <td className="px-4 py-3 text-sm text-gray-900">{item.quantity || 0}</td>
                             <td className="px-4 py-3 text-sm text-gray-900">
-                              {item.image && item.image.path ? (
-                                <a href={`${item.image.path}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
-                                  View
-                                </a>
+                              {item.image && (item.image.path || item.image.url) ? (
+                                <div className="flex items-center space-x-2">
+                                  <img
+                                    src={getImageUrl(item.image.path || item.image.url)}
+                                    alt="Hardware Item"
+                                    className="h-10 w-10 object-cover rounded cursor-pointer hover:opacity-75"
+                                    onClick={() => {
+                                      setPreviewImage(getImageUrl(item.image.path || item.image.url));
+                                      setShowPreviewModal(true);
+                                    }}
+                                    onError={(e) => {
+                                      e.target.onerror = null;
+                                      e.target.src = 'https://via.placeholder.com/40?text=IMG';
+                                    }}
+                                  />
+                                  <a
+                                    href={getImageUrl(item.image.path || item.image.url)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 text-xs"
+                                  >
+                                    View Full
+                                  </a>
+                                </div>
                               ) : (
                                 '-'
                               )}
@@ -1200,6 +1249,30 @@ const PurchaseRequestManagement = () => {
               Delete
             </button>
           </div>
+        </div>
+      </Modal>
+
+      {/* Image Preview Modal */}
+      <Modal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        title="Image Preview"
+        size="lg"
+      >
+        <div className="flex justify-center items-center p-4">
+          <img
+            src={previewImage}
+            alt="Preview"
+            className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
+          />
+        </div>
+        <div className="flex justify-end p-4 border-t">
+          <button
+            onClick={() => setShowPreviewModal(false)}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+          >
+            Close
+          </button>
         </div>
       </Modal>
     </div>

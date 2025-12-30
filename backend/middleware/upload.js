@@ -3,11 +3,25 @@ const path = require("path");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/receipts/");
+    let uploadPath = "uploads/receipts/";
+    
+    if (req.originalUrl.includes("purchase-requests")) {
+      uploadPath = "uploads/middleware-upload/";
+    } else if (req.originalUrl.includes("quality")) {
+      uploadPath = "uploads/quality/";
+    }
+    
+    // Ensure directory exists
+    const fs = require('fs');
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+    
+    cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
     const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, unique + path.extname(file.originalname));
+    cb(null, (file.fieldname || 'file') + "-" + unique + path.extname(file.originalname));
   },
 });
 

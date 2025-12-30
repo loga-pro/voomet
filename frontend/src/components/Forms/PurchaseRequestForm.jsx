@@ -79,6 +79,7 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
   const [inhouseMilestones, setInhouseMilestones] = useState([]);
   const [inhouseCustomers, setInhouseCustomers] = useState([]);
   const [activeTab, setActiveTab] = useState('materials'); // 'materials' or 'hardware'
+  const [imagePreview, setImagePreview] = useState(null);
 
   const VALIDATION_RULES = {
     REMARKS: { maxLength: 200 },
@@ -126,7 +127,15 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
             quantity: item.quantity || '',
             thickness: item.thickness || '',
             remark: item.remark || '',
-            image: item.image || null
+            image: item.image ? {
+              uid: item._id || `image-${index}`,
+              name: item.imageName || `image-${index}`,
+              size: item.imageSize || 0,
+              type: item.imageType || 'image/jpeg',
+              status: 'done',
+              url: item.image,
+              isExisting: true
+            } : null
           }))
           : [{
             sNo: 1,
@@ -148,7 +157,15 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
             thickness: item.thickness || '',
             specification: item.specification || '',
             quantity: item.quantity || '',
-            image: item.image || null
+            image: item.image ? {
+              uid: item._id || `image-${index}`,
+              name: item.imageName || `image-${index}`,
+              size: item.imageSize || 0,
+              type: item.imageType || 'image/jpeg',
+              status: 'done',
+              url: item.image,
+              isExisting: true
+            } : null
           }))
           : [{
             sNo: 1,
@@ -444,10 +461,10 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
       onRemove: () => removeImage(index, type),
       fileList: img
         ? [{
-          uid: img.uid || `${index}`,
-          name: img.name,
+          uid: img.uid || img.filename || `${index}`,
+          name: img.name || img.originalName || img.filename || 'image',
           status: img.status || 'done',
-          url: img.url
+          url: img.url || (img.path ? `http://localhost:5000${img.path}` : null)
         }]
         : []
     };
@@ -1030,19 +1047,30 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
 
                           {/* Image Upload */}
                           <div className="w-24">
-                            <Upload
-                              {...createUploadProps(index, 'material')}
-                              accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.svg,.tiff,.pdf"
-                            >
-                              <Button
-                                icon={<UploadOutlined />}
-                                size="small"
-                                className="w-full text-xs"
-                                title={`Upload ${getAllowedFileTypesText()}, Max 5MB`}
+                            {item.image ? (
+                              <button
+                                type="button"
+                                onClick={() => setImagePreview(item.image)}
+                                className="w-full px-2 py-1 text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded hover:bg-blue-100 transition-colors"
+                                title="Click to view"
                               >
-                                {item.image ? 'File' : 'Upload'}
-                              </Button>
-                            </Upload>
+                                👁️ View
+                              </button>
+                            ) : (
+                              <Upload
+                                {...createUploadProps(index, 'material')}
+                                accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.svg,.tiff,.pdf"
+                              >
+                                <Button
+                                  icon={<UploadOutlined />}
+                                  size="small"
+                                  className="w-full text-xs"
+                                  title={`Upload ${getAllowedFileTypesText()}, Max 5MB`}
+                                >
+                                  Upload
+                                </Button>
+                              </Upload>
+                            )}
                             {errors.items?.[index]?.image && (
                               <div className="text-xs text-red-500 mt-1">{errors.items[index].image}</div>
                             )}
@@ -1151,19 +1179,30 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
 
                           {/* Image Upload */}
                           <div className="w-24">
-                            <Upload
-                              {...createUploadProps(index, 'hardware')}
-                              accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.svg,.tiff,.pdf"
-                            >
-                              <Button
-                                icon={<UploadOutlined />}
-                                size="small"
-                                className="w-full text-xs"
-                                title={`Upload ${getAllowedFileTypesText()}, Max 5MB`}
+                            {item.image ? (
+                              <button
+                                type="button"
+                                onClick={() => setImagePreview(item.image)}
+                                className="w-full px-2 py-1 text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded hover:bg-blue-100 transition-colors"
+                                title="Click to view"
                               >
-                                {item.image ? 'File' : 'Upload'}
-                              </Button>
-                            </Upload>
+                                👁️ View
+                              </button>
+                            ) : (
+                              <Upload
+                                {...createUploadProps(index, 'hardware')}
+                                accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.svg,.tiff,.pdf"
+                              >
+                                <Button
+                                  icon={<UploadOutlined />}
+                                  size="small"
+                                  className="w-full text-xs"
+                                  title={`Upload ${getAllowedFileTypesText()}, Max 5MB`}
+                                >
+                                  Upload
+                                </Button>
+                              </Upload>
+                            )}
                             {errors.hardwareItems?.[index]?.image && (
                               <div className="text-xs text-red-500 mt-1">{errors.hardwareItems[index].image}</div>
                             )}
@@ -1282,6 +1321,74 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
           </button>
         </div>
       </div>
+
+      {/* Image Preview Modal */}
+      {imagePreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl max-h-[90vh] overflow-auto">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Image Preview</h3>
+              <button
+                onClick={() => setImagePreview(null)}
+                className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-4">
+              {imagePreview.type && imagePreview.type.startsWith('image/') ? (
+                <img
+                  src={
+                    imagePreview.isExisting && imagePreview.url
+                      ? imagePreview.url
+                      : imagePreview.originFileObj
+                      ? URL.createObjectURL(imagePreview.originFileObj)
+                      : typeof imagePreview === 'string'
+                      ? imagePreview
+                      : ''
+                  }
+                  alt="Preview"
+                  className="max-w-full h-auto max-h-[70vh] mx-auto"
+                />
+              ) : imagePreview.type === 'application/pdf' ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <div className="text-6xl mb-4">📄</div>
+                  <p className="text-gray-600 text-center">
+                    <strong>{imagePreview.name}</strong><br />
+                    PDF file cannot be previewed directly.
+                  </p>
+                  {imagePreview.originFileObj ? (
+                    <a
+                      href={URL.createObjectURL(imagePreview.originFileObj)}
+                      download={imagePreview.name}
+                      className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >
+                      Download PDF
+                    </a>
+                  ) : imagePreview.isExisting && imagePreview.url ? (
+                    <a
+                      href={imagePreview.url}
+                      download={imagePreview.name}
+                      className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >
+                      Download PDF
+                    </a>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-8">
+                  <p className="text-gray-600">File type not supported for preview</p>
+                </div>
+              )}
+              <div className="mt-4 text-xs text-gray-500 border-t pt-4">
+                <p><strong>File Name:</strong> {imagePreview.name}</p>
+                <p><strong>File Size:</strong> {(imagePreview.size / 1024).toFixed(2)} KB</p>
+                <p><strong>File Type:</strong> {imagePreview.type}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 };

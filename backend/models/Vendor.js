@@ -98,8 +98,6 @@ const vendorSchema = new mongoose.Schema({
   email: {
     type: String,
     required: false,
-    unique: true,
-    sparse: true,
     lowercase: true,
     trim: true,
     validate: {
@@ -113,8 +111,6 @@ const vendorSchema = new mongoose.Schema({
   gstNumber: {
     type: String,
     required: false,
-    unique: true,
-    sparse: true,
     uppercase: true,
     trim: true,
     validate: {
@@ -163,9 +159,21 @@ const vendorSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Add index for better query performance
-vendorSchema.index({ email: 1 });
-vendorSchema.index({ mobileNumber: 1 });
-vendorSchema.index({ gstNumber: 1 });
+// Add index for better query performance and to handle unique constraints with empty values
+vendorSchema.index(
+  { email: 1 }, 
+  { 
+    unique: true, 
+    partialFilterExpression: { email: { $type: "string", $gt: "" } } 
+  }
+);
+vendorSchema.index({ mobileNumber: 1 }, { unique: true });
+vendorSchema.index(
+  { gstNumber: 1 }, 
+  { 
+    unique: true, 
+    partialFilterExpression: { gstNumber: { $type: "string", $gt: "" } } 
+  }
+);
 
 module.exports = mongoose.model('Vendor', vendorSchema);

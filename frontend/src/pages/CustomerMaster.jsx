@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  PlusIcon, 
-  MagnifyingGlassIcon, 
+import {
+  PlusIcon,
+  MagnifyingGlassIcon,
   FunnelIcon,
   XMarkIcon,
   ArrowUpTrayIcon,
@@ -62,12 +62,12 @@ const CustomerMaster = () => {
     try {
       const response = await customersAPI.getAll();
       setCustomers(response.data);
-      
+
       // Extract unique values for dropdowns
       const customerNames = [...new Set(response.data.map(customer => customer.customerName))].filter(Boolean);
       const customerEmails = [...new Set(response.data.map(customer => customer.customerEmail))].filter(Boolean);
       const cities = [...new Set(response.data.map(customer => customer.city))].filter(Boolean);
-      
+
       setUniqueCustomerNames(customerNames);
       setUniqueCustomerEmails(customerEmails);
       setUniqueCities(cities);
@@ -93,19 +93,19 @@ const CustomerMaster = () => {
 
     // Apply dropdown filters
     if (filters.customerName) {
-      filtered = filtered.filter(customer => 
+      filtered = filtered.filter(customer =>
         customer.customerName === filters.customerName
       );
     }
 
     if (filters.customerEmail) {
-      filtered = filtered.filter(customer => 
+      filtered = filtered.filter(customer =>
         customer.customerEmail === filters.customerEmail
       );
     }
 
     if (filters.city) {
-      filtered = filtered.filter(customer => 
+      filtered = filtered.filter(customer =>
         customer.city === filters.city
       );
     }
@@ -113,7 +113,7 @@ const CustomerMaster = () => {
     // Apply overall search across multiple fields
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(customer => 
+      filtered = filtered.filter(customer =>
         customer.customerName.toLowerCase().includes(searchLower) ||
         (customer.gstinUin && customer.gstinUin.toLowerCase().includes(searchLower)) ||
         customer.customerEmail.toLowerCase().includes(searchLower) ||
@@ -160,7 +160,7 @@ const CustomerMaster = () => {
       customer.zipCode,
       customer.country
     ].filter(Boolean);
-    
+
     return addressParts.join(', ');
   };
 
@@ -282,16 +282,15 @@ const CustomerMaster = () => {
                   )}
                 </div>
               </div>
-              
-              
+
+
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                    showFilters || Object.values(filters).some(Boolean) || searchTerm
-                      ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100' 
-                      : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
-                  }`}
+                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters || Object.values(filters).some(Boolean) || searchTerm
+                    ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
+                    : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                    }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
                   Filters
@@ -301,7 +300,7 @@ const CustomerMaster = () => {
                     </span>
                   )}
                 </button>
-                
+
                 {(Object.values(filters).some(Boolean) || searchTerm) && (
                   <button
                     onClick={clearFilters}
@@ -311,7 +310,7 @@ const CustomerMaster = () => {
                     Clear
                   </button>
                 )}
-                
+
                 <button
                   onClick={exportToCSV}
                   className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -319,7 +318,7 @@ const CustomerMaster = () => {
                   <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
                   Export CSV
                 </button>
-                
+
                 <button
                   onClick={() => setShowModal(true)}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -348,7 +347,7 @@ const CustomerMaster = () => {
                     ))}
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Client Email</label>
                   <select
@@ -362,7 +361,7 @@ const CustomerMaster = () => {
                     ))}
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
                   <select
@@ -382,43 +381,43 @@ const CustomerMaster = () => {
 
 
           {/* Customers Table */}
-<div className="overflow-hidden">
-  {/* Desktop Table View */}
-  <div className="hidden sm:block">
-    <div className="max-h-[60vh] overflow-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50 sticky top-0 z-10">
-          <tr>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Client Name
-            </th>
+          <div className="overflow-hidden">
+            {/* Desktop Table View */}
+            <div className="hidden sm:block">
+              <div className="max-h-[60vh] overflow-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50 sticky top-0 z-10">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Client Name
+                      </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         GSTIN/UIN
                       </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Client Email
-            </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              City
-            </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              State
-            </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Client Email
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        City
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        State
+                      </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         State Code
                       </th>
-            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {currentItems.length > 0 ? (
-            currentItems.map((customer) => (
-              <tr key={customer._id} className="hover:bg-gray-50 transition-colors duration-150">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{customer.customerName}</div>
-                </td>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {currentItems.length > 0 ? (
+                      currentItems.map((customer) => (
+                        <tr key={customer._id} className="hover:bg-gray-50 transition-colors duration-150">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">{customer.customerName}</div>
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
                               {customer.gstinUin || (
@@ -426,23 +425,23 @@ const CustomerMaster = () => {
                               )}
                             </div>
                           </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{customer.customerEmail}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {customer.city || (
-                      <span className="text-gray-400 italic">Not specified</span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
-                    {customer.state || (
-                      <span className="text-gray-400 italic">Not specified</span>
-                    )}
-                  </div>
-                </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{customer.customerEmail}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {customer.city || (
+                                <span className="text-gray-400 italic">Not specified</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {customer.state || (
+                                <span className="text-gray-400 italic">Not specified</span>
+                              )}
+                            </div>
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
                               {customer.stateCode || (
@@ -450,111 +449,111 @@ const CustomerMaster = () => {
                               )}
                             </div>
                           </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div className="flex justify-end space-x-2">
-                    <button
-                      onClick={() => handleView(customer)}
-                      className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
-                      title="View"
-                    >
-                      <EyeIcon className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => handleEdit(customer)}
-                      className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
-                      title="Edit"
-                    >
-                      <PencilSquareIcon className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(customer)}
-                      className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
-                      title="Delete"
-                    >
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex justify-end space-x-2">
+                              <button
+                                onClick={() => handleView(customer)}
+                                className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
+                                title="View"
+                              >
+                                <EyeIcon className="h-5 w-5" />
+                              </button>
+                              <button
+                                onClick={() => handleEdit(customer)}
+                                className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
+                                title="Edit"
+                              >
+                                <PencilSquareIcon className="h-5 w-5" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(customer)}
+                                className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
+                                title="Delete"
+                              >
+                                <TrashIcon className="h-5 w-5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
                         <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
-                {Object.values(filters).some(val => val !== '') || searchTerm
-                  ? 'No customers found matching your filters.' 
-                  : 'No customers found.'
-                }
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  </div>
-  
-  {/* Mobile Card View */}
-  <div className="sm:hidden">
-    {currentItems.length > 0 ? (
-      currentItems.map((customer) => (
-        <div key={customer._id} className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors duration-150">
-          <div className="flex justify-between items-start mb-2">
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-medium text-gray-900 truncate">{customer.customerName}</h3>
-              <p className="text-sm text-gray-500 truncate">{customer.customerEmail}</p>
+                          {Object.values(filters).some(val => val !== '') || searchTerm
+                            ? 'No customers found matching your filters.'
+                            : 'No customers found.'
+                          }
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="sm:hidden">
+              {currentItems.length > 0 ? (
+                currentItems.map((customer) => (
+                  <div key={customer._id} className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors duration-150">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-medium text-gray-900 truncate">{customer.customerName}</h3>
+                        <p className="text-sm text-gray-500 truncate">{customer.customerEmail}</p>
                         {customer.gstinUin && (
                           <p className="text-xs text-gray-400 font-mono truncate">GSTIN: {customer.gstinUin}</p>
                         )}
-              {customer.invoiceEmail && customer.invoiceEmail !== customer.customerEmail && (
-                <p className="text-xs text-gray-400 truncate">Invoice: {customer.invoiceEmail}</p>
-              )}
-            </div>
-            <div className="flex space-x-2 ml-2">
-              <button
-                onClick={() => handleView(customer)}
-                className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
-                title="View"
-              >
-                <EyeIcon className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => handleEdit(customer)}
-                className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
-                title="Edit"
-              >
-                <PencilSquareIcon className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => handleDelete(customer)}
-                className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
-                title="Delete"
-              >
-                <TrashIcon className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
-            <div>
-              <span className="font-medium">City:</span> {customer.city || 'Not specified'}
-            </div>
-            <div>
-              <span className="font-medium">State:</span> {customer.state || 'Not specified'}
-            </div>
+                        {customer.invoiceEmail && customer.invoiceEmail !== customer.customerEmail && (
+                          <p className="text-xs text-gray-400 truncate">Invoice: {customer.invoiceEmail}</p>
+                        )}
+                      </div>
+                      <div className="flex space-x-2 ml-2">
+                        <button
+                          onClick={() => handleView(customer)}
+                          className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
+                          title="View"
+                        >
+                          <EyeIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(customer)}
+                          className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
+                          title="Edit"
+                        >
+                          <PencilSquareIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(customer)}
+                          className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
+                          title="Delete"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                      <div>
+                        <span className="font-medium">City:</span> {customer.city || 'Not specified'}
+                      </div>
+                      <div>
+                        <span className="font-medium">State:</span> {customer.state || 'Not specified'}
+                      </div>
                       <div>
                         <span className="font-medium">State Code:</span> {customer.stateCode || 'Not specified'}
                       </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-8 text-center text-gray-500">
+                  {Object.values(filters).some(val => val !== '') || searchTerm
+                    ? 'No customers found matching your filters.'
+                    : 'No customers found.'
+                  }
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      ))
-    ) : (
-      <div className="p-8 text-center text-gray-500">
-        {Object.values(filters).some(val => val !== '') || searchTerm
-          ? 'No customers found matching your filters.' 
-          : 'No customers found.'
-        }
-      </div>
-    )}
-  </div>
-</div>
 
           {/* Updated Pagination */}
           {filteredCustomers.length > 0 && (
@@ -575,12 +574,12 @@ const CustomerMaster = () => {
                   <option value={100}>100</option>
                 </select>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-700">
                   Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredCustomers.length)} of {filteredCustomers.length} results
                 </span>
-                
+
                 <nav className="flex space-x-2">
                   <button
                     onClick={() => paginate(Math.max(1, currentPage - 1))}
@@ -589,11 +588,11 @@ const CustomerMaster = () => {
                   >
                     <ChevronLeftIcon className="h-5 w-5" />
                   </button>
-                  
+
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter(page => 
-                      page === 1 || 
-                      page === totalPages || 
+                    .filter(page =>
+                      page === 1 ||
+                      page === totalPages ||
                       (page >= currentPage - 1 && page <= currentPage + 1)
                     )
                     .map((page, index, array) => {
@@ -608,18 +607,17 @@ const CustomerMaster = () => {
                           )}
                           <button
                             onClick={() => paginate(page)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              currentPage === page
-                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                            }`}
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
+                              ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                              }`}
                           >
                             {page}
                           </button>
                         </React.Fragment>
                       );
                     })}
-                  
+
                   <button
                     onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
@@ -656,150 +654,121 @@ const CustomerMaster = () => {
       </Modal>
 
       {/* View Customer Modal */}
-         {selectedCustomer && (
-  <Modal
-    isOpen={!!selectedCustomer}
-    onClose={() => setSelectedCustomer(null)}
-    title="Customer Details"
-    size="lg"
-    className="font-sans"
-  >
-    <div className="p-1">
-      <div className="space-y-6">
-        {/* Details Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Customer Details */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center mb-3">
-              <div className="bg-purple-100 p-1.5 rounded-lg">
-                <UserGroupIcon className="w-4 h-4 text-purple-600" />
-              </div>
-              <h3 className="ml-2 text-md font-semibold text-gray-900">Customer Details</h3>
-            </div>
-            <div className="space-y-2">
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Customer Name</p>
-                <p className="text-sm font-medium text-gray-800">{selectedCustomer.customerName}</p>
-              </div>
+      {selectedCustomer && (
+        <Modal
+          isOpen={!!selectedCustomer}
+          onClose={() => setSelectedCustomer(null)}
+          title="Customer Details"
+          size="lg"
+          className="font-sans"
+        >
+          <div className="flex flex-col max-h-[100vh]">
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-2 text-sm">
+
+                {/* Customer Information */}
+                <div className="bg-white border rounded p-3 md:col-span-2">
+                  <div className="flex items-center mb-2">
+                    <UserGroupIcon className="w-4 h-4 text-indigo-600 mr-2" />
+                    <h3 className="font-semibold">Customer Information</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <span className="text-xs text-gray-500">Customer Name</span>
+                      <p className="font-medium">{selectedCustomer.customerName}</p>
+                    </div>
                     {selectedCustomer.gstinUin && (
                       <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">GSTIN/UIN</p>
-                        <p className="text-sm text-gray-600 font-mono">{selectedCustomer.gstinUin}</p>
+                        <span className="text-xs text-gray-500">GSTIN/UIN</span>
+                        <p className="font-mono">{selectedCustomer.gstinUin}</p>
                       </div>
                     )}
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Email</p>
-                <p className="text-sm text-gray-600">{selectedCustomer.customerEmail}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Contact Information */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center mb-3">
-              <div className="bg-blue-100 p-1.5 rounded-lg">
-                <DocumentTextIcon className="w-4 h-4 text-blue-600" />
-              </div>
-              <h3 className="ml-2 text-md font-semibold text-gray-900">Contact Info</h3>
-            </div>
-            <div className="space-y-2">
-              {selectedCustomer.invoiceEmail && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Invoice Email</p>
-                  <p className="text-sm text-gray-800">{selectedCustomer.invoiceEmail}</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Location Information */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center mb-3">
-              <div className="bg-green-100 p-1.5 rounded-lg">
-                <MapPinIcon className="w-4 h-4 text-green-600" />
-              </div>
-              <h3 className="ml-2 text-md font-semibold text-gray-900">Location</h3>
-            </div>
-            <div className="space-y-2">
-              {selectedCustomer.city && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">City</p>
-                  <p className="text-sm text-gray-800">{selectedCustomer.city}</p>
-                </div>
-              )}
-                    <div className="grid grid-cols-2 gap-4">
-              {selectedCustomer.state && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">State</p>
-                  <p className="text-sm text-gray-800">{selectedCustomer.state}</p>
-                </div>
-              )}
-                      {selectedCustomer.stateCode && (
-                        <div>
-                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">State Code</p>
-                          <p className="text-sm text-gray-800 font-mono">{selectedCustomer.stateCode}</p>
-                        </div>
-                      )}
+                    <div>
+                      <span className="text-xs text-gray-500">Email</span>
+                      <p className="break-all">{selectedCustomer.customerEmail}</p>
                     </div>
-            </div>
-          </div>
-
-          {/* Address Information */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <div className="flex items-center mb-3">
-              <div className="bg-red-100 p-1.5 rounded-lg">
-                <MapPinIcon className="w-4 h-4 text-red-600" />
-              </div>
-              <h3 className="ml-2 text-md font-semibold text-gray-900">Address</h3>
-            </div>
-            <div className="space-y-2">
-              {selectedCustomer.address && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Full Address</p>
-                  <p className="text-sm text-gray-800 leading-relaxed">{selectedCustomer.address}</p>
+                    <div>
+                        <span className="text-xs text-gray-500">Invoice Email</span>
+                        <p>{selectedCustomer.invoiceEmail}</p>
+                      </div>
+                  </div>
                 </div>
-              )}
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                {selectedCustomer.zipCode && (
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">ZIP Code</p>
-                    <p className="text-sm text-gray-800">{selectedCustomer.zipCode}</p>
+
+
+                {/* Location Information */}
+                <div className="bg-white border rounded p-3 md:col-span-2">
+                  <div className="flex items-center mb-2">
+                    <MapPinIcon className="w-4 h-4 text-green-600 mr-2" />
+                    <h3 className="font-semibold">Location Information</h3>
                   </div>
-                )}
-                {selectedCustomer.country && (
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Country</p>
-                    <p className="text-sm text-gray-800">{selectedCustomer.country}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    {selectedCustomer.city && (
+                      <div>
+                        <span className="text-xs text-gray-500">City</span>
+                        <p>{selectedCustomer.city}</p>
+                      </div>
+                    )}
+                    {selectedCustomer.state && (
+                      <div>
+                        <span className="text-xs text-gray-500">State</span>
+                        <p>{selectedCustomer.state}</p>
+                      </div>
+                    )}
+                    {selectedCustomer.stateCode && (
+                      <div>
+                        <span className="text-xs text-gray-500">State Code</span>
+                        <p className="font-mono">{selectedCustomer.stateCode}</p>
+                      </div>
+                    )}
+                    {selectedCustomer.zipCode && (
+                      <div>
+                        <span className="text-xs text-gray-500">ZIP Code</span>
+                        <p>{selectedCustomer.zipCode}</p>
+                      </div>
+                    )}
                   </div>
-                )}
+                  {selectedCustomer.address && (
+                    <div className="mt-3">
+                      <span className="text-xs text-gray-500">Street Address</span>
+                      <p className="whitespace-pre-wrap break-words">{selectedCustomer.address}</p>
+                    </div>
+                  )}
+                  {selectedCustomer.country && (
+                    <div className="mt-3">
+                      <span className="text-xs text-gray-500">Country</span>
+                      <p>{selectedCustomer.country}</p>
+                    </div>
+                  )}
+                </div>
+
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-          <button
-            onClick={() => {
-              setSelectedCustomer(null);
-              setEditingCustomer(selectedCustomer);
-              setShowModal(true);
-            }}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Edit Customer
-          </button>
-          <button
-            onClick={() => setSelectedCustomer(null)}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  </Modal>
-)}
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  setSelectedCustomer(null);
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedCustomer(null);
+                  setEditingCustomer(selectedCustomer);
+                  setShowModal(true);
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+              >
+                Edit Customer
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* Notification */}
       <Notification

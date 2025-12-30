@@ -277,27 +277,27 @@ const ProjectMaster = () => {
   };
 
   const handleDownloadHistoryPDF = async () => {
-  try {
-    setPdfLoading(true);
+    try {
+      setPdfLoading(true);
 
-    // Dynamically import jsPDF and html2canvas
-    const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
-      import('jspdf'),
-      import('html2canvas')
-    ]);
+      // Dynamically import jsPDF and html2canvas
+      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+        import('jspdf'),
+        import('html2canvas')
+      ]);
 
-    // Create a temporary container for the PDF content
-    const container = document.createElement('div');
-    container.style.position = 'fixed';
-    container.style.left = '-9999px';
-    container.style.top = '0';
-    container.style.width = '210mm'; // A4 width
-    container.style.backgroundColor = 'white';
-    container.style.padding = '20px';
-    document.body.appendChild(container);
+      // Create a temporary container for the PDF content
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.left = '-9999px';
+      container.style.top = '0';
+      container.style.width = '210mm'; // A4 width
+      container.style.backgroundColor = 'white';
+      container.style.padding = '20px';
+      document.body.appendChild(container);
 
-    // Build the HTML content
-    const htmlContent = `
+      // Build the HTML content
+      const htmlContent = `
       <div style="font-family: Arial, sans-serif; color: #333;">
         <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #3b82f6; padding-bottom: 15px;">
           <h1 style="color: #1f2937; margin: 0; font-size: 24px;">Project History Report</h1>
@@ -353,10 +353,10 @@ const ProjectMaster = () => {
             </thead>
             <tbody>
               ${projectHistory.map((change, index) => {
-                const isCreation = change.field === 'created';
-                const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+        const isCreation = change.field === 'created';
+        const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
 
-                return `
+        return `
                   <tr style="background-color: ${bgColor}; border-bottom: 1px solid #e5e7eb;">
                     <td style="padding: 8px;">
                       <div style="font-weight: 500;">${new Date(change.updatedAt).toLocaleDateString()}</div>
@@ -379,61 +379,61 @@ const ProjectMaster = () => {
                     </td>
                   </tr>
                 `;
-              }).join('')}
+      }).join('')}
             </tbody>
           </table>
         </div>
       </div>
     `;
 
-    container.innerHTML = htmlContent;
+      container.innerHTML = htmlContent;
 
-    // Wait for content to render
-    await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait for content to render
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-    // Generate canvas from HTML
-    const canvas = await html2canvas(container, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff'
-    });
+      // Generate canvas from HTML
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
 
-    // Clean up container
-    document.body.removeChild(container);
+      // Clean up container
+      document.body.removeChild(container);
 
-    // Create PDF
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const imgWidth = 210; // A4 width in mm
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    const pageHeight = 297; // A4 height in mm
-    let heightLeft = imgHeight;
-    let position = 0;
+      // Create PDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210; // A4 width in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pageHeight = 297; // A4 height in mm
+      let heightLeft = imgHeight;
+      let position = 0;
 
-    // Add first page
-    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
-
-    // Add additional pages if needed
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
+      // Add first page
       pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
+
+      // Add additional pages if needed
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Download PDF
+      const fileName = `Project_History_${selectedProject?.projectName?.replace(/\\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(fileName);
+
+      showSuccess('PDF downloaded successfully');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      showError('Failed to generate PDF');
+    } finally {
+      setPdfLoading(false);
     }
-
-    // Download PDF
-    const fileName = `Project_History_${selectedProject?.projectName?.replace(/\\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
-    pdf.save(fileName);
-
-    showSuccess('PDF downloaded successfully');
-  } catch (error) {
-    console.error('Error generating PDF:', error);
-    showError('Failed to generate PDF');
-  } finally {
-    setPdfLoading(false);
-  }
-};
+  };
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState(null);
@@ -1084,110 +1084,40 @@ const ProjectMaster = () => {
         className="font-sans"
       >
         {selectedProject && (
-          <div className="p-1">
-            <div className="space-y-6">
-              {/* Details Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Project Information */}
-                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                  <div className="flex items-center mb-3">
+          <div className="flex flex-col max-h-[100vh]">
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-2 text-sm">
 
-                    <h3 className="ml-2 text-md font-semibold text-gray-900">Project Information</h3>
+                {/* Project Information */}
+                <div className="bg-white border rounded p-3 md:col-span-2">
+                  <div className="flex items-center mb-2">
+                    <DocumentTextIcon className="w-4 h-4 text-indigo-600 mr-2" />
+                    <h3 className="font-semibold">Project Information</h3>
                   </div>
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Name</p>
-                      <p className="text-sm font-medium text-gray-800">{selectedProject.projectName}</p>
+                      <span className="text-xs text-gray-500">Project Name</span>
+                      <p className="font-medium">{selectedProject.projectName}</p>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Client Name</p>
-                      <p className="text-sm text-gray-800">{selectedProject?.customerName || 'Not specified'}</p>
+                      <span className="text-xs text-gray-500">Client Name</span>
+                      <p>{selectedProject?.customerName || 'Not specified'}</p>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Type</p>
-                      <p className="text-sm text-gray-800">
+                      <span className="text-xs text-gray-500">Project Type</span>
+                      <p>
                         {selectedProject.projectType?.charAt(0).toUpperCase() +
                           selectedProject.projectType?.slice(1) || "New"}
                       </p>
                     </div>
-                  </div>
-                </div>
-
-                {/* Financial Information */}
-                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                  <div className="flex items-center mb-3">
-                    <h3 className="ml-2 text-md font-semibold text-gray-900">Financial Information</h3>
-                  </div>
-                  <div className="space-y-2">
-                    <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Value</p>
-                      <p className="text-sm font-medium text-gray-800">₹{selectedProject.totalProjectValue.toLocaleString()}</p>
+                     <div>
+                      <span className="text-xs text-gray-500">Enquiry Date</span>
+                      <p>{new Date(selectedProject.enquiryDate).toLocaleDateString()}</p>
                     </div>
-                    {selectedProject.projectBudget && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Budget</p>
-                        <p className="text-sm text-gray-800">₹{selectedProject.projectBudget.toLocaleString()}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Timeline Information */}
-                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                  <div className="flex items-center mb-3">
-
-                    <h3 className="ml-2 text-md font-semibold text-gray-900">Timeline</h3>
-                  </div>
-                  <div className="space-y-2">
                     <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Enquiry Date</p>
-                      <p className="text-sm text-gray-800">{new Date(selectedProject.enquiryDate).toLocaleDateString()}</p>
-                    </div>
-                    {selectedProject.startDate && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Start Date</p>
-                        <p className="text-sm text-gray-800">{new Date(selectedProject.startDate).toLocaleDateString()}</p>
-                      </div>
-                    )}
-                    {selectedProject.expectedCompletion && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Expected Completion</p>
-                        <p className="text-sm text-gray-800">{new Date(selectedProject.expectedCompletion).toLocaleDateString()}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Status Information */}
-                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                  <div className="flex items-center mb-3">
-                    <h3 className="ml-2 text-md font-semibold text-gray-900">Status</h3>
-                  </div>
-                  <div className="space-y-2">
-                    <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Stage</p>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {selectedProject.stage.replace(/_/g, " ")}
-                      </span>
-                    </div>
-                    {selectedProject.status && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Status</p>
-                        <p className="text-sm text-gray-800">{selectedProject.status}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Scope of Work - Full Width */}
-                <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm md:col-span-2">
-                  <div className="flex items-center mb-3">
-
-                    <h3 className="ml-2 text-md font-semibold text-gray-900">Scope of Work</h3>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Details</p>
-                    <div className="flex flex-wrap gap-2">
+                    <span className="text-xs text-gray-500">Scope of Work</span>
+                    <div className="flex flex-wrap gap-2 mt-1">
                       {selectedProject.scopeOfWork && selectedProject.scopeOfWork.length > 0 ? (
                         formatScopeOfWork(selectedProject.scopeOfWork).map((scope, index) => (
                           <span
@@ -1202,28 +1132,58 @@ const ProjectMaster = () => {
                       )}
                     </div>
                   </div>
+                    <div>
+                      <span className="text-xs text-gray-500">Stage</span>
+                      <p>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {selectedProject.stage.replace(/_/g, " ")}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {/* Action Buttons */}
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                <button
-                  onClick={() => setViewModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={() => {
-                    setViewModal(false);
-                    setEditingProject(selectedProject);
-                    setShowModal(true);
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Edit Project
-                </button>
+                {/* Financial Information */}
+                <div className="bg-white border rounded p-3 md:col-span-2">
+                  <div className="flex items-center mb-2">
+                    <DocumentTextIcon className="w-4 h-4 text-green-600 mr-2" />
+                    <h3 className="font-semibold">Financial Information</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <span className="text-xs text-gray-500">Project Value</span>
+                      <p className="font-medium">₹{selectedProject.totalProjectValue.toLocaleString()}</p>
+                    </div>
+                    {selectedProject.projectBudget && (
+                      <div>
+                        <span className="text-xs text-gray-500">Project Budget</span>
+                        <p>₹{selectedProject.projectBudget.toLocaleString()}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
               </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => setViewModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setViewModal(false);
+                  setEditingProject(selectedProject);
+                  setShowModal(true);
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+              >
+                Edit Project
+              </button>
             </div>
           </div>
         )}
