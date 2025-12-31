@@ -72,7 +72,6 @@ router.get('/', auth, async (req, res) => {
     if (status) filter.status = status;
 
     const boqItems = await BOQ.find(filter).sort({ createdAt: -1 });
-
     // Transform data for frontend compatibility
     const transformedItems = boqItems.map(transformBOQData);
 

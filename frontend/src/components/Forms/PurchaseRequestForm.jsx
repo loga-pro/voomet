@@ -128,12 +128,14 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
             thickness: item.thickness || '',
             remark: item.remark || '',
             image: item.image ? {
-              uid: item._id || `image-${index}`,
-              name: item.imageName || `image-${index}`,
-              size: item.imageSize || 0,
-              type: item.imageType || 'image/jpeg',
+              uid: item.image.filename || item._id || `image-${index}`,
+              name: item.image.originalName || item.image.filename || `image-${index}`,
+              size: item.image.size || 0,
+              type: item.image.type || 'image/jpeg',
               status: 'done',
-              url: item.image,
+              url: item.image.path ? `http://localhost:5000${item.image.path}` : null,
+              path: item.image.path,
+              filename: item.image.filename,
               isExisting: true
             } : null
           }))
@@ -158,12 +160,14 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
             specification: item.specification || '',
             quantity: item.quantity || '',
             image: item.image ? {
-              uid: item._id || `image-${index}`,
-              name: item.imageName || `image-${index}`,
-              size: item.imageSize || 0,
-              type: item.imageType || 'image/jpeg',
+              uid: item.image.filename || item._id || `image-${index}`,
+              name: item.image.originalName || item.image.filename || `image-${index}`,
+              size: item.image.size || 0,
+              type: item.image.type || 'image/jpeg',
               status: 'done',
-              url: item.image,
+              url: item.image.path ? `http://localhost:5000${item.image.path}` : null,
+              path: item.image.path,
+              filename: item.image.filename,
               isExisting: true
             } : null
           }))
@@ -692,13 +696,16 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
       // Process material items
       const itemsForSubmit = formData.items.map((item, index) => {
         if (item.image && item.image.originFileObj) {
+          // New file uploaded - send the file and exclude image from JSON
           submitData.append(`itemImage_${index}`, item.image.originFileObj);
           const { image, ...rest } = item;
           return rest;
         }
-        else if (item.image && item.image.path) {
+        else if (item.image && (item.image.isExisting || item.image.path || item.image.filename)) {
+          // Existing image - preserve the image data
           return item;
         }
+        // No image - exclude image property
         const { image, ...rest } = item;
         return rest;
       });
@@ -706,13 +713,16 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
       // Process hardware items
       const hardwareItemsForSubmit = formData.hardwareItems.map((item, index) => {
         if (item.image && item.image.originFileObj) {
+          // New file uploaded - send the file and exclude image from JSON
           submitData.append(`hardwareItemImage_${index}`, item.image.originFileObj);
           const { image, ...rest } = item;
           return rest;
         }
-        else if (item.image && item.image.path) {
+        else if (item.image && (item.image.isExisting || item.image.path || item.image.filename)) {
+          // Existing image - preserve the image data
           return item;
         }
+        // No image - exclude image property
         const { image, ...rest } = item;
         return rest;
       });
@@ -1047,30 +1057,19 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
 
                           {/* Image Upload */}
                           <div className="w-24">
-                            {item.image ? (
-                              <button
-                                type="button"
-                                onClick={() => setImagePreview(item.image)}
-                                className="w-full px-2 py-1 text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded hover:bg-blue-100 transition-colors"
-                                title="Click to view"
+                            <Upload
+                              {...createUploadProps(index, 'material')}
+                              accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.svg,.tiff,.pdf"
+                            >
+                              <Button
+                                icon={<UploadOutlined />}
+                                size="small"
+                                className="w-full text-xs"
+                                title={`Upload ${getAllowedFileTypesText()}, Max 5MB`}
                               >
-                                👁️ View
-                              </button>
-                            ) : (
-                              <Upload
-                                {...createUploadProps(index, 'material')}
-                                accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.svg,.tiff,.pdf"
-                              >
-                                <Button
-                                  icon={<UploadOutlined />}
-                                  size="small"
-                                  className="w-full text-xs"
-                                  title={`Upload ${getAllowedFileTypesText()}, Max 5MB`}
-                                >
-                                  Upload
-                                </Button>
-                              </Upload>
-                            )}
+                                {item.image ? (item.image.name || 'File') : 'Upload'}
+                              </Button>
+                            </Upload>
                             {errors.items?.[index]?.image && (
                               <div className="text-xs text-red-500 mt-1">{errors.items[index].image}</div>
                             )}
@@ -1179,30 +1178,19 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
 
                           {/* Image Upload */}
                           <div className="w-24">
-                            {item.image ? (
-                              <button
-                                type="button"
-                                onClick={() => setImagePreview(item.image)}
-                                className="w-full px-2 py-1 text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded hover:bg-blue-100 transition-colors"
-                                title="Click to view"
+                            <Upload
+                              {...createUploadProps(index, 'hardware')}
+                              accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.svg,.tiff,.pdf"
+                            >
+                              <Button
+                                icon={<UploadOutlined />}
+                                size="small"
+                                className="w-full text-xs"
+                                title={`Upload ${getAllowedFileTypesText()}, Max 5MB`}
                               >
-                                👁️ View
-                              </button>
-                            ) : (
-                              <Upload
-                                {...createUploadProps(index, 'hardware')}
-                                accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.svg,.tiff,.pdf"
-                              >
-                                <Button
-                                  icon={<UploadOutlined />}
-                                  size="small"
-                                  className="w-full text-xs"
-                                  title={`Upload ${getAllowedFileTypesText()}, Max 5MB`}
-                                >
-                                  Upload
-                                </Button>
-                              </Upload>
-                            )}
+                                {item.image ? (item.image.name || 'File') : 'Upload'}
+                              </Button>
+                            </Upload>
                             {errors.hardwareItems?.[index]?.image && (
                               <div className="text-xs text-red-500 mt-1">{errors.hardwareItems[index].image}</div>
                             )}
@@ -1342,10 +1330,10 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
                     imagePreview.isExisting && imagePreview.url
                       ? imagePreview.url
                       : imagePreview.originFileObj
-                      ? URL.createObjectURL(imagePreview.originFileObj)
-                      : typeof imagePreview === 'string'
-                      ? imagePreview
-                      : ''
+                        ? URL.createObjectURL(imagePreview.originFileObj)
+                        : typeof imagePreview === 'string'
+                          ? imagePreview
+                          : ''
                   }
                   alt="Preview"
                   className="max-w-full h-auto max-h-[70vh] mx-auto"
