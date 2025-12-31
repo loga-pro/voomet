@@ -237,7 +237,7 @@ const QualityManagement = () => {
       'Remarks',
       'Created Date',
       'Last Updated',
-      // Quality Issues Details
+  
       'Issue #',
       'Issue Date',
       'Issue Scope',
