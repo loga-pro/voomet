@@ -530,9 +530,7 @@ const ProjectBudgetManagement = () => {
                     <tr key={budget._id} className="hover:bg-gray-50 transition-colors duration-150">
                       <td className="px-6 py-4">
                         <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <BuildingStorefrontIcon className="h-6 w-6 text-blue-600" />
-                          </div>
+                         
                           <div className="ml-4">
                             <div className="text-sm font-semibold text-gray-900">{budget.projectName}</div>
                           </div>

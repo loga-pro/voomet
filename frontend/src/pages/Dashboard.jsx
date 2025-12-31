@@ -479,7 +479,7 @@ const Dashboard = () => {
       <div
         ref={stickyRef}
         className={`transition-all duration-300 ${isSticky
-          ? 'fixed top-0 left-0 right-0 z-50 bg-white shadow-lg border-b border-gray-200 p-4 mx-[-1rem] md:mx-[-1.5rem] lg:mx-[-2rem]'
+          ? 'position-sticky top-0 z-10'
           : 'relative'
           }`}
       >

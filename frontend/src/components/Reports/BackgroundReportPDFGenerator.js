@@ -460,8 +460,8 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'flex-start',
-          marginBottom: '12px',
-          paddingBottom: '6px',
+          marginBottom: '24px',
+          paddingBottom: '12px',
           borderBottom: '2px solid #1f2937'
         }}>
           {/* Left: Company Logo */}
@@ -505,7 +505,7 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
               fontSize: '20px',
               fontWeight: 'bold',
               color: '#111827',
-              margin: '0 0 4px 0'
+              margin: '0 0 8px 0'
             }}>
               {companyInfo.name}
             </h1>
@@ -517,28 +517,28 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
             }}>
             </div>
             <div style={{ fontSize: '10px', color: '#6b7280' }}>
-              <div>Phone: {companyInfo.phone} | Email: {companyInfo.email}</div>
+              <div style={{ marginBottom: '3px' }}>Phone: {companyInfo.phone} | Email: {companyInfo.email}</div>
               <div>Website: {companyInfo.website}</div>
             </div>
           </div>
 
           {/* Right: Date and Time */}
           <div style={{ textAlign: 'right', fontSize: '11px', flexShrink: 0 }}>
-            <div style={{ fontWeight: '600', color: '#374151' }}>Generated On:</div>
-            <div style={{ color: '#6b7280' }}>Date: {currentDate}</div>
+            <div style={{ fontWeight: '600', color: '#374151', marginBottom: '4px' }}>Generated On:</div>
+            <div style={{ color: '#6b7280', marginBottom: '2px' }}>Date: {currentDate}</div>
             <div style={{ color: '#6b7280' }}>Time: {currentTime}</div>
           </div>
         </div>
 
         {/* Report Title and Info */}
-        <div style={{ marginBottom: '12px' }}>
+        <div style={{ marginBottom: '20px' }}>
           <h2 style={{
             fontSize: '15px',
             fontWeight: 'bold',
             color: '#1f2937',
-            marginBottom: '10px',
+            marginBottom: '14px',
             textAlign: 'center',
-            paddingBottom: '6px',
+            paddingBottom: '8px',
             borderBottom: '1px solid #d1d5db'
           }}>
             {reportTitle}

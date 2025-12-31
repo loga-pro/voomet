@@ -800,7 +800,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                         <th className="border border-blue-800 p-2 font-bold text-center">S.NO</th>
                         <th className="border border-blue-800 p-2 font-bold text-left">DESCRIPTION</th>
                         <th className="border border-blue-800 p-2 font-bold text-center">SPECIFICATION</th>
-                        <th className="border border-blue-800 p-2 font-bold text-center">QUANTITY</th>
+                        <th className="border border-blue-800 p-2 font-bold text-center">QTY</th>
                         <th className="border border-blue-800 p-2 font-bold text-center">UNIT TYPE</th>
                         {hasInOffice && <>
                           <th className="border border-blue-800 p-2 font-bold text-center">RATE (₹)</th>
@@ -953,10 +953,10 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
           handlePreview={(handlePdfAttach, setPreviewLoading) => handleDownloadPdfForEmailCompose(handlePdfAttach, setPreviewLoading)}
           emailapiTrigger={emailapiTrigger}
           emailMeta={{
-            title: "Bill of Quantities (BOQ) Management Report",
+            title: `Bill of Quantities (BOQ)${projectName ? ` - ${projectName}` : ''}`,
             reportType: "Bill of Quantities",
             data: [],
-            defaultSubject: `Bill of Quantities (BOQ) Management Report`
+            defaultSubject: `Bill of Quantities (BOQ)${projectName ? ` - ${projectName}` : ''}`
           }}
         />
       }

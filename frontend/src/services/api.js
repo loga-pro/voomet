@@ -1,8 +1,10 @@
 import axios from "axios";
 
-export const API_BASE_URL = "http://localhost:5000/api";
-export const FILE_BASE_URL = "http://localhost:5000";
-// export const API_BASE_URL = 'https://voomet.onrender.com/api';
+// export const API_BASE_URL = "http://localhost:5000/api";
+// export const FILE_BASE_URL = "http://localhost:5000";
+
+export const API_BASE_URL = 'https://voomet.onrender.com/api';
+export const FILE_BASE_URL = "https://voomet.onrender.com";
 
 // Create axios instance
 const api = axios.create({
@@ -222,20 +224,15 @@ export const boqAPI = {
 
 // Payments API
 export const paymentsAPI = {
-  getAll: (filters) =>
-    api
-      .get("/payments", { params: filters })
-      .then((res) => res.data.data || res.data),
+  getAll: (filters) => api.get('/payments', { params: filters }).then(res => res.data.data || res.data),
   getById: (id) => api.get(`/payments/${id}`),
-  create: (data) => api.post("/payments", data),
+  create: (data) => api.post('/payments', data),
   update: (id, data) => api.put(`/payments/${id}`, data),
   delete: (id) => api.delete(`/payments/${id}`),
   addInvoice: (id, data) => api.post(`/payments/${id}/invoices`, data),
-  addPayment: (id, invoiceIndex, data) =>
-    api.post(`/payments/${id}/invoices/${invoiceIndex}/payments`, data),
-  getAwardedCustomers: () => api.get("/payments/customers/awarded"),
-  getProjectsByCustomer: (customer) =>
-    api.get(`/payments/projects/by-customer/${customer}`),
+  addPayment: (id, invoiceIndex, data) => api.post(`/payments/${id}/invoices/${invoiceIndex}/payments`, data),
+  getAwardedCustomers: () => api.get('/payments/customers/awarded'),
+  getProjectsByCustomer: (customer) => api.get(`/payments/projects/by-customer/${customer}`),
 };
 
 // Dashboard API
@@ -247,31 +244,25 @@ export const dashboardAPI = {
 
 // vendor API
 export const vendorPaymentsAPI = {
-  getAll: (filters) =>
-    api
-      .get("/vendor-payments", { params: filters })
-      .then((res) => res.data.data || res.data),
+  getAll: (filters) => api.get('/vendor-payments', { params: filters }).then(res => res.data.data || res.data),
   getById: (id) => api.get(`/vendor-payments/${id}`),
   create: (data) => {
-    return api.post("/vendor-payments", data, {
+    return api.post('/vendor-payments', data, {
       headers: {
-        "Content-Type": "multipart/form-data",
-      },
+        'Content-Type': 'multipart/form-data'
+      }
     });
   },
   update: (id, data) => {
     return api.put(`/vendor-payments/${id}`, data, {
       headers: {
-        "Content-Type": "multipart/form-data",
-      },
+        'Content-Type': 'multipart/form-data'
+      }
     });
   },
   delete: (id) => api.delete(`/vendor-payments/${id}`),
   updateVendorName: (oldVendorName, newVendorName) =>
-    api.patch("/vendor-payments/update-vendor-name", {
-      oldVendorName,
-      newVendorName,
-    }),
+    api.patch('/vendor-payments/update-vendor-name', { oldVendorName, newVendorName }),
 };
 
 // Reports API

@@ -63,7 +63,7 @@ router.get('/', auth, async (req, res) => {
     // Map payments to match frontend expectations
     const mappedPayments = payments.map(payment => {
       const paymentObj = payment.toObject();
-      
+
       // Ensure we have the correct field names for frontend
       return {
         ...paymentObj,
@@ -87,8 +87,8 @@ router.get('/', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Payment fetch error:', error);
-    res.status(500).json({ 
-      message: 'Server error fetching payments', 
+    res.status(500).json({
+      message: 'Server error fetching payments',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
@@ -101,18 +101,18 @@ router.get('/:id', auth, async (req, res) => {
     if (!payment) {
       return res.status(404).json({ message: 'Payment not found' });
     }
-    
+
     const paymentObj = payment.toObject();
     const mappedPayment = {
       ...paymentObj,
       projectName: paymentObj.projectName || paymentObj.project,
       balanceAmount: paymentObj.balanceAmount || (paymentObj.totalInvoiceRaised - paymentObj.totalPayments)
     };
-    
+
     res.json(mappedPayment);
   } catch (error) {
     console.error('Payment fetch by ID error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Server error fetching payment',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
@@ -123,24 +123,24 @@ router.get('/:id', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
   try {
     const user = req.user;
-    
+
     console.log('=== Payment Creation Request ===');
     console.log('Request body:', JSON.stringify(req.body, null, 2));
     console.log('User:', user);
-    
+
     // Validate required fields
     const { customer, projectName, project, projectCost, invoices, payments, consigneeAddress, buyerAddress } = req.body;
-    
+
     if (!customer) {
       console.log('Validation failed: Customer is required');
       return res.status(400).json({ message: 'Customer is required' });
     }
-    
+
     if (!projectName && !project) {
       console.log('Validation failed: Project name is required');
       return res.status(400).json({ message: 'Project name is required' });
     }
-    
+
     if (!projectCost || isNaN(projectCost)) {
       console.log('Validation failed: Valid project cost is required');
       return res.status(400).json({ message: 'Valid project cost is required' });
@@ -264,14 +264,14 @@ router.post('/', auth, async (req, res) => {
     console.log('Payment model created, attempting to save...');
     await payment.save();
     console.log('Payment saved successfully:', payment._id);
-    
+
     res.status(201).json({
       message: 'Payment created successfully',
       data: payment
     });
   } catch (error) {
     console.error('Payment creation error detail:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Server error creating payment',
       error: error.message,
       details: error.errors,
@@ -284,16 +284,16 @@ router.post('/', auth, async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   try {
     const { customer, projectName, project, projectCost, invoices, payments, consigneeAddress, buyerAddress } = req.body;
-    
+
     // Validate required fields
     if (!customer) {
       return res.status(400).json({ message: 'Customer is required' });
     }
-    
+
     if (!projectName && !project) {
       return res.status(400).json({ message: 'Project name is required' });
     }
-    
+
     if (!projectCost || isNaN(projectCost)) {
       return res.status(400).json({ message: 'Valid project cost is required' });
     }
@@ -411,18 +411,18 @@ router.put('/:id', auth, async (req, res) => {
     }
     payment.set(updateData);
     await payment.save();
-    
+
     if (!payment) {
       return res.status(404).json({ message: 'Payment not found' });
     }
-    
+
     res.json({
       message: 'Payment updated successfully',
       data: payment
     });
   } catch (error) {
     console.error('Payment update error detail:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Server error updating payment',
       error: error.message,
       details: error.errors,
@@ -441,7 +441,7 @@ router.delete('/:id', auth, async (req, res) => {
     res.json({ message: 'Payment deleted successfully' });
   } catch (error) {
     console.error('Payment deletion error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Server error deleting payment',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
       details: error.errors
@@ -457,7 +457,7 @@ router.get('/customers/awarded', auth, async (req, res) => {
     res.json(customers);
   } catch (error) {
     console.error('Customers fetch error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Server error fetching customers',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
@@ -475,7 +475,7 @@ router.get('/projects/by-customer/:customer', auth, async (req, res) => {
     res.json(projects);
   } catch (error) {
     console.error('Projects by customer fetch error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Server error fetching projects',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });

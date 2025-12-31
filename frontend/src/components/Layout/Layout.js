@@ -24,7 +24,7 @@ const Layout = () => {
         <main 
         className="flex-1 overflow-auto bg-gray-50 main-content"
         >
-          <div className="max-w-none w-full h-full">
+          <div className="max-w-none w-full h-full overflow-visible">
             <Outlet />
           </div>
         </main>

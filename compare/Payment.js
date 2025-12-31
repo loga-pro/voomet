@@ -168,14 +168,14 @@ paymentSchema.pre('save', function (next) {
   this.totalInvoiceRaised = this.invoices.reduce((total, invoice) => {
     return total + (invoice.totalWithTax || invoice.invoiceValue || 0);
   }, 0);
-  
+
   // Calculate total payments from the separate payments array
   this.totalPayments = (this.payments || []).reduce((total, payment) => {
     return total + (payment.amount || 0);
   }, 0);
-  
+
   this.balanceAmount = this.totalInvoiceRaised - this.totalPayments;
-  
+
   const hasInvoices = this.totalInvoiceRaised > 0;
   const isFullyPaid = this.balanceAmount <= 0;
 
@@ -201,7 +201,7 @@ paymentSchema.pre('save', function (next) {
       this.status = 'pending';
     }
   }
-  
+
   // Ensure both project fields are set
   if (this.project && !this.projectName) {
     this.projectName = this.project;
@@ -209,7 +209,7 @@ paymentSchema.pre('save', function (next) {
   if (this.projectName && !this.project) {
     this.project = this.projectName;
   }
-  
+
   this.updatedAt = Date.now();
   next();
 });

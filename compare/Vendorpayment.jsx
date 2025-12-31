@@ -139,12 +139,12 @@ const VendorPaymentManagement = () => {
     const csvData = filteredPayments.map(payment => {
       const invoiceNumber = payment.invoices?.[0]?.invoiceNumber || 'N/A';
       return [
-      payment.vendor || '',
+        payment.vendor || '',
         payment.vendor?.category === 'vendor' ? 'Vendor' : 'Contractor',
         invoiceNumber,
-      payment.totalInvoiceRaised ?? '',
-      payment.totalPayments ?? '',
-      payment.balanceAmount ?? '',
+        payment.totalInvoiceRaised ?? '',
+        payment.totalPayments ?? '',
+        payment.balanceAmount ?? '',
         payment.status || ''
       ];
     });
@@ -406,78 +406,78 @@ const VendorPaymentManagement = () => {
                       currentItems.map((payment) => {
                         const invoiceNumber = payment.invoices?.[0]?.invoiceNumber || 'N/A';
                         return (
-                        <tr key={payment._id} className="hover:bg-gray-50 transition-colors duration-150">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{payment.vendor?.vendorName || payment.vendor}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${payment.vendor?.category === 'vendor'
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-orange-100 text-orange-800'
-                              }`}>
-                              {payment.vendor?.category === 'vendor' ? 'Vendor' : 'Contractor'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <tr key={payment._id} className="hover:bg-gray-50 transition-colors duration-150">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-medium text-gray-900">{payment.vendor?.vendorName || payment.vendor}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${payment.vendor?.category === 'vendor'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : 'bg-orange-100 text-orange-800'
+                                }`}>
+                                {payment.vendor?.category === 'vendor' ? 'Vendor' : 'Contractor'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
                               <div className="text-sm text-gray-900">{invoiceNumber}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">₹{payment.totalInvoiceRaised?.toFixed(2)?.toLocaleString()}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">₹{payment.totalPayments?.toFixed(2)?.toLocaleString()}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(payment.balanceAmount)}`}>
-                              ₹{payment.balanceAmount?.toFixed(2)?.toLocaleString()}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${payment.status === 'paid'
-                              ? 'bg-green-100 text-green-800'
-                              : payment.status === 'pending'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-red-100 text-red-800'
-                              }`}>
-                              {payment.status?.charAt(0).toUpperCase() + payment.status?.slice(1)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex space-x-2">
-                              {/* PDF View Button - Only for vendors with uploaded PDFs */}
-                              {payment.vendor?.category === 'vendor' && payment.image && (
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">₹{payment.totalInvoiceRaised?.toFixed(2)?.toLocaleString()}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">₹{payment.totalPayments?.toFixed(2)?.toLocaleString()}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(payment.balanceAmount)}`}>
+                                ₹{payment.balanceAmount?.toFixed(2)?.toLocaleString()}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${payment.status === 'paid'
+                                ? 'bg-green-100 text-green-800'
+                                : payment.status === 'pending'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-red-100 text-red-800'
+                                }`}>
+                                {payment.status?.charAt(0).toUpperCase() + payment.status?.slice(1)}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex space-x-2">
+                                {/* PDF View Button - Only for vendors with uploaded PDFs */}
+                                {payment.vendor?.category === 'vendor' && payment.image && (
+                                  <button
+                                    onClick={() => handleViewPDF(payment.image)}
+                                    className="text-purple-600 hover:text-purple-900 p-1 transition-colors duration-150"
+                                    title="View PDF Document"
+                                  >
+                                    <DocumentTextIcon className="h-5 w-5" />
+                                  </button>
+                                )}
                                 <button
-                                  onClick={() => handleViewPDF(payment.image)}
-                                  className="text-purple-600 hover:text-purple-900 p-1 transition-colors duration-150"
-                                  title="View PDF Document"
+                                  onClick={() => handleView(payment)}
+                                  className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
+                                  title="View Details"
                                 >
-                                  <DocumentTextIcon className="h-5 w-5" />
+                                  <EyeIcon className="h-5 w-5" />
                                 </button>
-                              )}
-                              <button
-                                onClick={() => handleView(payment)}
-                                className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
-                                title="View Details"
-                              >
-                                <EyeIcon className="h-5 w-5" />
-                              </button>
-                              <button
-                                onClick={() => handleEdit(payment)}
-                                className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
-                                title="Edit"
-                              >
-                                <PencilSquareIcon className="h-5 w-5" />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(payment._id)}
-                                className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
-                                title="Delete"
-                              >
-                                <TrashIcon className="h-5 w-5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
+                                <button
+                                  onClick={() => handleEdit(payment)}
+                                  className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
+                                  title="Edit"
+                                >
+                                  <PencilSquareIcon className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(payment._id)}
+                                  className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
+                                  title="Delete"
+                                >
+                                  <TrashIcon className="h-5 w-5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
                         );
                       })
                     ) : (
@@ -501,78 +501,78 @@ const VendorPaymentManagement = () => {
                 currentItems.map((payment) => {
                   const invoiceNumber = payment.invoices?.[0]?.invoiceNumber || 'N/A';
                   return (
-                  <div key={payment._id} className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors duration-150">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-medium text-gray-900 truncate">{payment.vendor?.vendorName || payment.vendor}</h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${payment.vendor?.category === 'vendor'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-orange-100 text-orange-800'
-                            }`}>
-                            {payment.vendor?.category === 'vendor' ? 'Vendor' : 'Contractor'}
-                          </span>
+                    <div key={payment._id} className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors duration-150">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm font-medium text-gray-900 truncate">{payment.vendor?.vendorName || payment.vendor}</h3>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${payment.vendor?.category === 'vendor'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-orange-100 text-orange-800'
+                              }`}>
+                              {payment.vendor?.category === 'vendor' ? 'Vendor' : 'Contractor'}
+                            </span>
                             <p className="text-sm text-gray-500 truncate">Invoice: {invoiceNumber}</p>
+                          </div>
+                        </div>
+                        <div className="flex space-x-2 ml-2">
+                          {/* PDF View Button - Only for vendors with uploaded PDFs */}
+                          {payment.vendor?.category === 'vendor' && payment.image && (
+                            <button
+                              onClick={() => handleViewPDF(payment.image)}
+                              className="text-purple-600 hover:text-purple-900 p-1 transition-colors duration-150"
+                              title="View PDF Document"
+                            >
+                              <DocumentTextIcon className="h-4 w-4" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleView(payment)}
+                            className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
+                            title="View Details"
+                          >
+                            <EyeIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(payment)}
+                            className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
+                            title="Edit"
+                          >
+                            <PencilSquareIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(payment._id)}
+                            className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
+                            title="Delete"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
                         </div>
                       </div>
-                      <div className="flex space-x-2 ml-2">
-                        {/* PDF View Button - Only for vendors with uploaded PDFs */}
-                        {payment.vendor?.category === 'vendor' && payment.image && (
-                          <button
-                            onClick={() => handleViewPDF(payment.image)}
-                            className="text-purple-600 hover:text-purple-900 p-1 transition-colors duration-150"
-                            title="View PDF Document"
-                          >
-                            <DocumentTextIcon className="h-4 w-4" />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleView(payment)}
-                          className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
-                          title="View Details"
-                        >
-                          <EyeIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEdit(payment)}
-                          className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
-                          title="Edit"
-                        >
-                          <PencilSquareIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(payment._id)}
-                          className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
-                          title="Delete"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
-                      <div>
-                        <span className="font-medium">Invoices Raised:</span> ₹{payment.totalInvoiceRaised?.toFixed(2)?.toLocaleString()}
-                      </div>
-                      <div>
-                        <span className="font-medium">Total Payments:</span> ₹{payment.totalPayments?.toFixed(2)?.toLocaleString()}
-                      </div>
-                      <div>
-                        <span className="font-medium">Balance:</span>
-                        <span className={`ml-1 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusColor(payment.balanceAmount)}`}>
-                          ₹{payment.balanceAmount?.toFixed(2)?.toLocaleString()}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium">Status:</span>
-                        <span className={`ml-1 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${payment.status === 'paid'
-                          ? 'bg-green-100 text-green-800'
-                          : payment.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-red-100 text-red-800'
-                          }`}>
-                          {payment.status?.charAt(0).toUpperCase() + payment.status?.slice(1)}
-                        </span>
-                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                        <div>
+                          <span className="font-medium">Invoices Raised:</span> ₹{payment.totalInvoiceRaised?.toFixed(2)?.toLocaleString()}
+                        </div>
+                        <div>
+                          <span className="font-medium">Total Payments:</span> ₹{payment.totalPayments?.toFixed(2)?.toLocaleString()}
+                        </div>
+                        <div>
+                          <span className="font-medium">Balance:</span>
+                          <span className={`ml-1 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusColor(payment.balanceAmount)}`}>
+                            ₹{payment.balanceAmount?.toFixed(2)?.toLocaleString()}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-medium">Status:</span>
+                          <span className={`ml-1 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${payment.status === 'paid'
+                            ? 'bg-green-100 text-green-800'
+                            : payment.status === 'pending'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-red-100 text-red-800'
+                            }`}>
+                            {payment.status?.charAt(0).toUpperCase() + payment.status?.slice(1)}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );
@@ -666,70 +666,70 @@ const VendorPaymentManagement = () => {
         </div>
 
         {/* View/Edit Modal - UPDATED TO MATCH PAYMENT MANAGEMENT */}
-       <Modal
-  isOpen={showModal || !!viewingPayment}
-  onClose={() => {
-    setShowModal(false);
-    setEditingPayment(null);
-    setViewingPayment(null);
-  }}
-  title={viewingPayment ? 'Vendor Payment Details' : editingPayment ? 'Edit Payment' : 'Add Payment'}
-  size="lg"
-  className="font-sans"
->
-  {viewingPayment ? (
+        <Modal
+          isOpen={showModal || !!viewingPayment}
+          onClose={() => {
+            setShowModal(false);
+            setEditingPayment(null);
+            setViewingPayment(null);
+          }}
+          title={viewingPayment ? 'Vendor Payment Details' : editingPayment ? 'Edit Payment' : 'Add Payment'}
+          size="lg"
+          className="font-sans"
+        >
+          {viewingPayment ? (
             <div className="flex flex-col max-h-[100vh]">
               {/* ✅ Scrollable content */}
               <div className="flex-1 overflow-y-auto pr-1">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-2 text-sm">
                   
-          {/* Vendor Information */}
+                  {/* Vendor Information */}
                   <div className="bg-white border rounded p-3 md:col-span-2">
                     <div className="flex items-center mb-2">
                       <BuildingOfficeIcon className="w-4 h-4 text-indigo-600 mr-2" />
                       <h3 className="font-semibold">Vendor Information</h3>
-            </div>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
+                      <div>
                         <span className="text-xs text-gray-500">Vendor Name</span>
                         <p className="font-medium">{viewingPayment.vendor?.vendorName || viewingPayment.vendor}</p>
-              </div>
-                <div>
+                      </div>
+                      <div>
                         <span className="text-xs text-gray-500">Category</span>
                         <span className={`inline-flex px-2 py-1 text-xs font-bold rounded-full uppercase ${viewingPayment.vendor?.category === 'vendor' 
                           ? 'bg-blue-100 text-blue-700' 
                           : 'bg-orange-100 text-orange-700'}`}>
                           {viewingPayment.vendor?.category === 'vendor' ? 'Vendor' : 'Contractor'}
                         </span>
-                </div>
-                <div>
+                      </div>
+                      <div>
                         <span className="text-xs text-gray-500">GST Number</span>
                         <p className="font-mono font-medium">{viewingPayment.vendorGstNumber || 'Not provided'}</p>
-                </div>
-            </div>
-          </div>
+                      </div>
+                    </div>
+                  </div>
 
                   {/* Financial Summary */}
                   <div className="bg-white border rounded p-3 md:col-span-2">
                     <div className="flex items-center mb-2">
                       <CurrencyRupeeIcon className="w-4 h-4 text-green-600 mr-2" />
                       <h3 className="font-semibold">Financial Summary</h3>
-            </div>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                       <div className="bg-blue-50 p-3 rounded border">
                         <span className="text-xs text-gray-500">Invoices Raised</span>
                         <p className="text-lg font-bold text-blue-700">₹{viewingPayment.totalInvoiceRaised?.toLocaleString() || '0.00'}</p>
-              </div>
+                      </div>
                       <div className="bg-green-50 p-3 rounded border">
                         <span className="text-xs text-gray-500">Total Payments</span>
                         <p className="text-lg font-bold text-green-700">₹{viewingPayment.totalPayments?.toLocaleString() || '0.00'}</p>
-              </div>
+                      </div>
                       <div className="bg-amber-50 p-3 rounded border">
                         <span className="text-xs text-gray-500">Balance Amount</span>
                         <p className={`text-lg font-bold ${viewingPayment.balanceAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
                           ₹{viewingPayment.balanceAmount?.toLocaleString() || '0.00'}
-                </p>
-              </div>
+                        </p>
+                      </div>
                       <div className="bg-purple-50 p-3 rounded border">
                         <span className="text-xs text-gray-500">Status</span>
                         <span className={`inline-flex px-2 py-1 text-xs font-bold rounded-full uppercase ${viewingPayment.status === 'paid' ? 'bg-green-100 text-green-700' :
@@ -738,15 +738,15 @@ const VendorPaymentManagement = () => {
                           {viewingPayment.status}
                         </span>
                       </div>
-            </div>
-          </div>
+                    </div>
+                  </div>
 
                   {/* Invoices Generated */}
                   <div className="bg-white border rounded p-3 md:col-span-2">
                     <div className="flex items-center mb-2">
                       <DocumentTextIcon className="w-4 h-4 text-indigo-600 mr-2" />
                       <h3 className="font-semibold">Invoices Generated ({viewingPayment.invoices?.length || 0})</h3>
-            </div>
+                    </div>
                     {viewingPayment.invoices && viewingPayment.invoices.length > 0 ? (
                       <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200 text-xs">
@@ -771,12 +771,12 @@ const VendorPaymentManagement = () => {
                             ))}
                           </tbody>
                         </table>
-                </div>
+                      </div>
                     ) : (
                       <div className="text-center p-4 bg-gray-50 rounded border-2 border-dashed border-gray-200">
                         <p className="text-gray-400 font-medium">No invoices generated yet.</p>
-                </div>
-              )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Payment Details */}
@@ -818,9 +818,9 @@ const VendorPaymentManagement = () => {
                     ) : (
                       <div className="text-center p-4 bg-gray-50 rounded border-2 border-dashed border-gray-200">
                         <p className="text-gray-400 font-medium">No payments recorded yet.</p>
-                </div>
-              )}
-            </div>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Document Section */}
                   {viewingPayment.image && (
@@ -828,12 +828,12 @@ const VendorPaymentManagement = () => {
                       <div className="flex items-center mb-2">
                         <DocumentTextIcon className="w-4 h-4 text-purple-600 mr-2" />
                         <h3 className="font-semibold">Document</h3>
-            </div>
+                      </div>
                       <div className="flex items-center justify-between bg-purple-50 p-3 rounded border">
-              <div>
+                        <div>
                           <p className="text-xs text-gray-500">Uploaded Document</p>
                           <p className="text-sm font-medium text-gray-900">Vendor Document</p>
-              </div>
+                        </div>
                         <button
                           onClick={() => handleViewPDF(viewingPayment.image)}
                           className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded transition-colors"
@@ -842,20 +842,20 @@ const VendorPaymentManagement = () => {
                           View PDF
                         </button>
                       </div>
+                    </div>
+                  )}
+
                 </div>
-              )}
+              </div>
 
-          </div>
-        </div>
-
-        {/* Action Buttons */}
+              {/* Action Buttons */}
               <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
-          <button
+                <button
                   onClick={() => setViewingPayment(null)}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-          >
-            Close
-          </button>
+                >
+                  Close
+                </button>
                 {viewingPayment.image && (
                   <button
                     onClick={() => handleViewPDF(viewingPayment.image)}
@@ -865,30 +865,30 @@ const VendorPaymentManagement = () => {
                     View Document
                   </button>
                 )}
-          <button
-            onClick={() => {
-              setEditingPayment(viewingPayment);
-              setViewingPayment(null);
-              setShowModal(true);
-            }}
+                <button
+                  onClick={() => {
+                    setEditingPayment(viewingPayment);
+                    setViewingPayment(null);
+                    setShowModal(true);
+                  }}
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-          >
+                >
                   <PencilSquareIcon className="h-4 w-4" />
                   Edit Record
-          </button>
-        </div>
-      </div>
-  ) : (
-    <PaymentForm
-      payment={editingPayment}
-      onSubmit={handleFormSubmit}
-      onCancel={() => {
-        setShowModal(false);
-        setEditingPayment(null);
-      }}
-    />
-  )}
-</Modal>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <PaymentForm
+              payment={editingPayment}
+              onSubmit={handleFormSubmit}
+              onCancel={() => {
+                setShowModal(false);
+                setEditingPayment(null);
+              }}
+            />
+          )}
+        </Modal>
 
         {/* Delete Confirmation Modal */}
         <Modal

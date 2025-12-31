@@ -276,7 +276,7 @@ class DailyEmailScheduler {
     const netChangeSign = reportData.netChange > 0 ? '+' : '';
 
     return `
-  < body style = "margin: 0; padding: 0; background-color: #f4f7f6; font-family: ${fontFamily};" >
+  < body>
   <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #f4f7f6;">
     <tr>
       <td align="center" style="padding: 20px 0;">

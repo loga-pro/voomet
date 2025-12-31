@@ -164,11 +164,11 @@ const PaymentManagement = () => {
     const csvData = filteredPayments.map(payment => {
       const pendingAmount = (payment.totalInvoiceRaised || 0) - (payment.totalPayments || 0);
       return [
-      payment.customer || '',
-      payment.projectName || '',
-      payment.projectCost ?? '',
-      payment.totalInvoiceRaised ?? '',
-      payment.totalPayments ?? '',
+        payment.customer || '',
+        payment.projectName || '',
+        payment.projectCost ?? '',
+        payment.totalInvoiceRaised ?? '',
+        payment.totalPayments ?? '',
         pendingAmount,
         payment.status || ''
       ];
@@ -507,75 +507,75 @@ const PaymentManagement = () => {
                       currentItems.map((payment) => {
                         const pendingAmount = calculatePendingAmount(payment);
                         return (
-                        <tr key={payment._id} className="hover:bg-gray-50 transition-colors duration-150">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{payment.customer}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{payment.projectName}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900 max-w-xs truncate" title={payment.invoices?.map(inv => inv.invoiceNumber).filter(Boolean).join(', ')}>
-                              {payment.invoices?.map(inv => inv.invoiceNumber).filter(Boolean).join(', ') || '-'}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">₹{payment.projectCost?.toFixed(2)?.toLocaleString()}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">₹{payment.totalInvoiceRaised?.toFixed(2)?.toLocaleString()}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">₹{payment.totalPayments?.toFixed(2)?.toLocaleString()}</div>
-                          </td>
+                          <tr key={payment._id} className="hover:bg-gray-50 transition-colors duration-150">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-medium text-gray-900">{payment.customer}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">{payment.projectName}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900 max-w-xs truncate" title={payment.invoices?.map(inv => inv.invoiceNumber).filter(Boolean).join(', ')}>
+                                {payment.invoices?.map(inv => inv.invoiceNumber).filter(Boolean).join(', ') || '-'}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">₹{payment.projectCost?.toFixed(2)?.toLocaleString()}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">₹{payment.totalInvoiceRaised?.toFixed(2)?.toLocaleString()}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">₹{payment.totalPayments?.toFixed(2)?.toLocaleString()}</div>
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className={`text-sm font-medium ${pendingAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
                                 ₹{pendingAmount.toFixed(2)?.toLocaleString()}
                               </div>
                             </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${payment.status === 'paid'
-                              ? 'bg-green-100 text-green-800'
-                              : payment.status === 'pending'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-red-100 text-red-800'
-                              }`}>
-                              {payment.status?.charAt(0).toUpperCase() + payment.status?.slice(1)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => handleView(payment)}
-                                className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
-                                title="View Details"
-                              >
-                                <EyeIcon className="h-5 w-5" />
-                              </button>
-                              <button
-                                onClick={() => handleGenerateInvoice(payment)}
-                                className="text-green-600 hover:text-green-900 p-1 transition-colors duration-150"
-                                title="Generate Invoice PDF"
-                              >
-                                <DocumentTextIcon className="h-5 w-5" />
-                              </button>
-                              <button
-                                onClick={() => handleEdit(payment)}
-                                className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
-                                title="Edit"
-                              >
-                                <PencilSquareIcon className="h-5 w-5" />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(payment._id)}
-                                className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
-                                title="Delete"
-                              >
-                                <TrashIcon className="h-5 w-5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${payment.status === 'paid'
+                                ? 'bg-green-100 text-green-800'
+                                : payment.status === 'pending'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-red-100 text-red-800'
+                                }`}>
+                                {payment.status?.charAt(0).toUpperCase() + payment.status?.slice(1)}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => handleView(payment)}
+                                  className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
+                                  title="View Details"
+                                >
+                                  <EyeIcon className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={() => handleGenerateInvoice(payment)}
+                                  className="text-green-600 hover:text-green-900 p-1 transition-colors duration-150"
+                                  title="Generate Invoice PDF"
+                                >
+                                  <DocumentTextIcon className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={() => handleEdit(payment)}
+                                  className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
+                                  title="Edit"
+                                >
+                                  <PencilSquareIcon className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(payment._id)}
+                                  className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
+                                  title="Delete"
+                                >
+                                  <TrashIcon className="h-5 w-5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
                         );
                       })
                     ) : (
@@ -599,73 +599,73 @@ const PaymentManagement = () => {
                 currentItems.map((payment) => {
                   const pendingAmount = calculatePendingAmount(payment);
                   return (
-                  <div key={payment._id} className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors duration-150">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-medium text-gray-900 truncate">{payment.customer}</h3>
-                        <p className="text-sm text-gray-500 truncate">{payment.projectName}</p>
+                    <div key={payment._id} className="border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors duration-150">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm font-medium text-gray-900 truncate">{payment.customer}</h3>
+                          <p className="text-sm text-gray-500 truncate">{payment.projectName}</p>
+                        </div>
+                        <div className="flex space-x-2 ml-2">
+                          <button
+                            onClick={() => handleView(payment)}
+                            className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
+                            title="View Details"
+                          >
+                            <EyeIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleGenerateInvoice(payment)}
+                            className="text-green-600 hover:text-green-900 p-1 transition-colors duration-150"
+                            title="Generate Invoice PDF"
+                          >
+                            <DocumentTextIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(payment)}
+                            className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
+                            title="Edit"
+                          >
+                            <PencilSquareIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(payment._id)}
+                            className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
+                            title="Delete"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex space-x-2 ml-2">
-                        <button
-                          onClick={() => handleView(payment)}
-                          className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
-                          title="View Details"
-                        >
-                          <EyeIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleGenerateInvoice(payment)}
-                          className="text-green-600 hover:text-green-900 p-1 transition-colors duration-150"
-                          title="Generate Invoice PDF"
-                        >
-                          <DocumentTextIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEdit(payment)}
-                          className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
-                          title="Edit"
-                        >
-                          <PencilSquareIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(payment._id)}
-                          className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
-                          title="Delete"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
-                      <div className="col-span-2">
-                        <span className="font-medium">Invoice No:</span> {payment.invoices?.map(inv => inv.invoiceNumber).filter(Boolean).join(', ') || '-'}
-                      </div>
-                      <div>
-                        <span className="font-medium">Project Cost:</span> ₹{payment.projectCost?.toFixed(2)?.toLocaleString()}
-                      </div>
-                      <div>
-                        <span className="font-medium">Invoices Raised:</span> ₹{payment.totalInvoiceRaised?.toFixed(2)?.toLocaleString()}
-                      </div>
-                      <div>
-                        <span className="font-medium">Total Payments:</span> ₹{payment.totalPayments?.toFixed(2)?.toLocaleString()}
-                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                        <div className="col-span-2">
+                          <span className="font-medium">Invoice No:</span> {payment.invoices?.map(inv => inv.invoiceNumber).filter(Boolean).join(', ') || '-'}
+                        </div>
+                        <div>
+                          <span className="font-medium">Project Cost:</span> ₹{payment.projectCost?.toFixed(2)?.toLocaleString()}
+                        </div>
+                        <div>
+                          <span className="font-medium">Invoices Raised:</span> ₹{payment.totalInvoiceRaised?.toFixed(2)?.toLocaleString()}
+                        </div>
+                        <div>
+                          <span className="font-medium">Total Payments:</span> ₹{payment.totalPayments?.toFixed(2)?.toLocaleString()}
+                        </div>
                         <div>
                           <span className="font-medium">Pending:</span>
                           <span className={`ml-1 font-medium ${pendingAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
                             ₹{pendingAmount.toFixed(2)?.toLocaleString()}
                           </span>
                         </div>
-                      <div>
-                        <span className="font-medium">Status:</span>
-                        <span className={`ml-1 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${payment.status === 'paid'
-                          ? 'bg-green-100 text-green-800'
-                          : payment.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-red-100 text-red-800'
-                          }`}>
-                          {payment.status?.charAt(0).toUpperCase() + payment.status?.slice(1)}
-                        </span>
-                      </div>
+                        <div>
+                          <span className="font-medium">Status:</span>
+                          <span className={`ml-1 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${payment.status === 'paid'
+                            ? 'bg-green-100 text-green-800'
+                            : payment.status === 'pending'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-red-100 text-red-800'
+                            }`}>
+                            {payment.status?.charAt(0).toUpperCase() + payment.status?.slice(1)}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );
@@ -756,20 +756,20 @@ const PaymentManagement = () => {
             </div>
           )}
         </div>
-        
+
         {/* View/Edit Modal - UPDATED WITH NEW STYLING */}
         <Modal
-  isOpen={showModal || !!viewingPayment}
-  onClose={() => {
-    setShowModal(false);
-    setEditingPayment(null);
-    setViewingPayment(null);
-  }}
-  title={viewingPayment ? 'Payment Details' : editingPayment ? 'Edit Payment' : 'Add Payment'}
-  size="lg"
-  className="font-sans"
->
-  {viewingPayment ? (
+          isOpen={showModal || !!viewingPayment}
+          onClose={() => {
+            setShowModal(false);
+            setEditingPayment(null);
+            setViewingPayment(null);
+          }}
+          title={viewingPayment ? 'Payment Details' : editingPayment ? 'Edit Payment' : 'Add Payment'}
+          size="lg"
+          className="font-sans"
+        >
+          {viewingPayment ? (
             <div className="flex flex-col max-h-[100vh]">
               {/* ✅ Scrollable content */}
               <div className="flex-1 overflow-y-auto pr-1">
@@ -780,16 +780,16 @@ const PaymentManagement = () => {
                     <div className="flex items-center mb-2">
                       <FolderIcon className="w-4 h-4 text-indigo-600 mr-2" />
                       <h3 className="font-semibold">Project Information</h3>
-            </div>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
+                      <div>
                         <span className="text-xs text-gray-500">Client Name</span>
                         <p className="font-medium">{viewingPayment.customer}</p>
-              </div>
-                <div>
+                      </div>
+                      <div>
                         <span className="text-xs text-gray-500">Project Name</span>
                         <p className="font-medium">{viewingPayment.projectName}</p>
-                </div>
+                      </div>
                       <div>
                         <span className="text-xs text-gray-500">Status</span>
                         <span className={`inline-flex px-2 py-1 text-xs font-bold rounded-full uppercase ${viewingPayment.status === 'paid' ? 'bg-green-100 text-green-700' :
@@ -798,20 +798,20 @@ const PaymentManagement = () => {
                           {viewingPayment.status}
                         </span>
                       </div>
-            </div>
-          </div>
+                    </div>
+                  </div>
 
                   {/* Financial Summary */}
                   <div className="bg-white border rounded p-3 md:col-span-2">
                     <div className="flex items-center mb-2">
                       <CurrencyRupeeIcon className="w-4 h-4 text-green-600 mr-2" />
                       <h3 className="font-semibold">Financial Summary</h3>
-            </div>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                       <div className="bg-blue-50 p-3 rounded border">
                         <span className="text-xs text-gray-500">Project Cost</span>
                         <p className="text-lg font-bold text-blue-700">₹{viewingPayment.projectCost?.toLocaleString() || '0.00'}</p>
-              </div>
+                      </div>
                       <div className="bg-purple-50 p-3 rounded border">
                         <span className="text-xs text-gray-500">Invoices Raised</span>
                         <p className="text-lg font-bold text-purple-700">₹{viewingPayment.totalInvoiceRaised?.toLocaleString() || '0.00'}</p>
@@ -824,17 +824,17 @@ const PaymentManagement = () => {
                         <span className="text-xs text-gray-500">Pending Amount</span>
                         <p className={`text-lg font-bold ${viewingPayment.balanceAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
                           ₹{calculatePendingAmount(viewingPayment).toLocaleString()}
-                  </p>
-                </div>
-            </div>
-          </div>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
                   {/* Invoices Generated */}
                   <div className="bg-white border rounded p-3 md:col-span-2">
                     <div className="flex items-center mb-2">
                       <DocumentTextIcon className="w-4 h-4 text-indigo-600 mr-2" />
                       <h3 className="font-semibold">Invoices Generated ({viewingPayment.invoices?.length || 0})</h3>
-            </div>
+                    </div>
                     {viewingPayment.invoices && viewingPayment.invoices.length > 0 ? (
                       <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200 text-xs">
@@ -863,20 +863,20 @@ const PaymentManagement = () => {
                             ))}
                           </tbody>
                         </table>
-              </div>
+                      </div>
                     ) : (
                       <div className="text-center p-4 bg-gray-50 rounded border-2 border-dashed border-gray-200">
                         <p className="text-gray-400 font-medium">No invoices generated for this project yet.</p>
-              </div>
+                      </div>
                     )}
-              </div>
+                  </div>
 
                   {/* Payment Details */}
                   <div className="bg-white border rounded p-3 md:col-span-2">
                     <div className="flex items-center mb-2">
                       <BanknotesIcon className="w-4 h-4 text-green-600 mr-2" />
                       <h3 className="font-semibold">Payment Details ({viewingPayment.payments?.length || 0})</h3>
-            </div>
+                    </div>
                     {viewingPayment.payments && viewingPayment.payments.length > 0 ? (
                       <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200 text-xs">
@@ -916,48 +916,48 @@ const PaymentManagement = () => {
                     )}
                   </div>
 
-          </div>
-        </div>
+                </div>
+              </div>
 
-        {/* Action Buttons */}
+              {/* Action Buttons */}
               <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
-          <button
+                <button
                   onClick={() => setViewingPayment(null)}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-          >
-            Close
-          </button>
-          <button
+                >
+                  Close
+                </button>
+                <button
                   onClick={() => handleGenerateInvoice(viewingPayment)}
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
-          >
+                >
                   <DocumentTextIcon className="h-4 w-4" />
-            Generate Invoice
-          </button>
-          <button
-            onClick={() => {
-              setEditingPayment(viewingPayment);
-              setViewingPayment(null);
-              setShowModal(true);
-            }}
+                  Generate Invoice
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingPayment(viewingPayment);
+                    setViewingPayment(null);
+                    setShowModal(true);
+                  }}
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-          >
+                >
                   <PencilSquareIcon className="h-4 w-4" />
                   Edit Record
-          </button>
-        </div>
-      </div>
-  ) : (
-    <PaymentForm
-      payment={editingPayment}
-      onSubmit={handleFormSubmit}
-      onCancel={() => {
-        setShowModal(false);
-        setEditingPayment(null);
-      }}
-    />
-  )}
-</Modal>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <PaymentForm
+              payment={editingPayment}
+              onSubmit={handleFormSubmit}
+              onCancel={() => {
+                setShowModal(false);
+                setEditingPayment(null);
+              }}
+            />
+          )}
+        </Modal>
 
         {/* Delete Confirmation Modal */}
         <Modal

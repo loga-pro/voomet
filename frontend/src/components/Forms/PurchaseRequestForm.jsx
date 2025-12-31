@@ -1217,17 +1217,6 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
           </div>
         </div>
 
-        {/* Total Quantity Summary */}
-        <div className="mt-4 flex justify-end">
-          <div className="px-4 py-2 bg-blue-50 rounded-md">
-            <span className="text-sm font-medium text-gray-700">
-              Total {activeTab === 'materials' ? 'Material' : 'Hardware'} Quantity:
-            </span>
-            <span className="text-sm font-bold text-blue-700 ml-2">
-              {calculateTotalQuantity(activeTab)}
-            </span>
-          </div>
-        </div>
 
         {/* General Remarks */}
         <div className="mt-6 relative">

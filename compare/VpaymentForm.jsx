@@ -617,7 +617,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
           <div className="bg-gray-50 p-4 rounded-lg border mb-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <FloatingInput
-                label="Invoice Number"
+                label="Invoice Number *"
                 name="invoices.0.invoiceNumber"
                 value={invoice.invoiceNumber}
                 onChange={handleChange}
@@ -626,7 +626,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
               />
 
               <FloatingInput
-                label="Invoice Value (₹)"
+                label="Invoice Value (₹) *"
                 name="invoices.0.invoiceValue"
                 value={invoice.invoiceValue}
                 onChange={handleChange}
@@ -676,7 +676,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
 
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                       <FloatingInput
-                        label="Transaction ID"
+                        label="Transaction ID *"
                         name={`invoices.0.payments.${paymentIndex}.transactionId`}
                         value={payment.transactionId}
                         onChange={handleChange}
@@ -685,7 +685,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
                       />
 
                       <FloatingInput
-                        label="Bank Name"
+                        label="Bank Name *"
                         name={`invoices.0.payments.${paymentIndex}.bankName`}
                         value={payment.bankName}
                         onChange={(e) => handleBankNameChange(e, paymentIndex)}
@@ -694,7 +694,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
                       />
 
                       <FloatingInput
-                        label="Amount (₹) "
+                        label="Amount (₹) *"
                         name={`invoices.0.payments.${paymentIndex}.amount`}
                         value={payment.amount}
                         onChange={handleChange}
@@ -706,7 +706,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
                       />
 
                       <FloatingInput
-                        label="Payment Date "
+                        label="Payment Date *"
                         name={`invoices.0.payments.${paymentIndex}.paymentDate`}
                         value={payment.paymentDate}
                         onChange={handleChange}
