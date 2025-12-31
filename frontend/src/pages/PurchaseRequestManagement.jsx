@@ -21,7 +21,7 @@ import Modal from "../components/Modals/Modal";
 import Notification from "../components/Notifications/Notification";
 import useNotification from "../hooks/useNotification";
 import PurchaseRequestForm from "../components/Forms/PurchaseRequestForm";
-import { customersAPI, projectsAPI, purchaseRequestsAPI } from "../services/api";
+import { customersAPI, FILE_BASE_URL, projectsAPI, purchaseRequestsAPI } from "../services/api";
 
 const PurchaseRequestManagement = () => {
   const [purchaseRequests, setPurchaseRequests] = useState([]);
@@ -416,8 +416,7 @@ const PurchaseRequestManagement = () => {
   const getImageUrl = (path) => {
     if (!path) return null;
     if (path.startsWith('http')) return path;
-    const backendUrl = 'http://localhost:5000'; // Fallback for local development
-    return `${backendUrl}${path}`;
+    return `${FILE_BASE_URL}${path}`;
   };
 
   if (loading) {

@@ -8,7 +8,7 @@ import {
 import { UploadOutlined } from '@ant-design/icons';
 import { Button, Upload } from 'antd';
 import FloatingInput from './FloatingInput';
-import { purchaseRequestsAPI, partsAPI, inhouseMilestonesAPI } from '../../services/api';
+import { purchaseRequestsAPI, inhouseMilestonesAPI ,FILE_BASE_URL} from '../../services/api';
 
 const scopeOptions = [
   { value: '', label: 'Select Scope' },
@@ -133,7 +133,7 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
               size: item.image.size || 0,
               type: item.image.type || 'image/jpeg',
               status: 'done',
-              url: item.image.path ? `http://localhost:5000${item.image.path}` : null,
+              url: item.image.path ? `${FILE_BASE_URL}${item.image.path}` : null,
               path: item.image.path,
               filename: item.image.filename,
               isExisting: true
@@ -165,7 +165,7 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
               size: item.image.size || 0,
               type: item.image.type || 'image/jpeg',
               status: 'done',
-              url: item.image.path ? `http://localhost:5000${item.image.path}` : null,
+              url: item.image.path ? `${FILE_BASE_URL}${item.image.path}` : null,
               path: item.image.path,
               filename: item.image.filename,
               isExisting: true
@@ -468,7 +468,7 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
           uid: img.uid || img.filename || `${index}`,
           name: img.name || img.originalName || img.filename || 'image',
           status: img.status || 'done',
-          url: img.url || (img.path ? `http://localhost:5000${img.path}` : null)
+          url: img.url || (img.path ? `${FILE_BASE_URL}${img.path}` : null)
         }]
         : []
     };

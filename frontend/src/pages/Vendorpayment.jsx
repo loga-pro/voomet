@@ -23,7 +23,7 @@ import PaymentForm from '../components/Forms/VpaymentForm';
 import Modal from '../components/Modals/Modal';
 import Notification from '../components/Notifications/Notification';
 import useNotification from '../hooks/useNotification';
-import { vendorPaymentsAPI, vendorsAPI } from '../services/api';
+import { FILE_BASE_URL, vendorPaymentsAPI, vendorsAPI } from '../services/api';
 
 const VendorPaymentManagement = () => {
   const [payments, setPayments] = useState([]);
@@ -176,9 +176,7 @@ const VendorPaymentManagement = () => {
   };
 
   const handleViewPDF = (pdfPath) => {
-    // Open PDF in new tab
-    const baseURL = 'http://localhost:5000'; // Update this to match your backend URL
-    window.open(`${baseURL}${pdfPath}`, '_blank');
+    window.open(`${FILE_BASE_URL}${pdfPath}`, '_blank');
   };
 
   const handleDelete = (id) => {
