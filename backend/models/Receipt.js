@@ -12,7 +12,7 @@ const receiptSchema = new mongoose.Schema({
   },
   workCategory: {
     type: String,
-    maxlength: 30
+    maxlength: 100
   },
   partName: {
     type: String,
@@ -82,7 +82,7 @@ const receiptSchema = new mongoose.Schema({
 // Calculate total value before saving
 receiptSchema.pre('save', function(next) {
   if (this.invoiceValueWithoutGST && this.gstValue && this.quantity) {
-    this.totalValue = (parseFloat(this.invoiceValueWithoutGST) + parseFloat(this.gstValue)) * parseFloat(this.quantity);
+    this.totalValue = (parseFloat(this.invoiceValueWithoutGST) * parseFloat(this.quantity)) + parseFloat(this.gstValue);
   }
   next();
 });

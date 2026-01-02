@@ -350,14 +350,15 @@ export const productionAPI = {
 
 // Receipts API
 export const receiptsAPI = {
-  getAll: (filters) => api.get("/inventory/receipts/all", { params: filters }),
-  create: (data) => api.post("/inventory/receipts", data),
-  update: (id, data) => api.put(`/inventory/receipts/${id}`, data),
-  delete: (id) => api.delete(`/inventory/receipts/${id}`),
+  getAll: (filters) => api.get("/receipts", { params: filters }),
+  getById: (id) => api.get(`/receipts/${id}`),
+  create: (data) => api.post("/receipts", data),
+  update: (id, data) => api.put(`/receipts/${id}`, data),
+  delete: (id) => api.delete(`/receipts/${id}`),
   uploadFile: (file) => {
     const formData = new FormData();
     formData.append('file', file);
-    return api.post('/inventory/receipts/upload-file', formData, {
+    return api.post('/receipts/upload-file', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
@@ -368,10 +369,10 @@ export const receiptsAPI = {
 // Dispatches API
 export const dispatchesAPI = {
   getAll: (filters) =>
-    api.get("/inventory/dispatches/all", { params: filters }),
-  create: (data) => api.post("/inventory/dispatches", data),
-  update: (id, data) => api.put(`/inventory/dispatches/${id}`, data),
-  delete: (id) => api.delete(`/inventory/dispatches/${id}`),
+    api.get("/dispatches", { params: filters }),
+  create: (data) => api.post("/dispatches", data),
+  update: (id, data) => api.put(`/dispatches/${id}`, data),
+  delete: (id) => api.delete(`/dispatches/${id}`),
 };
 
 // Purchase Requests API

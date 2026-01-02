@@ -134,9 +134,9 @@ router.post('/', auth, async (req, res) => {
       }
     }
     
-    // Calculate total value
+    // Calculate total value: (price_per_unit * quantity) + total_gst_amount
     if (receiptData.invoiceValueWithoutGST && receiptData.gstValue && receiptData.quantity) {
-      receiptData.totalValue = (parseFloat(receiptData.invoiceValueWithoutGST) + parseFloat(receiptData.gstValue)) * parseFloat(receiptData.quantity);
+      receiptData.totalValue = (parseFloat(receiptData.invoiceValueWithoutGST) * parseFloat(receiptData.quantity)) + parseFloat(receiptData.gstValue);
     }
     
     console.log('Step 1: Creating receipt document');
@@ -272,9 +272,9 @@ router.put('/:id', auth, async (req, res) => {
       }
     }
     
-    // Calculate total value
+    // Calculate total value: (price_per_unit * quantity) + total_gst_amount
     if (receiptData.invoiceValueWithoutGST && receiptData.gstValue && receiptData.quantity) {
-      receiptData.totalValue = (parseFloat(receiptData.invoiceValueWithoutGST) + parseFloat(receiptData.gstValue)) * parseFloat(receiptData.quantity);
+      receiptData.totalValue = (parseFloat(receiptData.invoiceValueWithoutGST) * parseFloat(receiptData.quantity)) + parseFloat(receiptData.gstValue);
     }
     
     const receipt = await Receipt.findByIdAndUpdate(

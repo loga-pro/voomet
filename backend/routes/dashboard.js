@@ -133,8 +133,13 @@ router.get('/kpis', auth, async (req, res) => {
     // Inventory KPIs - Enhanced calculations matching InventoryManagement.jsx
     const inventoryItems = await Inventory.find();
     
-    // Total items count
-    const totalItems = inventoryItems.length;
+    // Total items count - count unique items based on workCategory and partName combination
+    const uniqueItems = new Set();
+    inventoryItems.forEach(item => {
+      const key = `${item.workCategory || ''}_${item.partName || ''}`;
+      uniqueItems.add(key);
+    });
+    const totalItems = uniqueItems.size;
     
     // Calculate values by location
     const totalPartsValueAtShopFloor = inventoryItems.reduce((sum, item) => {

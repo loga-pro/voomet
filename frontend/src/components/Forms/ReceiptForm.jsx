@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import FloatingInput from './FloatingInput';
 import { FaEye, FaTrash, FaEdit, FaPlus } from 'react-icons/fa';
 import { purchasesAPI, receiptsAPI } from '../../services/api';
@@ -47,12 +47,14 @@ const ReceiptForm = ({
         workCategory: item.workCategory || '',
         partName: item.partName || '',
         unit: item.unit || '',
+        actualOrder: item.actualOrder || '',
         quantity: item.quantity?.toString() || '',
         priceWithoutGST: (item.priceWithoutGST || item.invoiceValueWithoutGST)?.toString() || '',
         gstPercentage: item.gstPercentage || 18,
         gstAmount: (item.gstAmount || item.gstValue)?.toString() || '',
         total: (item.total || item.totalValue)?.toString() || '',
-        remark: item.remark || ''
+        remark: item.remark || '',
+        _id: item._id || null
       }));
     }
     // If editing a single receipt (has individual fields), convert to lineItems format
@@ -61,12 +63,14 @@ const ReceiptForm = ({
         workCategory: initialData.workCategory || '',
         partName: initialData.partName || '',
         unit: initialData.unit || '',
+        actualOrder: initialData.actualOrder || '',
         quantity: initialData.quantity?.toString() || '',
         priceWithoutGST: initialData.invoiceValueWithoutGST?.toString() || '',
         gstPercentage: initialData.gstPercentage || 18,
         gstAmount: initialData.gstValue?.toString() || '',
         total: initialData.totalValue?.toString() || '',
-        remark: initialData.remark || ''
+        remark: initialData.remark || '',
+        _id: initialData._id || null
       }];
     }
     // Default empty line item for new receipts
@@ -74,6 +78,7 @@ const ReceiptForm = ({
       workCategory: '',
       partName: '',
       unit: '',
+      actualOrder: '',
       quantity: '',
       priceWithoutGST: '',
       gstPercentage: 18,
@@ -82,6 +87,8 @@ const ReceiptForm = ({
       remark: ''
     }];
   });
+
+  const [deletedIds, setDeletedIds] = useState([]);
 
   const [formData, setFormData] = useState({
     date: formatDateForInput(initialData.date),
@@ -141,28 +148,67 @@ const ReceiptForm = ({
     fetchPurchases();
   }, [selectedVendor, formData.category]);
 
+  const isInitialVoucherLoad = useRef(true);
+  // Track the last voucher that was used to auto-populate to avoid unwanted resets
+  const [lastPopulatedVoucher, setLastPopulatedVoucher] = useState(initialData.voucherNo || null);
+
   // Populate line items when voucher number is selected
   useEffect(() => {
-    if (formData.category === 'Bought-out' && selectedVoucherNo && purchases.length > 0) {
-      // Filter purchases by selected voucher number
-      const voucherPurchases = purchases.filter(p => p.voucherNo === selectedVoucherNo);
+    const populateFromVoucher = async () => {
+      // 1. Basic check: must have a voucher and purchases loaded
+      if (formData.category === 'Bought-out' && selectedVoucherNo && purchases.length > 0) {
 
-      if (voucherPurchases.length > 0) {
-        const mappedItems = voucherPurchases.map(item => ({
-          workCategory: item.workCategory || '',
-          partName: item.partName || '',
-          unit: item.unit || '',
-          actualOrder: item.quantity?.toString() || '', // Store original purchase order quantity
-          quantity: item.quantity?.toString() || '',
-          priceWithoutGST: item.invoiceValueWithoutGST?.toString() || '',
-          gstPercentage: item.gstPercentage || 18,
-          gstAmount: item.gstValue?.toString() || '',
-          total: item.totalValue?.toString() || ''
-        }));
-        setLineItems(mappedItems);
+        // 2. If editing and this is the initial load with the SAME voucher, 
+        // just enrich actualOrder without resetting quantities
+        if (isEditing && isInitialVoucherLoad.current && selectedVoucherNo === initialData.voucherNo) {
+          const enrichedItems = lineItems.map(li => {
+            const match = purchases.find(p =>
+              p.voucherNo === selectedVoucherNo &&
+              p.partName.toLowerCase() === li.partName.toLowerCase()
+            );
+            return {
+              ...li,
+              actualOrder: match ? match.quantity?.toString() : li.actualOrder
+            };
+          });
+
+          if (JSON.stringify(enrichedItems) !== JSON.stringify(lineItems)) {
+            setLineItems(enrichedItems);
+          }
+          isInitialVoucherLoad.current = false;
+          setLastPopulatedVoucher(selectedVoucherNo);
+          return;
+        }
+
+        // 3. If the voucher has actually CHANGED from what we last populated (manual selection)
+        // OR if it's a new receipt and we haven't populated yet
+        if (selectedVoucherNo !== lastPopulatedVoucher) {
+          const voucherPurchases = purchases.filter(p => p.voucherNo === selectedVoucherNo);
+
+          if (voucherPurchases.length > 0) {
+            const mappedItems = voucherPurchases.map(item => ({
+              workCategory: item.workCategory || '',
+              partName: item.partName || '',
+              unit: item.unit || '',
+              actualOrder: item.quantity?.toString() || '',
+              quantity: '', // Clear quantity for new selection
+              priceWithoutGST: item.invoiceValueWithoutGST?.toString() || '',
+              gstPercentage: item.gstPercentage || 18,
+              gstAmount: item.gstValue?.toString() || '',
+              total: item.totalValue?.toString() || '',
+              remark: item.remark || '',
+              _id: null
+            }));
+
+            setLineItems(mappedItems);
+            setLastPopulatedVoucher(selectedVoucherNo);
+            isInitialVoucherLoad.current = false;
+          }
+        }
       }
-    }
-  }, [selectedVoucherNo, purchases, formData.category]);
+    };
+    populateFromVoucher();
+  }, [selectedVoucherNo, purchases, formData.category, isEditing, initialData.voucherNo, lastPopulatedVoucher]);
 
 
   // Auto-fill unit and price when part is selected for each line item
@@ -260,7 +306,8 @@ const ReceiptForm = ({
         priceWithoutGST: '',
         gstPercentage: 18,
         gstAmount: '',
-        total: ''
+        total: '',
+        remark: ''
       }]);
       return;
     }
@@ -295,6 +342,14 @@ const ReceiptForm = ({
         showError?.('Quantity cannot exceed 9999');
         return;
       }
+
+      // Validate against Actual Order
+      const actualOrder = parseFloat(newLineItems[index].actualOrder);
+      if (!isNaN(actualOrder) && num > actualOrder) {
+        showError?.(`Quantity (${num}) cannot exceed Actual Order (${actualOrder})`);
+        return;
+      }
+
       newLineItems[index][field] = numericValue;
     }
     // Validate price (max 10 digits with 2 decimals)
@@ -339,13 +394,18 @@ const ReceiptForm = ({
         gstPercentage: 18,
         gstAmount: '',
         total: '',
-        remark: ''
+        remark: '',
+        _id: null
       }
     ]);
   };
 
   const removeLineItem = (index) => {
     if (lineItems.length > 1) {
+      const itemToDelete = lineItems[index];
+      if (itemToDelete._id) {
+        setDeletedIds(prev => [...prev, itemToDelete._id]);
+      }
       const newLineItems = lineItems.filter((_, i) => i !== index);
       setLineItems(newLineItems);
     } else {
@@ -372,7 +432,19 @@ const ReceiptForm = ({
     }
 
     try {
-      if (isEditing && receiptData?._id) {
+      // Handle deletions first
+      if (deletedIds.length > 0) {
+        try {
+          await Promise.all(deletedIds.map(id => receiptsAPI.delete(id)));
+        } catch (error) {
+          console.error('Error deleting removed items:', error);
+          const message = error.response?.data?.message || 'Failed to remove some items. They might be linked to dispatches.';
+          showError?.(message);
+          return; // Stop submission if deletion fails
+        }
+      }
+
+      if (isEditing) {
         // For editing, submit all line items in parallel
         const promises = lineItems.map((item, i) => {
           const receipt = {
@@ -395,8 +467,8 @@ const ReceiptForm = ({
             remark: item.remark || ''
           };
 
-          // Only pass the ID on the first iteration to trigger the edit flow
-          return onSubmit(receipt, i === 0 ? receiptData._id : null);
+          // Pass the specific item's _id if it exists
+          return onSubmit(receipt, item._id || null);
         });
 
         // Wait for all submissions to complete in parallel

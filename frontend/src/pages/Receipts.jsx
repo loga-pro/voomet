@@ -361,18 +361,8 @@ const Receipts = () => {
   const handleFormSubmit = async (receiptData, receiptId = null) => {
     try {
       if (receiptId) {
-        // If editing grouped receipts (has relatedReceiptIds), delete all old ones first
-        if (editingReceipt?.relatedReceiptIds && editingReceipt.relatedReceiptIds.length > 0) {
-          // Delete all related receipts
-          await Promise.all(
-            editingReceipt.relatedReceiptIds.map(id => receiptsAPI.delete(id))
-          );
-          // Create new receipts for each line item (same as new receipt creation)
-          await receiptsAPI.create(receiptData);
-        } else {
-          // Single receipt update
-          await receiptsAPI.update(receiptId, receiptData);
-        }
+        // Update existing receipt
+        await receiptsAPI.update(receiptId, receiptData);
       } else {
         // Create new receipt
         await receiptsAPI.create(receiptData);
@@ -584,6 +574,9 @@ const Receipts = () => {
                       <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-64">
                         Vendor
                       </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-48">
+                        Received Qty
+                      </th>
 
                       <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-48">
                         Invoice No
@@ -622,6 +615,11 @@ const Receipts = () => {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
                               {receipt.vendorNames?.join(', ') || receipt.vendorName || '-'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-semibold text-blue-600">
+                              {receipt.totalQuantity} {receipt.unit}
                             </div>
                           </td>
 

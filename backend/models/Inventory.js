@@ -113,24 +113,37 @@ const inventorySchema = new mongoose.Schema({
 // This should be called after receipts and dispatches are populated
 inventorySchema.statics.calculateSummary = async function(inventoryId) {
   try {
-    console.log('calculateSummary called for inventory:', inventoryId);
+    console.log('calculateSummary called for inventory ID:', inventoryId);
     
-    const Receipt = mongoose.model('Receipt');
-    const Dispatch = mongoose.model('Dispatch');
+    // Register or get models safely
+    let Receipt;
+    try {
+      Receipt = mongoose.model('Receipt');
+    } catch (e) {
+      Receipt = require('./Receipt');
+    }
+
+    let Dispatch;
+    try {
+      Dispatch = mongoose.model('Dispatch');
+    } catch (e) {
+      Dispatch = require('./Dispatch');
+    }
     
     const inventory = await this.findById(inventoryId);
     if (!inventory) {
-      console.log('Inventory not found:', inventoryId);
+      console.warn('Inventory not found during calculateSummary for ID:', inventoryId);
       return null;
     }
     
-    console.log('Found inventory with receipts:', inventory.receipts.length, 'dispatches:', inventory.dispatches.length);
+    console.log(`Processing inventory: "${inventory.partName}" (${inventory.workCategory})`);
+    console.log(`Found ${inventory.receipts?.length || 0} receipts and ${inventory.dispatches?.length || 0} dispatches`);
     
     // Get all receipts and dispatches for this inventory
-    const receipts = await Receipt.find({ _id: { $in: inventory.receipts } });
-    const dispatches = await Dispatch.find({ _id: { $in: inventory.dispatches } });
+    const receipts = await Receipt.find({ _id: { $in: inventory.receipts || [] } });
+    const dispatches = await Dispatch.find({ _id: { $in: inventory.dispatches || [] } });
     
-    console.log('Fetched receipts:', receipts.length, 'dispatches:', dispatches.length);
+    console.log(`Successfully fetched ${receipts.length} receipt docs and ${dispatches.length} dispatch docs`);
     
     // Separate regular receipts from returns
     const regularReceipts = receipts.filter(r => r.receiptCategory !== 'return');
@@ -218,11 +231,17 @@ inventorySchema.statics.calculateSummary = async function(inventoryId) {
 
     // Update Re-order Level from Part Master
     try {
-      const Part = mongoose.model('Part');
+      let Part;
+      try {
+        Part = mongoose.model('Part');
+      } catch (e) {
+        Part = require('./Part');
+      }
+      
       if (inventory.partName) {
         const part = await Part.findOne({ 
-          partName: { $regex: new RegExp(`^${inventory.partName}$`, 'i') },
-          scopeOfWork: { $regex: new RegExp(`^${inventory.workCategory}$`, 'i') }
+          partName: { $regex: new RegExp(`^${inventory.partName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+          scopeOfWork: { $regex: new RegExp(`^${(inventory.workCategory || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
         });
         if (part) {
           inventory.reOrderLevel = part.reorderLevel || 0;
@@ -237,7 +256,8 @@ inventorySchema.statics.calculateSummary = async function(inventoryId) {
     console.log('Inventory summary saved successfully');
     return inventory;
   } catch (error) {
-    console.error('Error in calculateSummary:', error);
+    console.error('CRITICAL ERROR in calculateSummary:', error);
+    console.error('Inventory ID:', inventoryId);
     console.error('Error stack:', error.stack);
     throw error;
   }
