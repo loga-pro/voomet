@@ -118,19 +118,19 @@ const ProfitLossSummary = () => {
         setIsModalOpen(true);
     };
 
-    const formatCurrency = (amount) => {
+    const formatCurrency = React.useCallback((amount) => {
         return new Intl.NumberFormat('en-IN', {
             style: 'currency',
             currency: 'INR',
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         }).format(amount || 0);
-    };
+    }, []);
 
-    // Helper function to determine which columns to show
-    const getVisibleColumns = () => {
+    // Helper function to determine which columns to show - Memoized
+    const visibleColumns = React.useMemo(() => {
         const baseColumns = ['projectName', 'customerName'];
-        
+
         switch (activeKpiType) {
             case 'all':
                 return baseColumns; // Show only Project Name and Customer Name
@@ -147,7 +147,7 @@ const ProfitLossSummary = () => {
             default:
                 return [...baseColumns, 'boqValue', 'negotiated', 'actualSpent', 'netAmount', 'profitLoss'];
         }
-    };
+    }, [activeKpiType]);
 
     if (summaryData.loading) {
         return (
@@ -162,11 +162,11 @@ const ProfitLossSummary = () => {
             <div className="w-full mb-6">
                 {/* Header */}
                 <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">Profit & Loss Overview</h2>
-                
+
                 {/* Gradient Cards Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
                     {/* Total Projects */}
-                    <div 
+                    <div
                         onClick={() => handleCardClick('all', 'All Projects')}
                         className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg shadow p-4 sm:p-6 hover:shadow-lg transition-all transform hover:scale-105 duration-200 cursor-pointer"
                     >
@@ -185,7 +185,7 @@ const ProfitLossSummary = () => {
                     </div>
 
                     {/* Total BOQ Value */}
-                    <div 
+                    <div
                         onClick={() => handleCardClick('boq', 'Projects - BOQ Value')}
                         className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg shadow p-4 sm:p-6 hover:shadow-lg transition-all transform hover:scale-105 duration-200 cursor-pointer"
                     >
@@ -204,7 +204,7 @@ const ProfitLossSummary = () => {
                     </div>
 
                     {/* Negotiated Value */}
-                    <div 
+                    <div
                         onClick={() => handleCardClick('negotiated', 'Projects - Negotiated Value')}
                         className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-lg shadow p-4 sm:p-6 hover:shadow-lg transition-all transform hover:scale-105 duration-200 cursor-pointer"
                     >
@@ -223,7 +223,7 @@ const ProfitLossSummary = () => {
                     </div>
 
                     {/* Actual Spent */}
-                    <div 
+                    <div
                         onClick={() => handleCardClick('spent', 'Projects - Actual Spent')}
                         className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg shadow p-4 sm:p-6 hover:shadow-lg transition-all transform hover:scale-105 duration-200 cursor-pointer"
                     >
@@ -242,7 +242,7 @@ const ProfitLossSummary = () => {
                     </div>
 
                     {/* Net Profit/Loss */}
-                    <div 
+                    <div
                         onClick={() => handleCardClick('net', 'All Projects - Net Overview')}
                         className={`bg-gradient-to-r ${summaryData.netProfitLoss >= 0 ? 'from-emerald-500 to-emerald-600' : 'from-rose-500 to-rose-600'} text-white rounded-lg shadow p-4 sm:p-6 hover:shadow-lg transition-all transform hover:scale-105 duration-200 cursor-pointer`}
                     >
@@ -287,37 +287,37 @@ const ProfitLossSummary = () => {
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        {getVisibleColumns().includes('projectName') && (
+                                        {visibleColumns.includes('projectName') && (
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Project Name
                                             </th>
                                         )}
-                                        {getVisibleColumns().includes('customerName') && (
+                                        {visibleColumns.includes('customerName') && (
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Customer
                                             </th>
                                         )}
-                                        {getVisibleColumns().includes('boqValue') && (
+                                        {visibleColumns.includes('boqValue') && (
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Project Value
                                             </th>
                                         )}
-                                        {getVisibleColumns().includes('negotiated') && (
+                                        {visibleColumns.includes('negotiated') && (
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Negotiated
                                             </th>
                                         )}
-                                        {getVisibleColumns().includes('actualSpent') && (
+                                        {visibleColumns.includes('actualSpent') && (
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Actual Spent
                                             </th>
                                         )}
-                                        {getVisibleColumns().includes('netAmount') && (
+                                        {visibleColumns.includes('netAmount') && (
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Net Amount
                                             </th>
                                         )}
-                                        {getVisibleColumns().includes('profitLoss') && (
+                                        {visibleColumns.includes('profitLoss') && (
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Profit/Loss
                                             </th>
@@ -326,72 +326,12 @@ const ProfitLossSummary = () => {
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {filteredProjects.map((project) => (
-                                        <tr key={project._id} className="hover:bg-gray-50">
-                                            {getVisibleColumns().includes('projectName') && (
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="flex items-center">
-                                                        <div className="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                                                            <BuildingStorefrontIcon className="h-5 w-5 text-blue-600" />
-                                                        </div>
-                                                        <div className="ml-3">
-                                                            <div className="text-sm font-medium text-gray-900">
-                                                                {project.projectName}
-                                                            </div>
-                                                            
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            )}
-                                            {getVisibleColumns().includes('customerName') && (
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    {project.customerName}
-                                                    
-                                                </td>
-                                            )}
-                                            {getVisibleColumns().includes('boqValue') && (
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    {formatCurrency(project.quotedPrice)}
-                                                </td>
-                                            )}
-                                            {getVisibleColumns().includes('negotiated') && (
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    {formatCurrency(project.negotiatedPrice)}
-                                                </td>
-                                            )}
-                                            {getVisibleColumns().includes('actualSpent') && (
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    {formatCurrency(project.amountSpent)}
-                                                </td>
-                                            )}
-                                            {getVisibleColumns().includes('netAmount') && (
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
-                                                    <span className={project.netProfitLoss >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                                        {formatCurrency(project.netProfitLoss)}
-                                                    </span>
-                                                </td>
-                                            )}
-                                            {getVisibleColumns().includes('profitLoss') && (
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                        project.netProfitLoss >= 0 
-                                                            ? 'bg-green-100 text-green-800' 
-                                                            : 'bg-red-100 text-red-800'
-                                                    }`}>
-                                                        {project.netProfitLoss >= 0 ? (
-                                                            <>
-                                                                <ArrowTrendingUpIcon className="h-3 w-3 mr-1" />
-                                                                Profit
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <ArrowTrendingDownIcon className="h-3 w-3 mr-1" />
-                                                                Loss
-                                                            </>
-                                                        )}
-                                                    </span>
-                                                </td>
-                                            )}
-                                        </tr>
+                                        <ProjectRow
+                                            key={project._id}
+                                            project={project}
+                                            visibleColumns={visibleColumns}
+                                            formatCurrency={formatCurrency}
+                                        />
                                     ))}
                                 </tbody>
                             </table>
@@ -403,5 +343,74 @@ const ProfitLossSummary = () => {
     );
 };
 
+
+// Memoized Table Row Component
+const ProjectRow = React.memo(({ project, visibleColumns, formatCurrency }) => {
+    return (
+        <tr className="hover:bg-gray-50">
+            {visibleColumns.includes('projectName') && (
+                <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                        <div className="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <BuildingStorefrontIcon className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div className="ml-3">
+                            <div className="text-sm font-medium text-gray-900">
+                                {project.projectName}
+                            </div>
+                        </div>
+                    </div>
+                </td>
+            )}
+            {visibleColumns.includes('customerName') && (
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {project.customerName}
+                </td>
+            )}
+            {visibleColumns.includes('boqValue') && (
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatCurrency(project.quotedPrice)}
+                </td>
+            )}
+            {visibleColumns.includes('negotiated') && (
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatCurrency(project.negotiatedPrice)}
+                </td>
+            )}
+            {visibleColumns.includes('actualSpent') && (
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatCurrency(project.amountSpent)}
+                </td>
+            )}
+            {visibleColumns.includes('netAmount') && (
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
+                    <span className={project.netProfitLoss >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {formatCurrency(project.netProfitLoss)}
+                    </span>
+                </td>
+            )}
+            {visibleColumns.includes('profitLoss') && (
+                <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${project.netProfitLoss >= 0
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                        }`}>
+                        {project.netProfitLoss >= 0 ? (
+                            <>
+                                <ArrowTrendingUpIcon className="h-3 w-3 mr-1" />
+                                Profit
+                            </>
+                        ) : (
+                            <>
+                                <ArrowTrendingDownIcon className="h-3 w-3 mr-1" />
+                                Loss
+                            </>
+                        )}
+                    </span>
+                </td>
+            )}
+        </tr>
+    );
+});
 
 export default ProfitLossSummary;

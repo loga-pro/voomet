@@ -123,16 +123,11 @@ const Dashboard = () => {
     setSelectedStageTitle('');
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-48 sm:h-64 p-4">
-        <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
+
+  // Dashboard sub-components are defined outside to prevent re-creation on each render
 
   // Project KPI cards
-  const projectKPIs = [
+  const projectKPIsArray = React.useMemo(() => [
     {
       id: 'rfq',
       title: 'RFQ',
@@ -181,10 +176,10 @@ const Dashboard = () => {
       gradient: 'from-pink-500 to-pink-600',
       description: 'Post Implementation'
     }
-  ];
+  ], [kpis.projectKPIs]);
 
-  // Customer Payment KPI cards (Updated with image values)
-  const customerPaymentKPIs = [
+  // Customer Payment KPI cards
+  const customerPaymentKPIsArray = React.useMemo(() => [
     {
       id: 'total-projects',
       title: 'Total Projects',
@@ -195,28 +190,28 @@ const Dashboard = () => {
     {
       id: 'total-project-value',
       title: 'Total Invoice Raised (₹)',
-      value: kpis.financialKPIs.totalProjectValue.toLocaleString('en-IN'),
+      value: (kpis.financialKPIs.totalProjectValue || 0).toLocaleString('en-IN'),
       icon: BanknotesIcon,
       color: 'bg-green-500'
     },
     {
       id: 'payment-received',
       title: 'Payment Received (₹)',
-      value: kpis.financialKPIs.totalPaymentsReceived.toLocaleString('en-IN'),
+      value: (kpis.financialKPIs.totalPaymentsReceived || 0).toLocaleString('en-IN'),
       icon: CheckCircleIcon,
       color: 'bg-blue-500'
     },
     {
       id: 'payment-pending',
       title: 'Payment Pending (₹)',
-      value: kpis.financialKPIs.totalPaymentsPending.toLocaleString('en-IN'),
+      value: (kpis.financialKPIs.totalPaymentsPending || 0).toLocaleString('en-IN'),
       icon: ClockIcon,
       color: 'bg-yellow-500'
     }
-  ];
+  ], [kpis.financialKPIs]);
 
-  // Customer Status KPIs (3 items - smaller)
-  const customerStatusKPIs = [
+  // Customer Status KPIs
+  const customerStatusKPIsArray = React.useMemo(() => [
     {
       id: 'payment-completed',
       title: 'Completed',
@@ -238,10 +233,10 @@ const Dashboard = () => {
       icon: ExclamationTriangleIcon,
       color: 'bg-red-500'
     }
-  ];
+  ], [kpis.financialKPIs]);
 
-  // Vendor Payment KPI cards (Updated with image values)
-  const vendorPaymentKPIs = [
+  // Vendor Payment KPI cards
+  const vendorPaymentKPIsArray = React.useMemo(() => [
     {
       id: 'total-vendors',
       title: 'Total Vendors',
@@ -270,10 +265,10 @@ const Dashboard = () => {
       icon: ClockIcon,
       color: 'bg-yellow-500'
     }
-  ];
+  ], [kpis.vendorPaymentKPIs]);
 
-  // Vendor Status KPIs (3 items - smaller)
-  const vendorStatusKPIs = [
+  // Vendor Status KPIs
+  const vendorStatusKPIsArray = React.useMemo(() => [
     {
       id: 'vendor-payment-completed',
       title: 'Completed',
@@ -295,10 +290,10 @@ const Dashboard = () => {
       icon: ExclamationTriangleIcon,
       color: 'bg-red-500'
     }
-  ];
+  ], [kpis.vendorPaymentKPIs]);
 
-  // Inventory KPI cards (Updated with image values)
-  const inventoryKPIs = [
+  // Inventory KPI cards
+  const inventoryKPIsArray = React.useMemo(() => [
     {
       id: 'total-items',
       title: 'Total Items',
@@ -320,10 +315,10 @@ const Dashboard = () => {
       icon: UserIcon,
       color: 'bg-pink-500'
     }
-  ];
+  ], [kpis.inventoryKPIs]);
 
-  // Inventory Status KPIs (3 items - smaller)
-  const inventoryStatusKPIs = [
+  // Inventory Status KPIs
+  const inventoryStatusKPIsArray = React.useMemo(() => [
     {
       id: 'shop-floor-items',
       title: 'At Shop Floor',
@@ -338,10 +333,10 @@ const Dashboard = () => {
       icon: UserIcon,
       color: 'bg-pink-500'
     }
-  ];
+  ], [kpis.inventoryKPIs]);
 
-  // Quality Control KPI cards (Updated to match image: Total Issues, Critical Issues, Open Issues, Closed Issues)
-  const qualityKPIs = [
+  // Quality Control KPI cards
+  const qualityKPIsArray = React.useMemo(() => [
     {
       id: 'total-issues',
       title: 'Total Issues',
@@ -363,10 +358,10 @@ const Dashboard = () => {
       icon: CheckCircleIcon,
       color: 'bg-green-500'
     }
-  ];
+  ], [kpis.qualityKPIs]);
 
-  // Quality Status KPIs (3 items - smaller, updated to match image: Rectify, Replace, Resolution Rate)
-  const qualityStatusKPIs = [
+  // Quality Status KPIs
+  const qualityStatusKPIsArray = React.useMemo(() => [
     {
       id: 'to-rectify',
       title: 'Rectify',
@@ -381,97 +376,15 @@ const Dashboard = () => {
       icon: ShieldCheckIcon,
       color: 'bg-green-500'
     }
-  ];
+  ], [kpis.qualityKPIs]);
 
-  // Gradient KPI Card Component
-  const GradientKpiCard = ({ id, title, value, icon: Icon, gradient, description }) => {
+  if (loading) {
     return (
-      <div
-        className={`bg-gradient-to-r ${gradient} text-white rounded-lg shadow p-4 sm:p-6 hover:shadow-lg transition-all transform hover:scale-105 duration-200 cursor-pointer`}
-        onClick={() => handleStageClick(id, title)}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <p className="text-white text-opacity-90 text-xs sm:text-sm font-medium">{title}</p>
-            <p className="text-xl sm:text-2xl font-bold mt-1">{value}</p>
-            {description && <p className="text-xs text-white text-opacity-75 mt-1 hidden sm:block">{description}</p>}
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="p-1.5 sm:p-2 bg-white bg-opacity-20 rounded-full">
-              <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-            </div>
-          </div>
-        </div>
+      <div className="flex justify-center items-center h-48 sm:h-64 p-4">
+        <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-primary-600"></div>
       </div>
     );
-  };
-
-  // Regular KPI Card Component
-  const KpiCard = ({ id, title, value, icon: Icon, color }) => {
-    return (
-      <div className="bg-white rounded-lg shadow m-2 p-3 sm:p-4 hover:shadow-md transition-all flex-grow min-w-[140px]">
-        <div className="flex items-center">
-          <div className={`p-2 rounded-lg ${color} bg-opacity-10 mr-3`}>
-            <Icon className={`h-5 w-5 ${color.replace('bg-', 'text-')}`} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-gray-600 truncate">{title}</p>
-            <p className="text-base sm:text-lg font-bold text-gray-900 truncate">
-              {typeof value === 'string' && value.includes('₹')
-                ? value
-                : value}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Compact Status KPI Card Component (Smaller as requested)
-  const StatusKpiCard = ({ id, title, value, icon: Icon, color }) => {
-    return (
-      <div className="bg-gray-50 rounded-lg p-2 sm:p-3 text-center hover:bg-gray-100 transition-colors border border-gray-200">
-        <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${color} bg-opacity-10 mb-1`}>
-          <Icon className={`h-4 w-4 ${color.replace('bg-', 'text-')}`} />
-        </div>
-        <p className="text-xs text-gray-600 font-medium">{title}</p>
-        <p className="text-sm font-bold text-gray-900 mt-0.5">{value}</p>
-      </div>
-    );
-  };
-
-  // Financial Box Component with smaller Status Summary
-  const FinancialBox = ({ title, gradient, kpis, statusKpis }) => (
-    <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden h-full flex flex-col">
-      {/* Header */}
-      <div className={`bg-gradient-to-r ${gradient} text-white p-3 sm:p-4 flex-shrink-0`}>
-        <div className="flex items-center">
-          <h3 className="text-base sm:text-lg font-semibold">{title}</h3>
-        </div>
-      </div>
-
-      {/* KPI Cards */}
-      {/* <div className="p-3 sm:p-4 flex flex-wrap gap-2 sm:gap-3 flex-shrink-0"> */}
-
-      {kpis.map((kpi, index) => (
-        <KpiCard key={index} {...kpi} />
-      ))}
-
-      {/* </div> */}
-
-      {/* Status Summary - Smaller section */}
-      {statusKpis && (
-        <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0 mt-2">
-          <h4 className="text-xs font-medium text-gray-700 mb-2">Status Summary</h4>
-          <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-            {statusKpis.map((kpi, index) => (
-              <StatusKpiCard key={index} {...kpi} />
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8">
@@ -488,8 +401,8 @@ const Dashboard = () => {
           {isSticky && <span className="text-xs text-gray-500 ml-2">(Pinned)</span>}
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-          {projectKPIs.map((kpi, index) => (
-            <GradientKpiCard key={index} {...kpi} />
+          {projectKPIsArray.map((kpi) => (
+            <GradientKpiCard key={kpi.id} {...kpi} onClick={handleStageClick} />
           ))}
         </div>
 
@@ -512,8 +425,8 @@ const Dashboard = () => {
             <FinancialBox
               title="Customer Payments"
               gradient="from-blue-500 to-blue-600"
-              kpis={customerPaymentKPIs}
-              statusKpis={customerStatusKPIs}
+              kpis={customerPaymentKPIsArray}
+              statusKpis={customerStatusKPIsArray}
             />
           </div>
 
@@ -522,8 +435,8 @@ const Dashboard = () => {
             <FinancialBox
               title="Vendor Payments"
               gradient="from-green-500 to-green-600"
-              kpis={vendorPaymentKPIs}
-              statusKpis={vendorStatusKPIs}
+              kpis={vendorPaymentKPIsArray}
+              statusKpis={vendorStatusKPIsArray}
             />
           </div>
 
@@ -532,19 +445,18 @@ const Dashboard = () => {
             <FinancialBox
               title="Inventory Management"
               gradient="from-purple-500 to-purple-600"
-              kpis={inventoryKPIs}
-              statusKpis={inventoryStatusKPIs}
+              kpis={inventoryKPIsArray}
+              statusKpis={inventoryStatusKPIsArray}
             />
           </div>
 
-          {/* Quality Control */}
           {/* Quality Control */}
           <div className="flex flex-col">
             <FinancialBox
               title="Quality Control"
               gradient="from-orange-500 to-orange-600"
-              kpis={qualityKPIs}
-              statusKpis={qualityStatusKPIs}
+              kpis={qualityKPIsArray}
+              statusKpis={qualityStatusKPIsArray}
             />
           </div>
         </div>
@@ -560,5 +472,82 @@ const Dashboard = () => {
     </div>
   );
 };
+
+// Dashboard sub-components are defined outside to prevent re-creation on each render
+
+// Gradient KPI Card Component
+const GradientKpiCard = React.memo(({ id, title, value, icon: Icon, gradient, description, onClick }) => {
+  return (
+    <div
+      className={`bg-gradient-to-r ${gradient} text-white rounded-lg shadow p-4 sm:p-6 hover:shadow-lg transition-all transform hover:scale-105 duration-200 cursor-pointer`}
+      onClick={() => onClick(id, title)}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex-1">
+          <p className="text-white text-opacity-90 text-xs sm:text-sm font-medium">{title}</p>
+          <p className="text-xl sm:text-2xl font-bold mt-1">{value}</p>
+          {description && <p className="text-xs text-white text-opacity-75 mt-1 hidden sm:block">{description}</p>}
+        </div>
+        <div className="flex items-center space-x-2">
+          <div className="p-1.5 sm:p-2 bg-white bg-opacity-20 rounded-full">
+            <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// Regular KPI Card Component
+const KpiCard = React.memo(({ id, title, value, icon: Icon, color }) => {
+  return (
+    <div className="bg-white rounded-lg shadow m-2 p-3 sm:p-4 hover:shadow-md transition-all flex-grow min-w-[140px]">
+      <div className="flex items-center">
+        <div className={`p-2 rounded-lg ${color} bg-opacity-10 mr-3`}>
+          <Icon className={`h-5 w-5 ${color.replace('bg-', 'text-')}`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium text-gray-600 truncate">{title}</p>
+          <p className="text-base sm:text-lg font-bold text-gray-900 truncate">{value}</p>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// Compact Status KPI Card Component
+const StatusKpiCard = React.memo(({ id, title, value, icon: Icon, color }) => {
+  return (
+    <div className="bg-gray-50 rounded-lg p-2 sm:p-3 text-center hover:bg-gray-100 transition-colors border border-gray-200">
+      <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${color} bg-opacity-10 mb-1`}>
+        <Icon className={`h-4 w-4 ${color.replace('bg-', 'text-')}`} />
+      </div>
+      <p className="text-xs text-gray-600 font-medium">{title}</p>
+      <p className="text-sm font-bold text-gray-900 mt-0.5">{value}</p>
+    </div>
+  );
+});
+
+// Financial Box Component
+const FinancialBox = React.memo(({ title, gradient, kpis, statusKpis }) => (
+  <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden h-full flex flex-col">
+    <div className={`bg-gradient-to-r ${gradient} text-white p-3 sm:p-4 flex-shrink-0`}>
+      <h3 className="text-base sm:text-lg font-semibold">{title}</h3>
+    </div>
+    {kpis.map((kpi) => (
+      <KpiCard key={kpi.id} {...kpi} />
+    ))}
+    {statusKpis && (
+      <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0 mt-2">
+        <h4 className="text-xs font-medium text-gray-700 mb-2">Status Summary</h4>
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+          {statusKpis.map((kpi) => (
+            <StatusKpiCard key={kpi.id} {...kpi} />
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+));
 
 export default Dashboard;

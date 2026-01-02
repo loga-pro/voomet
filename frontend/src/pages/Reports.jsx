@@ -61,7 +61,9 @@ import EmailCompose from '../components/EmailCompose/emailCompose.jsx';
 // + This component is integrated into 'project-comprehensive' reports
 // + when a specific project is selected, matching 'Specific Project report.jpg'
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-const SpecificProjectReport = ({ project }) => {
+const GAUGE_COLORS = ['#22c55e', '#9ca3af'];
+
+const SpecificProjectReport = React.memo(({ project }) => {
   if (!project) {
     return (
       <div className="bg-white text-gray-700 p-8 rounded-lg text-center border border-gray-200">
@@ -71,52 +73,53 @@ const SpecificProjectReport = ({ project }) => {
     );
   }
 
-  // Use real data from the project object
-  const budgetData = [
+  // Memoize all derived data
+  const budgetData = React.useMemo(() => [
     { name: 'Budget', amount: project.totalProjectValue || 0, fill: '#3b82f6' },
     { name: 'Payment', amount: project.paymentReceived || 0, fill: '#22c55e' },
     { name: 'Pending', amount: project.balanceAmount || 0, fill: '#f97316' },
-  ];
+  ], [project.totalProjectValue, project.paymentReceived, project.balanceAmount]);
 
-  // Use real milestone data if available, otherwise create from task completion data
-  const phaseDetails = project.milestoneData?.milestones?.map((milestone, index) => ({
-    name: milestone.name || `Milestone ${index + 1}`,
-    progress: milestone.completionRate || 0
-  })) || [
-      { name: 'Planning', progress: project.taskCompletionRate || 0 },
-      { name: 'Execution', progress: Math.min((project.taskCompletionRate || 0) * 1.2, 100) },
-      { name: 'Completion', progress: Math.min((project.taskCompletionRate || 0) * 0.8, 100) },
-    ];
+  const phaseDetails = React.useMemo(() => {
+    return project.milestoneData?.milestones?.map((milestone, index) => ({
+      name: milestone.name || `Milestone ${index + 1}`,
+      progress: milestone.completionRate || 0
+    })) || [
+        { name: 'Planning', progress: project.taskCompletionRate || 0 },
+        { name: 'Execution', progress: Math.min((project.taskCompletionRate || 0) * 1.2, 100) },
+        { name: 'Completion', progress: Math.min((project.taskCompletionRate || 0) * 0.8, 100) },
+      ];
+  }, [project.milestoneData, project.taskCompletionRate]);
 
-  // Use real project phases based on stage and milestone data
-  // Use real project phases based on stage and milestone data
-  const milestoneNames = project.milestoneData?.milestones?.map(m => m.name);
-  const phases = (milestoneNames && milestoneNames.length > 0) ? milestoneNames :
-    ['Planning', 'Design', 'Execution', 'Completion'];
+  const phases = React.useMemo(() => {
+    const milestoneNames = project.milestoneData?.milestones?.map(m => m.name);
+    return (milestoneNames && milestoneNames.length > 0) ? milestoneNames :
+      ['Planning', 'Design', 'Execution', 'Completion'];
+  }, [project.milestoneData]);
 
-  // Determine current phase based on stage and completion rate
-  const currentPhaseIndex = project.stage?.includes('PLANNING') ? 0 :
-    project.stage?.includes('PROGRESS') ? Math.floor((project.taskCompletionRate || 0) / 25) :
-      project.stage?.includes('COMPLETED') ? phases.length - 1 :
-        Math.floor((project.taskCompletionRate || 0) / 25);
+  const currentPhaseIndex = React.useMemo(() => {
+    return project.stage?.includes('PLANNING') ? 0 :
+      project.stage?.includes('PROGRESS') ? Math.floor((project.taskCompletionRate || 0) / 25) :
+        project.stage?.includes('COMPLETED') ? phases.length - 1 :
+          Math.floor((project.taskCompletionRate || 0) / 25);
+  }, [project.stage, project.taskCompletionRate, phases.length]);
 
-  const getPhaseClass = (index) => {
+  const getPhaseClass = React.useCallback((index) => {
     if (index < currentPhaseIndex) return 'bg-blue-500 border-blue-500'; // Completed
     if (index === currentPhaseIndex) return 'bg-blue-500 border-blue-500 scale-110'; // Active
     return 'bg-gray-300 border-gray-400'; // Pending
-  };
+  }, [currentPhaseIndex]);
 
-  const gaugeData = [
+  const gaugeData = React.useMemo(() => [
     { name: 'Completed', value: project.taskCompletionRate || 0 },
     { name: 'Remaining', value: 100 - (project.taskCompletionRate || 0) }
-  ];
-  const GAUGE_COLORS = ['#22c55e', '#9ca3af'];
+  ], [project.taskCompletionRate]);
 
-  // Calculate overdue status using real project data
-  const time = {
+  const time = React.useMemo(() => ({
     estimated: project.estimatedDuration || project.milestoneData?.totalTasks || 30,
     utilized: project.actualDuration || project.milestoneData?.completedTasks || 28
-  };
+  }), [project.estimatedDuration, project.milestoneData, project.actualDuration]);
+
   const isOverdue = time.utilized > time.estimated;
   const overdueDays = time.utilized - time.estimated;
 
@@ -249,7 +252,7 @@ const SpecificProjectReport = ({ project }) => {
       </div>
     </div>
   );
-};
+});
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // + END of SpecificProjectReport Component
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -430,8 +433,8 @@ const Reports = () => {
   const processVendorPaymentChartData = (vendorPayments) => {
     const vendorTotals = vendorPayments.reduce((acc, payment) => {
       // Handle vendor as either string or object
-      const vendor = typeof payment.vendor === 'string' 
-        ? payment.vendor 
+      const vendor = typeof payment.vendor === 'string'
+        ? payment.vendor
         : (payment.vendor?.vendorName || 'Unknown Vendor');
       acc[vendor] = (acc[vendor] || 0) + (payment.totalPayments || 0);
       return acc;
@@ -605,8 +608,8 @@ const Reports = () => {
     if (!selectedVendor) return vendorPaymentData;
     return vendorPaymentData.filter(item => {
       // Handle vendor as either string or object
-      const vendorName = typeof item.vendor === 'string' 
-        ? item.vendor 
+      const vendorName = typeof item.vendor === 'string'
+        ? item.vendor
         : (item.vendor?.vendorName || '');
       return vendorName === selectedVendor;
     });
@@ -642,8 +645,8 @@ const Reports = () => {
     const filteredData = getFilteredVendorPaymentData();
     const vendorTotals = filteredData.reduce((acc, item) => {
       // Handle vendor as either string or object
-      const vendor = typeof item.vendor === 'string' 
-        ? item.vendor 
+      const vendor = typeof item.vendor === 'string'
+        ? item.vendor
         : (item.vendor?.vendorName || 'Unknown');
       acc[vendor] = (acc[vendor] || 0) + (item.totalPayments || 0);
       return acc;
@@ -1610,15 +1613,15 @@ const Reports = () => {
   };
 
   // Report configurations
-  const reportTypes = [
+  const reportTypes = React.useMemo(() => [
     { id: 'project-comprehensive', name: 'Comprehensive Project Reports', icon: ClipboardDocumentListIcon },
     { id: 'inventory', name: 'Inventory Reports', icon: CubeIcon },
     { id: 'quality', name: 'Quality Reports', icon: ShieldCheckIcon },
     { id: 'vendor', name: 'Vendor Payment Reports', icon: BuildingStorefrontIcon }
-  ];
+  ], []);
 
   // Comprehensive Project Report Configuration
-  const comprehensiveProjectReportConfig = {
+  const comprehensiveProjectReportConfig = React.useMemo(() => ({
     title: 'Comprehensive Project Reports',
     data: comprehensiveProjectData,
     columns: [
@@ -1647,10 +1650,10 @@ const Reports = () => {
       }
     ],
     filename: 'comprehensive-project-report.csv'
-  };
+  }), [comprehensiveProjectData]);
 
   // Specific Project Report Configuration (for PDF/CSV export)
-  const specificProjectReportConfig = {
+  const specificProjectReportConfig = React.useMemo(() => ({
     title: `Specific Project Report - ${selectedProject}`,
     // We only pass the single selected project
     data: getFilteredComprehensiveProjectData().length === 1 ? getFilteredComprehensiveProjectData() : [],
@@ -1666,10 +1669,10 @@ const Reports = () => {
       { header: 'Balance (₹)', accessor: row => `₹${row.balanceAmount?.toLocaleString() || '0'}` },
     ],
     filename: `specific-project-${selectedProject.replace(/\s+/g, '-')}.csv`
-  };
+  }), [selectedProject, comprehensiveProjectData]);
 
   // Inventory Report Configuration
-  const inventoryReportConfig = {
+  const inventoryReportConfig = React.useMemo(() => ({
     title: 'Inventory Reports',
     data: inventoryData,
     columns: [
@@ -1704,10 +1707,10 @@ const Reports = () => {
       }
     ],
     filename: 'inventory-report.csv'
-  };
+  }), [inventoryData]);
 
   // Quality Report Configuration
-  const qualityReportConfig = {
+  const qualityReportConfig = React.useMemo(() => ({
     title: 'Quality Reports',
     data: qualityData,
     columns: [
@@ -1733,10 +1736,10 @@ const Reports = () => {
       }
     ],
     filename: 'quality-report.csv'
-  };
+  }), [qualityData]);
 
   // Vendor Payment Report Configuration
-  const vendorPaymentReportConfig = {
+  const vendorPaymentReportConfig = React.useMemo(() => ({
     title: 'Vendor Payment Reports',
     data: vendorPaymentData,
     columns: [
@@ -1762,9 +1765,11 @@ const Reports = () => {
       }
     ],
     filename: 'vendor-payment-report.csv'
-  };
+  }), [vendorPaymentData]);
 
-  const getActiveReportConfig = () => {
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#FF6B9D'];
+
+  const activeReportConfig = React.useMemo(() => {
     switch (activeReport) {
       case 'project-comprehensive':
         return {
@@ -1792,18 +1797,15 @@ const Reports = () => {
           data: getFilteredComprehensiveProjectData()
         };
     }
-  };
-
-  const activeReportConfig = getActiveReportConfig();
+  }, [activeReport, comprehensiveProjectReportConfig, inventoryReportConfig, qualityReportConfig, vendorPaymentReportConfig,
+    comprehensiveProjectData, inventoryData, qualityData, vendorPaymentData,
+    selectedProject, selectedScopeOfWork, selectedCustomer, selectedVendor]);
 
   // Get current report name for display
   const getCurrentReportName = () => {
     const report = reportTypes.find(r => r.id === activeReport);
     return report ? report.name : 'Select Report Type';
   };
-
-  // Colors for charts
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#FF6B9D'];
 
   // Check if any filter is active
   const hasActiveFilters = selectedProject || selectedScopeOfWork || selectedCustomer || selectedVendor;
@@ -2564,25 +2566,25 @@ const Reports = () => {
                 <h3 className="text-lg font-semibold mb-4">Product Distribution (%) (Top 5 Work Categories)</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   {processFilteredInventoryChartData().slice(0, 5).length > 0 ? (
-                  <PieChart>
-                    <Pie
+                    <PieChart>
+                      <Pie
                         data={processFilteredInventoryChartData().slice(0, 5)}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      fill="#8884d8"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name.substring(0, 8)} ${(percent * 100).toFixed(0)}%`}
-                    >
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        fill="#8884d8"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name.substring(0, 8)} ${(percent * 100).toFixed(0)}%`}
+                      >
                         {processFilteredInventoryChartData().slice(0, 5).map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #d1d5db', color: '#374151' }} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #d1d5db', color: '#374151' }} />
                       <Legend />
-                  </PieChart>
+                    </PieChart>
                   ) : (
                     <div className="flex items-center justify-center h-full text-gray-500">
                       No data available
