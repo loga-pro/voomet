@@ -2,6 +2,35 @@ const express = require('express');
 const router = express.Router();
 const Dispatch = require('../models/Dispatch');
 const auth = require('../middleware/auth');
+const upload = require('../middleware/upload');
+
+// Upload file endpoint
+router.post('/upload-file', auth, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'File uploaded successfully',
+      data: {
+        filePath: `/uploads/dispatches/${req.file.filename}`,
+        filename: req.file.filename
+      }
+    });
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error uploading file',
+      error: error.message
+    });
+  }
+});
 
 // Get all dispatches
 router.get('/', auth, async (req, res) => {

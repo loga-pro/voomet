@@ -513,19 +513,6 @@ const QualityManagement = () => {
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Scope of Work</label>
-                    <select
-                      value={filters.scopeOfWork}
-                      onChange={(e) => handleFilterChange('scopeOfWork', e.target.value)}
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 px-3"
-                    >
-                      <option value="">All Scopes</option>
-                      {scopeOfWorkOptions.map(scope => (
-                        <option key={scope} value={scope}>{scope}</option>
-                      ))}
-                    </select>
-                  </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
@@ -559,21 +546,6 @@ const QualityManagement = () => {
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Responsible person</label>
-                    <select
-                      value={filters.responsibility}
-                      onChange={(e) => handleFilterChange('responsibility', e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                    >
-                      <option value="">All Responsible Persons</option>
-                      {responsibilityOptions.map(responsibility => (
-                        <option key={responsibility} value={responsibility}>
-                          {responsibility}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
                 </div>
               </div>
             )}

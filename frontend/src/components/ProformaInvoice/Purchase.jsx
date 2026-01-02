@@ -66,12 +66,32 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
         }
       }
 
-      // Calculate Taxes based on percentages found on the invoice
-      const cgstPercent = parseFloat(inv.cgst) || 0;
-      const sgstPercent = parseFloat(inv.sgst) || 0;
+      // Calculate Taxes based on item-level GST percentages
+      let cgstVal = 0;
+      let sgstVal = 0;
 
-      const cgstVal = (invSubTotal * cgstPercent) / 100;
-      const sgstVal = (invSubTotal * sgstPercent) / 100;
+      if (inv.lineItems && inv.lineItems.length > 0) {
+        // Calculate GST for each line item
+        inv.lineItems.forEach(item => {
+          const qty = parseFloat(item.quantity) || 0;
+          const price = parseFloat(item.priceWithoutGST || item.invoiceValueWithoutGST) || 0;
+          const itemTotal = qty * price;
+          const itemGstPercent = parseFloat(item.gstPercentage) || 0;
+
+          // Use invoice-level CGST/SGST if available, otherwise split item GST equally
+          const cgstPercent = parseFloat(inv.cgst) || (itemGstPercent / 2);
+          const sgstPercent = parseFloat(inv.sgst) || (itemGstPercent / 2);
+
+          cgstVal += (itemTotal * cgstPercent) / 100;
+          sgstVal += (itemTotal * sgstPercent) / 100;
+        });
+      } else {
+        // Fallback to invoice-level percentages for non-line-item invoices
+        const cgstPercent = parseFloat(inv.cgst) || 0;
+        const sgstPercent = parseFloat(inv.sgst) || 0;
+        cgstVal = (invSubTotal * cgstPercent) / 100;
+        sgstVal = (invSubTotal * sgstPercent) / 100;
+      }
 
       return {
         invoiceValue: acc.invoiceValue + invSubTotal,
@@ -308,7 +328,7 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
                         <div className="flex border-b border-black">
                           <div className="w-1/2 p-2 border-r border-black">
                             <div className="invoice-small">Voucher No.</div>
-                            <div className="font-bold">{invoice.voucherNo || invoice.invoiceNumber }</div>
+                            <div className="font-bold">{invoice.voucherNo || invoice.invoiceNumber}</div>
                           </div>
                           <div className="w-1/2 p-2">
                             <div className="invoice-small">Dated</div>
@@ -376,18 +396,29 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
                     <div className="flex-grow flex flex-col">
                       {/* Render all line items from invoices */}
                       {invoices.length > 0 && invoices[0].lineItems && invoices[0].lineItems.length > 0 ? (
-                        invoices[0].lineItems.map((item, index) => (
-                          <div key={index} className="flex invoice-small">
-                            <div className="w-[4%] border-r border-black p-1 text-center">{index + 1}</div>
-                            <div className="w-[40%] border-r border-black p-1">
-                              <span className="font-bold">{item.partName || 'Item'}</span>
+                        invoices[0].lineItems.map((item, index) => {
+                          const baseAmount = (parseFloat(item.priceWithoutGST || item.invoiceValueWithoutGST) || 0) * (parseFloat(item.quantity) || 0);
+                          // Use item-level GST percentage, split equally between CGST and SGST
+                          const itemGstPercent = parseFloat(item.gstPercentage) || 0;
+                          const cgstPercent = parseFloat(invoices[0].cgst) || (itemGstPercent / 2);
+                          const sgstPercent = parseFloat(invoices[0].sgst) || (itemGstPercent / 2);
+                          const cgstAmount = (baseAmount * cgstPercent) / 100;
+                          const sgstAmount = (baseAmount * sgstPercent) / 100;
+                          const totalWithGST = baseAmount + cgstAmount + sgstAmount;
+
+                          return (
+                            <div key={index} className="flex invoice-small">
+                              <div className="w-[4%] border-r border-black p-1 text-center">{index + 1}</div>
+                              <div className="w-[40%] border-r border-black p-1">
+                                <span className="font-bold">{item.partName || 'Item'}</span>
+                              </div>
+                              <div className="w-[14%] border-r border-black p-1 text-center">{item.quantity} {item.unit}</div>
+                              <div className="w-[9%] border-r border-black p-1 text-right">{(parseFloat(item.priceWithoutGST || item.invoiceValueWithoutGST) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                              <div className="w-[6%] border-r border-black p-1 text-center">{item.unit}</div>
+                              <div className="w-[18%] p-1 text-right font-bold">{totalWithGST.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                             </div>
-                            <div className="w-[14%] border-r border-black p-1 text-center">{item.quantity} {item.unit}</div>
-                            <div className="w-[9%] border-r border-black p-1 text-right">{(parseFloat(item.priceWithoutGST || item.invoiceValueWithoutGST) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                            <div className="w-[6%] border-r border-black p-1 text-center">{item.unit}</div>
-                            <div className="w-[18%] p-1 text-right font-bold">{((parseFloat(item.priceWithoutGST || item.invoiceValueWithoutGST) || 0) * (parseFloat(item.quantity) || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                          </div>
-                        ))
+                          );
+                        })
                       ) : invoices.length > 0 ? (
                         invoices.map((inv, index) => (
                           <div key={index} className="flex invoice-small">

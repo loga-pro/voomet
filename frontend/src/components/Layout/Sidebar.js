@@ -187,7 +187,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           permission: "inventory_management",
         },
         {
-          name: "purchase-order",
+          name: "Purchase Order",
           path: "/purchase-order",
           permission: "purchase_order",
         }

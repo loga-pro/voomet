@@ -246,18 +246,25 @@ const DispatchForm = ({
     }
   };
 
-  const handleInputChange = (e) => {
+  const handleInputChange = async (e) => {
     const { name, value, type, files } = e.target;
 
     if (type === 'file' && files && files[0]) {
       const file = files[0];
-      // TODO: Implement proper file upload to server
-      // For now, just store the filename to avoid base64 performance issues
-      setFormData(prev => ({
-        ...prev,
-        [name]: file.name  // Store filename only, not base64
-      }));
-      showNotification?.(`File "${file.name}" selected (upload will be implemented)`);
+      try {
+        // Upload file to server
+        const response = await dispatchesAPI.uploadFile(file);
+        const filePath = response.data.data.filePath;
+
+        setFormData(prev => ({
+          ...prev,
+          [name]: filePath  // Store the server file path
+        }));
+        showNotification?.(`File "${file.name}" uploaded successfully`);
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        showError?.('Failed to upload file. Please try again.');
+      }
       return;
     }
 
@@ -379,13 +386,8 @@ const DispatchForm = ({
       return;
     }
 
-    // Check for stock warnings
-    const hasStockWarnings = lineItems.some(item => item.stockWarning);
-    if (hasStockWarnings) {
-      const warningItem = lineItems.find(item => item.stockWarning);
-      showError?.(warningItem.stockWarning);
-      return;
-    }
+    // Stock warnings are now informational only - they don't block submission
+    // Users can intentionally dispatch more than available stock if needed
 
     try {
       if (isEditing && dispatchData?._id) {

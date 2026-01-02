@@ -11,6 +11,8 @@ const storage = multer.diskStorage({
       uploadPath = "uploads/quality/";
     } else if (req.originalUrl.includes("logs") || req.body.uploadType === "logs") {
       uploadPath = "uploads/logs/";
+    } else if (req.originalUrl.includes("dispatches")) {
+      uploadPath = "uploads/dispatches/";
     }
     
     // Ensure directory exists

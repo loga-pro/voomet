@@ -373,6 +373,15 @@ export const dispatchesAPI = {
   create: (data) => api.post("/dispatches", data),
   update: (id, data) => api.put(`/dispatches/${id}`, data),
   delete: (id) => api.delete(`/dispatches/${id}`),
+  uploadFile: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/dispatches/upload-file', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  }
 };
 
 // Purchase Requests API

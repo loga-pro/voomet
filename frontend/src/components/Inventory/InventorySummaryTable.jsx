@@ -11,6 +11,17 @@ const InventorySummaryTable = ({
   onSave,
   readOnly = false
 }) => {
+  // Helper function to format work category - capitalize first letter of each word and remove special characters
+  const formatWorkCategory = (category) => {
+    if (!category) return '-';
+    // Replace underscores and other special characters with spaces
+    return category
+      .replace(/[_-]/g, ' ')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
   // Helper function to calculate stock values for a specific work category and part name
   const calculateStockForCombination = (workCategory, partName) => {
     // Filter receipts for this combination
@@ -150,7 +161,7 @@ const InventorySummaryTable = ({
             <tr key={row.id}>
               <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">{row.id}</td>
               <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">
-                {row.workCategory || '-'}
+                {formatWorkCategory(row.workCategory)}
               </td>
               <td className="px-4 py-3 text-sm text-gray-900 border border-gray-300">
                 {row.partName || '-'}
