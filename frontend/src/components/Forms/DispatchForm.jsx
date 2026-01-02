@@ -251,21 +251,13 @@ const DispatchForm = ({
 
     if (type === 'file' && files && files[0]) {
       const file = files[0];
-      const reader = new FileReader();
-
-      reader.onloadend = () => {
-        setFormData(prev => ({
-          ...prev,
-          [name]: reader.result
-        }));
-        showNotification?.(`File "${file.name}" uploaded successfully`);
-      };
-
-      reader.onerror = () => {
-        showError?.('Failed to read file');
-      };
-
-      reader.readAsDataURL(file);
+      // TODO: Implement proper file upload to server
+      // For now, just store the filename to avoid base64 performance issues
+      setFormData(prev => ({
+        ...prev,
+        [name]: file.name  // Store filename only, not base64
+      }));
+      showNotification?.(`File "${file.name}" selected (upload will be implemented)`);
       return;
     }
 
@@ -537,7 +529,7 @@ const DispatchForm = ({
           onChange={handleInputChange}
           maxLength={30}
         />
-        
+
         <FloatingInput
           label="Customer Name"
           name="customerName"

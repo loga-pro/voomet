@@ -96,7 +96,10 @@ app.get('/uploads/boq/:filename', (req, res) => {
   });
 });
 
-app.use("/uploads/vendors_pdf", express.static(path.join(__dirname, "uploads/vendors_pdf")));
+app.use("/uploads/vendors_payment_pdf", express.static(path.join(__dirname, "uploads/vendors_payment_pdf")));
+app.use("/uploads/receipts", express.static(path.join(__dirname, "uploads/receipts")));
+app.use("/uploads/dispatches", express.static(path.join(__dirname, "uploads/dispatches")));
+
 // Basic route
 app.get('/', (req, res) => {
   res.json({ message: 'Voomet API is running' });

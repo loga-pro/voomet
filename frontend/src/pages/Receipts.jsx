@@ -18,7 +18,7 @@ import ReceiptForm from '../components/Forms/ReceiptForm';
 import Modal from '../components/Modals/Modal';
 import Notification from '../components/Notifications/Notification';
 import useNotification from '../hooks/useNotification';
-import { receiptsAPI, partsAPI, vendorsAPI } from '../services/api';
+import { receiptsAPI, partsAPI, vendorsAPI, FILE_BASE_URL } from '../services/api';
 
 
 const Receipts = () => {
@@ -377,6 +377,13 @@ const Receipts = () => {
         // Create new receipt
         await receiptsAPI.create(receiptData);
       }
+
+      // Refresh data after successful submission
+      await fetchData();
+
+      // Close modal and reset state
+      setShowModal(false);
+      setEditingReceipt(null);
     } catch (error) {
       console.error('Error saving receipt:', error);
       showError(error.response?.data?.message || 'Failed to save receipt');
@@ -390,10 +397,16 @@ const Receipts = () => {
       return;
     }
 
+    // Handle different URL formats
     if (uploadUrl.startsWith('http') || uploadUrl.startsWith('data:')) {
+      // Already a complete URL
       window.open(uploadUrl, '_blank');
+    } else if (uploadUrl.startsWith('/')) {
+      // Relative path from server root
+      window.open(`${FILE_BASE_URL}${uploadUrl}`, '_blank');
     } else {
-      showError('Invalid file URL');
+      // Assume it's a relative path
+      window.open(`${FILE_BASE_URL}/${uploadUrl}`, '_blank');
     }
   };
 

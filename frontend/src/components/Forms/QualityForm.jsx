@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { customersAPI, vendorsAPI, projectsAPI, employeesAPI, qualityAPI } from '../../services/api';
+import { customersAPI, vendorsAPI, projectsAPI, employeesAPI, qualityAPI, FILE_BASE_URL } from '../../services/api';
 import FloatingInput from './FloatingInput';
 
 const QualityForm = ({ quality, onSubmit, onCancel }) => {
@@ -43,12 +43,25 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
     if (quality) {
       console.log('Loading quality record:', quality);
 
+      // Reverse mapping from label to value for scope of work
+      const reverseScopeMapping = {
+        'Electrical': 'electrical',
+        'Data': 'data',
+        'CCTV': 'cctv',
+        'Partition': 'partition',
+        'Fire and Safety': 'fire_and_safety',
+        'Access': 'access',
+        'Transportation': 'transportation'
+      };
+
       // Initialize qualityIssues from existing data or empty array
       const qualityIssues = (quality.qualityIssues || []).map(issue => ({
         ...issue,
         dateOfIssue: issue.dateOfIssue ? issue.dateOfIssue.split('T')[0] : '',
         dateOfDamage: issue.dateOfDamage ? issue.dateOfDamage.split('T')[0] : '',
-        dateOfFixed: issue.dateOfFixed ? issue.dateOfFixed.split('T')[0] : ''
+        dateOfFixed: issue.dateOfFixed ? issue.dateOfFixed.split('T')[0] : '',
+        // Convert scope of work from label to value for the form
+        scopeOfWork: reverseScopeMapping[issue.scopeOfWork] || issue.scopeOfWork
       }));
 
       setFormData({
@@ -346,7 +359,7 @@ const QualityForm = ({ quality, onSubmit, onCancel }) => {
   const handleImagePreview = (imageUrl, title) => {
     const fullUrl = imageUrl.startsWith('http')
       ? imageUrl
-      : `http://voomet.onrender.com${imageUrl}`;
+      : `${FILE_BASE_URL}${imageUrl}`;
     setImagePreview({ show: true, url: fullUrl, title });
   };
 

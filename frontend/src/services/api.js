@@ -354,6 +354,15 @@ export const receiptsAPI = {
   create: (data) => api.post("/inventory/receipts", data),
   update: (id, data) => api.put(`/inventory/receipts/${id}`, data),
   delete: (id) => api.delete(`/inventory/receipts/${id}`),
+  uploadFile: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/inventory/receipts/upload-file', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  }
 };
 
 // Dispatches API

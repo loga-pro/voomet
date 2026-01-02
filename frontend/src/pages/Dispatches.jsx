@@ -21,7 +21,7 @@ import Modal from '../components/Modals/Modal';
 import DispatchInvoice from '../components/ProformaInvoice/Dispatchinvoice';
 import Notification from '../components/Notifications/Notification';
 import useNotification from '../hooks/useNotification';
-import { dispatchesAPI, partsAPI, customersAPI } from '../services/api';
+import { dispatchesAPI, partsAPI, customersAPI, FILE_BASE_URL } from '../services/api';
 
 const Dispatches = () => {
   const [dispatches, setDispatches] = useState([]);
@@ -441,10 +441,16 @@ const Dispatches = () => {
       return;
     }
 
+    // Handle different URL formats
     if (uploadUrl.startsWith('http') || uploadUrl.startsWith('data:')) {
+      // Already a complete URL
       window.open(uploadUrl, '_blank');
+    } else if (uploadUrl.startsWith('/')) {
+      // Relative path from server root
+      window.open(`${FILE_BASE_URL}${uploadUrl}`, '_blank');
     } else {
-      showError('Invalid file URL');
+      // Assume it's a relative path
+      window.open(`${FILE_BASE_URL}/${uploadUrl}`, '_blank');
     }
   };
 

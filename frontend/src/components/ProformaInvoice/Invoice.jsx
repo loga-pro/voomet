@@ -12,6 +12,8 @@ const ProformaInvoice = ({ invoiceData = {}, hideDownloadButton = false }) => {
     projectName = '',
     projectCost = 0,
     invoices = [],
+    consigneeAddress = '',
+    buyerAddress = '',
     // Company details (seller) - UPDATED FROM IMAGE
     companyName = 'VOOMET',
     companyAddress = {
@@ -270,7 +272,7 @@ const ProformaInvoice = ({ invoiceData = {}, hideDownloadButton = false }) => {
                         <div className="border-t border-black p-2 flex-grow invoice-small">
                           <div className="mb-1">Consignee (Ship to)</div>
                           <div className="font-bold">{customer}</div>
-                          <div>{invoice.destination || 'As per order'}</div>
+                          <div>{consigneeAddress || invoice.destination || 'As per order'}</div>
                           <div className="mt-1">GSTIN/UIN : {invoice.customerGSTIN || ''}</div>
                           <div>State Name : {companyState}, Code : {companyStateCode}</div>
                         </div>
@@ -279,7 +281,7 @@ const ProformaInvoice = ({ invoiceData = {}, hideDownloadButton = false }) => {
                         <div className="border-t border-black p-2 flex-grow invoice-small">
                           <div className="mb-1">Buyer (Bill to)</div>
                           <div className="font-bold">{customer}</div>
-                          <div>{invoice.destination || 'As per order'}</div>
+                          <div>{buyerAddress || invoice.destination || 'As per order'}</div>
                           <div className="mt-1">GSTIN/UIN : {invoice.customerGSTIN || ''}</div>
                           <div>State Name : {companyState}, Code : {companyStateCode}</div>
                         </div>

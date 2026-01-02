@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import FloatingInput from './FloatingInput';
 import { FaEye, FaTrash, FaEdit, FaPlus } from 'react-icons/fa';
-import { purchasesAPI } from '../../services/api';
+import { purchasesAPI, receiptsAPI } from '../../services/api';
 
 const formatDateForInput = (dateValue) => {
   if (!dateValue) return '';
@@ -210,26 +210,27 @@ const ReceiptForm = ({
     }
   };
 
-  const handleInputChange = (e) => {
+  const handleInputChange = async (e) => {
     const { name, value, type, files } = e.target;
 
     if (type === 'file' && files && files[0]) {
       const file = files[0];
-      const reader = new FileReader();
 
-      reader.onloadend = () => {
+      try {
+        // Upload file to server
+        const response = await receiptsAPI.uploadFile(file);
+
+        // Store the file path returned from server
         setFormData(prev => ({
           ...prev,
-          [name]: reader.result
+          [name]: response.data.filePath
         }));
+
         showNotification?.(`File "${file.name}" uploaded successfully`);
-      };
-
-      reader.onerror = () => {
-        showError?.('Failed to read file');
-      };
-
-      reader.readAsDataURL(file);
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        showError?.('Failed to upload file');
+      }
       return;
     }
 
@@ -372,9 +373,8 @@ const ReceiptForm = ({
 
     try {
       if (isEditing && receiptData?._id) {
-        // For editing, submit all line items (the parent will handle deletion and recreation)
-        for (let i = 0; i < lineItems.length; i++) {
-          const item = lineItems[i];
+        // For editing, submit all line items in parallel
+        const promises = lineItems.map((item, i) => {
           const receipt = {
             date: formData.date,
             receiptCategory: formData.receiptCategory,
@@ -396,15 +396,18 @@ const ReceiptForm = ({
           };
 
           // Only pass the ID on the first iteration to trigger the edit flow
-          await onSubmit(receipt, i === 0 ? receiptData._id : null);
-        }
-        // Show success message and trigger refresh after all items are submitted
+          return onSubmit(receipt, i === 0 ? receiptData._id : null);
+        });
+
+        // Wait for all submissions to complete in parallel
+        await Promise.all(promises);
+
         showNotification?.('Receipt updated successfully');
         onCancel(); // Close the modal
-        window.location.reload(); // Refresh the page
+        // Parent component will handle data refresh
       } else {
-        // For creating new receipts, create one receipt per line item
-        for (const item of lineItems) {
+        // For creating new receipts, create all receipts in parallel
+        const promises = lineItems.map(item => {
           const receipt = {
             date: formData.date,
             receiptCategory: formData.receiptCategory,
@@ -425,12 +428,15 @@ const ReceiptForm = ({
             remark: item.remark || ''
           };
 
-          await onSubmit(receipt);
-        }
-        // Show success message and trigger refresh after all items are submitted
+          return onSubmit(receipt);
+        });
+
+        // Wait for all submissions to complete in parallel
+        await Promise.all(promises);
+
         showNotification?.('Receipt added successfully');
         onCancel(); // Close the modal
-        window.location.reload(); // Refresh the page
+        // Parent component will handle data refresh
       }
     } catch (error) {
       console.error('Error submitting receipt:', error);

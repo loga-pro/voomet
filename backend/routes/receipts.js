@@ -2,6 +2,32 @@ const express = require('express');
 const router = express.Router();
 const Receipt = require('../models/Receipt');
 const auth = require('../middleware/auth');
+const upload = require('../middleware/upload');
+
+// Upload file for receipt
+router.post('/upload-file', auth, upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    res.json({
+      success: true,
+      filePath: `/uploads/receipts/${req.file.filename}`,
+      message: 'File uploaded successfully'
+    });
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error uploading file',
+      error: error.message
+    });
+  }
+});
 
 // Get all receipts
 router.get('/', auth, async (req, res) => {
@@ -185,10 +211,12 @@ router.post('/', auth, async (req, res) => {
   } catch (error) {
     console.error('Error creating receipt:', error);
     console.error('Error stack:', error.stack);
-    res.status(400).json({
+    console.error('Request body:', req.body);
+    res.status(500).json({
       success: false,
       message: 'Error creating receipt',
-      error: error.message
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
@@ -276,10 +304,13 @@ router.put('/:id', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating receipt:', error);
-    res.status(400).json({
+    console.error('Error stack:', error.stack);
+    console.error('Request body:', req.body);
+    res.status(500).json({
       success: false,
       message: 'Error updating receipt',
-      error: error.message
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
