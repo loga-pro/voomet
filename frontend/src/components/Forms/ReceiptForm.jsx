@@ -673,163 +673,165 @@ const ReceiptForm = ({
           </div>
 
           <div className="overflow-x-auto shadow-sm border border-gray-200 rounded-lg">
-            <table className="min-w-[1400px] w-full bg-white">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-56">Work Category</th>
-                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-56">Item Name</th>
-                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">Unit</th>
-                  {formData.category !== 'In house' && (
-                    <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">Actual Order</th>
-                  )}
-                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">Quantity</th>
-                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-44">Price without GST (₹)</th>
-                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-24">GST %</th>
-                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-40">GST Amount (₹)</th>
-                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-40">Total (₹)</th>
-                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-64">Remark</th>
-                  <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-24">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lineItems.map((item, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="py-2 px-3 border-b">
-                      <select
-                        value={item.workCategory}
-                        onChange={(e) => handleLineItemChange(index, 'workCategory', e.target.value)}
-                        className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        required
-                        disabled={formData.category === 'Bought-out'}
-                      >
-                        <option value="">Select Work Category</option>
-                        {workCategories.map(cat => (
-                          <option key={cat} value={cat}>
-                            {cat.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="py-2 px-3 border-b">
-                      <select
-                        value={item.partName}
-                        onChange={(e) => handlePartChange(index, e.target.value)}
-                        className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        required
-                        disabled={formData.category === 'Bought-out'}
-                      >
-                        <option value="">Select Part</option>
-                        {parts
-                          .filter(p => !item.workCategory || p.scopeOfWork === item.workCategory)
-                          .map(p => (
-                            <option key={p._id} value={p.partName}>
-                              {p.partName}
+            <div className="max-h-[400px] overflow-y-auto">
+              <table className="min-w-[1400px] w-full bg-white">
+                <thead className="sticky top-0 z-10 bg-gray-50">
+                  <tr className="bg-gray-50">
+                    <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-56">Work Category</th>
+                    <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-56">Item Name</th>
+                    <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">Unit</th>
+                    {formData.category !== 'In house' && (
+                      <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">Actual Order</th>
+                    )}
+                    <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">Quantity</th>
+                    <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-44">Price without GST (₹)</th>
+                    <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-24">GST %</th>
+                    <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-40">GST Amount (₹)</th>
+                    <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-40">Total (₹)</th>
+                    <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-64">Remark</th>
+                    <th className="py-3 px-4 border-b text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-24">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lineItems.map((item, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="py-2 px-3 border-b">
+                        <select
+                          value={item.workCategory}
+                          onChange={(e) => handleLineItemChange(index, 'workCategory', e.target.value)}
+                          className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          required
+                          disabled={formData.category === 'Bought-out'}
+                        >
+                          <option value="">Select Work Category</option>
+                          {workCategories.map(cat => (
+                            <option key={cat} value={cat}>
+                              {cat.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                             </option>
                           ))}
-                      </select>
-                    </td>
-                    <td className="py-2 px-3 border-b">
-                      <input
-                        type="text"
-                        value={item.unit}
-                        readOnly
-                        className="w-full text-sm bg-gray-50 border border-gray-300 rounded px-2 py-1"
-                      />
-                    </td>
-                    {formData.category !== 'In house' && (
+                        </select>
+                      </td>
+                      <td className="py-2 px-3 border-b">
+                        <select
+                          value={item.partName}
+                          onChange={(e) => handlePartChange(index, e.target.value)}
+                          className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          required
+                          disabled={formData.category === 'Bought-out'}
+                        >
+                          <option value="">Select Part</option>
+                          {parts
+                            .filter(p => !item.workCategory || p.scopeOfWork === item.workCategory)
+                            .map(p => (
+                              <option key={p._id} value={p.partName}>
+                                {p.partName}
+                              </option>
+                            ))}
+                        </select>
+                      </td>
                       <td className="py-2 px-3 border-b">
                         <input
                           type="text"
-                          value={item.actualOrder || ''}
+                          value={item.unit}
                           readOnly
                           className="w-full text-sm bg-gray-50 border border-gray-300 rounded px-2 py-1"
                         />
                       </td>
-                    )}
-                    <td className="py-2 px-3 border-b">
-                      <input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => handleLineItemChange(index, 'quantity', e.target.value)}
-                        min="0"
-                        max="9999"
-                        step="1"
-                        className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        required
-                      />
+                      {formData.category !== 'In house' && (
+                        <td className="py-2 px-3 border-b">
+                          <input
+                            type="text"
+                            value={item.actualOrder || ''}
+                            readOnly
+                            className="w-full text-sm bg-gray-50 border border-gray-300 rounded px-2 py-1"
+                          />
+                        </td>
+                      )}
+                      <td className="py-2 px-3 border-b">
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => handleLineItemChange(index, 'quantity', e.target.value)}
+                          min="0"
+                          max="9999"
+                          step="1"
+                          className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          required
+                        />
+                      </td>
+                      <td className="py-2 px-3 border-b">
+                        <input
+                          type="number"
+                          value={item.priceWithoutGST}
+                          onChange={(e) => handleLineItemChange(index, 'priceWithoutGST', e.target.value)}
+                          min="0"
+                          step="0.01"
+                          className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          required
+                          disabled={formData.category === 'Bought-out'}
+                        />
+                      </td>
+                      <td className="py-2 px-3 border-b">
+                        <input
+                          type="number"
+                          value={item.gstPercentage}
+                          onChange={(e) => handleLineItemChange(index, 'gstPercentage', e.target.value)}
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          disabled={formData.category === 'Bought-out'}
+                        />
+                      </td>
+                      <td className="py-2 px-3 border-b">
+                        <input
+                          type="text"
+                          value={item.gstAmount}
+                          readOnly
+                          className="w-full text-sm bg-gray-50 border border-gray-300 rounded px-2 py-1"
+                        />
+                      </td>
+                      <td className="py-2 px-3 border-b">
+                        <input
+                          type="text"
+                          value={item.total}
+                          readOnly
+                          className="w-full text-sm bg-gray-50 border border-gray-300 rounded px-2 py-1 font-medium"
+                        />
+                      </td>
+                      <td className="py-2 px-3 border-b">
+                        <input
+                          type="text"
+                          value={item.remark}
+                          onChange={(e) => handleLineItemChange(index, 'remark', e.target.value)}
+                          className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          placeholder="Remark"
+                        />
+                      </td>
+                      <td className="py-2 px-3 border-b">
+                        <button
+                          type="button"
+                          onClick={() => removeLineItem(index)}
+                          className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
+                          disabled={lineItems.length <= 1}
+                        >
+                          <FaTrash />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-gray-50">
+                    <td colSpan={formData.category === 'In house' ? 8 : 9} className="py-2 px-3 text-right font-medium">Grand Total:</td>
+                    <td className="py-2 px-3 font-bold text-blue-600">
+                      ₹{lineItems.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0).toFixed(2)}
                     </td>
-                    <td className="py-2 px-3 border-b">
-                      <input
-                        type="number"
-                        value={item.priceWithoutGST}
-                        onChange={(e) => handleLineItemChange(index, 'priceWithoutGST', e.target.value)}
-                        min="0"
-                        step="0.01"
-                        className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        required
-                        disabled={formData.category === 'Bought-out'}
-                      />
-                    </td>
-                    <td className="py-2 px-3 border-b">
-                      <input
-                        type="number"
-                        value={item.gstPercentage}
-                        onChange={(e) => handleLineItemChange(index, 'gstPercentage', e.target.value)}
-                        min="0"
-                        max="100"
-                        step="0.01"
-                        className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        disabled={formData.category === 'Bought-out'}
-                      />
-                    </td>
-                    <td className="py-2 px-3 border-b">
-                      <input
-                        type="text"
-                        value={item.gstAmount}
-                        readOnly
-                        className="w-full text-sm bg-gray-50 border border-gray-300 rounded px-2 py-1"
-                      />
-                    </td>
-                    <td className="py-2 px-3 border-b">
-                      <input
-                        type="text"
-                        value={item.total}
-                        readOnly
-                        className="w-full text-sm bg-gray-50 border border-gray-300 rounded px-2 py-1 font-medium"
-                      />
-                    </td>
-                    <td className="py-2 px-3 border-b">
-                      <input
-                        type="text"
-                        value={item.remark}
-                        onChange={(e) => handleLineItemChange(index, 'remark', e.target.value)}
-                        className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        placeholder="Remark"
-                      />
-                    </td>
-                    <td className="py-2 px-3 border-b">
-                      <button
-                        type="button"
-                        onClick={() => removeLineItem(index)}
-                        className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
-                        disabled={lineItems.length <= 1}
-                      >
-                        <FaTrash />
-                      </button>
-                    </td>
+                    <td></td>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="bg-gray-50">
-                  <td colSpan={formData.category === 'In house' ? 8 : 9} className="py-2 px-3 text-right font-medium">Grand Total:</td>
-                  <td className="py-2 px-3 font-bold text-blue-600">
-                    ₹{lineItems.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0).toFixed(2)}
-                  </td>
-                  <td></td>
-                </tr>
-              </tfoot>
-            </table>
+                </tfoot>
+              </table>
+            </div>
           </div>
         </div>
       )}

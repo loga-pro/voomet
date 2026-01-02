@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  PlusIcon, 
-  MagnifyingGlassIcon, 
+import {
+  PlusIcon,
+  MagnifyingGlassIcon,
   FunnelIcon,
   XMarkIcon,
   ArrowUpTrayIcon,
@@ -35,7 +35,7 @@ const EmployeeAccess = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
   const { notification, showSuccess, showError, hideNotification } = useNotification();
-  
+
   // Pagination state - FIXED
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -112,19 +112,19 @@ const EmployeeAccess = () => {
 
     // Apply dropdown filters first (username, email, role)
     if (filters.username) {
-      filtered = filtered.filter(user => 
+      filtered = filtered.filter(user =>
         user.name && user.name.toLowerCase().includes(filters.username.toLowerCase())
       );
     }
 
     if (filters.email) {
-      filtered = filtered.filter(user => 
+      filtered = filtered.filter(user =>
         user.email && user.email.toLowerCase().includes(filters.email.toLowerCase())
       );
     }
 
     if (filters.role) {
-      filtered = filtered.filter(user => 
+      filtered = filtered.filter(user =>
         normalizeString(user.role) === normalizeString(filters.role)
       );
     }
@@ -133,18 +133,18 @@ const EmployeeAccess = () => {
       const searchTerm = filters.search.toLowerCase().trim();
 
       filtered = filtered.filter(user => {
-    const normalizedRole = (user.role || '').replace(/_/g, ' ').toLowerCase();
-    const normalizedPermissions = (user.permissions || []).map(p => 
-      p.replace(/_/g, ' ').toLowerCase()
-    );
-    
-    return (
-        (user.name && user.name.toLowerCase().includes(searchTerm)) ||
-        (user.email && user.email.toLowerCase().includes(searchTerm)) ||
-      (normalizedRole.includes(searchTerm)) 
-      // normalizedPermissions.some(permission => permission.includes(searchTerm))
-      );
-  });
+        const normalizedRole = (user.role || '').replace(/_/g, ' ').toLowerCase();
+        const normalizedPermissions = (user.permissions || []).map(p =>
+          p.replace(/_/g, ' ').toLowerCase()
+        );
+
+        return (
+          (user.name && user.name.toLowerCase().includes(searchTerm)) ||
+          (user.email && user.email.toLowerCase().includes(searchTerm)) ||
+          (normalizedRole.includes(searchTerm))
+          // normalizedPermissions.some(permission => permission.includes(searchTerm))
+        );
+      });
     }
 
     setFilteredUsers(filtered);
@@ -163,12 +163,12 @@ const EmployeeAccess = () => {
     if (searchTimeout) {
       clearTimeout(searchTimeout);
     }
-    
+
     // Set new timeout for debouncing
     const newTimeout = setTimeout(() => {
       handleFilterChange('search', value);
     }, 300); // 300ms delay
-    
+
     setSearchTimeout(newTimeout);
   };
 
@@ -199,15 +199,15 @@ const EmployeeAccess = () => {
     const formatRoleForCSV = (role) => {
       return role ? role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '';
     };
-    
+
     // Format permissions for CSV
     const formatPermissionsForCSV = (permissions) => {
       if (!permissions || !Array.isArray(permissions)) return '';
-      return permissions.map(permission => 
+      return permissions.map(permission =>
         permission.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
       ).join(', ');
     };
-    
+
     const headers = ['Name', 'Email', 'Role', 'Permissions'];
     const csvData = dataToExport.map(user => [
       `"${user.name || ''}"`,
@@ -253,7 +253,7 @@ const EmployeeAccess = () => {
   // Generate pagination range with ellipsis - FIXED
   const getPaginationRange = () => {
     if (totalPages <= 1) return [1];
-    
+
     const delta = 2;
     const range = [];
     const rangeWithDots = [];
@@ -329,21 +329,21 @@ const EmployeeAccess = () => {
 
   const formatLastLogin = (dateString) => {
     if (!dateString) return 'Never logged in';
-    
+
     try {
       const date = new Date(dateString);
-      
+
       // Check if date is valid
       if (isNaN(date.getTime())) {
         return dateString; // Return the original string if it's already formatted
       }
-      
+
       const now = new Date();
       const diffTime = Math.abs(now - date);
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
       const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
       const diffMinutes = Math.floor(diffTime / (1000 * 60));
-      
+
       if (diffMinutes < 1) {
         return 'Just now';
       } else if (diffMinutes < 60) {
@@ -432,15 +432,14 @@ const EmployeeAccess = () => {
                   )}
                 </div>
               </div>
-              
+
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                    showFilters || Object.values(filters).some(Boolean) 
-                      ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100' 
-                      : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
-                  }`}
+                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters || Object.values(filters).some(Boolean)
+                    ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
+                    : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                    }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
                   Filters
@@ -450,7 +449,7 @@ const EmployeeAccess = () => {
                     </span>
                   )}
                 </button>
-                
+
                 {Object.values(filters).some(Boolean) && (
                   <button
                     onClick={clearFilters}
@@ -460,7 +459,7 @@ const EmployeeAccess = () => {
                     Clear All
                   </button>
                 )}
-                
+
                 <button
                   onClick={exportFilteredUsers}
                   className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -468,7 +467,7 @@ const EmployeeAccess = () => {
                   <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
                   Export CSV
                 </button>
-                
+
                 <button
                   onClick={() => setShowModal(true)}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -506,7 +505,7 @@ const EmployeeAccess = () => {
                     ))}
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                   <select
@@ -534,19 +533,19 @@ const EmployeeAccess = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-8 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
                         User
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Email
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Role
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Last Login
                       </th>
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -554,22 +553,22 @@ const EmployeeAccess = () => {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {currentItems.map((user) => (
                       <tr key={user._id} className="hover:bg-gray-50 transition-colors duration-150">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                        <td className="px-8 py-4 whitespace-nowrap text-center w-40">
+                          <div className="text-sm font-medium text-gray-900">{user.name || '-'}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{user.email}</div>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <div className="text-sm text-gray-900">{user.email || '-'}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
-                            {formatRole(user.role)}
+                            {user.role ? formatRole(user.role) : '-'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{formatLastLogin(user.lastLogin)}</div>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <div className="text-sm text-gray-900">{user.lastLogin ? formatLastLogin(user.lastLogin) : '-'}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex justify-end space-x-2">
+                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                          <div className="flex justify-center space-x-2">
                             <button
                               onClick={() => handleView(user)}
                               className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
@@ -613,7 +612,7 @@ const EmployeeAccess = () => {
                 </div>
               )}
             </div>
-            
+
             {/* Mobile Card View */}
             <div className="sm:hidden">
               {currentItems.length > 0 ? (
@@ -693,12 +692,12 @@ const EmployeeAccess = () => {
                   <option value={100}>100</option>
                 </select>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-700">
                   Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredUsers.length)} of {filteredUsers.length} results
                 </span>
-                
+
                 <nav className="flex space-x-2">
                   <button
                     onClick={() => paginate(Math.max(1, currentPage - 1))}
@@ -707,11 +706,11 @@ const EmployeeAccess = () => {
                   >
                     <ChevronLeftIcon className="h-5 w-5" />
                   </button>
-                  
+
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter(page => 
-                      page === 1 || 
-                      page === totalPages || 
+                    .filter(page =>
+                      page === 1 ||
+                      page === totalPages ||
                       (page >= currentPage - 1 && page <= currentPage + 1)
                     )
                     .map((page, index, array) => {
@@ -726,18 +725,17 @@ const EmployeeAccess = () => {
                           )}
                           <button
                             onClick={() => paginate(page)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              currentPage === page
-                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                            }`}
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
+                              ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                              }`}
                           >
                             {page}
                           </button>
                         </React.Fragment>
                       );
                     })}
-                  
+
                   <button
                     onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
@@ -774,57 +772,57 @@ const EmployeeAccess = () => {
 
       {/* View User Modal */}
       {/* View User Modal */}
-       {viewingUser && (
-  <Modal
-    isOpen={!!viewingUser}
-          onClose={()=>setViewingUser(null)}
-    title="User Profile"
+      {viewingUser && (
+        <Modal
+          isOpen={!!viewingUser}
+          onClose={() => setViewingUser(null)}
+          title="User Profile"
           size="xl"
-  >
+        >
           <div className="p-3 text-sm">
             {/* HORIZONTAL DETAILS */}
             <div className="border rounded-md p-3 mb-3">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
+                <div>
                   <p className="text-xs text-gray-500 uppercase">Name</p>
                   <p className="font-medium text-gray-800">{viewingUser.name}</p>
-              </div>
-              <div>
+                </div>
+                <div>
                   <p className="text-xs text-gray-500 uppercase">Email</p>
                   <p className="text-gray-700 break-all">{viewingUser.email}</p>
-              </div>
-              <div>
+                </div>
+                <div>
                   <p className="text-xs text-gray-500 uppercase">Role</p>
                   <p className="font-medium text-gray-800">{formatRole(viewingUser.role)}</p>
-              </div>
-              <div>
+                </div>
+                <div>
                   <p className="text-xs text-gray-500 uppercase">Last Login</p>
                   <p className="text-gray-700">{formatLastLogin(viewingUser.lastLogin)}</p>
+                </div>
               </div>
             </div>
-          </div>
 
             {/* Permissions */}
             <div className="border rounded-md p-3">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold text-gray-800">Access Permissions</h3>
                 <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{viewingUser.permissions.length}</span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {viewingUser.permissions.map((permission,index)=>(
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {viewingUser.permissions.map((permission, index) => (
                   <div key={index} className="text-xs border rounded px-2 py-1 bg-gray-50 text-gray-700">{formatPermission(permission)}</div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
 
             {/* Actions */}
             <div className="flex justify-end gap-3 pt-3 mt-3 border-t">
-              <button onClick={()=>setViewingUser(null)} className="px-3 py-1.5 text-sm border rounded-md">Close</button>
-              <button onClick={()=>{setViewingUser(null); handleEdit(viewingUser);}} className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md">Edit User</button>
-      </div>
-    </div>
-  </Modal>
-)}
+              <button onClick={() => setViewingUser(null)} className="px-3 py-1.5 text-sm border rounded-md">Close</button>
+              <button onClick={() => { setViewingUser(null); handleEdit(viewingUser); }} className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md">Edit User</button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
 
       {/* Notification */}

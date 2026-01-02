@@ -583,140 +583,142 @@ const PurchaseForm = ({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border border-gray-300">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-48">Work Category</th>
-                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-48">Item Name</th>
-                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-24">Unit</th>
-                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-28">Quantity</th>
-                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-36">Price without GST (₹)</th>
-                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-24">GST %</th>
-                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-32">GST Amount (₹)</th>
-                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-32">Total (₹)</th>
-                <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-20">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lineItems.map((item, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="py-2 px-3 border-b">
-                    <select
-                      value={item.workCategory}
-                      onChange={(e) => handleLineItemChange(index, 'workCategory', e.target.value)}
-                      className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      required
-                    >
-                      <option value="">Select Work Category</option>
-                      {workCategories.map(cat => (
-                        <option key={cat} value={cat}>
-                          {cat.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="py-2 px-3 border-b">
-                    <select
-                      value={item.partName}
-                      onChange={(e) => handlePartChange(index, e.target.value)}
-                      className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      required
-                    >
-                      <option value="">Select Part</option>
-                      {parts
-                        .filter(p => !item.workCategory || p.scopeOfWork === item.workCategory)
-                        .map(p => (
-                          <option key={p._id} value={p.partName}>
-                            {p.partName}
+          <div className="max-h-[400px] overflow-y-auto">
+            <table className="min-w-full bg-white border border-gray-300">
+              <thead className="sticky top-0 z-10 bg-gray-50">
+                <tr className="bg-gray-50">
+                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-48">Work Category</th>
+                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-48">Item Name</th>
+                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-24">Unit</th>
+                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-28">Quantity</th>
+                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-36">Price without GST (₹)</th>
+                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-24">GST %</th>
+                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-32">GST Amount (₹)</th>
+                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-32">Total (₹)</th>
+                  <th className="py-2 px-3 border-b text-left text-xs font-medium text-gray-500 uppercase w-20">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lineItems.map((item, index) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="py-2 px-3 border-b">
+                      <select
+                        value={item.workCategory}
+                        onChange={(e) => handleLineItemChange(index, 'workCategory', e.target.value)}
+                        className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        required
+                      >
+                        <option value="">Select Work Category</option>
+                        {workCategories.map(cat => (
+                          <option key={cat} value={cat}>
+                            {cat.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                           </option>
                         ))}
-                    </select>
+                      </select>
+                    </td>
+                    <td className="py-2 px-3 border-b">
+                      <select
+                        value={item.partName}
+                        onChange={(e) => handlePartChange(index, e.target.value)}
+                        className="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        required
+                      >
+                        <option value="">Select Part</option>
+                        {parts
+                          .filter(p => !item.workCategory || p.scopeOfWork === item.workCategory)
+                          .map(p => (
+                            <option key={p._id} value={p.partName}>
+                              {p.partName}
+                            </option>
+                          ))}
+                      </select>
+                    </td>
+                    <td className="py-2 px-3 border-b">
+                      <FloatingInput
+                        name={`unit-${index}`}
+                        value={item.unit}
+                        readOnly
+                        hideLabel
+                        className="bg-gray-50"
+                      />
+                    </td>
+                    <td className="py-2 px-3 border-b">
+                      <FloatingInput
+                        name={`quantity-${index}`}
+                        value={item.quantity}
+                        onChange={(e) => handleLineItemChange(index, 'quantity', e.target.value)}
+                        type="number"
+                        min="0"
+                        max="9999"
+                        step="1"
+                        hideLabel
+                      />
+                    </td>
+                    <td className="py-2 px-3 border-b">
+                      <FloatingInput
+                        name={`priceWithoutGST-${index}`}
+                        value={item.priceWithoutGST}
+                        onChange={(e) => handleLineItemChange(index, 'priceWithoutGST', e.target.value)}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        hideLabel
+                      />
+                    </td>
+                    <td className="py-2 px-3 border-b">
+                      <FloatingInput
+                        name={`gstPercentage-${index}`}
+                        value={item.gstPercentage}
+                        onChange={(e) => handleLineItemChange(index, 'gstPercentage', e.target.value)}
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        hideLabel
+                      />
+                    </td>
+                    <td className="py-2 px-3 border-b">
+                      <FloatingInput
+                        name={`gstAmount-${index}`}
+                        value={item.gstAmount}
+                        readOnly
+                        hideLabel
+                        className="bg-gray-50"
+                      />
+                    </td>
+                    <td className="py-2 px-3 border-b">
+                      <FloatingInput
+                        name={`total-${index}`}
+                        value={item.total}
+                        readOnly
+                        hideLabel
+                        className="bg-gray-50 font-medium"
+                      />
+                    </td>
+                    <td className="py-2 px-3 border-b">
+                      <button
+                        type="button"
+                        onClick={() => removeLineItem(index)}
+                        className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
+                        disabled={lineItems.length <= 1}
+                      >
+                        <FaTrash />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-gray-50">
+                  <td colSpan="7" className="py-2 px-3 text-right font-medium">Grand Total:</td>
+                  <td className="py-2 px-3 font-bold text-blue-600">
+                    ₹{lineItems.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0).toFixed(2)}
                   </td>
-                  <td className="py-2 px-3 border-b">
-                    <FloatingInput
-                      name={`unit-${index}`}
-                      value={item.unit}
-                      readOnly
-                      hideLabel
-                      className="bg-gray-50"
-                    />
-                  </td>
-                  <td className="py-2 px-3 border-b">
-                    <FloatingInput
-                      name={`quantity-${index}`}
-                      value={item.quantity}
-                      onChange={(e) => handleLineItemChange(index, 'quantity', e.target.value)}
-                      type="number"
-                      min="0"
-                      max="9999"
-                      step="1"
-                      hideLabel
-                    />
-                  </td>
-                  <td className="py-2 px-3 border-b">
-                    <FloatingInput
-                      name={`priceWithoutGST-${index}`}
-                      value={item.priceWithoutGST}
-                      onChange={(e) => handleLineItemChange(index, 'priceWithoutGST', e.target.value)}
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      hideLabel
-                    />
-                  </td>
-                  <td className="py-2 px-3 border-b">
-                    <FloatingInput
-                      name={`gstPercentage-${index}`}
-                      value={item.gstPercentage}
-                      onChange={(e) => handleLineItemChange(index, 'gstPercentage', e.target.value)}
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      hideLabel
-                    />
-                  </td>
-                  <td className="py-2 px-3 border-b">
-                    <FloatingInput
-                      name={`gstAmount-${index}`}
-                      value={item.gstAmount}
-                      readOnly
-                      hideLabel
-                      className="bg-gray-50"
-                    />
-                  </td>
-                  <td className="py-2 px-3 border-b">
-                    <FloatingInput
-                      name={`total-${index}`}
-                      value={item.total}
-                      readOnly
-                      hideLabel
-                      className="bg-gray-50 font-medium"
-                    />
-                  </td>
-                  <td className="py-2 px-3 border-b">
-                    <button
-                      type="button"
-                      onClick={() => removeLineItem(index)}
-                      className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
-                      disabled={lineItems.length <= 1}
-                    >
-                      <FaTrash />
-                    </button>
-                  </td>
+                  <td></td>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="bg-gray-50">
-                <td colSpan="7" className="py-2 px-3 text-right font-medium">Grand Total:</td>
-                <td className="py-2 px-3 font-bold text-blue-600">
-                  ₹{lineItems.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0).toFixed(2)}
-                </td>
-                <td></td>
-              </tr>
-            </tfoot>
-          </table>
+              </tfoot>
+            </table>
+          </div>
         </div>
       </div>
 
