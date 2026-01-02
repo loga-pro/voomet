@@ -268,20 +268,20 @@ const ProformaInvoice = ({ invoiceData = {}, hideDownloadButton = false }) => {
                           <div>E-Mail : {companyEmail}</div>
                         </div>
 
-                        {/* Consignee */}
+                        {/* Buyer */}
                         <div className="border-t border-black p-2 flex-grow invoice-small">
-                          <div className="mb-1">Consignee (Ship to)</div>
+                          <div className="mb-1 font-bold italic underline">Buyer (Bill to)</div>
                           <div className="font-bold">{customer}</div>
-                          <div>{consigneeAddress || invoice.destination || 'As per order'}</div>
+                          <div className="whitespace-pre-line">{buyerAddress || invoice.destination || 'As per order'}</div>
                           <div className="mt-1">GSTIN/UIN : {invoice.customerGSTIN || ''}</div>
                           <div>State Name : {companyState}, Code : {companyStateCode}</div>
                         </div>
 
-                        {/* Buyer */}
+                        {/* Consignee */}
                         <div className="border-t border-black p-2 flex-grow invoice-small">
-                          <div className="mb-1">Buyer (Bill to)</div>
+                          <div className="mb-1 font-bold italic underline">Consignee (Ship to)</div>
                           <div className="font-bold">{customer}</div>
-                          <div>{buyerAddress || invoice.destination || 'As per order'}</div>
+                          <div className="whitespace-pre-line">{consigneeAddress || invoice.destination || 'As per order'}</div>
                           <div className="mt-1">GSTIN/UIN : {invoice.customerGSTIN || ''}</div>
                           <div>State Name : {companyState}, Code : {companyStateCode}</div>
                         </div>

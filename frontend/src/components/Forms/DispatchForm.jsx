@@ -364,8 +364,8 @@ const DispatchForm = ({
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.date || !formData.dispatchNo || formData.dispatchNo.trim() === '') {
-      showError?.('Please fill all required fields');
+    if (!formData.date || !formData.dispatchNo || formData.dispatchNo.trim() === '' || !formData.customerName || formData.customerName.trim() === '') {
+      showError?.('Please fill all required fields (Date, Delivery Chalan No, and Customer Name)');
       return;
     }
 
@@ -537,6 +537,7 @@ const DispatchForm = ({
           onChange={handleInputChange}
           type="select"
           options={customers.map(c => ({ value: c.customerName, label: c.customerName }))}
+          required
         />
 
         <FloatingInput

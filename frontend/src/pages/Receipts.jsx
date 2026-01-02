@@ -438,13 +438,6 @@ const Receipts = () => {
                 </div>
               </div>
 
-              {/* Search Results Info */}
-              {searchTerm && (
-                <div className="mt-3 text-sm text-gray-600">
-                  Found {filteredReceipts.length} receipt(s) matching "{searchTerm}"
-                </div>
-              )}
-
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
@@ -619,7 +612,7 @@ const Receipts = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-semibold text-blue-600">
-                              {receipt.totalQuantity} {receipt.unit}
+                              {receipt.totalQuantity}
                             </div>
                           </td>
 

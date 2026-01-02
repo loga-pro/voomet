@@ -306,10 +306,10 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
 
       if (projectBOQ) {
         setBoqData(projectBOQ);
-        
+
         // Always use finalTotalWithoutGST as the base project cost
         const baseCost = projectBOQ.finalTotalWithoutGST || '';
-        
+
         setFormData(prev => ({
           ...prev,
           project: selectedProject?.projectName || projectName,
@@ -436,12 +436,12 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
   const calculateAmounts = () => {
     // Base amount is always the finalTotalWithoutGST from BOQ
     const baseAmount = parseFloat(formData.projectCost) || 0;
-    
+
     // Calculate GST amount if includeGST is checked
-    const gstAmount = formData.includeGST 
-      ? (baseAmount * parseFloat(formData.gstPercentage || 0)) / 100 
+    const gstAmount = formData.includeGST
+      ? (baseAmount * parseFloat(formData.gstPercentage || 0)) / 100
       : 0;
-    
+
     // Total amount is base + GST
     const totalAmount = baseAmount + gstAmount;
 
@@ -471,7 +471,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       const val = parseFloat(inv.invoiceValue) || 0;
       return sum + val;
     }, 0);
-    
+
     return Math.max(0, budgetAmount - (totalAlreadyInvoiced + otherInvoicesTotal));
   };
 
@@ -482,7 +482,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     }
 
     const currentInvoiceValue = parseFloat(invoiceValue) || 0;
-    
+
     // Check if current invoice value exceeds budget
     if (currentInvoiceValue > budgetAmount) {
       return {
@@ -515,7 +515,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
   const validateAllInvoiceValues = () => {
     let hasErrors = false;
     const newInvoiceValueErrors = {};
-    
+
     formData.invoices.forEach((invoice, index) => {
       const validation = validateInvoiceValue(invoice.invoiceValue, index);
       if (!validation.isValid) {
@@ -523,7 +523,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         hasErrors = true;
       }
     });
-    
+
     setInvoiceValueErrors(newInvoiceValueErrors);
     return !hasErrors;
   };
@@ -603,9 +603,9 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         const validation = validateInvoiceValue(invoice.invoiceValue, index);
         if (!validation.isValid) {
           newErrors[`invoiceValue_${index}`] = validation.error;
-      } else {
-        hasValidInvoice = true;
-      }
+        } else {
+          hasValidInvoice = true;
+        }
       }
     });
 
@@ -654,9 +654,9 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         const validation = validateInvoiceValue(invoice.invoiceValue, index);
         if (!validation.isValid) {
           newErrors[`invoiceValue_${index}`] = validation.error;
-      } else {
-        hasValidInvoice = true;
-      }
+        } else {
+          hasValidInvoice = true;
+        }
       }
     });
 
@@ -736,16 +736,16 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       // Auto-cap invoice value if it exceeds budget
       if (field === 'invoiceValue' && value !== '') {
         const numericValue = parseFloat(value) || 0;
-        
+
         // Calculate maximum allowed for this invoice
         const otherInvoicesTotal = prev.invoices.reduce((sum, inv, idx) => {
           if (idx === index) return sum;
           const val = parseFloat(inv.invoiceValue) || 0;
           return sum + val;
         }, 0);
-        
+
         const maxAllowed = Math.max(0, budgetAmount - (totalAlreadyInvoiced + otherInvoicesTotal));
-        
+
         // If value exceeds max allowed, cap it
         if (numericValue > maxAllowed && maxAllowed >= 0) {
           invoice = { ...invoice, invoiceValue: maxAllowed.toString() };
@@ -881,13 +881,13 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       setErrors(prev => ({ ...prev, submit: 'Please complete project information first' }));
       return;
     }
-    
+
     // Check all invoice values against budget
     if (!validateAllInvoiceValues()) {
       setErrors(prev => ({ ...prev, submit: 'Please fix invoice value errors before creating invoice' }));
       return;
     }
-    
+
     if (!validateInvoiceTab()) return;
 
     const cleanedData = {
@@ -1187,19 +1187,19 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <FloatingInput
-                      label="Consignee Address"
-                      name="consigneeAddress"
+                      label="Buyer (Bill to)"
+                      name="buyerAddress"
                       type="textarea"
-                      value={formData.consigneeAddress}
+                      value={formData.buyerAddress}
                       onChange={handleChange}
                       rows={2}
                     />
 
                     <FloatingInput
-                      label="Buyer Address"
-                      name="buyerAddress"
+                      label="Consignee (Ship to)"
+                      name="consigneeAddress"
                       type="textarea"
-                      value={formData.buyerAddress}
+                      value={formData.consigneeAddress}
                       onChange={handleChange}
                       rows={2}
                     />
@@ -1239,7 +1239,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                       <div className="ml-2">
                         <div className="relative">
                           <label className="absolute -top-2 left-2 text-xs text-gray-500 bg-white px-1">
-                            GST 
+                            GST
                           </label>
                           <div className="pt-3 pb-2 px-3 border border-gray-300 rounded-md bg-gray-50 min-h-[44px]">
                             <span className="text-sm font-medium text-gray-700">
@@ -1248,10 +1248,10 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                           </div>
                           <input
                             type="hidden"
-                          name="gstPercentage"
-                          value={formData.gstPercentage}
-                        />
-                          </div>
+                            name="gstPercentage"
+                            value={formData.gstPercentage}
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1325,9 +1325,9 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                   {formData.invoices.map((invoice, invoiceIndex) => {
                     // Calculate validation for this invoice
                     const invoiceValueValidation = validateInvoiceValue(invoice.invoiceValue, invoiceIndex);
-                    
+
                     return (
-                    <div key={invoice.id} className="border border-gray-200 rounded bg-gray-50">
+                      <div key={invoice.id} className="border border-gray-200 rounded bg-gray-50">
                         {/* Invoice Header
                       <div className="bg-orange-50 px-2 py-1.5 flex items-center justify-between rounded-t border-b border-orange-200">
                         <div className="flex items-center gap-1">
@@ -1348,37 +1348,37 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                         </button>
                         </div> */}
 
-                      {/* Invoice Details */}
-                      <div className="p-2">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
-                          <FloatingInput
-                            label="Invoice Date"
-                            name="invoiceDate"
-                            type="date"
-                            value={invoice.invoiceDate}
-                            onChange={(e) => updateInvoice(invoiceIndex, 'invoiceDate', e.target.value)}
-                            error={errors[`invoiceDate_${invoiceIndex}`]}
-                            required
-                            disabled={isProjectFullyInvoiced}
-                          />
-                          <FloatingInput
-                            label="Invoice Number"
-                            name="invoiceNumber"
-                            value={invoice.invoiceNumber}
-                            onChange={(e) => updateInvoice(invoiceIndex, 'invoiceNumber', e.target.value)}
-                            error={errors[`invoiceNumber_${invoiceIndex}`]}
-                            required
-                            disabled={isProjectFullyInvoiced}
-                          />
+                        {/* Invoice Details */}
+                        <div className="p-2">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+                            <FloatingInput
+                              label="Invoice Date"
+                              name="invoiceDate"
+                              type="date"
+                              value={invoice.invoiceDate}
+                              onChange={(e) => updateInvoice(invoiceIndex, 'invoiceDate', e.target.value)}
+                              error={errors[`invoiceDate_${invoiceIndex}`]}
+                              required
+                              disabled={isProjectFullyInvoiced}
+                            />
+                            <FloatingInput
+                              label="Invoice Number"
+                              name="invoiceNumber"
+                              value={invoice.invoiceNumber}
+                              onChange={(e) => updateInvoice(invoiceIndex, 'invoiceNumber', e.target.value)}
+                              error={errors[`invoiceNumber_${invoiceIndex}`]}
+                              required
+                              disabled={isProjectFullyInvoiced}
+                            />
                             <div>
-                          <FloatingInput
-                            label="Invoice Value (₹)"
-                            name="invoiceValue"
-                            type="number"
-                            value={invoice.invoiceValue}
-                            onChange={(e) => updateInvoice(invoiceIndex, 'invoiceValue', e.target.value)}
+                              <FloatingInput
+                                label="Invoice Value (₹)"
+                                name="invoiceValue"
+                                type="number"
+                                value={invoice.invoiceValue}
+                                onChange={(e) => updateInvoice(invoiceIndex, 'invoiceValue', e.target.value)}
                                 error={errors[`invoiceValue_${invoiceIndex}`] || invoiceValueErrors[invoiceIndex]}
-                            required
+                                required
                                 disabled={isProjectFullyInvoiced || (invoice.paymentType && invoice.paymentType.startsWith('installment-'))}
                                 readOnly={invoice.paymentType && invoice.paymentType.startsWith('installment-')}
                                 className={invoice.paymentType && invoice.paymentType.startsWith('installment-') ? "bg-gray-100" : ""}
@@ -1391,44 +1391,44 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                                 </div>
                               )}
                             </div>
-                        </div>
+                          </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
-                          <FloatingInput
-                            label="Payment Type"
-                            name="paymentType"
-                            type="select"
-                            value={invoice.paymentType || ''}
-                            disabled={isProjectFullyInvoiced}
-                            onChange={(e) => {
-                              const selectedValue = e.target.value;
-                              updateInvoice(invoiceIndex, 'paymentType', selectedValue);
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
+                            <FloatingInput
+                              label="Payment Type"
+                              name="paymentType"
+                              type="select"
+                              value={invoice.paymentType || ''}
+                              disabled={isProjectFullyInvoiced}
+                              onChange={(e) => {
+                                const selectedValue = e.target.value;
+                                updateInvoice(invoiceIndex, 'paymentType', selectedValue);
 
                                 // Auto-fill invoice value if installment is selected
-                              if (selectedValue && selectedValue.startsWith('installment-')) {
-                                const index = parseInt(selectedValue.split('-')[1]);
+                                if (selectedValue && selectedValue.startsWith('installment-')) {
+                                  const index = parseInt(selectedValue.split('-')[1]);
                                   const installmentValue = getInstallmentValue(index);
                                   updateInvoice(invoiceIndex, 'invoiceValue', installmentValue.toString());
-                              }
-                            }}
-                            options={[
-                              { value: '', label: 'Select Payment Type' },
-                              { value: 'advance', label: 'Advance Payment' },
-                              { value: 'final', label: 'Final Payment' },
+                                }
+                              }}
+                              options={[
+                                { value: '', label: 'Select Payment Type' },
+                                { value: 'advance', label: 'Advance Payment' },
+                                { value: 'final', label: 'Final Payment' },
                                 // Create 5 installment options (or use BOQ installments if available)
-                                ...(boqInstallments.length > 0 
+                                ...(boqInstallments.length > 0
                                   ? boqInstallments.map((inst, idx) => ({
-                                value: `installment-${idx}`,
-                                label: `Installment ${inst.Installment || idx + 1}`
-                              }))
+                                    value: `installment-${idx}`,
+                                    label: `Installment ${inst.Installment || idx + 1}`
+                                  }))
                                   : Array.from({ length: 5 }, (_, i) => ({
-                                      value: `installment-${i}`,
-                                      label: `Installment ${i + 1}`
-                                    }))
+                                    value: `installment-${i}`,
+                                    label: `Installment ${i + 1}`
+                                  }))
                                 )
-                            ]}
-                          />
-                          <FloatingInput
+                              ]}
+                            />
+                            <FloatingInput
                               label="Due Date"
                               name="dueDate"
                               type="date"
@@ -1436,120 +1436,120 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                               onChange={(e) => updateInvoice(invoiceIndex, 'dueDate', e.target.value)}
                               error={errors[`dueDate_${invoiceIndex}`]}
                               required
-                            disabled={isProjectFullyInvoiced}
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
-                          <FloatingInput
-                            label="Buyer's Ref / Order No"
-                            name="buyersRef"
-                            value={invoice.buyersRef}
-                            onChange={(e) => updateInvoice(invoiceIndex, 'buyersRef', e.target.value)}
-                            disabled={isProjectFullyInvoiced}
-                          />
-                          <FloatingInput
-                            label="Buyer's Ref Date"
-                            name="buyersRefDate"
-                            type="date"
-                            value={invoice.buyersRefDate}
-                            onChange={(e) => updateInvoice(invoiceIndex, 'buyersRefDate', e.target.value)}
-                            error={errors[`buyersRefDate_${invoiceIndex}`]}
-                            disabled={isProjectFullyInvoiced}
-                          />
-                        </div>
-
-                        <div className="flex items-center gap-1.5 mb-2 text-gray-700 text-xs">
-                          <Truck size={14} />
-                          <span className="font-medium">Delivery Information</span>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
-                          <FloatingInput
-                            label="Dispatched Through"
-                            name="dispatchedThrough"
-                            type="select"
-                            value={invoice.dispatchedThrough}
-                            onChange={(e) => updateInvoice(invoiceIndex, 'dispatchedThrough', e.target.value)}
-                            options={dispatchedThroughOptions}
-                            disabled={isProjectFullyInvoiced}
-                          />
-                          <FloatingInput
-                            label="Destination"
-                            name="destination"
-                            type="text"
-                            value={invoice.destination}
-                            onChange={(e) => updateInvoice(invoiceIndex, 'destination', e.target.value)}
-                            disabled={isProjectFullyInvoiced}
-                          />
-                          <FloatingInput
-                            label="Terms for Delivery"
-                            name="termsForDelivery"
-                            type="text"
-                            value={invoice.termsForDelivery}
-                            onChange={(e) => updateInvoice(invoiceIndex, 'termsForDelivery', e.target.value)}
-                            disabled={isProjectFullyInvoiced}
-                          />
-                        </div>
-
-                        {/* Tax Information - Compact */}
-                        <div className="bg-white rounded p-2 border border-gray-200 mb-2">
-                          <div className="flex items-center gap-1.5 mb-1.5">
-                            <FileText size={14} className="text-blue-600" />
-                            <span className="font-semibold text-gray-800 text-xs">Tax Information</span>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
-                            <FloatingInput
-                              label="HSN/SAC Code"
-                              name="hsnSac"
-                              value={invoice.hsnSac}
-                              onChange={(e) => updateInvoice(invoiceIndex, 'hsnSac', e.target.value)}
-                              disabled={isProjectFullyInvoiced}
-                            />
-                            <FloatingInput
-                              label="CGST %"
-                              name="cgst"
-                              type="text"
-                              value={invoice.cgst}
-                              onChange={(e) => updateInvoice(invoiceIndex, 'cgst', e.target.value)}
-                              disabled={isProjectFullyInvoiced}
-                            />
-                            <FloatingInput
-                              label="SGST %"
-                              name="sgst"
-                              type="text"
-                              value={invoice.sgst}
-                              onChange={(e) => updateInvoice(invoiceIndex, 'sgst', e.target.value)}
                               disabled={isProjectFullyInvoiced}
                             />
                           </div>
 
-                          {invoice.invoiceValue && (
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
-                              <div className="text-center">
-                                <p className="text-xs text-gray-600">CGST</p>
-                                <p className="text-sm font-semibold text-blue-600">
-                                  ₹{(invoice.cgstAmount || 0).toFixed(2)}
-                                </p>
-                              </div>
-                              <div className="text-center">
-                                <p className="text-xs text-gray-600">SGST</p>
-                                <p className="text-sm font-semibold text-green-600">
-                                  ₹{(invoice.sgstAmount || 0).toFixed(2)}
-                                </p>
-                              </div>
-                              <div className="text-center">
-                                <p className="text-xs text-gray-600">Total</p>
-                                <p className="text-sm font-bold text-purple-600">
-                                  ₹{(Math.round((parseFloat(invoice.totalWithTax) || parseFloat(invoice.invoiceValue) || 0) * 100) / 100).toFixed(2)}
-                                </p>
-                              </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
+                            <FloatingInput
+                              label="Buyer's Ref / Order No"
+                              name="buyersRef"
+                              value={invoice.buyersRef}
+                              onChange={(e) => updateInvoice(invoiceIndex, 'buyersRef', e.target.value)}
+                              disabled={isProjectFullyInvoiced}
+                            />
+                            <FloatingInput
+                              label="Buyer's Ref Date"
+                              name="buyersRefDate"
+                              type="date"
+                              value={invoice.buyersRefDate}
+                              onChange={(e) => updateInvoice(invoiceIndex, 'buyersRefDate', e.target.value)}
+                              error={errors[`buyersRefDate_${invoiceIndex}`]}
+                              disabled={isProjectFullyInvoiced}
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-1.5 mb-2 text-gray-700 text-xs">
+                            <Truck size={14} />
+                            <span className="font-medium">Delivery Information</span>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
+                            <FloatingInput
+                              label="Dispatched Through"
+                              name="dispatchedThrough"
+                              type="select"
+                              value={invoice.dispatchedThrough}
+                              onChange={(e) => updateInvoice(invoiceIndex, 'dispatchedThrough', e.target.value)}
+                              options={dispatchedThroughOptions}
+                              disabled={isProjectFullyInvoiced}
+                            />
+                            <FloatingInput
+                              label="Destination"
+                              name="destination"
+                              type="text"
+                              value={invoice.destination}
+                              onChange={(e) => updateInvoice(invoiceIndex, 'destination', e.target.value)}
+                              disabled={isProjectFullyInvoiced}
+                            />
+                            <FloatingInput
+                              label="Terms for Delivery"
+                              name="termsForDelivery"
+                              type="text"
+                              value={invoice.termsForDelivery}
+                              onChange={(e) => updateInvoice(invoiceIndex, 'termsForDelivery', e.target.value)}
+                              disabled={isProjectFullyInvoiced}
+                            />
+                          </div>
+
+                          {/* Tax Information - Compact */}
+                          <div className="bg-white rounded p-2 border border-gray-200 mb-2">
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <FileText size={14} className="text-blue-600" />
+                              <span className="font-semibold text-gray-800 text-xs">Tax Information</span>
                             </div>
-                          )}
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+                              <FloatingInput
+                                label="HSN/SAC Code"
+                                name="hsnSac"
+                                value={invoice.hsnSac}
+                                onChange={(e) => updateInvoice(invoiceIndex, 'hsnSac', e.target.value)}
+                                disabled={isProjectFullyInvoiced}
+                              />
+                              <FloatingInput
+                                label="CGST %"
+                                name="cgst"
+                                type="text"
+                                value={invoice.cgst}
+                                onChange={(e) => updateInvoice(invoiceIndex, 'cgst', e.target.value)}
+                                disabled={isProjectFullyInvoiced}
+                              />
+                              <FloatingInput
+                                label="SGST %"
+                                name="sgst"
+                                type="text"
+                                value={invoice.sgst}
+                                onChange={(e) => updateInvoice(invoiceIndex, 'sgst', e.target.value)}
+                                disabled={isProjectFullyInvoiced}
+                              />
+                            </div>
+
+                            {invoice.invoiceValue && (
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
+                                <div className="text-center">
+                                  <p className="text-xs text-gray-600">CGST</p>
+                                  <p className="text-sm font-semibold text-blue-600">
+                                    ₹{(invoice.cgstAmount || 0).toFixed(2)}
+                                  </p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-xs text-gray-600">SGST</p>
+                                  <p className="text-sm font-semibold text-green-600">
+                                    ₹{(invoice.sgstAmount || 0).toFixed(2)}
+                                  </p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-xs text-gray-600">Total</p>
+                                  <p className="text-sm font-bold text-purple-600">
+                                    ₹{(Math.round((parseFloat(invoice.totalWithTax) || parseFloat(invoice.invoiceValue) || 0) * 100) / 100).toFixed(2)}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
                     );
                   })}
                 </div>
@@ -1564,17 +1564,17 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                   <Wallet size={16} className="text-green-600" />
                   <h3 className="text-sm font-semibold text-gray-800">Payment</h3>
                 </div>
-                
+
                 {/* Add Payment Button - Only show when editing an existing payment */}
                 {payment && (
-                <button
-                  type="button"
-                  onClick={addPayment}
+                  <button
+                    type="button"
+                    onClick={addPayment}
                     className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-700 hover:bg-green-200"
-                >
+                  >
                     <CreditCard size={14} />
-                  Add Payment
-                </button>
+                    Add Payment
+                  </button>
                 )}
               </div>
 

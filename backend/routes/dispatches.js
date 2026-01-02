@@ -178,6 +178,17 @@ router.post('/', auth, async (req, res) => {
   } catch (error) {
     console.error('Error creating dispatch:', error);
     console.error('Error stack:', error.stack);
+    
+    // Handle Mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: `Validation failed: ${messages.join(', ')}`,
+        error: error.message
+      });
+    }
+    
     res.status(400).json({
       success: false,
       message: 'Error creating dispatch',
@@ -267,6 +278,17 @@ router.put('/:id', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating dispatch:', error);
+    
+    // Handle Mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: `Validation failed: ${messages.join(', ')}`,
+        error: error.message
+      });
+    }
+    
     res.status(400).json({
       success: false,
       message: 'Error updating dispatch',

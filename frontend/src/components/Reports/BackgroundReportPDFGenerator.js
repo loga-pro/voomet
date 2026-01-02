@@ -457,25 +457,30 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
       >
         {/* Header Section */}
         <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          marginBottom: '24px',
-          paddingBottom: '12px',
-          borderBottom: '2px solid #1f2937'
+          textAlign: 'center',
+          marginBottom: '30px',
+          paddingBottom: '20px',
+          borderBottom: '3px solid #1e40af', // Premium blue accent
+          position: 'relative'
         }}>
-          {/* Left: Company Logo */}
-          <div style={{ flexShrink: 0 }}>
+          {/* Company Logo and Name */}
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            marginBottom: '10px'
+          }}>
             {logoLoaded ? (
               <img
                 src={companyLogo}
                 alt="Company Logo"
                 style={{
-                  height: '50px',
+                  height: '60px',
                   width: 'auto',
-                  maxWidth: '100px',
+                  maxWidth: '120px',
                   objectFit: 'contain',
-                  imageRendering: 'crisp-edges'
+                  marginBottom: '8px'
                 }}
                 crossOrigin="anonymous"
                 onError={(e) => {
@@ -487,59 +492,63 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
               <div style={{
                 height: '60px',
                 width: '60px',
-                backgroundColor: '#dbeafe',
+                backgroundColor: '#eff6ff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: '4px',
-                border: '1px solid #93c5fd'
+                borderRadius: '8px',
+                border: '1px solid #bfdbfe',
+                marginBottom: '8px'
               }}>
-                <span style={{ color: '#2563eb', fontWeight: 'bold', fontSize: '18px' }}>V</span>
+                <span style={{ color: '#1e40af', fontWeight: 'bold', fontSize: '24px' }}>V</span>
               </div>
             )}
-          </div>
-
-          {/* Center: Company Name and Info */}
-          <div style={{ textAlign: 'center', flex: 1, margin: '0 20px' }}>
+            
             <h1 style={{
-              fontSize: '20px',
-              fontWeight: 'bold',
-              color: '#111827',
-              margin: '0 0 8px 0'
+              fontSize: '24px',
+              fontWeight: '800',
+              color: '#1e3a8a',
+              margin: '0',
+              textTransform: 'uppercase',
+              letterSpacing: '1px'
             }}>
               {companyInfo.name}
             </h1>
-            <div style={{
-              fontSize: '11px',
-              color: '#4b5563',
-              fontWeight: '600',
-              marginBottom: '5px'
-            }}>
-            </div>
-            <div style={{ fontSize: '10px', color: '#6b7280' }}>
-              <div style={{ marginBottom: '3px' }}>Phone: {companyInfo.phone} | Email: {companyInfo.email}</div>
-              <div>Website: {companyInfo.website}</div>
-            </div>
           </div>
 
-          {/* Right: Date and Time */}
-          <div style={{ textAlign: 'right', fontSize: '11px', flexShrink: 0 }}>
-            <div style={{ fontWeight: '600', color: '#374151', marginBottom: '4px' }}>Generated On:</div>
-            <div style={{ color: '#6b7280', marginBottom: '2px' }}>Date: {currentDate}</div>
-            <div style={{ color: '#6b7280' }}>Time: {currentTime}</div>
+          {/* Contact Info */}
+          <div style={{ 
+            fontSize: '11px', 
+            color: '#4b5563', 
+            marginBottom: '12px',
+            lineHeight: '1.5'
+          }}>
+            <div>Phone: <span style={{ color: '#111827', fontWeight: '500' }}>{companyInfo.phone}</span> | Email: <span style={{ color: '#111827', fontWeight: '500' }}>{companyInfo.email}</span></div>
+            <div>Website: <span style={{ color: '#111827', fontWeight: '500' }}>{companyInfo.website}</span></div>
+          </div>
+
+          {/* Generated On - Moved to a subtle absolute positioned block or centered bottom */}
+          <div style={{ 
+            fontSize: '9px', 
+            color: '#9ca3af',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            marginTop: '5px'
+          }}>
+            Report Generated On: {currentDate} at {currentTime}
           </div>
         </div>
 
-        {/* Report Title and Info */}
-        <div style={{ marginBottom: '20px' }}>
+        <div style={{ marginBottom: '25px' }}>
           <h2 style={{
-            fontSize: '15px',
-            fontWeight: 'bold',
-            color: '#1f2937',
-            marginBottom: '14px',
+            fontSize: '18px',
+            fontWeight: '800',
+            color: '#1e3a8a',
+            marginBottom: '15px',
             textAlign: 'center',
-            paddingBottom: '8px',
-            borderBottom: '1px solid #d1d5db'
+            paddingBottom: '10px',
+            borderBottom: '1px solid #bfdbfe',
+            textTransform: 'capitalize'
           }}>
             {reportTitle}
           </h2>
@@ -603,13 +612,19 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                         key={index}
                         style={{
                           border: '1px solid #9ca3af',
-                          padding: '4px 3px',
-                          textAlign: 'left',
+                          padding: '8px 6px',
+                          textAlign: header.key.toLowerCase().includes('date') || header.key.toLowerCase().includes('status') ? 'center' : 'left',
                           fontWeight: 'bold',
-                          color: '#374151',
-                          fontSize: '8px',
+                          color: '#1e3a8a',
+                          fontSize: '9px',
+                          backgroundColor: '#f1f5f9',
                           whiteSpace: 'normal',
-                          wordWrap: 'break-word'
+                          wordWrap: 'break-word',
+                          width: reportType === 'milestone' ? 
+                            (header.key === 'customer' ? '25%' : 
+                             header.key === 'projectName' ? '45%' : 
+                             header.key === 'startDate' ? '15%' : 
+                             header.key === 'endDate' ? '15%' : 'auto') : 'auto'
                         }}
                       >
                         {header.displayName}
@@ -628,11 +643,13 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                           key={colIndex}
                           style={{
                             border: '1px solid #d1d5db',
-                            padding: '4px 3px',
-                            fontSize: '8px',
+                            padding: '6px 5px',
+                            fontSize: '9px',
+                            color: '#374151',
+                            textAlign: header.key.toLowerCase().includes('date') || header.key.toLowerCase().includes('status') ? 'center' : 'left',
                             whiteSpace: 'normal',
                             wordWrap: 'break-word',
-                            verticalAlign: 'top'
+                            verticalAlign: 'middle'
                           }}
                         >
                           {row[header.key]}
@@ -695,66 +712,72 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                         <tr style={{ backgroundColor: '#e5e7eb' }}>
                           <th style={{
                             border: '1px solid #9ca3af',
-                            padding: '3px 2px',
+                            padding: '6px 4px',
                             textAlign: 'left',
                             fontWeight: 'bold',
-                            color: '#374151',
-                            fontSize: '8px',
+                            color: '#1e3a8a',
+                            fontSize: '9px',
+                            backgroundColor: '#f1f5f9',
                             whiteSpace: 'normal',
                             wordWrap: 'break-word',
                             width: '14%'
                           }}>Phase</th>
                           <th style={{
                             border: '1px solid #9ca3af',
-                            padding: '3px 2px',
+                            padding: '6px 4px',
                             textAlign: 'left',
                             fontWeight: 'bold',
-                            color: '#374151',
-                            fontSize: '8px',
+                            color: '#1e3a8a',
+                            fontSize: '9px',
+                            backgroundColor: '#f1f5f9',
                             whiteSpace: 'normal',
                             wordWrap: 'break-word',
                             width: '28%'
                           }}>Task</th>
                           <th style={{
                             border: '1px solid #9ca3af',
-                            padding: '3px 2px',
-                            textAlign: 'left',
+                            padding: '6px 4px',
+                            textAlign: 'center',
                             fontWeight: 'bold',
-                            color: '#374151',
-                            fontSize: '8px',
+                            color: '#1e3a8a',
+                            fontSize: '9px',
+                            backgroundColor: '#f1f5f9',
                             whiteSpace: 'normal',
                             wordWrap: 'break-word',
                             width: '10%'
                           }}>Duration</th>
                           <th style={{
                             border: '1px solid #9ca3af',
-                            padding: '3px 2px',
-                            textAlign: 'left',
+                            padding: '6px 4px',
+                            textAlign: 'center',
                             fontWeight: 'bold',
-                            color: '#374151',
-                            fontSize: '8px',
+                            color: '#1e3a8a',
+                            fontSize: '9px',
+                            backgroundColor: '#f1f5f9',
                             whiteSpace: 'normal',
                             wordWrap: 'break-word',
                             width: '14%'
                           }}>Start Date</th>
                           <th style={{
                             border: '1px solid #9ca3af',
-                            padding: '3px 2px',
-                            textAlign: 'left',
+                            padding: '6px 4px',
+                            textAlign: 'center',
                             fontWeight: 'bold',
-                            color: '#374151',
-                            fontSize: '8px',
+                            color: '#1e3a8a',
+                            fontSize: '9px',
+                            backgroundColor: '#f1f5f9',
                             whiteSpace: 'normal',
                             wordWrap: 'break-word',
                             width: '14%'
                           }}>End Date</th>
                           <th style={{
                             border: '1px solid #9ca3af',
-                            padding: '3px 2px',
+                            padding: '6px 4px',
                             textAlign: 'left',
                             fontWeight: 'bold',
-                            color: '#374151',
-                            fontSize: '8px',
+                            color: '#1e3a8a',
+                            fontSize: '9px',
+                            backgroundColor: '#f1f5f9',
                             whiteSpace: 'normal',
                             wordWrap: 'break-word',
                             width: '20%'
@@ -769,56 +792,67 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                           >
                             <td style={{
                               border: '1px solid #d1d5db',
-                              padding: '3px 2px',
-                              fontSize: '8px',
+                              padding: '5px 4px',
+                              fontSize: '9px',
+                              color: '#374151',
                               whiteSpace: 'normal',
                               wordWrap: 'break-word',
-                              verticalAlign: 'top'
+                              verticalAlign: 'middle'
                             }}>
                               {task.phase || '-'}
                             </td>
                             <td style={{
                               border: '1px solid #d1d5db',
-                              padding: '3px 2px',
-                              fontSize: '8px',
+                              padding: '5px 4px',
+                              fontSize: '9px',
+                              color: '#374151',
                               whiteSpace: 'normal',
                               wordWrap: 'break-word',
-                              verticalAlign: 'top'
+                              verticalAlign: 'middle'
                             }}>
                               {task.task || '-'}
                             </td>
                             <td style={{
                               border: '1px solid #d1d5db',
-                              padding: '3px 2px',
-                              fontSize: '8px',
+                              padding: '5px 4px',
+                              fontSize: '9px',
+                              color: '#374151',
                               textAlign: 'center',
-                              whiteSpace: 'nowrap'
+                              whiteSpace: 'nowrap',
+                              verticalAlign: 'middle'
                             }}>
                               {task.duration || 0} day{task.duration !== 1 ? 's' : ''}
                             </td>
                             <td style={{
                               border: '1px solid #d1d5db',
-                              padding: '3px 2px',
-                              fontSize: '8px',
-                              whiteSpace: 'nowrap'
+                              padding: '5px 4px',
+                              fontSize: '9px',
+                              color: '#374151',
+                              textAlign: 'center',
+                              whiteSpace: 'nowrap',
+                              verticalAlign: 'middle'
                             }}>
                               {task.startDate ? new Date(task.startDate).toLocaleDateString('en-IN') : '-'}
                             </td>
                             <td style={{
                               border: '1px solid #d1d5db',
-                              padding: '3px 2px',
-                              fontSize: '8px',
-                              whiteSpace: 'nowrap'
+                              padding: '5px 4px',
+                              fontSize: '9px',
+                              color: '#374151',
+                              textAlign: 'center',
+                              whiteSpace: 'nowrap',
+                              verticalAlign: 'middle'
                             }}>
                               {task.endDate ? new Date(task.endDate).toLocaleDateString('en-IN') : '-'}
                             </td>
                             <td style={{
                               border: '1px solid #d1d5db',
-                              padding: '3px 2px',
-                              fontSize: '8px',
+                              padding: '5px 4px',
+                              fontSize: '9px',
+                              color: '#374151',
                               whiteSpace: 'normal',
                               wordWrap: 'break-word',
-                              verticalAlign: 'top'
+                              verticalAlign: 'middle'
                             }}>
                               {task.responsiblePerson || '-'}
                             </td>
