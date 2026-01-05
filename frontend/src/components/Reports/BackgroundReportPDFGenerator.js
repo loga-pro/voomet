@@ -457,53 +457,55 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
       >
         {/* Header Section */}
         <div style={{
-          textAlign: 'center',
           marginBottom: '30px',
           paddingBottom: '20px',
           borderBottom: '3px solid #1e40af', // Premium blue accent
           position: 'relative'
         }}>
-          {/* Company Logo and Name */}
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            marginBottom: '10px'
+          {/* Top Row: Logo (Left) and REPORT (Right) */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            marginBottom: '15px'
           }}>
-            {logoLoaded ? (
-              <img
-                src={companyLogo}
-                alt="Company Logo"
-                style={{
-                  height: '60px',
-                  width: 'auto',
-                  maxWidth: '120px',
-                  objectFit: 'contain',
-                  marginBottom: '8px'
-                }}
-                crossOrigin="anonymous"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  setLogoLoaded(false);
-                }}
-              />
-            ) : (
-              <div style={{
-                height: '60px',
-                width: '60px',
-                backgroundColor: '#eff6ff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: '8px',
-                border: '1px solid #bfdbfe',
-                marginBottom: '8px'
-              }}>
-                <span style={{ color: '#1e40af', fontWeight: 'bold', fontSize: '24px' }}>V</span>
-              </div>
-            )}
-            
+            {/* Logo - Left Corner */}
+            <div style={{ flex: '0 0 auto' }}>
+              {logoLoaded ? (
+                <img
+                  src={companyLogo}
+                  alt="Company Logo"
+                  style={{
+                    height: '50px',
+                    width: 'auto',
+                    maxWidth: '100px',
+                    objectFit: 'contain'
+                  }}
+                  crossOrigin="anonymous"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    setLogoLoaded(false);
+                  }}
+                />
+              ) : (
+                <div style={{
+                  height: '50px',
+                  width: '50px',
+                  backgroundColor: '#eff6ff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '8px',
+                  border: '1px solid #bfdbfe'
+                }}>
+                  <span style={{ color: '#1e40af', fontWeight: 'bold', fontSize: '20px' }}>V</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Company Name - Centered */}
+          <div style={{ textAlign: 'center', marginBottom: '12px' }}>
             <h1 style={{
               fontSize: '24px',
               fontWeight: '800',
@@ -516,23 +518,23 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
             </h1>
           </div>
 
-          {/* Contact Info */}
+          {/* Contact Info - Single Line */}
           <div style={{ 
             fontSize: '11px', 
-            color: '#4b5563', 
-            marginBottom: '12px',
-            lineHeight: '1.5'
+            color: '#4b5563',
+            textAlign: 'center',
+            marginBottom: '8px'
           }}>
-            <div>Phone: <span style={{ color: '#111827', fontWeight: '500' }}>{companyInfo.phone}</span> | Email: <span style={{ color: '#111827', fontWeight: '500' }}>{companyInfo.email}</span></div>
-            <div>Website: <span style={{ color: '#111827', fontWeight: '500' }}>{companyInfo.website}</span></div>
+            Phone: <span style={{ color: '#111827', fontWeight: '500' }}>{companyInfo.phone}</span> | Email: <span style={{ color: '#111827', fontWeight: '500' }}>{companyInfo.email}</span> | Website: <span style={{ color: '#111827', fontWeight: '500' }}>{companyInfo.website}</span>
           </div>
 
-          {/* Generated On - Moved to a subtle absolute positioned block or centered bottom */}
+          {/* Generated On */}
           <div style={{ 
             fontSize: '9px', 
             color: '#9ca3af',
             textTransform: 'uppercase',
             letterSpacing: '0.5px',
+            textAlign: 'center',
             marginTop: '5px'
           }}>
             Report Generated On: {currentDate} at {currentTime}
@@ -613,7 +615,7 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                         style={{
                           border: '1px solid #9ca3af',
                           padding: '8px 6px',
-                          textAlign: header.key.toLowerCase().includes('date') || header.key.toLowerCase().includes('status') ? 'center' : 'left',
+                          textAlign: 'center',
                           fontWeight: 'bold',
                           color: '#1e3a8a',
                           fontSize: '9px',
@@ -646,7 +648,7 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                             padding: '6px 5px',
                             fontSize: '9px',
                             color: '#374151',
-                            textAlign: header.key.toLowerCase().includes('date') || header.key.toLowerCase().includes('status') ? 'center' : 'left',
+                            textAlign: 'center',
                             whiteSpace: 'normal',
                             wordWrap: 'break-word',
                             verticalAlign: 'middle'
@@ -713,7 +715,7 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                           <th style={{
                             border: '1px solid #9ca3af',
                             padding: '6px 4px',
-                            textAlign: 'left',
+                            textAlign: 'center',
                             fontWeight: 'bold',
                             color: '#1e3a8a',
                             fontSize: '9px',
@@ -725,7 +727,7 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                           <th style={{
                             border: '1px solid #9ca3af',
                             padding: '6px 4px',
-                            textAlign: 'left',
+                            textAlign: 'center',
                             fontWeight: 'bold',
                             color: '#1e3a8a',
                             fontSize: '9px',
@@ -773,7 +775,7 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                           <th style={{
                             border: '1px solid #9ca3af',
                             padding: '6px 4px',
-                            textAlign: 'left',
+                            textAlign: 'center',
                             fontWeight: 'bold',
                             color: '#1e3a8a',
                             fontSize: '9px',
@@ -795,6 +797,7 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                               padding: '5px 4px',
                               fontSize: '9px',
                               color: '#374151',
+                              textAlign: 'center',
                               whiteSpace: 'normal',
                               wordWrap: 'break-word',
                               verticalAlign: 'middle'
@@ -806,6 +809,7 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                               padding: '5px 4px',
                               fontSize: '9px',
                               color: '#374151',
+                              textAlign: 'center',
                               whiteSpace: 'normal',
                               wordWrap: 'break-word',
                               verticalAlign: 'middle'
@@ -850,6 +854,7 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                               padding: '5px 4px',
                               fontSize: '9px',
                               color: '#374151',
+                              textAlign: 'center',
                               whiteSpace: 'normal',
                               wordWrap: 'break-word',
                               verticalAlign: 'middle'

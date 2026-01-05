@@ -383,10 +383,10 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
 
       if (projectBOQ) {
         setBoqData(projectBOQ);
-
+        
         // Always use finalTotalWithoutGST as the base project cost
         const baseCost = projectBOQ.finalTotalWithoutGST || '';
-
+        
         setFormData(prev => ({
           ...prev,
           project: selectedProject?.projectName || projectName,
@@ -513,12 +513,12 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
   const calculateAmounts = () => {
     // Base amount is always the finalTotalWithoutGST from BOQ
     const baseAmount = parseFloat(formData.projectCost) || 0;
-
+    
     // Calculate GST amount if includeGST is checked
-    const gstAmount = formData.includeGST
-      ? (baseAmount * parseFloat(formData.gstPercentage || 0)) / 100
+    const gstAmount = formData.includeGST 
+      ? (baseAmount * parseFloat(formData.gstPercentage || 0)) / 100 
       : 0;
-
+    
     // Total amount is base + GST
     const totalAmount = baseAmount + gstAmount;
 
@@ -548,7 +548,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       const val = parseFloat(inv.invoiceValue) || 0;
       return sum + val;
     }, 0);
-
+    
     return Math.max(0, budgetAmount - (totalAlreadyInvoiced + otherInvoicesTotal));
   };
 
@@ -559,7 +559,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     }
 
     const currentInvoiceValue = parseFloat(invoiceValue) || 0;
-
+    
     // Check if current invoice value exceeds budget
     if (currentInvoiceValue > budgetAmount) {
       return {
@@ -576,7 +576,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     }, 0);
 
     const totalWithCurrentInvoice = totalAlreadyInvoiced + otherInvoicesTotal + currentInvoiceValue;
-
+    
     if (totalWithCurrentInvoice > budgetAmount) {
       const remainingBudgetForThisInvoice = Math.max(0, budgetAmount - (totalAlreadyInvoiced + otherInvoicesTotal));
       return {
@@ -592,7 +592,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
   const validateAllInvoiceValues = () => {
     let hasErrors = false;
     const newInvoiceValueErrors = {};
-
+    
     formData.invoices.forEach((invoice, index) => {
       const validation = validateInvoiceValue(invoice.invoiceValue, index);
       if (!validation.isValid) {
@@ -600,7 +600,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         hasErrors = true;
       }
     });
-
+    
     setInvoiceValueErrors(newInvoiceValueErrors);
     return !hasErrors;
   };
@@ -826,16 +826,16 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       // Auto-cap invoice value if it exceeds budget
       if (field === 'invoiceValue' && value !== '') {
         const numericValue = parseFloat(value) || 0;
-
+        
         // Calculate maximum allowed for this invoice
         const otherInvoicesTotal = prev.invoices.reduce((sum, inv, idx) => {
           if (idx === index) return sum;
           const val = parseFloat(inv.invoiceValue) || 0;
           return sum + val;
         }, 0);
-
+        
         const maxAllowed = Math.max(0, budgetAmount - (totalAlreadyInvoiced + otherInvoicesTotal));
-
+        
         // If value exceeds max allowed, cap it
         if (numericValue > maxAllowed && maxAllowed >= 0) {
           invoice = { ...invoice, invoiceValue: maxAllowed.toString() };
@@ -984,13 +984,13 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       setErrors(prev => ({ ...prev, submit: 'Please complete project information first' }));
       return;
     }
-
+    
     // Check all invoice values against budget
     if (!validateAllInvoiceValues()) {
       setErrors(prev => ({ ...prev, submit: 'Please fix invoice value errors before creating invoice' }));
       return;
     }
-
+    
     if (!validateInvoiceTab()) return;
 
     const cleanedData = {
@@ -1440,7 +1440,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                       <div className="ml-2">
                         <div className="relative">
                           <label className="absolute -top-2 left-2 text-xs text-gray-500 bg-white px-1">
-                            GST
+                            GST 
                           </label>
                           <div className="pt-3 pb-2 px-3 border border-gray-300 rounded-md bg-gray-50 min-h-[44px]">
                             <span className="text-sm font-medium text-gray-700">
@@ -1548,27 +1548,27 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                   {formData.invoices.map((invoice, invoiceIndex) => {
                     // Calculate validation for this invoice
                     const invoiceValueValidation = validateInvoiceValue(invoice.invoiceValue, invoiceIndex);
-
+                    
                     return (
                       <div key={invoice.id} className="border border-gray-200 rounded bg-gray-50">
                         {/* Invoice Header
-                      <div className="bg-orange-50 px-2 py-1.5 flex items-center justify-between rounded-t border-b border-orange-200">
-                        <div className="flex items-center gap-1">
-                          <FileText size={14} className="text-orange-600" />
-                          <span className="font-semibold text-gray-800 text-xs">Invoice #{invoiceIndex + 1}</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeInvoice(invoiceIndex)}
-                          disabled={formData.invoices.length <= 1 || isProjectFullyInvoiced}
-                          className={`${(formData.invoices.length <= 1 || isProjectFullyInvoiced)
-                            ? 'text-gray-300 cursor-not-allowed'
-                            : 'text-red-600 hover:text-red-800'
-                            } transition-colors p-0.5 rounded hover:bg-red-50`}
-                          title={isProjectFullyInvoiced ? "Project fully invoiced" : formData.invoices.length <= 1 ? "At least one invoice is required" : "Remove Invoice"}
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        <div className="bg-orange-50 px-2 py-1.5 flex items-center justify-between rounded-t border-b border-orange-200">
+                          <div className="flex items-center gap-1">
+                            <FileText size={14} className="text-orange-600" />
+                            <span className="font-semibold text-gray-800 text-xs">Invoice #{invoiceIndex + 1}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeInvoice(invoiceIndex)}
+                            disabled={formData.invoices.length <= 1 || isProjectFullyInvoiced}
+                            className={`${(formData.invoices.length <= 1 || isProjectFullyInvoiced)
+                              ? 'text-gray-300 cursor-not-allowed'
+                              : 'text-red-600 hover:text-red-800'
+                              } transition-colors p-0.5 rounded hover:bg-red-50`}
+                            title={isProjectFullyInvoiced ? "Project fully invoiced" : formData.invoices.length <= 1 ? "At least one invoice is required" : "Remove Invoice"}
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         </div> */}
 
                         {/* Invoice Details */}
@@ -1639,15 +1639,15 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                                 { value: 'advance', label: 'Advance Payment' },
                                 { value: 'final', label: 'Final Payment' },
                                 // Create 5 installment options (or use BOQ installments if available)
-                                ...(boqInstallments.length > 0
+                                ...(boqInstallments.length > 0 
                                   ? boqInstallments.map((inst, idx) => ({
-                                    value: `installment-${idx}`,
-                                    label: `Installment ${inst.Installment || idx + 1}`
-                                  }))
+                                      value: `installment-${idx}`,
+                                      label: `Installment ${inst.Installment || idx + 1}`
+                                    }))
                                   : Array.from({ length: 5 }, (_, i) => ({
-                                    value: `installment-${i}`,
-                                    label: `Installment ${i + 1}`
-                                  }))
+                                      value: `installment-${i}`,
+                                      label: `Installment ${i + 1}`
+                                    }))
                                 )
                               ]}
                             />
@@ -1787,7 +1787,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                   <Wallet size={16} className="text-green-600" />
                   <h3 className="text-sm font-semibold text-gray-800">Payment</h3>
                 </div>
-
+                
                 {/* Add Payment Button - Only show when editing an existing payment */}
                 {payment && (
                   <button
@@ -1897,13 +1897,13 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
 
                         {/* Row 3: Remarks */}
                         <div className="mb-2">
-                        <FloatingInput
-                          label="Remarks"
-                          name="remarks"
-                          value={payment.remarks}
-                          onChange={(e) => updatePayment(paymentIndex, 'remarks', e.target.value)}
+                          <FloatingInput
+                            label="Remarks"
+                            name="remarks"
+                            value={payment.remarks}
+                            onChange={(e) => updatePayment(paymentIndex, 'remarks', e.target.value)}
                             size="small"
-                        />
+                          />
                         </div>
                       </div>
                     </div>

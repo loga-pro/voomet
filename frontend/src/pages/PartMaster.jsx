@@ -388,22 +388,22 @@ const PartMaster = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Scope of Work
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Item Name
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Category
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Unit Type
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Part Price (₹)
                       </th>
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -412,31 +412,31 @@ const PartMaster = () => {
                     {currentItems.length > 0 ? (
                       currentItems.map((part) => (
                         <tr key={part._id} className="hover:bg-gray-50 transition-colors duration-150">
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             <div className="text-sm font-medium text-gray-900">
-                              {formatScopeOfWork(part.scopeOfWork)}
+                              {formatScopeOfWork(part.scopeOfWork) || '-'}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900 font-medium">{part.partName}</div>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <div className="text-sm text-gray-900 font-medium">{part.partName || '-'}</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${categoryColors[part.category] || 'bg-gray-100 text-gray-800'}`}>
-                              {part.category.replace('_', ' ').toUpperCase()}
+                              {part.category ? part.category.replace('_', ' ').toUpperCase() : '-'}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${unitTypeColors[part.unitType] || 'bg-gray-100 text-gray-800'}`}>
-                              {part.unitType.toUpperCase()}
+                              {part.unitType ? part.unitType.toUpperCase() : '-'}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             <div className="text-sm font-semibold text-gray-900">
-                              ₹{parseFloat(part.partPrice).toFixed(2)}
+                              {part.partPrice ? `₹${parseFloat(part.partPrice).toFixed(2)}` : '-'}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex justify-end space-x-2">
+                          <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                            <div className="flex justify-center space-x-2">
                               <button
                                 onClick={() => handleView(part)}
                                 className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"

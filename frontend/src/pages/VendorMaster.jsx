@@ -433,27 +433,27 @@ const VendorMaster = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
-                      
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Category
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Vendor/Contractor Name
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Work Type
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Email
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         GST Number
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Mobile Number
                       </th>
 
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -462,32 +462,32 @@ const VendorMaster = () => {
                     {currentItems.length > 0 ? (
                       currentItems.map((vendor) => (
                         <tr key={vendor._id} className="hover:bg-gray-50 transition-colors duration-150">
-                          
-                          <td className="px-6 py-4 whitespace-nowrap">
+
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(vendor.category)}`}>
                               {formatCategory(vendor.category)}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{vendor.vendorName}</div>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <div className="text-sm font-medium text-gray-900">{vendor.vendorName || '-'}</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                              {vendor.vendorType ? vendor.vendorType.charAt(0).toUpperCase() + vendor.vendorType.slice(1) : 'N/A'}
+                              {vendor.vendorType ? vendor.vendorType.charAt(0).toUpperCase() + vendor.vendorType.slice(1) : '-'}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{vendor.email}</div>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <div className="text-sm text-gray-900">{vendor.email || '-'}</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900 font-mono">{vendor.gstNumber}</div>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <div className="text-sm text-gray-900 font-mono">{vendor.gstNumber || '-'}</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{vendor.mobileNumber}</div>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <div className="text-sm text-gray-900">{vendor.mobileNumber || '-'}</div>
                           </td>
 
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex justify-end space-x-2">
+                          <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                            <div className="flex justify-center space-x-2">
                               <button
                                 onClick={() => handleView(vendor)}
                                 className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"

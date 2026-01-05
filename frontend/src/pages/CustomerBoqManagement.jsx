@@ -100,7 +100,7 @@ const CustomerBoqManagement = () => {
   // Exclude projects in RFQ stage
   const getFilteredProjectNames = () => {
     let projectNames = uniqueProjectNamesList;
-    
+
     // Filter by customer if selected
     if (filters.customer) {
       const filteredProjects = boqItems
@@ -109,7 +109,7 @@ const CustomerBoqManagement = () => {
         .filter(Boolean);
       projectNames = [...new Set(filteredProjects)];
     }
-    
+
     // Filter out RFQ stage projects
     // Only show: boq, awarded, under_execution, completed, post_implementation
     const allowedStages = ['boq', 'awarded', 'under_execution', 'completed', 'post_implementation'];
@@ -117,7 +117,7 @@ const CustomerBoqManagement = () => {
       const project = allProjects.find(p => p.projectName === projectName);
       return project && allowedStages.includes(project.stage);
     });
-    
+
     return filteredByStage;
   };
 
@@ -126,12 +126,12 @@ const CustomerBoqManagement = () => {
       setLoading(true);
       const response = await boqAPI.getAll();
       const allItems = Array.isArray(response.data.data) ? response.data.data : [];
-      
+
       // Filter to show only saved BOQs (those with items)
-      const savedItems = allItems.filter(item => 
+      const savedItems = allItems.filter(item =>
         item.items && Array.isArray(item.items) && item.items.length > 0
       );
-      
+
       setBoqItems(savedItems);
 
       // Extract unique customers from saved items only
@@ -660,196 +660,196 @@ const CustomerBoqManagement = () => {
           {/* BOQ Table */}
           <div className="overflow-hidden">
             {/* Desktop Table View */}
-<div className="hidden sm:block">
-  <div className="max-h-[60vh] overflow-auto">
-    <table className="min-w-full divide-y divide-gray-200">
-      <thead className="bg-gray-50 sticky top-0 z-10">
-        <tr>
-          <th
-            scope="col"
-            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-          >
-            Client Name
-          </th>
-          <th
-            scope="col"
-            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-          >
-            Project
-          </th>
-          <th
-            scope="col"
-            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-          >
-            Scope
-          </th>
-          <th
-            scope="col"
-            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-          >
-            View Items
-          </th>
-          <th
-            scope="col"
-            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-          >
-            Total Price
-          </th>
-          <th
-            scope="col"
-            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-          >
-            Discount %
-          </th>
-          <th
-            scope="col"
-            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-          >
-            Discount Amount
-          </th>
-          <th
-            scope="col"
-            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-          >
-            GST Price
-          </th>
-          <th
-            scope="col"
-            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-          >
-            (Total - Discount) + GST
-          </th>
-          <th
-            scope="col"
-            className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
-          >
-            Actions
-          </th>
-        </tr>
-      </thead>
-      <tbody className="bg-white divide-y divide-gray-200">
-        {currentItems.length > 0 ? (
-          currentItems.map((boq) => {
-            return (
-              <tr
-                key={boq._id}
-                className="hover:bg-gray-50 transition-colors duration-150"
-              >
-                {/* Customer & Project Column */}
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex flex-col items-center justify-center">
-                    <div className="text-sm font-medium text-gray-900">
-                      {boq.customer}
-                    </div>
-                  </div>
-                </td>
+            <div className="hidden sm:block">
+              <div className="max-h-[60vh] overflow-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50 sticky top-0 z-10">
+                    <tr>
+                      <th
+                        scope="col"
+                        className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Client Name
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Project
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Scope
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        View Items
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Total Price
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Discount %
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Discount Amount
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        GST Price
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        (Total - Discount) + GST
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {currentItems.length > 0 ? (
+                      currentItems.map((boq) => {
+                        return (
+                          <tr
+                            key={boq._id}
+                            className="hover:bg-gray-50 transition-colors duration-150"
+                          >
+                            {/* Customer & Project Column */}
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                              <div className="flex flex-col items-center justify-center">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {boq.customer || '-'}
+                                </div>
+                              </div>
+                            </td>
 
-                {/* Project Name Column */}
-                <td className="px-4 py-4 text-center">
-                  <div className="text-sm text-gray-900">
-                    {boq.projectName}
-                  </div>
-                </td>
+                            {/* Project Name Column */}
+                            <td className="px-4 py-4 text-center">
+                              <div className="text-sm text-gray-900">
+                                {boq.projectName || '-'}
+                              </div>
+                            </td>
 
-                <td className="px-4 py-4 text-center">
-                  <div className="text-sm text-gray-900 max-w-xs mx-auto line-clamp-2">
-                    {formatScopeDisplay(boq.scopeOfWork)}
-                  </div>
-                </td>
-                
-                <td className="px-4 py-4 text-center">
-                  <button
-                    onClick={() => handleShowItems(boq._id)}
-                    className="inline-flex items-center justify-center text-blue-600 hover:text-blue-900 transition-colors duration-150"
-                    title="View Items"
-                  >
-                    <EyeIcon className="h-5 w-5" />
-                  </button>
-                </td>
-                
-                <td className="px-4 py-4 text-center">
-                  <div className="text-green-700 font-bold">
-                    ₹{boq.finalTotalWithoutGST?.toLocaleString('en-IN')}
-                  </div>
-                </td>
-                
-                <td className="px-4 py-4 text-center">
-                  <div className="text-sm text-gray-900 font-semibold">
-                    {boq.discountPercentage || 0}%
-                  </div>
-                </td>
+                            <td className="px-4 py-4 text-center">
+                              <div className="text-sm text-gray-900 max-w-xs mx-auto line-clamp-2">
+                                {formatScopeDisplay(boq.scopeOfWork) || '-'}
+                              </div>
+                            </td>
 
-                <td className="px-4 py-4 text-center">
-                  <div className="text-sm text-red-600 font-bold">
-                    ₹{(boq.discountAmount || 0).toLocaleString('en-IN')}
-                  </div>
-                </td>
+                            <td className="px-4 py-4 text-center">
+                              <button
+                                onClick={() => handleShowItems(boq._id)}
+                                className="inline-flex items-center justify-center text-blue-600 hover:text-blue-900 transition-colors duration-150"
+                                title="View Items"
+                              >
+                                <EyeIcon className="h-5 w-5" />
+                              </button>
+                            </td>
 
-                <td className="px-4 py-4 text-center">
-                  <div className="text-green-700 font-bold">
-                    ₹{((boq.totalWithGST - (boq.finalTotalWithoutGST - (boq.discountAmount || 0))) || 0).toLocaleString('en-IN')}
-                  </div>
-                </td>
-                
-                <td className="px-4 py-4 text-center">
-                  <div className="text-green-700 font-bold">
-                    ₹{(boq.totalWithGST || 0)?.toLocaleString('en-IN')}
-                  </div>
-                </td>
+                            <td className="px-4 py-4 text-center">
+                              <div className="text-green-700 font-bold">
+                                {boq.finalTotalWithoutGST ? `₹${boq.finalTotalWithoutGST.toLocaleString('en-IN')}` : '-'}
+                              </div>
+                            </td>
 
-                {/* Actions Column */}
-                <td className="px-4 py-4 text-center">
-                  <div className="flex justify-center space-x-2">
-                    <button
-                      onClick={() => handleView(boq)}
-                      className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
-                      title="View"
-                    >
-                      <EyeIcon className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => handleEdit(boq)}
-                      className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
-                      title="Edit"
-                    >
-                      <PencilSquareIcon className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => handleAdvancedPDFPreview(boq)}
-                      className="text-purple-600 hover:text-purple-900 p-1 transition-colors duration-150"
-                      title="Generate PDF"
-                    >
-                      <DocumentArrowDownIcon className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(boq)}
-                      className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
-                      title="Delete"
-                    >
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            );
-          })
-        ) : (
-          <tr>
-            <td
-              colSpan="10"
-              className="px-6 py-8 text-center text-gray-500"
-            >
-              {Object.values(filters).some((val) => val !== "") ||
-                searchTerm
-                ? "No BOQ items found matching your filters."
-                : "No BOQ items found."}
-            </td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-  </div>
-</div>
+                            <td className="px-4 py-4 text-center">
+                              <div className="text-sm text-gray-900 font-semibold">
+                                {boq.discountPercentage || 0}%
+                              </div>
+                            </td>
+
+                            <td className="px-4 py-4 text-center">
+                              <div className="text-sm text-red-600 font-bold">
+                                {boq.discountAmount ? `₹${boq.discountAmount.toLocaleString('en-IN')}` : '-'}
+                              </div>
+                            </td>
+
+                            <td className="px-4 py-4 text-center">
+                              <div className="text-green-700 font-bold">
+                                {(boq.totalWithGST && boq.finalTotalWithoutGST) ? `₹${((boq.totalWithGST - (boq.finalTotalWithoutGST - (boq.discountAmount || 0))) || 0).toLocaleString('en-IN')}` : '-'}
+                              </div>
+                            </td>
+
+                            <td className="px-4 py-4 text-center">
+                              <div className="text-green-700 font-bold">
+                                {boq.totalWithGST ? `₹${boq.totalWithGST.toLocaleString('en-IN')}` : '-'}
+                              </div>
+                            </td>
+
+                            {/* Actions Column */}
+                            <td className="px-4 py-4 text-center">
+                              <div className="flex justify-center space-x-2">
+                                <button
+                                  onClick={() => handleView(boq)}
+                                  className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
+                                  title="View"
+                                >
+                                  <EyeIcon className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={() => handleEdit(boq)}
+                                  className="text-indigo-600 hover:text-indigo-900 p-1 transition-colors duration-150"
+                                  title="Edit"
+                                >
+                                  <PencilSquareIcon className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={() => handleAdvancedPDFPreview(boq)}
+                                  className="text-purple-600 hover:text-purple-900 p-1 transition-colors duration-150"
+                                  title="Generate PDF"
+                                >
+                                  <DocumentArrowDownIcon className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(boq)}
+                                  className="text-red-600 hover:text-red-900 p-1 transition-colors duration-150"
+                                  title="Delete"
+                                >
+                                  <TrashIcon className="h-5 w-5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan="10"
+                          className="px-6 py-8 text-center text-gray-500"
+                        >
+                          {Object.values(filters).some((val) => val !== "") ||
+                            searchTerm
+                            ? "No BOQ items found matching your filters."
+                            : "No BOQ items found."}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
             {/* Mobile Card View */}
             <div className="sm:hidden">
@@ -1105,243 +1105,243 @@ const CustomerBoqManagement = () => {
       </Modal>
 
       {/* View BOQ Modal - IMPROVED VERSION */}
-       {viewModal && selectedItem && (
-  <Modal
-    isOpen={viewModal}
-    onClose={() => {
-      setSelectedItem(null);
-      setViewModal(false);
-    }}
-    title=""
-    size="xl"
-  >
-    <div className="space-y-6 max-h-[85vh] overflow-y-auto p-2">
-      {/* Client & Project Information - Single Line/Row Layout */}
-      <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-            <BuildingOfficeIcon className="h-5 w-5 text-gray-400 mr-2" />
-            Client & Project Information
-          </h3>
-        </div>
-        
-        <div className="px-6 py-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Client Name */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                CLIENT NAME
-              </label>
-              <p className="text-sm font-medium text-gray-900">
-                {selectedItem.customer || "Not specified"}
-              </p>
-            </div>
-
-            {/* Project Name */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                PROJECT NAME
-              </label>
-              <p className="text-sm font-medium text-gray-900">
-                {selectedItem.projectName || "Not specified"}
-              </p>
-            </div>
-
-            {/* Scope of Work */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                SCOPE OF WORK
-              </label>
-              <p className="text-sm text-gray-900">
-                {formatScopeDisplay(selectedItem.scopeOfWork) || "Not specified"}
-              </p>
-            </div>
-
-            {/* Total Items */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                TOTAL ITEMS
-              </label>
-              <p className="text-sm font-medium text-gray-900">
-                {selectedItem.items?.length || 0}
-              </p>
-            </div>
-          </div>
-
-          {/* Project Location - Second Row (if available) */}
-          {selectedItem.projectLocation && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
-                    PROJECT LOCATION
-                  </label>
-                  <p className="text-sm text-gray-900 flex items-center">
-                    <MapPinIcon className="h-4 w-4 text-gray-400 mr-1 flex-shrink-0" />
-                    {selectedItem.projectLocation}
-                  </p>
-                </div>
+      {viewModal && selectedItem && (
+        <Modal
+          isOpen={viewModal}
+          onClose={() => {
+            setSelectedItem(null);
+            setViewModal(false);
+          }}
+          title=""
+          size="xl"
+        >
+          <div className="space-y-6 max-h-[85vh] overflow-y-auto p-2">
+            {/* Client & Project Information - Single Line/Row Layout */}
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <BuildingOfficeIcon className="h-5 w-5 text-gray-400 mr-2" />
+                  Client & Project Information
+                </h3>
               </div>
-            </div>
-          )}
-        </div>
-      </div>
 
-      {/* Items List - Below Client Information */}
-      <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-            <ListBulletIcon className="h-5 w-5 text-gray-400 mr-2" />
-            Items List
-          </h3>
-        </div>
-        
-        {selectedItem.items && selectedItem.items.length > 0 ? (
-          <div className="px-6 py-5">
-            {/* Items Table */}
-            {/* View Modal Table */}
-<div className="overflow-x-auto">
-  <table className="min-w-full">
-    <thead>
-      <tr className="border-b border-gray-200">
-        <th className="text-center py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          Item Name
-        </th>
-        <th className="text-center py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          Units
-        </th>
-        <th className="text-center py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          Unit Price
-        </th>
-        <th className="text-center py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          Total
-        </th>
-      </tr>
-    </thead>
-    <tbody>
-      {selectedItem.items.map((item, index) => (
-        <tr key={index} className="border-b border-gray-100">
-          <td className="py-3 text-sm text-gray-900 text-center">
-            <div>
-              <div className="font-medium">{item.partName || item.itemDescription || "Unnamed Item"}</div>
-              {item.partNumber && (
-                <div className="text-xs text-gray-500 mt-0.5">Part #: {item.partNumber}</div>
-              )}
-            </div>
-          </td>
-          <td className="py-3 text-sm text-gray-900 text-center">
-            {item.numberOfUnits || item.quantity || 0} {item.unitType || item.unit || ""}
-          </td>
-          <td className="py-3 text-sm text-gray-900 text-center">
-            {formatCurrency(item.unitPrice || 0)}
-          </td>
-          <td className="py-3 text-sm font-semibold text-gray-900 text-center">
-            {formatCurrency(item.totalPrice || 0)}
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
-              
-            {/* Financial Summary - Right Aligned */}
-            <div className="mt-6 pt-4 border-t border-gray-200">
-              <div className="flex flex-col items-end space-y-2">
-                <div className="flex justify-between w-full max-w-md">
-                  <span className="text-sm font-medium text-gray-600">Subtotal:</span>
-                  <span className="text-sm font-semibold text-gray-900">
-                    {formatCurrency(selectedItem.finalTotalWithoutGST || 0)}
-                  </span>
+              <div className="px-6 py-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Client Name */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                      CLIENT NAME
+                    </label>
+                    <p className="text-sm font-medium text-gray-900">
+                      {selectedItem.customer || "Not specified"}
+                    </p>
+                  </div>
+
+                  {/* Project Name */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                      PROJECT NAME
+                    </label>
+                    <p className="text-sm font-medium text-gray-900">
+                      {selectedItem.projectName || "Not specified"}
+                    </p>
+                  </div>
+
+                  {/* Scope of Work */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                      SCOPE OF WORK
+                    </label>
+                    <p className="text-sm text-gray-900">
+                      {formatScopeDisplay(selectedItem.scopeOfWork) || "Not specified"}
+                    </p>
+                  </div>
+
+                  {/* Total Items */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                      TOTAL ITEMS
+                    </label>
+                    <p className="text-sm font-medium text-gray-900">
+                      {selectedItem.items?.length || 0}
+                    </p>
+                  </div>
                 </div>
-                
-                <div className="flex justify-between w-full max-w-md">
-                  <span className="text-sm font-medium text-gray-600">Discount ({selectedItem.discountPercentage || 0}%):</span>
-                  <span className="text-sm font-semibold text-red-600">
-                    - {formatCurrency(selectedItem.discountAmount || 0)}
-                  </span>
-                </div>
-                
-                {selectedItem.transportationCharges > 0 && (
-                  <div className="flex justify-between w-full max-w-md">
-                    <span className="text-sm font-medium text-gray-600">Transportation:</span>
-                    <span className="text-sm font-semibold text-gray-900">
-                      {formatCurrency(selectedItem.transportationCharges)}
-                    </span>
+
+                {/* Project Location - Second Row (if available) */}
+                {selectedItem.projectLocation && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                          PROJECT LOCATION
+                        </label>
+                        <p className="text-sm text-gray-900 flex items-center">
+                          <MapPinIcon className="h-4 w-4 text-gray-400 mr-1 flex-shrink-0" />
+                          {selectedItem.projectLocation}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
-                
-                <div className="flex justify-between w-full max-w-md pt-2 border-t border-gray-200">
-                  <span className="text-sm font-medium text-gray-900"></span>
-                  <span className="text-sm font-semibold text-gray-900">
-                    {formatCurrency(
-                      (selectedItem.finalTotalWithoutGST || 0) - 
-                      (selectedItem.discountAmount || 0) + 
-                      (selectedItem.transportationCharges || 0)
-                    )}
-                  </span>
-                </div>
-                
-                <div className="flex justify-between w-full max-w-md">
-                  <span className="text-sm font-medium text-gray-600">GST ({selectedItem.gstPercentage || 0}%):</span>
-                  <span className="text-sm font-semibold text-gray-900">
-                    {formatCurrency((selectedItem.totalWithGST || 0) - (selectedItem.finalTotalWithoutGST || 0) + (selectedItem.discountAmount || 0))}
-                  </span>
-                </div>
-                
-                <div className="flex justify-between w-full max-w-md pt-3 border-t-2 border-gray-300">
-                  <span className="text-base font-semibold text-gray-900">Grand Total (After Discount):</span>
-                  <span className="text-xl font-bold text-green-600">
-                    {formatCurrency(selectedItem.totalWithGST || selectedItem.totalAmount || 0)}
-                  </span>
-                </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="px-6 py-12 text-center">
-            <DocumentDuplicateIcon className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-            <p className="text-base font-medium text-gray-500">No items found</p>
-            <p className="text-sm text-gray-400 mt-1">This BOQ doesn't contain any items</p>
-          </div>
-        )}
-      </div>
 
-      {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row justify-end items-center gap-3 pt-5 border-t border-gray-200">
-        <button
-          onClick={() => {
-            setSelectedItem(null);
-            setViewModal(false);
-            handleEdit(selectedItem);
-          }}
-          className="inline-flex items-center px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <PencilSquareIcon className="h-4 w-4 mr-2" />
-          Edit BOQ
-        </button>
-        
-        <button
-          onClick={() => handleAdvancedPDFPreview(selectedItem)}
-          className="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-        >
-          <DocumentArrowDownIcon className="h-4 w-4 mr-2" />
-          Generate PDF
-        </button>
-        
-        <button
-          onClick={() => {
-            setSelectedItem(null);
-            setViewModal(false);
-          }}
-          className="inline-flex items-center px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-        >
-          <XMarkIcon className="h-4 w-4 mr-2" />
-          Close
-        </button>
-      </div>
-    </div>
-  </Modal>
-)}
+            {/* Items List - Below Client Information */}
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <ListBulletIcon className="h-5 w-5 text-gray-400 mr-2" />
+                  Items List
+                </h3>
+              </div>
+
+              {selectedItem.items && selectedItem.items.length > 0 ? (
+                <div className="px-6 py-5">
+                  {/* Items Table */}
+                  {/* View Modal Table */}
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="text-center py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Item Name
+                          </th>
+                          <th className="text-center py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Units
+                          </th>
+                          <th className="text-center py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Unit Price
+                          </th>
+                          <th className="text-center py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Total
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedItem.items.map((item, index) => (
+                          <tr key={index} className="border-b border-gray-100">
+                            <td className="py-3 text-sm text-gray-900 text-center">
+                              <div>
+                                <div className="font-medium">{item.partName || item.itemDescription || "Unnamed Item"}</div>
+                                {item.partNumber && (
+                                  <div className="text-xs text-gray-500 mt-0.5">Part #: {item.partNumber}</div>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 text-sm text-gray-900 text-center">
+                              {item.numberOfUnits || item.quantity || 0} {item.unitType || item.unit || ""}
+                            </td>
+                            <td className="py-3 text-sm text-gray-900 text-center">
+                              {formatCurrency(item.unitPrice || 0)}
+                            </td>
+                            <td className="py-3 text-sm font-semibold text-gray-900 text-center">
+                              {formatCurrency(item.totalPrice || 0)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Financial Summary - Right Aligned */}
+                  <div className="mt-6 pt-4 border-t border-gray-200">
+                    <div className="flex flex-col items-end space-y-2">
+                      <div className="flex justify-between w-full max-w-md">
+                        <span className="text-sm font-medium text-gray-600">Subtotal:</span>
+                        <span className="text-sm font-semibold text-gray-900">
+                          {formatCurrency(selectedItem.finalTotalWithoutGST || 0)}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between w-full max-w-md">
+                        <span className="text-sm font-medium text-gray-600">Discount ({selectedItem.discountPercentage || 0}%):</span>
+                        <span className="text-sm font-semibold text-red-600">
+                          - {formatCurrency(selectedItem.discountAmount || 0)}
+                        </span>
+                      </div>
+
+                      {selectedItem.transportationCharges > 0 && (
+                        <div className="flex justify-between w-full max-w-md">
+                          <span className="text-sm font-medium text-gray-600">Transportation:</span>
+                          <span className="text-sm font-semibold text-gray-900">
+                            {formatCurrency(selectedItem.transportationCharges)}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between w-full max-w-md pt-2 border-t border-gray-200">
+                        <span className="text-sm font-medium text-gray-900"></span>
+                        <span className="text-sm font-semibold text-gray-900">
+                          {formatCurrency(
+                            (selectedItem.finalTotalWithoutGST || 0) -
+                            (selectedItem.discountAmount || 0) +
+                            (selectedItem.transportationCharges || 0)
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between w-full max-w-md">
+                        <span className="text-sm font-medium text-gray-600">GST ({selectedItem.gstPercentage || 0}%):</span>
+                        <span className="text-sm font-semibold text-gray-900">
+                          {formatCurrency((selectedItem.totalWithGST || 0) - (selectedItem.finalTotalWithoutGST || 0) + (selectedItem.discountAmount || 0))}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between w-full max-w-md pt-3 border-t-2 border-gray-300">
+                        <span className="text-base font-semibold text-gray-900">Grand Total (After Discount):</span>
+                        <span className="text-xl font-bold text-green-600">
+                          {formatCurrency(selectedItem.totalWithGST || selectedItem.totalAmount || 0)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="px-6 py-12 text-center">
+                  <DocumentDuplicateIcon className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                  <p className="text-base font-medium text-gray-500">No items found</p>
+                  <p className="text-sm text-gray-400 mt-1">This BOQ doesn't contain any items</p>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row justify-end items-center gap-3 pt-5 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  setSelectedItem(null);
+                  setViewModal(false);
+                  handleEdit(selectedItem);
+                }}
+                className="inline-flex items-center px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <PencilSquareIcon className="h-4 w-4 mr-2" />
+                Edit BOQ
+              </button>
+
+              <button
+                onClick={() => handleAdvancedPDFPreview(selectedItem)}
+                className="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+              >
+                <DocumentArrowDownIcon className="h-4 w-4 mr-2" />
+                Generate PDF
+              </button>
+
+              <button
+                onClick={() => {
+                  setSelectedItem(null);
+                  setViewModal(false);
+                }}
+                className="inline-flex items-center px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                <XMarkIcon className="h-4 w-4 mr-2" />
+                Close
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* Notification */}
       <Notification
@@ -1390,111 +1390,111 @@ const CustomerBoqManagement = () => {
 
       {/* Items Modal */}
       {/* Items Modal */}
-<Modal
-  isOpen={showItemsModal}
-  onClose={() => setShowItemsModal(false)}
-  title="Items List"
-  size="xl"
->
-  {selectedQuote && selectedQuote.items && selectedQuote.items.length > 0 ? (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Item Name
-            </th>
-            <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Units
-            </th>
-            <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Unit Price
-            </th>
-            <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Total
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {selectedQuote.items.map((item, index) => (
-            <tr key={item._id || index} className="hover:bg-gray-50">
-              <td className="px-4 py-3 text-center text-sm text-gray-900">
-                {item.partName}
-              </td>
-              <td className="px-4 py-3 text-center text-sm text-gray-900">
-                {item.numberOfUnits} {item.unitType}
-              </td>
-              <td className="px-4 py-3 text-center text-sm text-gray-900">
-                ₹{item.unitPrice?.toLocaleString('en-IN')}
-              </td>
-              <td className="px-4 py-3 text-center text-sm font-medium text-gray-900">
-                ₹{item.totalPrice?.toLocaleString('en-IN')}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-        <tfoot className="bg-gray-50">
-          <tr>
-            <td colSpan="3" className="px-4 py-3 text-sm font-medium text-gray-900 text-center">
-              Subtotal:
-            </td>
-            <td className="px-4 py-3 text-sm font-medium text-gray-900 text-center">
-              ₹{selectedQuote.finalTotalWithoutGST?.toLocaleString('en-IN')}
-            </td>
-          </tr>
-          <tr>
-            <td colSpan="3" className="px-4 py-3 text-sm font-medium text-gray-900 text-center">
-              Discount ({selectedQuote.discountPercentage}%):
-            </td>
-            <td className="px-4 py-3 text-sm font-medium text-red-600 text-center">
-              - ₹{(selectedQuote.discountAmount || 0).toLocaleString('en-IN')}
-            </td>
-          </tr>
-          {selectedQuote.transportationCharges > 0 && (
-            <tr>
-              <td colSpan="3" className="px-4 py-3 text-sm text-gray-900 text-center">
-                Transportation:
-              </td>
-              <td className="px-4 py-3 text-sm text-gray-900 text-center">
-                ₹{selectedQuote.transportationCharges?.toLocaleString('en-IN')}
-              </td>
-            </tr>
-          )}
+      <Modal
+        isOpen={showItemsModal}
+        onClose={() => setShowItemsModal(false)}
+        title="Items List"
+        size="xl"
+      >
+        {selectedQuote && selectedQuote.items && selectedQuote.items.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Item Name
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Units
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Unit Price
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {selectedQuote.items.map((item, index) => (
+                  <tr key={item._id || index} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-center text-sm text-gray-900">
+                      {item.partName}
+                    </td>
+                    <td className="px-4 py-3 text-center text-sm text-gray-900">
+                      {item.numberOfUnits} {item.unitType}
+                    </td>
+                    <td className="px-4 py-3 text-center text-sm text-gray-900">
+                      ₹{item.unitPrice?.toLocaleString('en-IN')}
+                    </td>
+                    <td className="px-4 py-3 text-center text-sm font-medium text-gray-900">
+                      ₹{item.totalPrice?.toLocaleString('en-IN')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="bg-gray-50">
+                <tr>
+                  <td colSpan="3" className="px-4 py-3 text-sm font-medium text-gray-900 text-center">
+                    Subtotal:
+                  </td>
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900 text-center">
+                    ₹{selectedQuote.finalTotalWithoutGST?.toLocaleString('en-IN')}
+                  </td>
+                </tr>
+                <tr>
+                  <td colSpan="3" className="px-4 py-3 text-sm font-medium text-gray-900 text-center">
+                    Discount ({selectedQuote.discountPercentage}%):
+                  </td>
+                  <td className="px-4 py-3 text-sm font-medium text-red-600 text-center">
+                    - ₹{(selectedQuote.discountAmount || 0).toLocaleString('en-IN')}
+                  </td>
+                </tr>
+                {selectedQuote.transportationCharges > 0 && (
+                  <tr>
+                    <td colSpan="3" className="px-4 py-3 text-sm text-gray-900 text-center">
+                      Transportation:
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900 text-center">
+                      ₹{selectedQuote.transportationCharges?.toLocaleString('en-IN')}
+                    </td>
+                  </tr>
+                )}
 
-          <tr className="border-t border-gray-300">
-            <td colSpan="3" className="px-4 py-3 text-sm font-medium text-gray-900 text-center">
-            </td>
-            <td className="px-4 py-3 text-sm font-medium text-gray-900 text-center">
-              ₹{((selectedQuote.finalTotalWithoutGST - selectedQuote.discountAmount || 0) || 0).toLocaleString('en-IN')}
-            </td>
-          </tr>
+                <tr className="border-t border-gray-300">
+                  <td colSpan="3" className="px-4 py-3 text-sm font-medium text-gray-900 text-center">
+                  </td>
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900 text-center">
+                    ₹{((selectedQuote.finalTotalWithoutGST - selectedQuote.discountAmount || 0) || 0).toLocaleString('en-IN')}
+                  </td>
+                </tr>
 
-          <tr>
-            <td colSpan="3" className="px-4 py-3 text-sm font-medium text-gray-900 text-center">
-              GST ({selectedQuote.gstPercentage}%):
-            </td>
-            <td className="px-4 py-3 text-sm font-medium text-gray-900 text-center">
-              ₹{((selectedQuote.totalWithGST - selectedQuote.finalTotalWithoutGST) || 0).toLocaleString('en-IN')}
-            </td>
-          </tr>
+                <tr>
+                  <td colSpan="3" className="px-4 py-3 text-sm font-medium text-gray-900 text-center">
+                    GST ({selectedQuote.gstPercentage}%):
+                  </td>
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900 text-center">
+                    ₹{((selectedQuote.totalWithGST - selectedQuote.finalTotalWithoutGST) || 0).toLocaleString('en-IN')}
+                  </td>
+                </tr>
 
-          <tr className="border-t border-gray-300">
-            <td colSpan="3" className="px-4 py-3 text-sm font-bold text-gray-900 text-center">
-              Grand Total (After Discount):
-            </td>
-            <td className="px-4 py-3 text-sm font-bold text-green-700 text-center">
-              ₹{(selectedQuote.totalWithGST - (selectedQuote.discountAmount || 0)).toLocaleString('en-IN')}
-            </td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-  ) : (
-    <div className="text-center py-8 text-gray-500">
-      No items found
-    </div>
-  )}
-</Modal>
+                <tr className="border-t border-gray-300">
+                  <td colSpan="3" className="px-4 py-3 text-sm font-bold text-gray-900 text-center">
+                    Grand Total (After Discount):
+                  </td>
+                  <td className="px-4 py-3 text-sm font-bold text-green-700 text-center">
+                    ₹{(selectedQuote.totalWithGST - (selectedQuote.discountAmount || 0)).toLocaleString('en-IN')}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            No items found
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };
