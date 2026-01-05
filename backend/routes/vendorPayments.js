@@ -5,10 +5,9 @@ const upload = require('../middleware/uploadVendorImage');
 
 const router = express.Router();
 
-// Helper function to check for duplicate payment
-const checkDuplicatePayment = async (vendor, invoiceNumber, excludeId = null) => {
+// Helper function to check for duplicate payment (globally unique invoice numbers)
+const checkDuplicatePayment = async (invoiceNumber, excludeId = null) => {
   const query = {
-    vendor: vendor,
     'invoices.invoiceNumber': invoiceNumber
   };
 
@@ -231,11 +230,11 @@ router.post('/', auth, upload.single("image"), async (req, res) => {
 
     // Check for duplicate payment (first invoice only for now)
     const firstInvoiceNumber = invoices[0].invoiceNumber;
-    const isDuplicate = await checkDuplicatePayment(vendor, firstInvoiceNumber);
+    const isDuplicate = await checkDuplicatePayment(firstInvoiceNumber);
     
     if (isDuplicate) {
       return res.status(400).json({
-        message: 'Invoice number already exists for this vendor'
+        message: 'Invoice number already exists'
       });
     }
 
@@ -278,7 +277,7 @@ router.post('/', auth, upload.single("image"), async (req, res) => {
     // Check if it's a MongoDB duplicate error
     if (error.code === 11000) {
       return res.status(400).json({
-        message: 'Invoice number already exists for this vendor'
+        message: 'Invoice number already exists in the system'
       });
     }
     
@@ -352,11 +351,11 @@ router.put('/:id', auth, upload.single("image"), async (req, res) => {
 
     // Check for duplicate payment excluding current payment
     const firstInvoiceNumber = invoices[0].invoiceNumber;
-    const isDuplicate = await checkDuplicatePayment(vendor, firstInvoiceNumber, req.params.id);
+    const isDuplicate = await checkDuplicatePayment(firstInvoiceNumber, req.params.id);
     
     if (isDuplicate) {
       return res.status(400).json({
-        message: 'Invoice number already exists for this vendor'
+        message: 'Invoice number already exists in the system'
       });
     }
 

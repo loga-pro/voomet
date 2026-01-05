@@ -384,17 +384,6 @@ const StockMaster = () => {
               <p className="text-gray-500">Comprehensive view of all inventory stock summaries.</p>
             </div>
             <div className="flex items-center gap-3">
-              <button
-                onClick={handleGeneratePDF}
-                disabled={generatingPDF || masterRowData.length === 0}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${generatingPDF || masterRowData.length === 0
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow-md'
-                  }`}
-              >
-                <FileDown className="h-5 w-5" />
-                {generatingPDF ? 'Generating...' : 'Download PDF'}
-              </button>
               <span className="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
                 Total Parts: {masterRowData.length}
               </span>

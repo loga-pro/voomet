@@ -600,22 +600,22 @@ const PurchaseRequestManagement = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Client Name
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Project Name
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Production Period
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Items Count
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -631,37 +631,37 @@ const PurchaseRequestManagement = () => {
                         className="hover:bg-gray-50 transition-colors duration-150"
                       >
                         {/* Customer Name */}
-                        <td className="px-6 py-4">
-                          <div className="flex items-center">
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex items-center justify-center">
                             <div className="text-sm font-medium text-gray-900">
-                              {request.customerName || "N/A"}
+                              {request.customerName || "-"}
                             </div>
                           </div>
                         </td>
 
                         {/* Project Name */}
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 text-center">
                           <div className="text-sm text-gray-900">
-                            {request.projectName || "N/A"}
+                            {request.projectName || "-"}
                           </div>
                         </td>
 
                         {/* Production Period */}
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 text-center">
                           <div className="text-sm text-gray-900">
-                            <div className="flex items-center">
+                            <div className="flex items-center justify-center">
                               <CalendarIcon className="h-4 w-4 text-gray-400 mr-1" />
-                              {request.startDate ? new Date(request.startDate).toLocaleDateString() : "N/A"}
+                              {request.startDate ? new Date(request.startDate).toLocaleDateString() : "-"}
                             </div>
                             <div className="text-xs text-gray-500">
-                              to {request.endDate ? new Date(request.endDate).toLocaleDateString() : "N/A"}
+                              to {request.endDate ? new Date(request.endDate).toLocaleDateString() : "-"}
                             </div>
                           </div>
                         </td>
 
 
                         {/* Items Count */}
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 text-center">
                           <div className="text-sm font-medium text-gray-900">
                             {totals.totalItems} items
                           </div>
@@ -671,15 +671,15 @@ const PurchaseRequestManagement = () => {
                         </td>
 
                         {/* Status */}
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 text-center">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor.bgColor} ${statusColor.textColor}`}>
                             {statusColor.label}
                           </span>
                         </td>
 
                         {/* Actions */}
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex justify-end space-x-2">
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex justify-center space-x-2">
                             <button
                               onClick={() => handleView(request)}
                               className="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors duration-150"

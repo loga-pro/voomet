@@ -55,6 +55,8 @@ import {
   reportsAPI
 } from '../services/api';
 import EmailCompose from '../components/EmailCompose/emailCompose.jsx';
+import InventoryPDFGenerator from '../components/Inventory/InventoryPDFGenerator';
+
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // + COMPONENT: SpecificProjectReport
@@ -263,6 +265,9 @@ const Reports = () => {
   const [viewModal, setViewModal] = useState({ isOpen: false, data: null, type: '' });
   const [emailAddress, setEmailAddress] = useState('');
   const [showReportDropdown, setShowReportDropdown] = useState(false);
+  const [showInventoryPDFGenerator, setShowInventoryPDFGenerator] = useState(false);
+  const [generatingInventoryPDF, setGeneratingInventoryPDF] = useState(false);
+
 
   // Filter state variables
   const [selectedProject, setSelectedProject] = useState('');
@@ -1612,6 +1617,29 @@ const Reports = () => {
     }
   };
 
+  // Handlers for Inventory PDF generation (same as InventoryManagement.jsx)
+  const handleInventoryPDFComplete = (blob, fileName) => {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    setShowInventoryPDFGenerator(false);
+    setGeneratingInventoryPDF(false);
+  };
+
+  const handleInventoryPDFError = (error) => {
+    console.error('Inventory PDF generation error:', error);
+    setShowInventoryPDFGenerator(false);
+    setGeneratingInventoryPDF(false);
+    alert('Failed to generate Inventory PDF. Please try again.');
+  };
+
+
   // Report configurations
   const reportTypes = React.useMemo(() => [
     { id: 'project-comprehensive', name: 'Comprehensive Project Reports', icon: ClipboardDocumentListIcon },
@@ -2264,12 +2292,19 @@ const Reports = () => {
               </button>
 
               <button
-                onClick={() => exportToPDF(activeReportConfig.data, activeReportConfig.filename)}
-                disabled={!activeReportConfig.data || activeReportConfig.data.length === 0}
+                onClick={() => {
+                  if (activeReport === 'inventory') {
+                    setGeneratingInventoryPDF(true);
+                    setShowInventoryPDFGenerator(true);
+                  } else {
+                    exportToPDF(activeReportConfig.data, activeReportConfig.filename);
+                  }
+                }}
+                disabled={(!activeReportConfig.data || activeReportConfig.data.length === 0) || (activeReport === 'inventory' && generatingInventoryPDF)}
                 className="flex-1 min-w-[140px] inline-flex items-center justify-center px-4 py-2.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
-                Download PDF
+                {activeReport === 'inventory' && generatingInventoryPDF ? 'Generating...' : 'Download PDF'}
               </button>
 
               <button
@@ -2766,6 +2801,13 @@ const Reports = () => {
           }}
         />
       }
+      {showInventoryPDFGenerator && (
+        <InventoryPDFGenerator
+          inventoryData={inventoryData}
+          onComplete={handleInventoryPDFComplete}
+          onError={handleInventoryPDFError}
+        />
+      )}
     </div>
   );
 };

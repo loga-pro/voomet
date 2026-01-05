@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  PlusIcon, 
-  MagnifyingGlassIcon, 
+import {
+  PlusIcon,
+  MagnifyingGlassIcon,
   FunnelIcon,
   XMarkIcon,
   ArrowUpTrayIcon,
@@ -25,17 +25,17 @@ const LogisticExpenditureManagement = () => {
   const [expenditures, setExpenditures] = useState([]);
   const [filteredExpenditures, setFilteredExpenditures] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Modal states
   const [showModal, setShowModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  
+
   // Data states
   const [selectedExpenditure, setSelectedExpenditure] = useState(null);
   const [viewingExpenditure, setViewingExpenditure] = useState(null);
   const [expenditureToDelete, setExpenditureToDelete] = useState(null);
-  
+
   // Filter states
   const [filters, setFilters] = useState({
     financialYear: '',
@@ -48,18 +48,18 @@ const LogisticExpenditureManagement = () => {
     search: ''
   });
   const [showFilters, setShowFilters] = useState(false);
-  
+
   // Master data
   const [customers, setCustomers] = useState([]);
   const [projects, setProjects] = useState([]);
   const [transporters, setTransporters] = useState([]);
   const [financialYears, setFinancialYears] = useState([]);
   const [vehicleTypes, setVehicleTypes] = useState([]);
-  
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
-  
+
   const { notification, showSuccess, showError, hideNotification } = useNotification();
 
   // Initialize
@@ -85,11 +85,11 @@ const LogisticExpenditureManagement = () => {
       const data = Array.isArray(response.data) ? response.data : [];
       setExpenditures(data);
       setFilteredExpenditures(data);
-      
+
       // Extract unique financial years from saved expenditures
       const years = [...new Set(data.map(exp => exp.financialYear))].filter(Boolean).sort().reverse();
       setFinancialYears(years);
-      
+
       // Extract unique customers from saved expenditures
       const uniqueCustomers = [...new Set(data.map(exp => exp.customerName || exp.customer?.name))].filter(Boolean);
       const customerOptions = uniqueCustomers.map(name => ({
@@ -98,7 +98,7 @@ const LogisticExpenditureManagement = () => {
         customerName: name
       }));
       setCustomers(customerOptions);
-      
+
       // Extract unique projects from saved expenditures
       const uniqueProjects = [...new Set(data.map(exp => exp.projectName || exp.project?.name))].filter(Boolean);
       const projectOptions = uniqueProjects.map(name => ({
@@ -107,9 +107,9 @@ const LogisticExpenditureManagement = () => {
         projectName: name
       }));
       setProjects(projectOptions);
-      
+
       // Extract unique vehicle types
-      const vehicles = [...new Set(data.flatMap(exp => 
+      const vehicles = [...new Set(data.flatMap(exp =>
         exp.items?.map(item => item.vehicleType) || []
       ))].filter(Boolean).sort();
       setVehicleTypes(vehicles);
@@ -127,59 +127,59 @@ const LogisticExpenditureManagement = () => {
     let filtered = Array.isArray(expenditures) ? expenditures : [];
 
     if (filters.financialYear) {
-      filtered = filtered.filter(exp => 
+      filtered = filtered.filter(exp =>
         exp.financialYear === filters.financialYear
       );
     }
 
     if (filters.customer) {
-      filtered = filtered.filter(exp => 
-        exp.customer?._id === filters.customer || 
+      filtered = filtered.filter(exp =>
+        exp.customer?._id === filters.customer ||
         exp.customerName?.toLowerCase().includes(filters.customer.toLowerCase())
       );
     }
 
     if (filters.project) {
-      filtered = filtered.filter(exp => 
-        exp.project?._id === filters.project || 
+      filtered = filtered.filter(exp =>
+        exp.project?._id === filters.project ||
         exp.projectName?.toLowerCase().includes(filters.project.toLowerCase())
       );
     }
 
     if (filters.vehicleType) {
-      filtered = filtered.filter(exp => 
+      filtered = filtered.filter(exp =>
         exp.items?.some(item => item.vehicleType === filters.vehicleType)
       );
     }
 
     if (filters.transporter) {
-      filtered = filtered.filter(exp => 
-        exp.items?.some(item => 
+      filtered = filtered.filter(exp =>
+        exp.items?.some(item =>
           item.transporterName?.toLowerCase().includes(filters.transporter.toLowerCase())
         )
       );
     }
 
     if (filters.purpose) {
-      filtered = filtered.filter(exp => 
-        exp.items?.some(item => 
+      filtered = filtered.filter(exp =>
+        exp.items?.some(item =>
           item.purpose?.toLowerCase().includes(filters.purpose.toLowerCase())
         )
       );
     }
 
     if (filters.status) {
-      filtered = filtered.filter(exp => 
+      filtered = filtered.filter(exp =>
         exp.status === filters.status
       );
     }
 
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
-      filtered = filtered.filter(exp => 
+      filtered = filtered.filter(exp =>
         exp.customerName?.toLowerCase().includes(searchTerm) ||
         exp.projectName?.toLowerCase().includes(searchTerm) ||
-        exp.items?.some(item => 
+        exp.items?.some(item =>
           item.purpose?.toLowerCase().includes(searchTerm) ||
           item.transporterName?.toLowerCase().includes(searchTerm) ||
           item.vehicleType?.toLowerCase().includes(searchTerm) ||
@@ -329,13 +329,13 @@ const LogisticExpenditureManagement = () => {
       'Transporters',
       'Created Date'
     ];
-    
+
     const csvData = filteredExpenditures.map(exp => {
       const items = exp.items || [];
       const vehicleTypes = [...new Set(items.map(item => item.vehicleType))].join('; ');
       const transporters = [...new Set(items.map(item => item.transporterName))].join('; ');
       const totalKM = items.reduce((sum, item) => sum + (item.kmTravelled || 0), 0);
-      
+
       return [
         exp.financialYear || '',
         exp.customerName || exp.customer?.name || '',
@@ -362,7 +362,7 @@ const LogisticExpenditureManagement = () => {
     link.download = `logistic-expenditures-${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     window.URL.revokeObjectURL(url);
-    
+
     showSuccess('CSV exported successfully!');
   };
 
@@ -413,7 +413,7 @@ const LogisticExpenditureManagement = () => {
         isVisible={notification.isVisible}
         onClose={hideNotification}
       />
-      
+
       <div className="max-w-none w-full">
         {/* Header and Filters */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
@@ -433,15 +433,14 @@ const LogisticExpenditureManagement = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${
-                    showFilters || Object.values(filters).some(Boolean) 
-                      ? 'border-green-500 text-green-700 bg-green-50 hover:bg-green-100' 
+                  className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${showFilters || Object.values(filters).some(Boolean)
+                      ? 'border-green-500 text-green-700 bg-green-50 hover:bg-green-100'
                       : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
                   Filters
@@ -451,7 +450,7 @@ const LogisticExpenditureManagement = () => {
                     </span>
                   )}
                 </button>
-                
+
                 {Object.values(filters).some(Boolean) && (
                   <button
                     onClick={clearFilters}
@@ -461,7 +460,7 @@ const LogisticExpenditureManagement = () => {
                     Clear
                   </button>
                 )}
-                
+
                 <button
                   onClick={exportToCSV}
                   className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
@@ -469,7 +468,7 @@ const LogisticExpenditureManagement = () => {
                   <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
                   Export CSV
                 </button>
-                
+
                 <button
                   onClick={() => setShowModal(true)}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
@@ -542,25 +541,25 @@ const LogisticExpenditureManagement = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Financial Year
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Client / Project
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Trip Details
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Vehicle / Transporter
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Distance & Cost
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Trips
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -577,41 +576,41 @@ const LogisticExpenditureManagement = () => {
 
                         return (
                           <tr key={expenditure._id} className="hover:bg-gray-50 transition-colors duration-150">
-                            <td className="px-6 py-4 whitespace-nowrap">
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
                               <div className="text-sm font-medium text-gray-900">
-                                {expenditure.financialYear}
+                                {expenditure.financialYear || '-'}
                               </div>
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-6 py-4 text-center">
                               <div>
                                 <div className="text-sm font-medium text-gray-900">
-                                  {expenditure.customerName || expenditure.customer?.name}
+                                  {expenditure.customerName || expenditure.customer?.name || '-'}
                                 </div>
                                 <div className="text-sm text-gray-500 truncate max-w-xs">
-                                  {expenditure.projectName || expenditure.project?.name}
+                                  {expenditure.projectName || expenditure.project?.name || '-'}
                                 </div>
                               </div>
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-6 py-4 text-center">
                               <div className="text-sm">
                                 {items.length > 0 && (
                                   <>
                                     <div className="text-gray-900 font-medium">
-                                      {items[0].purpose}
+                                      {items[0].purpose || '-'}
                                     </div>
-                                    <div className="text-xs text-gray-500 flex items-center mt-1">
+                                    <div className="text-xs text-gray-500 flex items-center justify-center mt-1">
                                       <MapIcon className="h-3 w-3 mr-1" />
-                                      {items[0].from} → {items[0].to}
+                                      {items[0].from || '-'} → {items[0].to || '-'}
                                     </div>
                                   </>
                                 )}
                               </div>
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-6 py-4 text-center">
                               <div className="space-y-1">
-                                <div className="flex flex-wrap gap-1">
+                                <div className="flex flex-wrap gap-1 justify-center">
                                   {uniqueVehicles.slice(0, 3).map((vehicle, idx) => (
-                                    <span 
+                                    <span
                                       key={idx}
                                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getVehicleTypeColor(vehicle)}`}
                                     >
@@ -625,21 +624,21 @@ const LogisticExpenditureManagement = () => {
                                   )}
                                 </div>
                                 <div className="text-xs text-gray-500 truncate max-w-xs">
-                                  {uniqueTransporters.slice(0, 2).join(', ')}
+                                  {uniqueTransporters.slice(0, 2).join(', ') || '-'}
                                   {uniqueTransporters.length > 2 && '...'}
                                 </div>
                               </div>
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-6 py-4 text-center">
                               <div className="space-y-1">
-                                <div className="flex items-center">
+                                <div className="flex items-center justify-center">
                                   <TruckIcon className="h-4 w-4 text-gray-400 mr-1" />
                                   <span className="text-sm text-gray-900">{totalKM.toLocaleString()} KM</span>
                                 </div>
-                                <div className="flex items-center">
+                                <div className="flex items-center justify-center">
                                   <CurrencyRupeeIcon className="h-4 w-4 text-gray-400 mr-1" />
                                   <span className="text-sm font-semibold text-gray-900">
-                                    ₹{totalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    ₹{totalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '-'}
                                   </span>
                                 </div>
                                 {avgCostPerKM > 0 && (
@@ -649,13 +648,13 @@ const LogisticExpenditureManagement = () => {
                                 )}
                               </div>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
                               <div className="text-sm text-gray-900">
                                 {items.length} trips
                               </div>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <div className="flex space-x-2">
+                            <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                              <div className="flex justify-center space-x-2">
                                 <button
                                   onClick={() => handleView(expenditure)}
                                   className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
@@ -685,8 +684,8 @@ const LogisticExpenditureManagement = () => {
                     ) : (
                       <tr>
                         <td colSpan="9" className="px-6 py-8 text-center text-gray-500">
-                          {Object.values(filters).some(val => val !== '') 
-                            ? 'No logistic expenditures found matching your filters.' 
+                          {Object.values(filters).some(val => val !== '')
+                            ? 'No logistic expenditures found matching your filters.'
                             : 'No logistic expenditure records found. Click "Add Logistic" to create one.'
                           }
                         </td>
@@ -696,7 +695,7 @@ const LogisticExpenditureManagement = () => {
                 </table>
               </div>
             </div>
-            
+
             {/* Mobile Card View */}
             <div className="sm:hidden">
               {currentItems.length > 0 ? (
@@ -744,7 +743,7 @@ const LogisticExpenditureManagement = () => {
                           </button>
                         </div>
                       </div>
-                      
+
                       <div className="mb-3">
                         <div className="text-sm text-gray-900 font-medium">
                           {firstItem.purpose}
@@ -754,10 +753,10 @@ const LogisticExpenditureManagement = () => {
                           {firstItem.from} → {firstItem.to}
                         </div>
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 mb-3">
                         <div>
-                          <span className="font-medium">Total:</span> 
+                          <span className="font-medium">Total:</span>
                           <span className="ml-1 font-semibold">
                             ₹{totalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                           </span>
@@ -769,14 +768,14 @@ const LogisticExpenditureManagement = () => {
                           <span className="font-medium">Trips:</span> {items.length}
                         </div>
                       </div>
-                      
+
                       <div className="text-xs text-gray-600">
                         <div className="flex items-center mb-1">
                           <TruckIcon className="h-3 w-3 mr-1" />
                           <span className="font-medium mr-2">Vehicles:</span>
                           <div className="flex flex-wrap gap-1">
                             {[...new Set(items.map(item => item.vehicleType))].slice(0, 2).map((vehicle, idx) => (
-                              <span 
+                              <span
                                 key={idx}
                                 className={`px-2 py-0.5 rounded-full ${getVehicleTypeColor(vehicle)}`}
                               >
@@ -798,8 +797,8 @@ const LogisticExpenditureManagement = () => {
                 })
               ) : (
                 <div className="p-8 text-center text-gray-500">
-                  {Object.values(filters).some(val => val !== '') 
-                    ? 'No logistic expenditures found matching your filters.' 
+                  {Object.values(filters).some(val => val !== '')
+                    ? 'No logistic expenditures found matching your filters.'
                     : 'No logistic expenditure records found. Click "Add Logistic" to create one.'
                   }
                 </div>
@@ -826,12 +825,12 @@ const LogisticExpenditureManagement = () => {
                   <option value={100}>100</option>
                 </select>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-700">
                   Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredExpenditures.length)} of {filteredExpenditures.length} results
                 </span>
-                
+
                 <nav className="flex space-x-2">
                   <button
                     onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
@@ -840,11 +839,11 @@ const LogisticExpenditureManagement = () => {
                   >
                     <ChevronLeftIcon className="h-5 w-5" />
                   </button>
-                  
+
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter(page => 
-                      page === 1 || 
-                      page === totalPages || 
+                    .filter(page =>
+                      page === 1 ||
+                      page === totalPages ||
                       (page >= currentPage - 1 && page <= currentPage + 1)
                     )
                     .map((page, index, array) => {
@@ -858,18 +857,17 @@ const LogisticExpenditureManagement = () => {
                           )}
                           <button
                             onClick={() => setCurrentPage(page)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              currentPage === page
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
                                 ? 'z-10 bg-green-50 border-green-500 text-green-600'
                                 : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                            }`}
+                              }`}
                           >
                             {page}
                           </button>
                         </React.Fragment>
                       );
                     })}
-                  
+
                   <button
                     onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
@@ -941,9 +939,9 @@ const LogisticExpenditureManagement = () => {
                     <div className="text-sm text-gray-500">Avg Cost/KM</div>
                     <div className="text-lg font-semibold text-gray-900">
                       ₹{
-                        (viewingExpenditure.totalAmount / 
-                        (viewingExpenditure.items?.reduce((sum, item) => sum + (item.kmTravelled || 0), 0) || 1))
-                        .toFixed(2)
+                        (viewingExpenditure.totalAmount /
+                          (viewingExpenditure.items?.reduce((sum, item) => sum + (item.kmTravelled || 0), 0) || 1))
+                          .toFixed(2)
                       }
                     </div>
                   </div>

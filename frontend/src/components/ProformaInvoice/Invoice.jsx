@@ -58,8 +58,13 @@ const ProformaInvoice = ({ invoiceData = {}, hideDownloadButton = false }) => {
   const invoiceValue = totals.invoiceValue;
   const cgstAmount = totals.cgstAmount;
   const sgstAmount = totals.sgstAmount;
-  const roundOff = totals.roundOff;
-  const totalWithTax = invoiceValue + cgstAmount + sgstAmount + roundOff;
+
+  // Automatic Round Off calculation
+  const subTotal = invoiceValue + cgstAmount + sgstAmount;
+  // If decimal part is <= 0.5, round down (Less), if > 0.5 round up (Add)
+  const decimalPart = subTotal % 1;
+  const totalWithTax = decimalPart <= 0.5 ? Math.floor(subTotal) : Math.ceil(subTotal);
+  const roundOff = totalWithTax - subTotal;
 
   // Format date
   const formatDate = (dateString) => {
@@ -98,7 +103,7 @@ const ProformaInvoice = ({ invoiceData = {}, hideDownloadButton = false }) => {
     return result.trim();
   };
 
-  const amountInWords = `INR ${numberToWords(Math.floor(totalWithTax))} Only`;
+  const amountInWords = `INR ${numberToWords(Math.round(totalWithTax))} Only`;
 
   const generatePDF = async () => {
     if (!invoiceRef.current) return;
@@ -415,8 +420,8 @@ const ProformaInvoice = ({ invoiceData = {}, hideDownloadButton = false }) => {
                       )}
 
                       {/* Round Off - Only show if roundOff has a value */}
-                      {roundOff !== 0 && (
-                        <div className="flex invoice-small border-b border-black">
+                      {Math.abs(roundOff) > 0.001 && (
+                        <div className="flex invoice-small">
                           <div className="w-[4%] border-r border-black p-1 text-center"></div>
                           <div className="w-[31%] border-r border-black p-1 text-center">
                             {roundOff >= 0 ? 'Add : ' : 'Less : '}<span className="font-bold">Round OFF</span>

@@ -492,13 +492,6 @@ const Dispatches = () => {
                 </div>
               </div>
 
-              {/* Search Results Info */}
-              {searchTerm && (
-                <div className="mt-3 text-sm text-gray-600">
-                  Found {filteredDispatches.length} dispatch(s) matching "{searchTerm}"
-                </div>
-              )}
-
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                 <button
                   onClick={() => setShowFilters(!showFilters)}

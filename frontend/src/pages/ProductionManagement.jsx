@@ -605,25 +605,25 @@ const ProductionManagement = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Client Name
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Project Name
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Production Period
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Total Parts
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Total Planned
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Total Actual
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -645,50 +645,50 @@ const ProductionManagement = () => {
                         className="hover:bg-gray-50 transition-colors duration-150"
                       >
                         {/* Customer Name */}
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 text-center">
                           <div className="text-sm font-medium text-gray-900">
-                            {item.customerName || ""}
+                            {item.customerName || "-"}
                           </div>
                         </td>
 
                         {/* Project Name */}
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 text-center">
                           <div className="text-sm font-medium text-gray-900">
-                            {item.projectName || ""}
+                            {item.projectName || "-"}
                           </div>
                         </td>
 
                         {/* Production Period */}
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 text-center">
                           <div className="text-sm text-gray-900">
-                            <div className="flex items-center">
+                            <div className="flex items-center justify-center">
                               <CalendarIcon className="h-4 w-4 mr-1 text-gray-400" />
                               {item.startDate ?
-                                new Date(item.startDate).toLocaleDateString() : "N/A"}
+                                new Date(item.startDate).toLocaleDateString() : "-"}
                             </div>
-                            <div className="flex items-center text-xs text-gray-500">
+                            <div className="flex items-center justify-center text-xs text-gray-500">
                               to {item.endDate ?
-                                new Date(item.endDate).toLocaleDateString() : "N/A"}
+                                new Date(item.endDate).toLocaleDateString() : "-"}
                             </div>
                           </div>
                         </td>
 
                         {/* Total Parts */}
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 text-center">
                           <div className="text-sm font-medium text-gray-900">
                             {item.productionDetails.length}
                           </div>
                         </td>
 
                         {/* Total Planned */}
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 text-center">
                           <div className="text-sm font-medium text-gray-900">
                             {totals.planned.toLocaleString()}
                           </div>
                         </td>
 
                         {/* Total Actual */}
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 text-center">
                           <div className="text-sm font-medium text-gray-900">
                             {totals.actual.toLocaleString()}
                           </div>
@@ -701,8 +701,8 @@ const ProductionManagement = () => {
 
 
                         {/* Actions */}
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex justify-end space-x-2">
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex justify-center space-x-2">
                             <button
                               onClick={() => handleView(item)}
                               className="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors duration-150"

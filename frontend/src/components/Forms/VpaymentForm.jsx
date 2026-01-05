@@ -1,9 +1,29 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { vendorPaymentsAPI, vendorsAPI } from '../../services/api';
 import FloatingInput from './FloatingInput';
 import NotificationComponent from '../Notifications/Notification';
 import { UploadOutlined } from '@ant-design/icons';
 import { Button, Upload } from 'antd';
+import { TrashIcon } from '@heroicons/react/24/outline';
+
+// Date formatting function for dd-mm-yyyy format
+const formatDateToDDMMYYYY = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
+};
+
+// Function to parse dd-mm-yyyy back to ISO format for input
+const parseDDMMYYYYToISO = (dateString) => {
+  if (!dateString || dateString.includes('-')) return dateString;
+  const parts = dateString.split('-');
+  if (parts.length !== 3) return dateString;
+  const [day, month, year] = parts;
+  return `${year}-${month}-${day}`;
+};
 
 const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -39,6 +59,9 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
   const [bankNameWarnings, setBankNameWarnings] = useState({});
   const [selectedVendorCategory, setSelectedVendorCategory] = useState('');
 
+  // Track the current payment ID to prevent unnecessary resets
+  const currentPaymentIdRef = useRef(null);
+
   const showLocalNotification = useCallback((message, type = 'success') => {
     setNotification({
       isVisible: true,
@@ -50,56 +73,90 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
     }, 3000);
   }, []);
 
+  // Fetch vendors and existing payments only once on mount
   useEffect(() => {
     fetchVendors();
     fetchExistingPayments();
+  }, []);
 
-    if (payment) {
-      setIsEditMode(true);
+  // Handle payment prop changes - only reset form if payment ID actually changed
+  useEffect(() => {
+    const paymentId = payment?._id || null;
 
-      // Set vendor category from payment data
-      if (payment.vendor?.category) {
-        setSelectedVendorCategory(payment.vendor.category);
-      }
+    // Only reset form data if we're loading a different payment
+    if (paymentId !== currentPaymentIdRef.current) {
+      currentPaymentIdRef.current = paymentId;
 
-      setFormData({
-        vendorType: payment.vendorType || payment.vendor?.category || 'vendor',
-        vendor: payment.vendor?._id || payment.vendor || '',
-        vendorGstNumber: payment.vendorGstNumber || '',
-        vendorAccountNumber: payment.vendorAccountNumber || '',
-        image: payment.image
-          ? {
-            name: payment.uploadImg || payment.image.split("/").pop(),
-            url: payment.image,
-            status: "done"
-          }
-          : null,
-        uploadImg: payment.uploadImg || '',
-        invoices: payment.invoices && payment.invoices.length > 0
-          ? payment.invoices.slice(0, 1).map(invoice => ({
-            invoiceNumber: invoice.invoiceNumber || '',
-            invoiceValue: invoice.invoiceValue || '',
-            invoiceDate: invoice.invoiceDate ? new Date(invoice.invoiceDate).toISOString().split('T')[0] : '',
-            payments: invoice.payments && invoice.payments.length > 0
-              ? invoice.payments.map(pmt => ({
-                transactionId: pmt.transactionId || '',
-                bankName: pmt.bankName || '',
-                amount: pmt.amount || '',
-                paymentDate: pmt.date ? new Date(pmt.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0], // Fallback to today
-                remarks: pmt.remarks || ''
-              }))
-              : [{
+      if (payment) {
+        setIsEditMode(true);
+
+        // Set vendor category from payment data
+        if (payment.vendor?.category) {
+          setSelectedVendorCategory(payment.vendor.category);
+        }
+
+        setFormData({
+          vendorType: payment.vendorType || payment.vendor?.category || 'vendor',
+          vendor: payment.vendor?._id || payment.vendor || '',
+          vendorGstNumber: payment.vendorGstNumber || '',
+          vendorAccountNumber: payment.vendorAccountNumber || '',
+          image: payment.image
+            ? {
+              name: payment.uploadImg || payment.image.split("/").pop(),
+              url: payment.image,
+              status: "done"
+            }
+            : null,
+          uploadImg: payment.uploadImg || '',
+          invoices: payment.invoices && payment.invoices.length > 0
+            ? payment.invoices.slice(0, 1).map(invoice => ({
+              invoiceNumber: invoice.invoiceNumber || '',
+              invoiceValue: invoice.invoiceValue || '',
+              invoiceDate: invoice.invoiceDate ? formatDateToDDMMYYYY(invoice.invoiceDate) : '',
+              payments: invoice.payments && invoice.payments.length > 0
+                ? invoice.payments.map(pmt => ({
+                  transactionId: pmt.transactionId || '',
+                  bankName: pmt.bankName || '',
+                  amount: pmt.amount || '',
+                  paymentDate: pmt.date ? formatDateToDDMMYYYY(pmt.date) : formatDateToDDMMYYYY(new Date()),
+                  remarks: pmt.remarks || ''
+                }))
+                : [{
+                  transactionId: '',
+                  bankName: '',
+                  amount: '',
+                  paymentDate: formatDateToDDMMYYYY(new Date()),
+                  remarks: ''
+                }]
+            }))
+            : [{
+              invoiceNumber: '',
+              invoiceValue: '',
+              invoiceDate: formatDateToDDMMYYYY(new Date()),
+              payments: [{
                 transactionId: '',
                 bankName: '',
                 amount: '',
-                paymentDate: new Date().toISOString().split('T')[0],
+                paymentDate: formatDateToDDMMYYYY(new Date()),
                 remarks: ''
               }]
-          }))
-          : [{
+            }]
+        });
+      } else {
+        // Reset to initial state for new payment
+        setIsEditMode(false);
+        setSelectedVendorCategory('');
+        setFormData({
+          vendorType: 'vendor',
+          vendor: '',
+          vendorGstNumber: '',
+          vendorAccountNumber: '',
+          uploadImg: '',
+          image: null,
+          invoices: [{
             invoiceNumber: '',
             invoiceValue: '',
-            invoiceDate: new Date().toISOString().split('T')[0],
+            invoiceDate: '',
             payments: [{
               transactionId: '',
               bankName: '',
@@ -108,7 +165,8 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
               remarks: ''
             }]
           }]
-      });
+        });
+      }
     }
   }, [payment]);
 
@@ -131,25 +189,23 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
     }
   };
 
-  const checkDuplicatePayment = (vendorId, invoiceNumber) => {
+  const checkDuplicatePayment = (invoiceNumber) => {
     // If in edit mode and data hasn't changed, don't show duplicate error
     if (isEditMode && payment) {
-      const currentVendorId = payment.vendor?._id || payment.vendor;
       const currentInvoiceNumber = payment.invoices?.[0]?.invoiceNumber;
-      
-      if (currentVendorId === vendorId && currentInvoiceNumber === invoiceNumber) {
+
+      if (currentInvoiceNumber === invoiceNumber) {
         return false;
       }
     }
 
-    // Check if same vendor and invoice number already exists
+    // Check if invoice number already exists (globally unique across all vendors)
     const existing = existingPayments.find(pmt => {
-      const pmtVendorId = pmt.vendor?._id || pmt.vendor;
       const pmtInvoiceNumber = pmt.invoices?.[0]?.invoiceNumber;
-      
-      return pmtVendorId === vendorId && pmtInvoiceNumber === invoiceNumber;
+
+      return pmtInvoiceNumber === invoiceNumber;
     });
-    
+
     return !!existing;
   };
 
@@ -191,6 +247,15 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
+    // Handle date formatting for invoice date and payment date
+    let formattedValue = value;
+    if ((name.includes('invoiceDate') || name.includes('paymentDate')) && value) {
+      // If the input is in ISO format (from date input), convert to dd-mm-yyyy for display
+      if (value.includes('-') && value.length === 10) {
+        formattedValue = formatDateToDDMMYYYY(value);
+      }
+    }
+
     if (name.includes('.')) {
       const nameParts = name.split('.');
 
@@ -201,19 +266,19 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
         setFormData(prev => ({
           ...prev,
           [parent]: prev[parent].map((item, i) =>
-            i === arrayIndex ? { ...item, [field]: value } : item
+            i === arrayIndex ? { ...item, [field]: formattedValue } : item
           )
         }));
 
         // Check for duplicates when invoice number changes
-        if (field === 'invoiceNumber' && formData.vendor) {
+        if (field === 'invoiceNumber') {
           const invoiceNumber = value;
-          const isDuplicate = checkDuplicatePayment(formData.vendor, invoiceNumber);
-          
+          const isDuplicate = checkDuplicatePayment(invoiceNumber);
+
           if (isDuplicate) {
             setErrors(prev => ({
               ...prev,
-              duplicate: 'Invoice number already exists for this vendor'
+              duplicate: 'Invoice number already exists in the system'
             }));
           } else {
             setErrors(prev => {
@@ -234,7 +299,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
           invoices: [{
             ...prev.invoices[0],
             payments: prev.invoices[0].payments.map((payment, j) =>
-              j === payIndex ? { ...payment, [field]: value } : payment
+              j === payIndex ? { ...payment, [field]: formattedValue } : payment
             )
           }]
         }));
@@ -242,7 +307,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
     } else {
       setFormData(prev => ({
         ...prev,
-        [name]: value
+        [name]: formattedValue
       }));
 
       // Reset vendor selection when vendor type changes
@@ -256,7 +321,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
           uploadImg: ''
         }));
         setSelectedVendorCategory(value);
-        
+
         // Clear duplicate error when vendor type changes
         setErrors(prev => {
           const newErrors = { ...prev };
@@ -278,11 +343,11 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
 
         // Check for duplicates when vendor changes
         if (value && formData.invoices[0].invoiceNumber) {
-          const isDuplicate = checkDuplicatePayment(value, formData.invoices[0].invoiceNumber);
+          const isDuplicate = checkDuplicatePayment(formData.invoices[0].invoiceNumber);
           if (isDuplicate) {
             setErrors(prev => ({
               ...prev,
-              duplicate: 'Invoice number already exists for this vendor'
+              duplicate: 'Invoice number already exists in the system'
             }));
           } else {
             setErrors(prev => {
@@ -307,12 +372,12 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
     const selectedVendor = vendors.find(v => v._id === vendorId);
     if (selectedVendor) {
       const invoiceNumber = formData.invoices[0].invoiceNumber;
-      const isDuplicate = checkDuplicatePayment(vendorId, invoiceNumber);
+      const isDuplicate = checkDuplicatePayment(invoiceNumber);
 
       if (isDuplicate) {
         setErrors(prev => ({
           ...prev,
-          duplicate: 'Invoice number already exists for this vendor'
+          duplicate: 'Invoice number already exists in the system'
         }));
         return;
       }
@@ -348,7 +413,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
           transactionId: '',
           bankName: '',
           amount: '',
-          paymentDate: new Date().toISOString().split('T')[0], // Always set default date
+          paymentDate: formatDateToDDMMYYYY(new Date()), // Always set default date in dd-mm-yyyy format
           remarks: ''
         }]
       }]
@@ -383,12 +448,12 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
     if (!formData.vendorGstNumber) newErrors.vendorGstNumber = 'Vendor GST number is required';
     if (!formData.vendorAccountNumber) newErrors.vendorAccountNumber = 'Vendor account number is required';
 
-    // Check for duplicate payment based on vendor and invoice number
+    // Check for duplicate invoice number (globally unique)
     const invoice = formData.invoices[0];
-    if (formData.vendor && invoice.invoiceNumber) {
-      const isDuplicate = checkDuplicatePayment(formData.vendor, invoice.invoiceNumber);
+    if (invoice.invoiceNumber) {
+      const isDuplicate = checkDuplicatePayment(invoice.invoiceNumber);
       if (isDuplicate) {
-        newErrors.duplicate = 'Invoice number already exists for this vendor';
+        newErrors.duplicate = 'Invoice number already exists in the system';
       }
     }
 
@@ -415,11 +480,11 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
 
     // Final duplicate check before submission
     const invoice = formData.invoices[0];
-    if (formData.vendor && invoice.invoiceNumber) {
-      const isDuplicate = checkDuplicatePayment(formData.vendor, invoice.invoiceNumber);
+    if (invoice.invoiceNumber) {
+      const isDuplicate = checkDuplicatePayment(invoice.invoiceNumber);
       if (isDuplicate) {
-        setErrors({ duplicate: 'Invoice number already exists for this vendor' });
-        showNotification('Invoice number already exists for this vendor', 'error');
+        setErrors({ duplicate: 'Invoice number already exists in the system' });
+        showNotification('Invoice number already exists in the system', 'error');
         return;
       }
     }
@@ -439,24 +504,50 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
         formDataToSend.append('image', formData.image);
       }
 
+      // Helper function to convert dd-mm-yyyy to yyyy-mm-dd (ISO format)
+      const convertToISODate = (dateString) => {
+        if (!dateString) return '';
+        // If already in ISO format (yyyy-mm-dd), return as is
+        if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) return dateString;
+        // Convert dd-mm-yyyy to yyyy-mm-dd
+        const parts = dateString.split('-');
+        if (parts.length === 3) {
+          const [day, month, year] = parts;
+          return `${year}-${month}-${day}`;
+        }
+        return dateString;
+      };
+
       // Add invoice as JSON string (only one invoice now)
       const invoiceData = {
         invoiceNumber: formData.invoices[0].invoiceNumber,
         invoiceValue: parseFloat(formData.invoices[0].invoiceValue),
-        invoiceDate: formData.invoices[0].invoiceDate,
+        invoiceDate: convertToISODate(formData.invoices[0].invoiceDate),
         payments: formData.invoices[0].payments.map(payment => ({
           transactionId: payment.transactionId,
           bankName: payment.bankName,
           amount: parseFloat(payment.amount),
-          date: payment.paymentDate, // This is now required
+          date: convertToISODate(payment.paymentDate), // Convert to ISO format
           remarks: payment.remarks
         }))
       };
 
       formDataToSend.append('invoices', JSON.stringify([invoiceData]));
 
-      await onSubmit(formDataToSend);
+      // Call onSubmit and handle any errors here to prevent propagation to parent
+      try {
+        await onSubmit(formDataToSend);
+        // If we reach here, submission was successful
+        // The parent will handle closing the modal and refreshing data
+      } catch (submitError) {
+        // Handle the error from onSubmit
+        const errorMessage = submitError.response?.data?.message || 'An error occurred. Please try again.';
+        setErrors({ submit: errorMessage });
+        showNotification(errorMessage, 'error');
+        // Error is fully handled here, don't let it propagate
+      }
     } catch (error) {
+      // This catches any errors in form preparation (before onSubmit)
       const errorMessage = error.response?.data?.message || 'An error occurred. Please try again.';
       setErrors({ submit: errorMessage });
       showNotification(errorMessage, 'error');
@@ -614,8 +705,8 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
         <div className="border-t pt-4">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Invoice Details</h3>
 
-          <div className="bg-gray-50 p-4 rounded-lg border mb-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div className="bg-gray-50 p-3 rounded-lg border mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
               <FloatingInput
                 label="Invoice Number"
                 name="invoices.0.invoiceNumber"
@@ -640,7 +731,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
               <FloatingInput
                 label="Invoice Date"
                 name="invoices.0.invoiceDate"
-                value={invoice.invoiceDate}
+                value={invoice.invoiceDate ? parseDDMMYYYYToISO(invoice.invoiceDate) : ''}
                 onChange={handleChange}
                 type="date"
               />
@@ -658,23 +749,23 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
                 </button>
               </div>
 
-              <div className="space-y-4">
+              {/* Scrollable container for payments - max height after 1 payment */}
+              <div className={`space-y-4 ${invoice.payments.length > 1 ? 'max-h-96 overflow-y-auto pr-2' : ''}`}>
                 {invoice.payments.map((payment, paymentIndex) => (
                   <div key={paymentIndex} className="py-3 border-b last:border-b-0">
                     <div className="flex justify-between items-center mb-3">
                       <span className="text-sm font-medium">Payment #{paymentIndex + 1}</span>
-                      {invoice.payments.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removePayment(paymentIndex)}
-                          className="text-red-600 hover:text-red-800 text-sm"
-                        >
-                          Remove
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => removePayment(paymentIndex)}
+                        className="text-red-600 hover:text-red-800 p-1"
+                        title="Remove payment"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                       <FloatingInput
                         label="Transaction ID"
                         name={`invoices.0.payments.${paymentIndex}.transactionId`}
@@ -694,7 +785,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
                       />
 
                       <FloatingInput
-                        label="Amount (₹) "
+                        label="Amount (₹)"
                         name={`invoices.0.payments.${paymentIndex}.amount`}
                         value={payment.amount}
                         onChange={handleChange}
@@ -706,9 +797,9 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
                       />
 
                       <FloatingInput
-                        label="Payment Date "
+                        label="Payment Date"
                         name={`invoices.0.payments.${paymentIndex}.paymentDate`}
-                        value={payment.paymentDate}
+                        value={payment.paymentDate ? parseDDMMYYYYToISO(payment.paymentDate) : ''}
                         onChange={handleChange}
                         error={errors[`invoices.0.payments.${paymentIndex}.paymentDate`]}
                         type="date"
@@ -716,7 +807,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
                       />
                     </div>
 
-                    <div className="mt-3">
+                    <div className="mt-2">
                       <FloatingInput
                         label="Remarks"
                         name={`invoices.0.payments.${paymentIndex}.remarks`}
