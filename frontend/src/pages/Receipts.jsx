@@ -555,27 +555,27 @@ const Receipts = () => {
                 <table className="min-w-[1000px] w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-40">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-40">
                         Date
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">
                         Category
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">
                         View Items
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-64">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-64">
                         Vendor
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-48">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-48">
                         Received Qty
                       </th>
 
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-48">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-48">
                         Invoice No
                       </th>
 
-                      <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap w-32">
                         Actions
                       </th>
                     </tr>
@@ -584,17 +584,17 @@ const Receipts = () => {
                     {currentItems.length > 0 ? (
                       currentItems.map((receipt) => (
                         <tr key={receipt._id} className="hover:bg-gray-50 transition-colors duration-150">
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             <div className="text-sm font-medium text-gray-900">
                               {formatDate(receipt.date)}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${categoryColors[receipt.receiptCategory] || 'bg-gray-100 text-gray-800'}`}>
                               {receipt.receiptCategory?.toUpperCase() || 'N/A'}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             {receipt.lineItems && receipt.lineItems.length >= 1 && (
                               <button
                                 onClick={() => handleShowItems(receipt)}
@@ -605,25 +605,25 @@ const Receipts = () => {
                               </button>
                             )}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             <div className="text-sm text-gray-900">
                               {receipt.vendorNames?.join(', ') || receipt.vendorName || '-'}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             <div className="text-sm font-semibold text-blue-600">
                               {receipt.totalQuantity}
                             </div>
                           </td>
 
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             <div className="text-sm text-gray-900 font-mono">
                               {receipt.invoiceNo || '-'}
                             </div>
                           </td>
 
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex justify-end space-x-2">
+                          <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                            <div className="flex justify-center space-x-2">
                               {receipt.upload && (
                                 <button
                                   onClick={() => viewUpload(receipt.upload)}

@@ -237,7 +237,7 @@ const QualityManagement = () => {
       'Remarks',
       'Created Date',
       'Last Updated',
-  
+
       'Issue #',
       'Issue Date',
       'Issue Scope',
@@ -559,19 +559,19 @@ const QualityManagement = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Client Name
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Project Name
                       </th>
                       <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         View Issues
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Category
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
                       <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -583,11 +583,11 @@ const QualityManagement = () => {
                     {currentItems.length > 0 ? (
                       currentItems.map((issue) => (
                         <tr key={issue._id} className="hover:bg-gray-50 transition-colors duration-150">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{issue.customer}</div>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <div className="text-sm font-medium text-gray-900">{issue.customer || '-'}</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{issue.projectName || 'N/A'}</div>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <div className="text-sm text-gray-900">{issue.projectName || '-'}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-center">
                             <button
@@ -598,7 +598,7 @@ const QualityManagement = () => {
                               <EyeIcon className="h-5 w-5" />
                             </button>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${issue.category === 'rectify' ? 'bg-yellow-100 text-yellow-800' :
                               issue.category === 'replace' ? 'bg-orange-100 text-orange-800' :
                                 issue.category === 'possible' ? 'bg-green-100 text-green-800' :
@@ -606,15 +606,15 @@ const QualityManagement = () => {
                                     issue.category === 'reject' ? 'bg-red-100 text-red-800' :
                                       'bg-gray-100 text-gray-800'
                               }`}>
-                              {issue.category?.charAt(0).toUpperCase() + issue.category?.slice(1)}
+                              {issue.category?.charAt(0).toUpperCase() + issue.category?.slice(1) || '-'}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${issue.status === 'open' ? 'bg-red-100 text-red-800' :
                               issue.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
                                 'bg-green-100 text-green-800'
                               }`}>
-                              {issue.status?.charAt(0).toUpperCase() + issue.status?.slice(1).replace('-', ' ')}
+                              {issue.status?.charAt(0).toUpperCase() + issue.status?.slice(1).replace('-', ' ') || '-'}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -939,11 +939,11 @@ const QualityManagement = () => {
                     <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Category</span>
                     <div className="mt-1">
                       <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${issueDetails.category === 'rectify' ? 'bg-yellow-100 text-yellow-800' :
-                          issueDetails.category === 'replace' ? 'bg-orange-100 text-orange-800' :
-                            issueDetails.category === 'possible' ? 'bg-green-100 text-green-800' :
-                              issueDetails.category === 'not possible' ? 'bg-red-100 text-red-800' :
-                                issueDetails.category === 'reject' ? 'bg-red-100 text-red-800' :
-                                  'bg-gray-100 text-gray-800'
+                        issueDetails.category === 'replace' ? 'bg-orange-100 text-orange-800' :
+                          issueDetails.category === 'possible' ? 'bg-green-100 text-green-800' :
+                            issueDetails.category === 'not possible' ? 'bg-red-100 text-red-800' :
+                              issueDetails.category === 'reject' ? 'bg-red-100 text-red-800' :
+                                'bg-gray-100 text-gray-800'
                         }`}>
                         {issueDetails.category?.charAt(0).toUpperCase() + issueDetails.category?.slice(1)}
                       </span>
@@ -953,8 +953,8 @@ const QualityManagement = () => {
                     <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Status</span>
                     <div className="mt-1">
                       <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${issueDetails.status === 'open' ? 'bg-red-100 text-red-800' :
-                          issueDetails.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
-                            'bg-green-100 text-green-800'
+                        issueDetails.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                          'bg-green-100 text-green-800'
                         }`}>
                         {issueDetails.status?.charAt(0).toUpperCase() + issueDetails.status?.slice(1).replace('-', ' ')}
                       </span>

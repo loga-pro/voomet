@@ -395,8 +395,8 @@ const ProjectBudgetManagement = () => {
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters || Object.values(filters).some(Boolean)
-                      ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
-                      : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                    ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
+                    : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
                     }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
@@ -499,28 +499,28 @@ const ProjectBudgetManagement = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Project Name
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Financial Year
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Quoted (₹)
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Negotiated (₹)
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Spent (₹)
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Net Profit/Loss
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Business Impact
                     </th>
-                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -528,23 +528,23 @@ const ProjectBudgetManagement = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {currentItems.map((budget) => (
                     <tr key={budget._id} className="hover:bg-gray-50 transition-colors duration-150">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                         
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex items-center justify-center">
+
                           <div className="ml-4">
-                            <div className="text-sm font-semibold text-gray-900">{budget.projectName}</div>
+                            <div className="text-sm font-semibold text-gray-900">{budget.projectName || '-'}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-center">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {budget.financialYear}
+                          {budget.financialYear || '-'}
                         </span>
                       </td>
-                      <td className="px-6 py-4">₹{budget.quotedPrice?.toLocaleString('en-IN')}</td>
-                      <td className="px-6 py-4">₹{budget.negotiatedPrice?.toLocaleString('en-IN')}</td>
-                      <td className="px-6 py-4">₹{budget.amountSpent?.toLocaleString('en-IN')}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-center">₹{budget.quotedPrice?.toLocaleString('en-IN') || '-'}</td>
+                      <td className="px-6 py-4 text-center">₹{budget.negotiatedPrice?.toLocaleString('en-IN') || '-'}</td>
+                      <td className="px-6 py-4 text-center">₹{budget.amountSpent?.toLocaleString('en-IN') || '-'}</td>
+                      <td className="px-6 py-4 text-center">
                         <div className={`text-sm font-semibold ${getProfitLossColor(budget.netProfitLoss)}`}>
                           ₹{(budget.netProfitLoss >= 0 ? '' : '-') + Math.abs(budget.netProfitLoss)?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
@@ -553,13 +553,13 @@ const ProjectBudgetManagement = () => {
                           {budget.netProfitLoss >= 0 ? 'Profit' : 'Loss'}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-center">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getBusinessImpactColor(budget.overallBusinessImpact)}`}>
-                          {budget.overallBusinessImpact}
+                          {budget.overallBusinessImpact || '-'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end space-x-2">
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex justify-center space-x-2">
                           <button
                             onClick={() => handleView(budget)}
                             className="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors duration-150"
@@ -723,8 +723,8 @@ const ProjectBudgetManagement = () => {
                           <button
                             onClick={() => paginate(page)}
                             className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
-                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                              ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                               }`}
                           >
                             {page}

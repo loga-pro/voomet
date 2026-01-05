@@ -384,12 +384,12 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
 
                     {/* Items Table Header */}
                     <div className="flex text-center font-bold border-b border-black invoice-small">
-                      <div className="w-[4%] border-r border-black p-1 flex items-end justify-center">Sl No.</div>
-                      <div className="w-[40%] border-r border-black p-1 flex items-end justify-center">Description of Goods</div>
-                      <div className="w-[14%] border-r border-black p-1 flex items-end justify-center">Quantity</div>
-                      <div className="w-[9%] border-r border-black p-1 flex items-end justify-center">Rate</div>
-                      <div className="w-[6%] border-r border-black p-1 flex items-end justify-center">per</div>
-                      <div className="w-[18%] p-1 flex items-end justify-center">Amount</div>
+                      <div className="w-[4%] border-r border-black p-1 flex items-center justify-center">Sl No.</div>
+                      <div className="w-[40%] border-r border-black p-1 flex items-center justify-center">Description of Goods</div>
+                      <div className="w-[14%] border-r border-black p-1 flex items-center justify-center">Quantity</div>
+                      <div className="w-[9%] border-r border-black p-1 flex items-center justify-center">Rate</div>
+                      <div className="w-[6%] border-r border-black p-1 flex items-center justify-center">per</div>
+                      <div className="w-[18%] p-1 flex items-center justify-center">Amount</div>
                     </div>
 
                     {/* Items Table Body */}
@@ -413,9 +413,9 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
                                 <span className="font-bold">{item.partName || 'Item'}</span>
                               </div>
                               <div className="w-[14%] border-r border-black p-1 text-center">{item.quantity} {item.unit}</div>
-                              <div className="w-[9%] border-r border-black p-1 text-right">{(parseFloat(item.priceWithoutGST || item.invoiceValueWithoutGST) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                              <div className="w-[9%] border-r border-black p-1 text-center">{(parseFloat(item.priceWithoutGST || item.invoiceValueWithoutGST) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                               <div className="w-[6%] border-r border-black p-1 text-center">{item.unit}</div>
-                              <div className="w-[18%] p-1 text-right font-bold">{totalWithGST.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                              <div className="w-[18%] p-1 text-center font-bold">{totalWithGST.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                             </div>
                           );
                         })
@@ -427,9 +427,9 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
                               <span className="font-bold">{projectName || 'Interior Works'}</span>
                             </div>
                             <div className="w-[14%] border-r border-black p-1 text-center"></div>
-                            <div className="w-[9%] border-r border-black p-1 text-right"></div>
+                            <div className="w-[9%] border-r border-black p-1 text-center"></div>
                             <div className="w-[6%] border-r border-black p-1 text-center"></div>
-                            <div className="w-[18%] p-1 text-right font-bold">{(parseFloat(inv.invoiceValueWithoutGST || inv.totalValue || inv.invoiceValue) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                            <div className="w-[18%] p-1 text-center font-bold">{(parseFloat(inv.invoiceValueWithoutGST || inv.totalValue || inv.invoiceValue) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                           </div>
                         ))
                       ) : (
@@ -440,9 +440,9 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
                             <div className="italic invoice-xsmall mt-1">As Per Attached Annexure</div>
                           </div>
                           <div className="w-[14%] border-r border-black p-1 text-center"></div>
-                          <div className="w-[9%] border-r border-black p-1 text-right"></div>
+                          <div className="w-[9%] border-r border-black p-1 text-center"></div>
                           <div className="w-[6%] border-r border-black p-1 text-center"></div>
-                          <div className="w-[18%] p-1 text-right font-bold">0.00</div>
+                          <div className="w-[18%] p-1 text-center font-bold">0.00</div>
                         </div>
                       )}
 
@@ -463,7 +463,7 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
                             <div>%</div>
                             <div>%</div>
                           </div>
-                          <div className="w-[18%] p-1 text-right">
+                          <div className="w-[18%] p-1 text-center">
                             <div>{cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                             <div>{sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                           </div>
@@ -474,13 +474,13 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
                       {roundOff !== 0 && (
                         <div className="flex invoice-small border-b border-black">
                           <div className="w-[4%] border-r border-black p-1 text-center"></div>
-                          <div className="w-[40%] border-r border-black p-1 text-right">
+                          <div className="w-[40%] border-r border-black p-1 text-center">
                             {roundOff >= 0 ? 'Add : ' : 'Less : '}<span className="font-bold">Round OFF</span>
                           </div>
                           <div className="w-[14%] border-r border-black p-1 text-center"></div>
-                          <div className="w-[9%] border-r border-black p-1 text-right"></div>
+                          <div className="w-[9%] border-r border-black p-1 text-center"></div>
                           <div className="w-[6%] border-r border-black p-1 text-center"></div>
-                          <div className="w-[18%] p-1 text-right">{roundOff >= 0 ? '' : '(-)'}{Math.abs(roundOff).toFixed(2)}</div>
+                          <div className="w-[18%] p-1 text-center">{roundOff >= 0 ? '' : '(-)'}{Math.abs(roundOff).toFixed(2)}</div>
                         </div>
                       )}
 
@@ -498,11 +498,11 @@ const Purchase = ({ invoiceData = {}, hideDownloadButton = false }) => {
                     {/* Total Row */}
                     <div className="flex border-t border-b border-black">
                       <div className="w-[4%] border-r border-black p-1 text-center invoice-small"></div>
-                      <div className="w-[40%] border-r border-black p-1 text-right invoice-small font-bold">Total</div>
+                      <div className="w-[40%] border-r border-black p-1 text-center invoice-small font-bold">Total</div>
                       <div className="w-[14%] border-r border-black p-1 text-center font-bold invoice-small">{totalQuantity > 0 ? totalQuantity : ''}</div>
                       <div className="w-[9%] border-r border-black p-1 text-center"></div>
                       <div className="w-[6%] border-r border-black p-1 text-center"></div>
-                      <div className="w-[18%] p-1 flex flex-col items-end justify-center">
+                      <div className="w-[18%] p-1 flex flex-col items-center justify-center">
                         <span className="font-bold text-sm">₹ {totalWithTax.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                     </div>

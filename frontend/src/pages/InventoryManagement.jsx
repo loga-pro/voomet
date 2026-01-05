@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { inventoryAPI, vendorsAPI, receiptsAPI, dispatchesAPI } from '../services/api';
 import InventorySummaryTable from '../components/Inventory/InventorySummaryTable';
-import { Factory, Users, RotateCcw, Package } from 'lucide-react';
+import InventoryPDFGenerator from '../components/Inventory/InventoryPDFGenerator';
+import { Factory, Users, RotateCcw, Package, FileDown } from 'lucide-react';
 
 const StockMaster = () => {
   const [inventoryItems, setInventoryItems] = useState([]);
@@ -14,6 +15,10 @@ const StockMaster = () => {
   const [allReceipts, setAllReceipts] = useState([]);
   const [allDispatches, setAllDispatches] = useState([]);
   const [masterRowData, setMasterRowData] = useState([]);
+
+  // PDF generation states
+  const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [showPDFGenerator, setShowPDFGenerator] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -267,6 +272,36 @@ const StockMaster = () => {
 
   const summary = calculateSummary();
 
+  // Handle PDF generation
+  const handleGeneratePDF = () => {
+    setGeneratingPDF(true);
+    setShowPDFGenerator(true);
+  };
+
+  const handlePDFComplete = (blob, fileName) => {
+    // Create download link
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    // Reset states
+    setGeneratingPDF(false);
+    setShowPDFGenerator(false);
+    showNotification('PDF generated successfully!', 'success');
+  };
+
+  const handlePDFError = (error) => {
+    console.error('PDF generation error:', error);
+    setGeneratingPDF(false);
+    setShowPDFGenerator(false);
+    showNotification('Failed to generate PDF. Please try again.', 'error');
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -348,7 +383,18 @@ const StockMaster = () => {
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Inventory Master</h1>
               <p className="text-gray-500">Comprehensive view of all inventory stock summaries.</p>
             </div>
-            <div className="text-right">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleGeneratePDF}
+                disabled={generatingPDF || masterRowData.length === 0}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${generatingPDF || masterRowData.length === 0
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow-md'
+                  }`}
+              >
+                <FileDown className="h-5 w-5" />
+                {generatingPDF ? 'Generating...' : 'Download PDF'}
+              </button>
               <span className="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
                 Total Parts: {masterRowData.length}
               </span>
@@ -373,6 +419,15 @@ const StockMaster = () => {
             />
           )}
         </div>
+
+        {/* PDF Generator - Hidden component for background generation */}
+        {showPDFGenerator && (
+          <InventoryPDFGenerator
+            inventoryData={inventoryItems}
+            onComplete={handlePDFComplete}
+            onError={handlePDFError}
+          />
+        )}
       </div>
     </div>
   );

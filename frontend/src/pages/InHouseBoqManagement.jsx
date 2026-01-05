@@ -95,7 +95,7 @@ const InHouseBoqManagement = () => {
   // Exclude projects in RFQ stage
   const getFilteredProjectNames = () => {
     let projectNames = uniqueProjectNamesList;
-    
+
     // Filter by customer if selected
     if (filters.customer) {
       const filteredProjects = boqItems
@@ -104,7 +104,7 @@ const InHouseBoqManagement = () => {
         .filter(Boolean);
       projectNames = [...new Set(filteredProjects)];
     }
-    
+
     // Filter out RFQ stage projects
     // Only show: boq, awarded, under_execution, completed, post_implementation
     const allowedStages = ['boq', 'awarded', 'under_execution', 'completed', 'post_implementation'];
@@ -112,7 +112,7 @@ const InHouseBoqManagement = () => {
       const project = allProjects.find(p => p.projectName === projectName);
       return project && allowedStages.includes(project.stage);
     });
-    
+
     return filteredByStage;
   };
 
@@ -121,12 +121,12 @@ const InHouseBoqManagement = () => {
       setLoading(true);
       const response = await boqAPI.getAll();
       const allItems = Array.isArray(response.data.data) ? response.data.data : [];
-      
+
       // Filter to show only saved BOQs (those with items)
-      const savedItems = allItems.filter(item => 
+      const savedItems = allItems.filter(item =>
         item.items && Array.isArray(item.items) && item.items.length > 0
       );
-      
+
       setBoqItems(savedItems);
 
       // Extract unique customers from saved items only
@@ -165,7 +165,7 @@ const InHouseBoqManagement = () => {
           itemDescriptions.push(item.itemDescription);
         }
       });
-      
+
       const uniqueDescriptions = [...new Set(itemDescriptions)].filter(Boolean).sort();
       setUniqueItemDescriptions(uniqueDescriptions);
     } catch (error) {
@@ -209,11 +209,11 @@ const InHouseBoqManagement = () => {
       filtered = filtered.filter((item) => {
         // Check in main item description
         if (item.itemDescription === filters.itemDescription) return true;
-        
+
         // Check in nested items
         if (item.items && Array.isArray(item.items)) {
           return item.items.some(
-            (subItem) => 
+            (subItem) =>
               subItem.partName === filters.itemDescription ||
               subItem.itemDescription === filters.itemDescription
           );
@@ -348,7 +348,7 @@ const InHouseBoqManagement = () => {
     try {
       // Use boqItems instead of safeFilteredItems to export ALL data
       const allItems = Array.isArray(boqItems) ? boqItems : [];
-      
+
       // Enhanced headers to include detailed item information
       const headers = [
         "Customer",
@@ -477,9 +477,9 @@ const InHouseBoqManagement = () => {
                   className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters ||
                     Object.values(filters).some(Boolean) ||
                     searchTerm
-                      ? "border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100"
-                      : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
-                  }`}
+                    ? "border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100"
+                    : "border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+                    }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
                   Filters
@@ -606,25 +606,25 @@ const InHouseBoqManagement = () => {
                     <tr>
                       <th
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
                         Client Name
                       </th>
                       <th
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
                         Project
                       </th>
                       <th
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
                         Scope
                       </th>
                       <th
                         scope="col"
-                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
                         Actions
                       </th>
@@ -640,31 +640,31 @@ const InHouseBoqManagement = () => {
                             className="hover:bg-gray-50 transition-colors duration-150"
                           >
                             {/* Customer & Project Column */}
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center">
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                              <div className="flex items-center justify-center">
                                 <div className="ml-4">
                                   <div className="text-sm font-medium text-gray-900">
-                                    {boq.customer}
+                                    {boq.customer || '-'}
                                   </div>
                                 </div>
                               </div>
                             </td>
 
                             {/* Project Name Column */}
-                            <td className="px-6 py-4">
+                            <td className="px-6 py-4 text-center">
                               <div className="text-sm text-gray-900">
-                                {boq.projectName}
+                                {boq.projectName || '-'}
                               </div>
                             </td>
 
-                            <td className="px-6 py-4">
+                            <td className="px-6 py-4 text-center">
                               <div className="text-sm text-gray-900">
-                                {formatScopeDisplay(boq.scopeOfWork)}
+                                {formatScopeDisplay(boq.scopeOfWork) || '-'}
                               </div>
                             </td>
                             {/* Actions Column */}
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <div className="flex justify-end space-x-2">
+                            <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                              <div className="flex justify-center space-x-2">
                                 <button
                                   onClick={() => handleView(boq)}
                                   className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
@@ -698,7 +698,7 @@ const InHouseBoqManagement = () => {
                           className="px-6 py-8 text-center text-gray-500"
                         >
                           {Object.values(filters).some((val) => val !== "") ||
-                          searchTerm
+                            searchTerm
                             ? "No BOQ items found matching your filters."
                             : "No BOQ items found."}
                         </td>
@@ -819,8 +819,8 @@ const InHouseBoqManagement = () => {
                             {stats.minPrice === stats.maxPrice
                               ? `₹${stats.minPrice.toFixed(2)}`
                               : `₹${stats.minPrice.toFixed(
-                                  2
-                                )}-₹${stats.maxPrice.toFixed(2)}`}
+                                2
+                              )}-₹${stats.maxPrice.toFixed(2)}`}
                           </div>
                         </div>
                       </div>
@@ -843,7 +843,7 @@ const InHouseBoqManagement = () => {
               ) : (
                 <div className="p-8 text-center text-gray-500">
                   {Object.values(filters).some((val) => val !== "") ||
-                  searchTerm
+                    searchTerm
                     ? "No BOQ items found matching your filters."
                     : "No BOQ items found."}
                 </div>
@@ -909,8 +909,8 @@ const InHouseBoqManagement = () => {
                           <button
                             onClick={() => paginate(page)}
                             className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
-                                ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
-                                : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                              ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
+                              : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
                               }`}
                           >
                             {page}
@@ -951,7 +951,7 @@ const InHouseBoqManagement = () => {
                   Client & Project Information
                 </h3>
               </div>
-              
+
               <div className="px-6 py-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* Client Name */}
@@ -1022,7 +1022,7 @@ const InHouseBoqManagement = () => {
                   Items List
                 </h3>
               </div>
-              
+
               {selectedItem.items && selectedItem.items.length > 0 ? (
                 <div className="px-6 py-5">
                   {/* Items Table */}
@@ -1089,7 +1089,7 @@ const InHouseBoqManagement = () => {
                 <DocumentArrowDownIcon className="h-4 w-4 mr-2" />
                 Generate PDF
               </button>
-              
+
               <button
                 onClick={() => setSelectedItem(null)}
                 className="inline-flex items-center px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
