@@ -758,38 +758,38 @@ const ProjectMaster = () => {
                     <tr>
                       <th
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
                         Project Name
                       </th>
                       <th
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
                         Client Name
                       </th>
 
                       <th
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
                         Enquiry Date
                       </th>
                       <th
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
                         Stage
                       </th>
                       <th
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
                         Project Value (₹)
                       </th>
                       <th
                         scope="col"
-                        className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
                       >
                         Actions
                       </th>
@@ -802,39 +802,34 @@ const ProjectMaster = () => {
                           key={project._id}
                           className="hover:bg-gray-50 transition-colors duration-150"
                         >
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             <div className="text-sm text-gray-900">
-                              {project.projectName}
+                              {project.projectName || '-'}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             <div className="text-sm font-medium text-gray-900">
-                              {project?.customerName}
+                              {project?.customerName || '-'}
                             </div>
                           </td>
 
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             <div className="text-sm text-gray-900">
-                              {new Date(
-                                project.enquiryDate
-                              ).toLocaleDateString()}
+                              {project.enquiryDate ? new Date(project.enquiryDate).toLocaleDateString() : '-'}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                              {project.stage.replace(/_/g, " ").toUpperCase()}
+                              {project.stage ? project.stage.replace(/_/g, " ").toUpperCase() : '-'}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
                             <div className="text-sm text-gray-900">
-                              ₹
-                              {project.totalProjectValue
-                                .toFixed(2)
-                                .toLocaleString()}
+                              {project.totalProjectValue ? `₹${project.totalProjectValue.toFixed(2).toLocaleString()}` : '-'}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex justify-end space-x-2">
+                          <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                            <div className="flex justify-center space-x-2">
                               <button
                                 onClick={() => handleView(project)}
                                 className="text-blue-600 hover:text-blue-900 p-1 transition-colors duration-150"
@@ -1111,27 +1106,27 @@ const ProjectMaster = () => {
                           selectedProject.projectType?.slice(1) || "New"}
                       </p>
                     </div>
-                     <div>
+                    <div>
                       <span className="text-xs text-gray-500">Enquiry Date</span>
                       <p>{new Date(selectedProject.enquiryDate).toLocaleDateString()}</p>
                     </div>
                     <div>
-                    <span className="text-xs text-gray-500">Scope of Work</span>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {selectedProject.scopeOfWork && selectedProject.scopeOfWork.length > 0 ? (
-                        formatScopeOfWork(selectedProject.scopeOfWork).map((scope, index) => (
-                          <span
-                            key={index}
-                            className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-800"
-                          >
-                            {scope}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-sm text-gray-500">No scope of work defined</span>
-                      )}
+                      <span className="text-xs text-gray-500">Scope of Work</span>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {selectedProject.scopeOfWork && selectedProject.scopeOfWork.length > 0 ? (
+                          formatScopeOfWork(selectedProject.scopeOfWork).map((scope, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-800"
+                            >
+                              {scope}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-sm text-gray-500">No scope of work defined</span>
+                        )}
+                      </div>
                     </div>
-                  </div>
                     <div>
                       <span className="text-xs text-gray-500">Stage</span>
                       <p>

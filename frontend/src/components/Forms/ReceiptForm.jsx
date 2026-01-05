@@ -663,13 +663,15 @@ const ReceiptForm = ({
         <div className="mt-6 pt-6 border-t border-gray-200">
           <div className="flex justify-between items-center mb-4">
             <h4 className="text-md font-semibold text-gray-900">Line Items</h4>
-            <button
-              type="button"
-              onClick={addLineItem}
-              className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
-            >
-              <FaPlus /> Add Item
-            </button>
+            {formData.category !== 'Bought-out' && (
+              <button
+                type="button"
+                onClick={addLineItem}
+                className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+              >
+                <FaPlus /> Add Item
+              </button>
+            )}
           </div>
 
           <div className="overflow-x-auto shadow-sm border border-gray-200 rounded-lg">

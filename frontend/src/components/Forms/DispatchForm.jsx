@@ -483,7 +483,7 @@ const DispatchForm = ({
     <form onSubmit={handleSubmit} className="space-y-4">
 
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <FloatingInput
           label="Date "
           name="date"
@@ -506,7 +506,6 @@ const DispatchForm = ({
             { value: 'site', label: 'Site' }
           ]}
         />
-
 
         <FloatingInput
           label="Vehicle No"
@@ -577,7 +576,7 @@ const DispatchForm = ({
         />
 
         {(formData.dispatchCategory === 'return' || formData.dispatchCategory === 'reject') && (
-          <div className="md:col-span-2">
+          <div className="md:col-span-3">
             <FloatingInput
               label="Reason for Rejection/Return"
               name="reasonForRejection"
