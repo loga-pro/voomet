@@ -3,7 +3,7 @@ import { vendorPaymentsAPI, vendorsAPI } from '../../services/api';
 import FloatingInput from './FloatingInput';
 import NotificationComponent from '../Notifications/Notification';
 import { UploadOutlined } from '@ant-design/icons';
-import { Button, Upload } from 'antd';
+import { Button, Upload, Modal } from 'antd';
 import { TrashIcon } from '@heroicons/react/24/outline';
 
 // Date formatting function for dd-mm-yyyy format
@@ -18,9 +18,11 @@ const formatDateToDDMMYYYY = (dateString) => {
 
 // Function to parse dd-mm-yyyy back to ISO format for input
 const parseDDMMYYYYToISO = (dateString) => {
-  if (!dateString || dateString.includes('-')) return dateString;
+  if (!dateString) return '';
   const parts = dateString.split('-');
   if (parts.length !== 3) return dateString;
+  // If first part is 4 digits, it's already ISO YYYY-MM-DD
+  if (parts[0].length === 4) return dateString;
   const [day, month, year] = parts;
   return `${year}-${month}-${day}`;
 };
@@ -209,6 +211,36 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
     return !!existing;
   };
 
+  const checkDuplicateTransactionId = (transactionId, currentPaymentIndex = -1) => {
+    if (!transactionId) return false;
+
+    // 1. Check in local form state (other payments in the same form)
+    const otherLocalDuplicate = formData.invoices[0].payments.some((p, idx) =>
+      idx !== currentPaymentIndex && p.transactionId === transactionId
+    );
+    if (otherLocalDuplicate) return true;
+
+    // 2. Check in existing payments (global)
+    const existing = existingPayments.find(pmtRecord => {
+      // If we are editing this specific record, we should check if the transactionId 
+      // already existed in THIS record. If it did, it's not a "new" duplicate.
+      if (isEditMode && payment && pmtRecord._id === payment._id) {
+        // Only return true if this transactionId exists in standard payment list
+        // and is not one of the original transaction IDs of the record being edited
+        const pmtOriginal = payment.invoices.some(inv =>
+          inv.payments.some(p => p.transactionId === transactionId)
+        );
+        if (pmtOriginal) return false;
+      }
+
+      return pmtRecord.invoices.some(inv =>
+        inv.payments.some(p => p.transactionId === transactionId)
+      );
+    });
+
+    return !!existing;
+  };
+
   // Add bank name validation function
   const handleBankNameChange = (e, paymentIndex) => {
     const { value } = e.target;
@@ -260,13 +292,20 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
       const nameParts = name.split('.');
 
       if (nameParts.length === 3) {
-        const [parent, index, field] = nameParts;
-        const arrayIndex = parseInt(index);
+        let finalValue = formattedValue;
+
+        // Restriction: Max 2 decimal places for invoiceValue
+        if (field === 'invoiceValue' && finalValue !== '') {
+          const parts = finalValue.toString().split('.');
+          if (parts.length > 1 && parts[1].length > 2) {
+            finalValue = parts[0] + '.' + parts[1].substring(0, 2);
+          }
+        }
 
         setFormData(prev => ({
           ...prev,
           [parent]: prev[parent].map((item, i) =>
-            i === arrayIndex ? { ...item, [field]: formattedValue } : item
+            i === arrayIndex ? { ...item, [field]: finalValue } : item
           )
         }));
 
@@ -293,13 +332,57 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
         const invIndex = parseInt(invoiceIndex);
         const payIndex = parseInt(paymentIndex);
 
-        // Since we only have one invoice now, we can simplify this
+        let finalValue = formattedValue;
+
+        // Restriction: Max 2 decimal places for amount
+        if (field === 'amount' && finalValue !== '') {
+          const parts = finalValue.toString().split('.');
+          if (parts.length > 1 && parts[1].length > 2) {
+            finalValue = parts[0] + '.' + parts[1].substring(0, 2);
+          }
+        }
+
+        // Restriction: Payment amount cannot exceed invoice value
+        if (field === 'amount' && finalValue !== '') {
+          const amount = parseFloat(finalValue) || 0;
+          const invoiceValue = parseFloat(formData.invoices[0].invoiceValue) || 0;
+
+          // Calculate total of other payments for the same invoice
+          const otherPaymentsTotal = formData.invoices[0].payments.reduce((sum, p, i) => {
+            if (i === payIndex) return sum;
+            return sum + (parseFloat(p.amount) || 0);
+          }, 0);
+
+          const maxAllowed = Math.max(0, invoiceValue - otherPaymentsTotal);
+
+          if (amount > maxAllowed && maxAllowed >= 0) {
+            // Apply Math.floor rounding for precision issues
+            finalValue = (Math.floor(maxAllowed * 100) / 100).toString();
+          }
+        }
+
+        if (field === 'transactionId') {
+          const isDuplicateId = checkDuplicateTransactionId(finalValue, payIndex);
+          if (isDuplicateId) {
+            setErrors(prev => ({
+              ...prev,
+              [`invoices.0.payments.${payIndex}.transactionId`]: 'Transaction ID already exists'
+            }));
+          } else {
+            setErrors(prev => {
+              const newErrors = { ...prev };
+              delete newErrors[`invoices.0.payments.${payIndex}.transactionId`];
+              return newErrors;
+            });
+          }
+        }
+
         setFormData(prev => ({
           ...prev,
           invoices: [{
             ...prev.invoices[0],
             payments: prev.invoices[0].payments.map((payment, j) =>
-              j === payIndex ? { ...payment, [field]: formattedValue } : payment
+              j === payIndex ? { ...payment, [field]: finalValue } : payment
             )
           }]
         }));
@@ -421,13 +504,22 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
   };
 
   const removePayment = (paymentIndex) => {
-    setFormData(prev => ({
-      ...prev,
-      invoices: [{
-        ...prev.invoices[0],
-        payments: prev.invoices[0].payments.filter((_, j) => j !== paymentIndex)
-      }]
-    }));
+    Modal.confirm({
+      title: 'Are you sure you want to delete this payment entry?',
+      content: 'This action will remove the payment from the invoice.',
+      okText: 'Yes, Delete',
+      okType: 'danger',
+      cancelText: 'No',
+      onOk: () => {
+        setFormData(prev => ({
+          ...prev,
+          invoices: [{
+            ...prev.invoices[0],
+            payments: prev.invoices[0].payments.filter((_, j) => j !== paymentIndex)
+          }]
+        }));
+      }
+    });
   };
 
   const showNotification = useCallback((message, type = 'success') => {
@@ -462,11 +554,32 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
     if (!invoice.invoiceValue || invoice.invoiceValue <= 0) newErrors['invoices.0.invoiceValue'] = 'Valid invoice value is required';
 
     invoice.payments.forEach((payment, pIndex) => {
-      if (!payment.transactionId) newErrors[`invoices.0.payments.${pIndex}.transactionId`] = 'Transaction ID is required';
+      if (!payment.transactionId) {
+        newErrors[`invoices.0.payments.${pIndex}.transactionId`] = 'Transaction ID is required';
+      } else {
+        const isDuplicateId = checkDuplicateTransactionId(payment.transactionId, pIndex);
+        if (isDuplicateId) {
+          newErrors[`invoices.0.payments.${pIndex}.transactionId`] = 'Transaction ID already exists';
+        }
+      }
       if (!payment.bankName) newErrors[`invoices.0.payments.${pIndex}.bankName`] = 'Bank name is required';
       if (!payment.amount || payment.amount <= 0) newErrors[`invoices.0.payments.${pIndex}.amount`] = 'Valid amount is required';
       // Add validation for payment date
-      if (!payment.paymentDate) newErrors[`invoices.0.payments.${pIndex}.paymentDate`] = 'Payment date is required';
+      if (!payment.paymentDate) {
+        newErrors[`invoices.0.payments.${pIndex}.paymentDate`] = 'Payment date is required';
+      } else if (invoice.invoiceDate) {
+        // Validation: Payment date cannot be before invoice date
+        const invDate = new Date(parseDDMMYYYYToISO(invoice.invoiceDate));
+        const payDate = new Date(parseDDMMYYYYToISO(payment.paymentDate));
+
+        // Set to midnight for date-only comparison
+        invDate.setHours(0, 0, 0, 0);
+        payDate.setHours(0, 0, 0, 0);
+
+        if (payDate < invDate) {
+          newErrors[`invoices.0.payments.${pIndex}.paymentDate`] = 'Payment date cannot be before invoice date';
+        }
+      }
     });
 
     setErrors(newErrors);
@@ -667,7 +780,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
             onChange={handleChange}
             error={errors.vendorGstNumber}
             required
-            readOnly={isEditMode}
+            readOnly={true}
           />
 
           <FloatingInput
@@ -677,7 +790,7 @@ const VendorPaymentForm = ({ payment, onSubmit, onCancel }) => {
             onChange={handleChange}
             error={errors.vendorAccountNumber}
             required
-            readOnly={isEditMode}
+            readOnly={true}
           />
         </div>
 

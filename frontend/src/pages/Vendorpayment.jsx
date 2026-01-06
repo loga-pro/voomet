@@ -481,8 +481,8 @@ const VendorPaymentManagement = () => {
                                 {payment.status?.charAt(0).toUpperCase() + payment.status?.slice(1)}
                               </span>
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-center">
-                              <div className="flex space-x-2">
+                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                              <div className="flex justify-center space-x-2">
                                 {/* PDF View Button - Only for vendors with uploaded PDFs */}
                                 {payment.vendor?.category === 'vendor' && payment.image && (
                                   <button

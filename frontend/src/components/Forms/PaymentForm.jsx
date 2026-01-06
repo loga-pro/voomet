@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Building2, FileText, Plus, Trash2, Wallet, Truck, ChevronLeft, ChevronRight, AlertCircle, CreditCard, AlertTriangle } from 'lucide-react';
+import { Modal } from 'antd';
 import FloatingInput from './FloatingInput';
-import { customersAPI, paymentsAPI, projectsAPI, boqAPI } from '../../services/api';
+import { customersAPI, paymentsAPI, projectsAPI, boqAPI, milestonesAPI, inhouseMilestonesAPI } from '../../services/api';
 
 const PaymentForm = ({ payment, onSubmit, onCancel }) => {
   const [isOverdueMode, setIsOverdueMode] = useState(false);
@@ -13,10 +14,10 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       if (event.detail && event.detail.hasOverdue && event.detail.overdueAmount > 0) {
         setIsOverdueMode(true);
         setOverdueAmount(event.detail.overdueAmount);
-        
+
         // Switch to invoices tab
         setActiveTab('invoices');
-        
+
         // Create a new invoice with overdue amount
         const newInvoice = {
           invoiceDate: new Date().toISOString().split('T')[0],
@@ -30,12 +31,12 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
           sgst: 0,
           totalWithTax: event.detail.overdueAmount
         };
-        
+
         setFormData(prev => ({
           ...prev,
           invoices: [newInvoice]
         }));
-        
+
         // Show notification
         alert('Overdue invoice mode activated - Invoice created for overdue amount');
       }
@@ -99,6 +100,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
   const [showAddPayment, setShowAddPayment] = useState(false); // New state for showing add payment button
   const [showAlreadyInvoicedPopup, setShowAlreadyInvoicedPopup] = useState(false); // Popup for already invoiced projects
   const [existingInvoices, setExistingInvoices] = useState([]); // Store existing invoices for popup
+  const [projectStartDate, setProjectStartDate] = useState(null); // Store project start date from milestone
 
   const fetchProjectInvoicedAmount = async (customerName, projectName) => {
     try {
@@ -238,10 +240,57 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         if (payment.project || payment.projectName) {
           fetchProjectInvoicedAmount(payment.customer, payment.project || payment.projectName);
           fetchBoqTerms(payment.customer, payment.project || payment.projectName);
+          fetchProjectStartDate(payment.customer, payment.project || payment.projectName);
         }
       }
     }
   }, [payment]);
+
+  const fetchProjectStartDate = async (customerName, projectName) => {
+    try {
+      if (!customerName || !projectName) return;
+      const response = await milestonesAPI.getAll({
+        customer: customerName,
+        projectName: projectName
+      });
+
+      const milestones = response.data || (Array.isArray(response) ? response : []);
+      if (milestones.length > 0) {
+        // Find the earliest start date if multiple milestones exist
+        const earliestDate = milestones.reduce((earliest, current) => {
+          const currentStart = new Date(current.startDate);
+          if (!earliest || currentStart < new Date(earliest)) {
+            return current.startDate;
+          }
+          return earliest;
+        }, null);
+
+        setProjectStartDate(earliestDate);
+      } else {
+        // If no regular milestone, check inhouse milestones
+        const inhouseResponse = await inhouseMilestonesAPI.getAll({
+          customer: customerName,
+          projectName: projectName
+        });
+        const inhouseMilestones = inhouseResponse.data || (Array.isArray(inhouseResponse) ? inhouseResponse : []);
+        if (inhouseMilestones.length > 0) {
+          const earliestDate = inhouseMilestones.reduce((earliest, current) => {
+            const currentStart = new Date(current.startDate);
+            if (!earliest || currentStart < new Date(earliest)) {
+              return current.startDate;
+            }
+            return earliest;
+          }, null);
+          setProjectStartDate(earliestDate);
+        } else {
+          setProjectStartDate(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching project start date:', error);
+      setProjectStartDate(null);
+    }
+  };
 
   // Monitor invoice changes and update payment tab
   useEffect(() => {
@@ -249,7 +298,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       const firstInvoice = formData.invoices[0];
       const firstInvoiceNumber = firstInvoice.invoiceNumber || '';
       const firstInvoicePaymentType = firstInvoice.paymentType || 'advance';
-      
+
       // Update all payments with the first invoice's details
       setFormData(prev => ({
         ...prev,
@@ -476,6 +525,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         }));
         fetchBOQData(formData.customer, selectedProject.projectName, selectedProject);
         fetchProjectInvoicedAmount(formData.customer, selectedProject.projectName);
+        fetchProjectStartDate(formData.customer, selectedProject.projectName);
       }
       return;
     }
@@ -746,6 +796,24 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         newErrors[`paymentDate_${index}`] = 'Payment date cannot be in the future';
         newErrors.submit = 'Payment date cannot be in the future';
       }
+
+      if (payment.amount && !isNaN(parseFloat(payment.amount))) {
+        const amount = parseFloat(payment.amount);
+        const inv = formData.invoices.find(i => i.invoiceNumber === payment.invoiceNumber);
+        if (inv) {
+          const totalInvValue = parseFloat(inv.totalWithTax) || parseFloat(inv.invoiceValue) || 0;
+
+          // Sum all payments for this invoice to check total
+          const allPaymentsForInv = formData.payments
+            .filter(p => p.invoiceNumber === payment.invoiceNumber)
+            .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+
+          if (allPaymentsForInv > totalInvValue + 0.01) {
+            newErrors[`amount_${index}`] = `Total payments (₹${allPaymentsForInv.toLocaleString()}) exceed invoice amount (₹${totalInvValue.toLocaleString()})`;
+            newErrors.submit = 'One or more payment amounts exceed invoice totals';
+          }
+        }
+      }
     });
 
     setErrors(newErrors);
@@ -805,16 +873,25 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       return;
     }
 
-    setFormData(prev => ({
-      ...prev,
-      invoices: prev.invoices.filter((_, i) => i !== index)
-    }));
+    Modal.confirm({
+      title: 'Are you sure you want to delete this invoice?',
+      content: 'This action will remove the invoice and all its details.',
+      okText: 'Yes, Delete',
+      okType: 'danger',
+      cancelText: 'No',
+      onOk: () => {
+        setFormData(prev => ({
+          ...prev,
+          invoices: prev.invoices.filter((_, i) => i !== index)
+        }));
 
-    // Clear invoice value error for removed invoice
-    setInvoiceValueErrors(prev => {
-      const newErrors = { ...prev };
-      delete newErrors[index];
-      return newErrors;
+        // Clear invoice value error for removed invoice
+        setInvoiceValueErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[index];
+          return newErrors;
+        });
+      }
     });
   };
 
@@ -822,6 +899,15 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
     setFormData(prev => {
       const updatedInvoices = [...prev.invoices];
       let invoice = { ...updatedInvoices[index], [field]: value };
+
+      // Restrict decimal places for numeric fields
+      if ((field === 'invoiceValue' || field === 'cgst' || field === 'sgst') && value !== '') {
+        const parts = value.toString().split('.');
+        if (parts.length > 1 && parts[1].length > 2) {
+          value = parts[0] + '.' + parts[1].substring(0, 2);
+          invoice = { ...invoice, [field]: value };
+        }
+      }
 
       // Auto-cap invoice value if it exceeds budget
       if (field === 'invoiceValue' && value !== '') {
@@ -838,8 +924,9 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
 
         // If value exceeds max allowed, cap it
         if (numericValue > maxAllowed && maxAllowed >= 0) {
-          invoice = { ...invoice, invoiceValue: maxAllowed.toString() };
-          value = maxAllowed.toString(); // Update value for validation
+          const cappedValue = Number(Math.floor(maxAllowed * 100) / 100).toString();
+          invoice = { ...invoice, invoiceValue: cappedValue };
+          value = cappedValue; // Update value for validation
         }
       }
 
@@ -926,7 +1013,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
   const addPayment = () => {
     // Get invoice number from first invoice if available
     const firstInvoiceNumber = formData.invoices.length > 0 ? formData.invoices[0].invoiceNumber : '';
-    
+
     const newPayment = {
       id: Date.now().toString(),
       invoiceNumber: firstInvoiceNumber,
@@ -947,18 +1034,72 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
   const removePayment = (index) => {
     if (formData.payments.length <= 1) return;
 
-    setFormData(prev => ({
-      ...prev,
-      payments: prev.payments.filter((_, i) => i !== index)
-    }));
+    Modal.confirm({
+      title: 'Are you sure you want to delete this payment entry?',
+      content: 'This action will remove the payment from the record.',
+      okText: 'Yes, Delete',
+      okType: 'danger',
+      cancelText: 'No',
+      onOk: () => {
+        setFormData(prev => ({
+          ...prev,
+          payments: prev.payments.filter((_, i) => i !== index)
+        }));
+      }
+    });
   };
 
   const updatePayment = (index, field, value) => {
     setFormData(prev => {
       const updatedPayments = [...prev.payments];
+      let finalValue = value;
+
+      // Restrict decimal places for amount
+      if (field === 'amount' && value !== '') {
+        const parts = value.toString().split('.');
+        if (parts.length > 1 && parts[1].length > 2) {
+          finalValue = parts[0] + '.' + parts[1].substring(0, 2);
+        }
+      }
+
+      // Real-time validation for payment amount against invoice total
+      if (field === 'amount' && value !== '') {
+        const amount = parseFloat(value) || 0;
+        const currentPayment = updatedPayments[index];
+        const invoiceNumber = currentPayment.invoiceNumber;
+
+        // Find the associated invoice to get its total value
+        const targetInvoice = prev.invoices.find(inv => inv.invoiceNumber === invoiceNumber);
+
+        if (targetInvoice) {
+          // Use totalWithTax if available, otherwise fallback to invoiceValue
+          const invVal = parseFloat(targetInvoice.invoiceValue) || 0;
+          const invCgst = parseFloat(targetInvoice.cgst) || 0;
+          const invSgst = parseFloat(targetInvoice.sgst) || 0;
+          const totalInvValue = targetInvoice.totalWithTax || (invVal + (invVal * invCgst / 100) + (invVal * invSgst / 100));
+
+          // Calculate total of other payments for the same invoice
+          const otherPaymentsTotal = prev.payments.reduce((sum, p, i) => {
+            if (i === index) return sum;
+            if (p.invoiceNumber === invoiceNumber) {
+              return sum + (parseFloat(p.amount) || 0);
+            }
+            return sum;
+          }, 0);
+
+          const maxAllowed = Math.max(0, totalInvValue - otherPaymentsTotal);
+
+          // If current amount exceeds remaining allowed, cap it
+          if (amount > maxAllowed && maxAllowed >= 0) {
+            // Round to 2 decimals to avoid floating point precision issues (e.g. 0.1200000000003)
+            finalValue = Number(Math.floor(maxAllowed * 100) / 100).toString();
+          }
+        }
+      }
+
       updatedPayments[index] = {
         ...updatedPayments[index],
-        [field]: value
+        [field]: finalValue
       };
 
       return {
@@ -973,9 +1114,9 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
 
     // Check if project is fully invoiced first
     if (isProjectFullyInvoiced) {
-      setErrors(prev => ({ 
-        ...prev, 
-        submit: `Project fully invoiced - Total budget ₹${budgetAmount.toLocaleString()} has been fully allocated. No additional invoices can be created.` 
+      setErrors(prev => ({
+        ...prev,
+        submit: `Project fully invoiced - Total budget ₹${budgetAmount.toLocaleString()} has been fully allocated. No additional invoices can be created.`
       }));
       return;
     }
@@ -1133,13 +1274,13 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       if (validateInvoiceTab()) {
         // Check if project is fully invoiced before proceeding to payments
         if (isProjectFullyInvoiced) {
-          setErrors(prev => ({ 
-            ...prev, 
-            submit: `Project fully invoiced - Total budget ₹${budgetAmount.toLocaleString()} has been fully allocated. Cannot proceed to payments.` 
+          setErrors(prev => ({
+            ...prev,
+            submit: `Project fully invoiced - Total budget ₹${budgetAmount.toLocaleString()} has been fully allocated. Cannot proceed to payments.`
           }));
           return;
         }
-        
+
         // Auto-fill invoice numbers and payment type from first invoice
         const firstInvoiceNumber = formData.invoices.length > 0 ? formData.invoices[0].invoiceNumber : '';
         const firstInvoicePaymentType = formData.invoices.length > 0 ? formData.invoices[0].paymentType : 'advance';
@@ -1175,13 +1316,13 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         if (validateInvoiceTab()) {
           // Check if project is fully invoiced before proceeding to payments
           if (isProjectFullyInvoiced) {
-            setErrors(prev => ({ 
-              ...prev, 
-              submit: `Project fully invoiced - Total budget ₹${budgetAmount.toLocaleString()} has been fully allocated. Cannot proceed to payments.` 
+            setErrors(prev => ({
+              ...prev,
+              submit: `Project fully invoiced - Total budget ₹${budgetAmount.toLocaleString()} has been fully allocated. Cannot proceed to payments.`
             }));
             return;
           }
-          
+
           // Auto-fill invoice numbers and payment type from first invoice
           const firstInvoiceNumber = formData.invoices.length > 0 ? formData.invoices[0].invoiceNumber : '';
           const firstInvoicePaymentType = formData.invoices.length > 0 ? formData.invoices[0].paymentType : 'advance';
@@ -1199,13 +1340,13 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         if (validateProjectTab() && validateInvoiceTab()) {
           // Check if project is fully invoiced before proceeding to payments
           if (isProjectFullyInvoiced) {
-            setErrors(prev => ({ 
-              ...prev, 
-              submit: `Project fully invoiced - Total budget ₹${budgetAmount.toLocaleString()} has been fully allocated. Cannot proceed to payments.` 
+            setErrors(prev => ({
+              ...prev,
+              submit: `Project fully invoiced - Total budget ₹${budgetAmount.toLocaleString()} has been fully allocated. Cannot proceed to payments.`
             }));
             return;
           }
-          
+
           // Auto-fill invoice numbers and payment type from first invoice
           const firstInvoiceNumber = formData.invoices.length > 0 ? formData.invoices[0].invoiceNumber : '';
           const firstInvoicePaymentType = formData.invoices.length > 0 ? formData.invoices[0].paymentType : 'advance';
@@ -1241,7 +1382,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
   }, 0);
 
   const totalInvoicedSoFar = Math.round((totalAlreadyInvoiced + currentInvoicesTotal) * 100) / 100;
-  
+
   const remainingBudget = Math.max(0, Math.round((budgetAmount - totalInvoicedSoFar) * 100) / 100);
 
   const isProjectFullyInvoiced = budgetAmount > 0 && totalAlreadyInvoiced >= budgetAmount;
@@ -1264,7 +1405,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         paymentTypes.add(invoice.paymentType);
       }
     });
-    
+
     // If no payment types in invoices, return all available options
     if (paymentTypes.size === 0) {
       return [
@@ -1276,19 +1417,19 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
         }))
       ];
     }
-    
+
     // Map payment types to dropdown options
     return Array.from(paymentTypes).map(type => {
       const typeMap = {
         'advance': 'Advance Payment',
         'final': 'Final Payment'
       };
-      
+
       if (type.startsWith('installment-')) {
         const installmentNum = parseInt(type.split('-')[1]) + 1;
         return { value: type, label: `Installment ${installmentNum}` };
       }
-      
+
       return { value: type, label: typeMap[type] || type };
     });
   };
@@ -1613,6 +1754,12 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                                   <span>{invoiceValueErrors[invoiceIndex]}</span>
                                 </div>
                               )}
+                              {invoice.invoiceDate && projectStartDate && new Date(invoice.invoiceDate) < new Date(projectStartDate) && (
+                                <div className="flex items-center gap-1 mt-1 text-amber-600 text-[10px] leading-tight bg-amber-50 p-1 rounded border border-amber-100 italic">
+                                  <AlertTriangle size={10} className="shrink-0" />
+                                  <span>Note: Invoice date is before project start date ({formatDateForDisplay(projectStartDate)})</span>
+                                </div>
+                              )}
                             </div>
                           </div>
 
@@ -1897,13 +2044,13 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
 
                         {/* Row 3: Remarks */}
                         <div className="mb-2">
-                        <FloatingInput
-                          label="Remarks"
-                          name="remarks"
-                          value={payment.remarks}
-                          onChange={(e) => updatePayment(paymentIndex, 'remarks', e.target.value)}
+                          <FloatingInput
+                            label="Remarks"
+                            name="remarks"
+                            value={payment.remarks}
+                            onChange={(e) => updatePayment(paymentIndex, 'remarks', e.target.value)}
                             size="small"
-                        />
+                          />
                         </div>
                       </div>
                     </div>
@@ -1996,7 +2143,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
             <p className="text-sm text-gray-600 mb-3">
               This project already has {existingInvoices.length} invoice(s). Are you sure you want to add another invoice?
             </p>
-            
+
             {existingInvoices.length > 0 && (
               <div className="bg-gray-50 rounded p-2 mb-3 max-h-32 overflow-y-auto">
                 <p className="text-xs font-medium text-gray-700 mb-1">Existing Invoices:</p>
@@ -2008,7 +2155,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                 ))}
               </div>
             )}
-            
+
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setShowAlreadyInvoicedPopup(false)}

@@ -291,12 +291,12 @@ const MilestoneManagement = () => {
         showError('Failed to generate PDF preview');
       };
 
-      // Render the BackgroundReportPDFGenerator component
       root.render(
         React.createElement(BackgroundReportPDFGenerator, {
           reportData: [milestone],
           reportType: 'milestone',
           reportTitle: `Milestone Report - ${milestone.projectName}`,
+          showFlexibility: false,
           onComplete: handleComplete,
           onError: handleError
         })
@@ -351,6 +351,7 @@ const MilestoneManagement = () => {
           reportData: [milestone],
           reportType: 'milestone',
           reportTitle: `Milestone Report - ${milestone.projectName}`,
+          showFlexibility: false,
           onComplete: handleComplete,
           onError: handleError
         })

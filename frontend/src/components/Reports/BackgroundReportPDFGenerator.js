@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 
-const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onComplete, onError }) => {
+const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onComplete, onError, showFlexibility = true }) => {
   const contentRef = useRef();
   const [companyLogo] = useState('/images/voomet-logo.png');
   const [logoLoaded, setLogoLoaded] = useState(false);
@@ -169,6 +169,7 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
           { key: 'projectName', displayName: 'Project Name' },
           { key: 'startDate', displayName: 'Start Date' },
           { key: 'endDate', displayName: 'End Date' },
+          { key: 'flexibilityPercentage', displayName: 'Flexibility Applied' },
         ]
       },
       payment: {
@@ -186,7 +187,12 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
 
     // Get the configuration for the current report type
     const config = reportConfigs[reportType] || reportConfigs['project-comprehensive'];
-    const headers = config.headers;
+    let headers = config.headers;
+    
+    // Filter out flexibility column for milestone reports if showFlexibility is false
+    if (reportType === 'milestone' && !showFlexibility) {
+      headers = headers.filter(header => header.key !== 'flexibilityPercentage');
+    }
 
     // Format row data based on report type
     const rows = reportData.map(item => {
@@ -294,6 +300,43 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
               value = `${completedTasks}/${totalTasks}`;
             } else {
               value = value || '-';
+            }
+          }
+        } else if (key === 'flexibilityPercentage') {
+          // Format flexibility percentage with days removed calculation
+          // This matches the exact calculation from InhouseMilestoneForm.jsx
+          const flexPercent = value || 0;
+          
+          if (flexPercent === 0) {
+            value = '0% Flexibility Applied';
+          } else {
+            // Calculate days removed using the same logic as the form
+            const tasks = item.tasks || [];
+            const totalOriginalDuration = tasks.reduce((sum, task) => {
+              return sum + (task.originalDuration || task.duration || 0);
+            }, 0);
+            
+            if (totalOriginalDuration === 0) {
+              value = `${flexPercent}% Flexibility Applied (0 days removed)`;
+            } else {
+              // Calculate total days to subtract (same as form)
+              const totalDaysToSubtract = Math.ceil(totalOriginalDuration * (flexPercent / 100));
+              
+              // Distribute proportionally and calculate actual days subtracted
+              let actualTotalSubtracted = 0;
+              tasks.forEach(task => {
+                const originalDuration = task.originalDuration || task.duration || 0;
+                if (originalDuration === 0) return;
+                
+                const proportion = originalDuration / totalOriginalDuration;
+                const daysSubtracted = Math.round(proportion * totalDaysToSubtract);
+                const newDuration = Math.max(1, originalDuration - daysSubtracted);
+                const actualSubtracted = originalDuration - newDuration;
+                
+                actualTotalSubtracted += actualSubtracted;
+              });
+              
+              value = `${flexPercent}% Flexibility Applied (${actualTotalSubtracted} days removed)`;
             }
           }
         } else if (typeof value === 'boolean') {
@@ -623,10 +666,20 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                           whiteSpace: 'normal',
                           wordWrap: 'break-word',
                           width: reportType === 'milestone' ? 
-                            (header.key === 'customer' ? '25%' : 
-                             header.key === 'projectName' ? '45%' : 
-                             header.key === 'startDate' ? '15%' : 
-                             header.key === 'endDate' ? '15%' : 'auto') : 'auto'
+                            (showFlexibility ? 
+                              // With flexibility column
+                              (header.key === 'customer' ? '20%' : 
+                               header.key === 'projectName' ? '30%' : 
+                               header.key === 'startDate' ? '12%' : 
+                               header.key === 'endDate' ? '12%' : 
+                               header.key === 'flexibilityPercentage' ? '26%' : 'auto')
+                            :
+                              // Without flexibility column
+                              (header.key === 'customer' ? '25%' : 
+                               header.key === 'projectName' ? '35%' : 
+                               header.key === 'startDate' ? '20%' : 
+                               header.key === 'endDate' ? '20%' : 'auto')
+                            ) : 'auto'
                         }}
                       >
                         {header.displayName}

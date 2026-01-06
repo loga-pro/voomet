@@ -640,7 +640,7 @@ const PurchaseOrder = () => {
           </div>
 
           {/* Updated Pagination */}
-          {filteredPurchases.length > 0 && (
+          {groupedPurchases.length > 0 && (
             <div className="bg-white px-4 py-3 flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 sm:px-6">
               <div className="flex items-center mb-4 sm:mb-0">
                 <span className="text-sm text-gray-700 mr-2">Items per page:</span>
@@ -661,7 +661,7 @@ const PurchaseOrder = () => {
 
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-700">
-                  Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredPurchases.length)} of {filteredPurchases.length} results
+                  Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, groupedPurchases.length)} of {groupedPurchases.length} results
                 </span>
 
                 <nav className="flex space-x-2">
