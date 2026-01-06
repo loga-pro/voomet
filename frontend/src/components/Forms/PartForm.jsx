@@ -6,6 +6,8 @@ import ComboBox from './ComboBox';
 const PartForm = ({ part, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
     scopeOfWork: '',
+    workCategory: '',
+    subWorks: [],
     partName: '',
     specification: '',
     category: '',
@@ -20,6 +22,8 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
   const [vendors, setVendors] = useState([]);
   const [priceMode, setPriceMode] = useState('new'); // 'new' or 'existing'
   const [priceHistory, setPriceHistory] = useState([]);
+  const [newSubWorkItem, setNewSubWorkItem] = useState('');
+  const [editingSubWorkIndex, setEditingSubWorkIndex] = useState(null);
 
   const scopeOptions = [
     { value: 'electrical', label: 'Electrical' },
@@ -29,6 +33,14 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
     { value: 'fire_and_safety', label: 'Fire and Safety' },
     { value: 'access', label: 'Access' },
     { value: 'furniture', label: 'Furniture' }
+  ];
+
+  const workCategoryOptions = [
+    { value: 'residential', label: 'Residential' },
+    { value: 'commercial', label: 'Commercial' },
+    { value: 'school', label: 'School' },
+    { value: 'hotel', label: 'Hotel' },
+    { value: 'hospital', label: 'Hospital' }
   ];
 
   const categoryOptions = [
@@ -41,6 +53,8 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
     if (part) {
       setFormData({
         scopeOfWork: part.scopeOfWork || 'electrical',
+        workCategory: part.workCategory || '',
+        subWorks: part.subWorks || [],
         partName: part.partName || '',
         specification: part.specification || '',
         category: part.category || 'inhouse',
@@ -152,6 +166,45 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
     }
   };
 
+  const handleAddSubWork = () => {
+    if (newSubWorkItem.trim()) {
+      if (editingSubWorkIndex !== null) {
+        // Update existing item
+        const updatedSubWorks = [...formData.subWorks];
+        updatedSubWorks[editingSubWorkIndex] = { itemName: newSubWorkItem.trim() };
+        setFormData(prev => ({
+          ...prev,
+          subWorks: updatedSubWorks
+        }));
+        setEditingSubWorkIndex(null);
+      } else {
+        // Add new item
+        setFormData(prev => ({
+          ...prev,
+          subWorks: [...prev.subWorks, { itemName: newSubWorkItem.trim() }]
+        }));
+      }
+      setNewSubWorkItem('');
+    }
+  };
+
+  const handleEditSubWork = (index) => {
+    setNewSubWorkItem(formData.subWorks[index].itemName);
+    setEditingSubWorkIndex(index);
+  };
+
+  const handleDeleteSubWork = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      subWorks: prev.subWorks.filter((_, i) => i !== index)
+    }));
+    // Clear edit state if deleting the item being edited
+    if (editingSubWorkIndex === index) {
+      setEditingSubWorkIndex(null);
+      setNewSubWorkItem('');
+    }
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
@@ -242,6 +295,8 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
       // Clean up the data before submission
       const submitData = {
         scopeOfWork: formData.scopeOfWork,
+        workCategory: formData.workCategory,
+        subWorks: formData.subWorks,
         partName: formData.partName.trim(),
         specification: formData.specification.trim(),
         category: formData.category,
@@ -296,6 +351,15 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
         </div>
       )}
 
+      <FloatingInput
+        label="Work Categories"
+        name="workCategory"
+        value={formData.workCategory}
+        onChange={handleChange}
+        type="select"
+        options={workCategoryOptions}
+      />
+
       <ComboBox
         label="Scope of Work"
         name="scopeOfWork"
@@ -306,6 +370,64 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
         error={errors.scopeOfWork}
         required
       />
+
+
+
+      <div className="relative">
+        <FloatingInput
+          label="Sub Work"
+          name="newSubWorkItem"
+          value={newSubWorkItem}
+          onChange={(e) => setNewSubWorkItem(e.target.value)}
+          type="text"
+          onKeyPress={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleAddSubWork();
+            }
+          }}
+        />
+        <button
+          type="button"
+          onClick={handleAddSubWork}
+          className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-primary-600 text-white text-sm rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+        >
+          {editingSubWorkIndex !== null ? 'Update' : 'Add'}
+        </button>
+      </div>
+
+      {formData.subWorks.length > 0 && (
+        <div className={`space-y-2 mt-3 ${formData.subWorks.length > 2 ? 'max-h-32 overflow-y-auto pr-2' : ''}`}>
+          {formData.subWorks.map((item, index) => (
+            <div key={index} className="flex items-center justify-between bg-white border border-gray-200 rounded-md p-3">
+              <span className="text-sm text-gray-700">{item.itemName}</span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleEditSubWork(index)}
+                  className="text-blue-600 hover:text-blue-800 focus:outline-none"
+                  title="Edit item"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteSubWork(index)}
+                  className="text-red-600 hover:text-red-800 focus:outline-none"
+                  title="Delete item"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
 
       <FloatingInput
         label="Category"
@@ -318,18 +440,20 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
         required
       />
 
-      {(formData.category === 'out_sourced' || formData.category === 'bought_out') && (
-        <FloatingInput
-          label="Vendor Name"
-          name="vendorName"
-          value={formData.vendorName || ''}
-          onChange={handleChange}
-          type="select"
-          options={vendors.map(v => ({ value: v.vendorName, label: v.vendorName }))}
-          error={errors.vendorName}
-          required={formData.category === 'out_sourced' || formData.category === 'bought_out'}
-        />
-      )}
+      {
+        (formData.category === 'out_sourced' || formData.category === 'bought_out') && (
+          <FloatingInput
+            label="Vendor Name"
+            name="vendorName"
+            value={formData.vendorName || ''}
+            onChange={handleChange}
+            type="select"
+            options={vendors.map(v => ({ value: v.vendorName, label: v.vendorName }))}
+            error={errors.vendorName}
+            required={formData.category === 'out_sourced' || formData.category === 'bought_out'}
+          />
+        )
+      }
 
       <FloatingInput
         label="Item Name"

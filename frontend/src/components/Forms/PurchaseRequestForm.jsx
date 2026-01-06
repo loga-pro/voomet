@@ -8,7 +8,7 @@ import {
 import { UploadOutlined } from '@ant-design/icons';
 import { Button, Upload } from 'antd';
 import FloatingInput from './FloatingInput';
-import { purchaseRequestsAPI, inhouseMilestonesAPI ,FILE_BASE_URL} from '../../services/api';
+import { purchaseRequestsAPI, inhouseMilestonesAPI, FILE_BASE_URL } from '../../services/api';
 
 const scopeOptions = [
   { value: '', label: 'Select Scope' },
@@ -888,27 +888,27 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
               <div className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
                 {activeTab === 'materials' ? (
                   <div className="flex gap-2 px-4 py-3 items-center text-xs bg-gray-50" style={{ minWidth: '1600px' }}>
-                    <div className="w-16 font-medium text-gray-700">S.No</div>
-                    <div className="w-48 font-medium text-gray-700">Description*</div>
-                    <div className="w-32 font-medium text-gray-700">Area*</div>
-                    <div className="w-32 font-medium text-gray-700">Code*</div>
-                    <div className="w-48 font-medium text-gray-700">Specification</div>
-                    <div className="w-28 font-medium text-gray-700">Unit Type</div>
-                    <div className="w-24 font-medium text-gray-700">Qty*</div>
-                    <div className="w-32 font-medium text-gray-700">Thickness</div>
-                    <div className="w-32 font-medium text-gray-700">Remark</div>
-                    <div className="w-24 font-medium text-gray-700">Image</div>
+                    <div className="w-16 font-medium text-gray-700 text-center">S.No</div>
+                    <div className="w-48 font-medium text-gray-700 text-center">Description*</div>
+                    <div className="w-32 font-medium text-gray-700 text-center">Area*</div>
+                    <div className="w-32 font-medium text-gray-700 text-center">Code*</div>
+                    <div className="w-48 font-medium text-gray-700 text-center">Specification</div>
+                    <div className="w-28 font-medium text-gray-700 text-center">Unit Type</div>
+                    <div className="w-24 font-medium text-gray-700 text-center">Qty*</div>
+                    <div className="w-32 font-medium text-gray-700 text-center">Thickness</div>
+                    <div className="w-32 font-medium text-gray-700 text-center">Remark</div>
+                    <div className="w-24 font-medium text-gray-700 text-center">Image</div>
                     <div className="w-20 font-medium text-gray-700 text-center">Action</div>
                   </div>
                 ) : (
                   <div className="flex gap-2 px-4 py-3 items-center text-xs bg-gray-50" style={{ minWidth: '1400px' }}>
-                    <div className="w-16 font-medium text-gray-700">S.No</div>
-                    <div className="w-48 font-medium text-gray-700">Description*</div>
-                    <div className="w-32 font-medium text-gray-700">Size</div>
-                    <div className="w-32 font-medium text-gray-700">Thickness</div>
-                    <div className="w-48 font-medium text-gray-700">Specification</div>
-                    <div className="w-24 font-medium text-gray-700">Qty*</div>
-                    <div className="w-24 font-medium text-gray-700">Image</div>
+                    <div className="w-16 font-medium text-gray-700 text-center">S.No</div>
+                    <div className="w-48 font-medium text-gray-700 text-center">Description*</div>
+                    <div className="w-32 font-medium text-gray-700 text-center">Size</div>
+                    <div className="w-32 font-medium text-gray-700 text-center">Thickness</div>
+                    <div className="w-48 font-medium text-gray-700 text-center">Specification</div>
+                    <div className="w-24 font-medium text-gray-700 text-center">Qty*</div>
+                    <div className="w-24 font-medium text-gray-700 text-center">Image</div>
                     <div className="w-20 font-medium text-gray-700 text-center">Action</div>
                   </div>
                 )}

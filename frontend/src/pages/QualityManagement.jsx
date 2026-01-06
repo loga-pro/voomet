@@ -915,184 +915,188 @@ const QualityManagement = () => {
         <Modal
           isOpen={showDetailsModal}
           onClose={() => setShowDetailsModal(false)}
-          title="Quality Issue - Complete Details"
+          title="Quality Issue Details"
           size="xl"
+          className="font-sans"
         >
           {issueDetails && (
-            <div className="space-y-6">
-              {/* Main Information Section */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-5 rounded-lg border border-blue-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <DocumentTextIcon className="h-5 w-5 mr-2 text-blue-600" />
-                  Main Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-white p-3 rounded-lg shadow-sm">
-                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Client Name</span>
-                    <p className="text-sm font-semibold text-gray-900 mt-1">{issueDetails.customer}</p>
-                  </div>
-                  <div className="bg-white p-3 rounded-lg shadow-sm">
-                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project Name</span>
-                    <p className="text-sm font-semibold text-gray-900 mt-1">{issueDetails.projectName || 'N/A'}</p>
-                  </div>
-                  <div className="bg-white p-3 rounded-lg shadow-sm">
-                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Category</span>
-                    <div className="mt-1">
-                      <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${issueDetails.category === 'rectify' ? 'bg-yellow-100 text-yellow-800' :
-                        issueDetails.category === 'replace' ? 'bg-orange-100 text-orange-800' :
-                          issueDetails.category === 'possible' ? 'bg-green-100 text-green-800' :
-                            issueDetails.category === 'not possible' ? 'bg-red-100 text-red-800' :
-                              issueDetails.category === 'reject' ? 'bg-red-100 text-red-800' :
-                                'bg-gray-100 text-gray-800'
-                        }`}>
-                        {issueDetails.category?.charAt(0).toUpperCase() + issueDetails.category?.slice(1)}
-                      </span>
+            <div className="flex flex-col max-h-[100vh]">
+              {/* Scrollable content */}
+              <div className="flex-1 overflow-y-auto pr-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-2 text-sm">
+
+                  {/* Main Information */}
+                  <div className="bg-white border rounded p-3 md:col-span-2">
+                    <div className="flex items-center mb-2">
+                      <DocumentTextIcon className="w-4 h-4 text-indigo-600 mr-2" />
+                      <h3 className="font-semibold">Main Information</h3>
                     </div>
-                  </div>
-                  <div className="bg-white p-3 rounded-lg shadow-sm">
-                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Status</span>
-                    <div className="mt-1">
-                      <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${issueDetails.status === 'open' ? 'bg-red-100 text-red-800' :
-                        issueDetails.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
-                          'bg-green-100 text-green-800'
-                        }`}>
-                        {issueDetails.status?.charAt(0).toUpperCase() + issueDetails.status?.slice(1).replace('-', ' ')}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Open Issues Section */}
-              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-5 rounded-lg border border-yellow-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                  <ExclamationTriangleIcon className="h-5 w-5 mr-2 text-yellow-600" />
-                  Open Issues
-                </h3>
-                <div className="bg-white p-4 rounded-lg shadow-sm">
-                  <div className="whitespace-pre-line text-sm text-gray-900 leading-relaxed">
-                    {issueDetails.openIssues || 'No open issues recorded'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Remarks Section */}
-              {issueDetails.remarks && (
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-5 rounded-lg border border-purple-200">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                    <ChatBubbleLeftRightIcon className="h-5 w-5 mr-2 text-purple-600" />
-                    Remarks
-                  </h3>
-                  <div className="bg-white p-4 rounded-lg shadow-sm">
-                    <p className="text-sm text-gray-900 leading-relaxed">{issueDetails.remarks}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Quality Issues Details Section */}
-              <div className="bg-gradient-to-r from-green-50 to-teal-50 p-5 rounded-lg border border-green-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <DocumentMagnifyingGlassIcon className="h-5 w-5 mr-2 text-green-600" />
-                  Quality Issues Details
-                  {issueDetails.qualityIssues && issueDetails.qualityIssues.length > 0 && (
-                    <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-600 text-white">
-                      {issueDetails.qualityIssues.length} {issueDetails.qualityIssues.length === 1 ? 'Issue' : 'Issues'}
-                    </span>
-                  )}
-                </h3>
-                {issueDetails.qualityIssues && issueDetails.qualityIssues.length > 0 ? (
-                  <div className="space-y-4">
-                    {issueDetails.qualityIssues.map((issue, index) => (
-                      <div key={index} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-sm font-semibold text-gray-900">Issue #{index + 1}</h4>
-                          <span className="text-xs text-gray-500">
-                            {issue.dateOfIssue ? new Date(issue.dateOfIssue).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            }) : 'N/A'}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div className="bg-gray-50 p-3 rounded">
-                            <span className="text-xs font-medium text-gray-500 uppercase">Scope of Work</span>
-                            <p className="text-sm font-medium text-gray-900 mt-1">{issue.scopeOfWork || 'N/A'}</p>
-                          </div>
-                          <div className="bg-gray-50 p-3 rounded">
-                            <span className="text-xs font-medium text-gray-500 uppercase">Reason</span>
-                            <p className="text-sm font-medium text-gray-900 mt-1">{issue.reason || 'N/A'}</p>
-                          </div>
-                          <div className="bg-gray-50 p-3 rounded md:col-span-2">
-                            <span className="text-xs font-medium text-gray-500 uppercase">Description</span>
-                            <p className="text-sm text-gray-900 mt-1 leading-relaxed">{issue.description || 'N/A'}</p>
-                          </div>
-                          <div className="bg-gray-50 p-3 rounded">
-                            <span className="text-xs font-medium text-gray-500 uppercase">Date of Damage</span>
-                            <p className="text-sm font-medium text-gray-900 mt-1">
-                              {issue.dateOfDamage ? new Date(issue.dateOfDamage).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric'
-                              }) : 'N/A'}
-                            </p>
-                          </div>
-                          <div className="bg-gray-50 p-3 rounded">
-                            <span className="text-xs font-medium text-gray-500 uppercase">Person Type</span>
-                            <p className="text-sm font-medium text-gray-900 mt-1">
-                              {issue.personType === 'inhouse' ? 'Inhouse' :
-                                issue.personType === 'outsourced' ? 'Outsourced' : 'N/A'}
-                            </p>
-                          </div>
-                          <div className="bg-gray-50 p-3 rounded md:col-span-2">
-                            <span className="text-xs font-medium text-gray-500 uppercase">Responsible Person</span>
-                            <p className="text-sm font-medium text-gray-900 mt-1">{issue.responsiblePerson || 'N/A'}</p>
-                          </div>
-                          {issue.remarks && (
-                            <div className="bg-gray-50 p-3 rounded md:col-span-2">
-                              <span className="text-xs font-medium text-gray-500 uppercase">Remarks</span>
-                              <p className="text-sm text-gray-900 mt-1 leading-relaxed">{issue.remarks}</p>
-                            </div>
-                          )}
-                          <div className="bg-gray-50 p-3 rounded">
-                            <span className="text-xs font-medium text-gray-500 uppercase">Damage Image</span>
-                            <p className="text-sm font-medium mt-1">
-                              {issue.damageImage ? (
-                                <span className="text-green-600 flex items-center">
-                                  <EyeIcon className="h-4 w-4 mr-1" />
-                                  Available
-                                </span>
-                              ) : (
-                                <span className="text-gray-400">Not Available</span>
-                              )}
-                            </p>
-                          </div>
-                          <div className="bg-gray-50 p-3 rounded">
-                            <span className="text-xs font-medium text-gray-500 uppercase">Fixed Image</span>
-                            <p className="text-sm font-medium mt-1">
-                              {issue.fixedImage ? (
-                                <span className="text-green-600 flex items-center">
-                                  <EyeIcon className="h-4 w-4 mr-1" />
-                                  Available
-                                </span>
-                              ) : (
-                                <span className="text-gray-400">Not Available</span>
-                              )}
-                            </p>
-                          </div>
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      <div>
+                        <span className="text-xs text-gray-500">Client Name</span>
+                        <p className="font-medium">{issueDetails.customer || 'N/A'}</p>
                       </div>
-                    ))}
+                      <div>
+                        <span className="text-xs text-gray-500">Project Name</span>
+                        <p className="font-medium">{issueDetails.projectName || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-gray-500">Category</span>
+                        <p className="mt-1">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${issueDetails.category === 'rectify' ? 'bg-yellow-100 text-yellow-800' :
+                              issueDetails.category === 'replace' ? 'bg-orange-100 text-orange-800' :
+                                issueDetails.category === 'possible' ? 'bg-green-100 text-green-800' :
+                                  issueDetails.category === 'not possible' ? 'bg-red-100 text-red-800' :
+                                    issueDetails.category === 'reject' ? 'bg-red-100 text-red-800' :
+                                      'bg-gray-100 text-gray-800'
+                            }`}>
+                            {issueDetails.category?.charAt(0).toUpperCase() + issueDetails.category?.slice(1) || 'N/A'}
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-gray-500">Status</span>
+                        <p className="mt-1">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${issueDetails.status === 'open' ? 'bg-red-100 text-red-800' :
+                              issueDetails.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                                'bg-green-100 text-green-800'
+                            }`}>
+                            {issueDetails.status?.charAt(0).toUpperCase() + issueDetails.status?.slice(1).replace('-', ' ') || 'N/A'}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                ) : (
-                  <div className="bg-white p-8 rounded-lg shadow-sm text-center">
-                    <p className="text-sm text-gray-500">No quality issues recorded</p>
+
+                  {/* Open Issues */}
+                  <div className="bg-white border rounded p-3 md:col-span-2">
+                    <div className="flex items-center mb-2">
+                      <ExclamationTriangleIcon className="w-4 h-4 text-yellow-600 mr-2" />
+                      <h3 className="font-semibold">Open Issues</h3>
+                    </div>
+                    <div className="whitespace-pre-line text-sm text-gray-900 leading-relaxed">
+                      {issueDetails.openIssues || 'No open issues recorded'}
+                    </div>
                   </div>
-                )}
+
+                  {/* Remarks Section */}
+                  {issueDetails.remarks && (
+                    <div className="bg-white border rounded p-3 md:col-span-2">
+                      <div className="flex items-center mb-2">
+                        <ChatBubbleLeftRightIcon className="w-4 h-4 text-purple-600 mr-2" />
+                        <h3 className="font-semibold">Remarks</h3>
+                      </div>
+                      <p className="text-sm text-gray-900 leading-relaxed">{issueDetails.remarks}</p>
+                    </div>
+                  )}
+
+                  {/* Quality Issues Details */}
+                  <div className="bg-white border rounded p-3 md:col-span-2">
+                    <div className="flex items-center mb-2">
+                      <DocumentMagnifyingGlassIcon className="w-4 h-4 text-green-600 mr-2" />
+                      <h3 className="font-semibold">Quality Issues Details</h3>
+                      {issueDetails.qualityIssues && issueDetails.qualityIssues.length > 0 && (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-600 text-white">
+                          {issueDetails.qualityIssues.length} {issueDetails.qualityIssues.length === 1 ? 'Issue' : 'Issues'}
+                        </span>
+                      )}
+                    </div>
+                    {issueDetails.qualityIssues && issueDetails.qualityIssues.length > 0 ? (
+                      <div className="space-y-3">
+                        {issueDetails.qualityIssues.map((issue, index) => (
+                          <div key={index} className="bg-gray-50 border rounded p-3">
+                            <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200">
+                              <h4 className="text-sm font-semibold text-gray-900">Issue #{index + 1}</h4>
+                              <span className="text-xs text-gray-500">
+                                {issue.dateOfIssue ? new Date(issue.dateOfIssue).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric'
+                                }) : 'N/A'}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                              <div>
+                                <span className="text-xs text-gray-500">Scope of Work</span>
+                                <p className="text-sm font-medium text-gray-900">{issue.scopeOfWork || 'N/A'}</p>
+                              </div>
+                              <div>
+                                <span className="text-xs text-gray-500">Reason</span>
+                                <p className="text-sm font-medium text-gray-900">{issue.reason || 'N/A'}</p>
+                              </div>
+                              <div>
+                                <span className="text-xs text-gray-500">Date of Damage</span>
+                                <p className="text-sm font-medium text-gray-900">
+                                  {issue.dateOfDamage ? new Date(issue.dateOfDamage).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  }) : 'N/A'}
+                                </p>
+                              </div>
+                              <div>
+                                <span className="text-xs text-gray-500">Person Type</span>
+                                <p className="text-sm font-medium text-gray-900">
+                                  {issue.personType === 'inhouse' ? 'Inhouse' :
+                                    issue.personType === 'outsourced' ? 'Outsourced' : 'N/A'}
+                                </p>
+                              </div>
+                              <div className="md:col-span-2">
+                                <span className="text-xs text-gray-500">Description</span>
+                                <p className="text-sm text-gray-900 leading-relaxed">{issue.description || 'N/A'}</p>
+                              </div>
+                              <div className="md:col-span-2">
+                                <span className="text-xs text-gray-500">Responsible Person</span>
+                                <p className="text-sm font-medium text-gray-900">{issue.responsiblePerson || 'N/A'}</p>
+                              </div>
+                              {issue.remarks && (
+                                <div className="md:col-span-4">
+                                  <span className="text-xs text-gray-500">Remarks</span>
+                                  <p className="text-sm text-gray-900 leading-relaxed">{issue.remarks}</p>
+                                </div>
+                              )}
+                              <div>
+                                <span className="text-xs text-gray-500">Damage Image</span>
+                                <p className="text-sm font-medium mt-1">
+                                  {issue.damageImage ? (
+                                    <span className="text-green-600 flex items-center">
+                                      <EyeIcon className="h-4 w-4 mr-1" />
+                                      Available
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-400">Not Available</span>
+                                  )}
+                                </p>
+                              </div>
+                              <div>
+                                <span className="text-xs text-gray-500">Fixed Image</span>
+                                <p className="text-sm font-medium mt-1">
+                                  {issue.fixedImage ? (
+                                    <span className="text-green-600 flex items-center">
+                                      <EyeIcon className="h-4 w-4 mr-1" />
+                                      Available
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-400">Not Available</span>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-4 text-center text-gray-500 text-sm">
+                        No quality issues recorded
+                      </div>
+                    )}
+                  </div>
+
+                </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+              {/* Action Buttons - Fixed at bottom */}
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 bg-white">
                 <button
                   onClick={() => {
                     setShowDetailsModal(false);

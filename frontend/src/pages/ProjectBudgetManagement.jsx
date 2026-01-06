@@ -317,7 +317,7 @@ const ProjectBudgetManagement = () => {
                 <ChartBarIcon className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
               </div>
               <div className="ml-2 sm:ml-4">
-                <p className="text-xs sm:text-sm font-medium text-gray-600">Total Budgets</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Total No.of.Budgets</p>
                 <p className="text-lg sm:text-2xl font-semibold text-gray-900">{budgets.length}</p>
               </div>
             </div>
@@ -386,7 +386,7 @@ const ProjectBudgetManagement = () => {
                     value={filters.search}
                     onChange={(e) => handleFilterChange('search', e.target.value)}
                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="Search projects, cliens, locations..."
+                    placeholder="Search projects, clients, locations..."
                   />
                 </div>
               </div>

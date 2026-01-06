@@ -5,6 +5,20 @@ const partSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  workCategory: {
+    type: String,
+    required: false
+  },
+  subWorks: [{
+    itemName: {
+      type: String,
+      required: true
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   partName: {
     type: String,
     required: true
