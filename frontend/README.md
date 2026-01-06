@@ -1,70 +1,143 @@
-# Getting Started with Create React App
+# VOOMET - Integrated Project & Resource Management System
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Overview
+VOOMET is a comprehensive Enterprise Resource Planning (ERP) and Project Management solution designed to streamline manufacturing and engineering workflows. It provides a centralized platform for managing projects, tracking milestones, handling inventory, procurement, production, quality control, and financial expenditures.
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## 🏗 System Architecture
 
-### `npm start`
+### High-Level Diagram
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```mermaid
+graph TD
+    User((User)) -->|HTTP/REST| Frontend[React Frontend]
+    Frontend -->|API Requests| Backend[Node.js / Express Backend]
+    Backend -->|Mongoose| DB[(MongoDB)]
+    
+    subgraph "Frontend Components"
+        Dashboard[Dashboard & Analytics]
+        PM[Project & Milestone Management]
+        Inv[Inventory & Part Master]
+        Proc[Purchase & Receipts]
+        Sales[Dispatches & Invoices]
+        Fin[Expenditures & Vendor Payments]
+    end
+    
+    subgraph "Backend Services"
+        Auth[JWT Authentication]
+        Routes[Express API Routes]
+        Models[Mongoose Models]
+        Services[Business Logic Services]
+    end
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+---
 
-### `npm test`
+## 🚀 Key Modules & Features
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### 1. Project Management
+- **Project Master**: Create and manage client projects.
+- **Milestone Tracking**: Defined project phases with status tracking.
+- **In-house Milestones**: Detailed internal tracking for complex operations.
+- **Budgeting**: Track project budgets versus actual expenditures.
 
-### `npm run build`
+### 2. Inventory & Procurement
+- **Part Master**: Centralized database for all parts and materials.
+- **Inventory Management**: Real-time stock tracking and updates.
+- **Purchase Request (PR)**: Internal workflow for requesting materials.
+- **Purchase Order (PO)**: Generate and track orders to vendors.
+- **Receipts (GRN)**: Record incoming goods against purchase orders.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 3. Production & Quality
+- **BOQ Management**: Bill of Quantities for projects.
+- **Production Tracking**: Monitor manufacturing status.
+- **Quality Control**: Ensure products meet standards before dispatch.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 4. Sales & Logistics
+- **Dispatches**: Manage outgoing shipments.
+- **Proforma Invoices**: Generate billing documentation for clients.
+- **Logistic Expenditure**: Track shipping and transport costs.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### 5. Financial Management
+- **Project Expenditure**: Track costs associated with specific projects.
+- **Miscellaneous Expenditure**: Log general operational costs.
+- **Vendor Payments**: Manage outgoing payments to suppliers.
+- **Profit & Loss Summary**: Financial health overview at project level.
 
-### `npm run eject`
+### 6. Administration
+- **Employee Master**: Manage staff records.
+- **Access Control**: Role-based permissions for system features.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+---
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## 🛠 Tech Stack
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+- **Frontend**: React.js, Tailwind CSS, Axios, Lucide React (Icons), Recharts (Analytics).
+- **Backend**: Node.js, Express.js.
+- **Database**: MongoDB with Mongoose ODM.
+- **Authentication**: JSON Web Tokens (JWT).
+- **Reporting**: PDF generation for Invoices, BOQs, and Reports.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+---
 
-## Learn More
+## 📁 Project Structure
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```text
+├── backend/
+│   ├── config/         # Database and app configurations
+│   ├── middleware/     # Auth and error handling middlewares
+│   ├── models/         # Mongoose schemas (Project, Inventory, etc.)
+│   ├── routes/         # API endpoints
+│   ├── services/       # Core business logic
+│   └── Server.js       # Entry point
+├── frontend/
+│   ├── src/
+│   │   ├── components/ # Reusable UI components
+│   │   ├── pages/      # Main application screens
+│   │   ├── context/    # React context for state management
+│   │   └── App.js      # Main router and entry point
+└── README.md
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+---
 
-### Code Splitting
+## ⚙️ Getting Started
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### Prerequisites
+- Node.js (v14+)
+- MongoDB (Local or Atlas)
+- npm or yarn
 
-### Analyzing the Bundle Size
+### Installation
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd voomet
+   ```
 
-### Making a Progressive Web App
+2. **Backend Setup**
+   ```bash
+   cd backend
+   npm install
+   # Create a .env file with:
+   # PORT=5000
+   # MONGO_URI=your_mongodb_uri
+   # JWT_SECRET=your_secret_key
+   npm start
+   ```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+3. **Frontend Setup**
+   ```bash
+   cd ../frontend
+   npm install
+   # Create a .env file with:
+   # REACT_APP_API_URL=http://localhost:5000/api
+   npm start
+   ```
 
-### Advanced Configuration
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## 📄 License
+Internal Proprietary Software - VOOMET.

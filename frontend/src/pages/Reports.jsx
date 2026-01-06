@@ -1657,11 +1657,13 @@ const Reports = () => {
       { header: 'Project Name', accessor: 'projectName' },
       { header: 'Stage', accessor: row => row.stage?.replace('_', ' ').toUpperCase() || 'N/A' },
       { header: 'Total Value (₹)', accessor: row => `₹${row.totalProjectValue?.toLocaleString() || '0'}` },
-      { header: 'Total Tasks', accessor: row => row.milestoneData?.totalTasks || 0 },
-      { header: 'Finished Tasks', accessor: row => row.milestoneData?.completedTasks || 0 },
-      { header: 'Task Completion', accessor: row => `${row.milestoneData?.taskCompletionRate || 0}%` },
+      { header: 'Invoice Raised (₹)', accessor: row => `₹${row.invoiceRaised?.toLocaleString() || '0'}` },
       { header: 'Payment Received (₹)', accessor: row => `₹${row.paymentData?.totalPaymentReceived?.toLocaleString() || '0'}` },
       { header: 'Balance (₹)', accessor: row => `₹${row.paymentData?.balanceAmount?.toLocaleString() || '0'}` },
+      { header: 'Total Tasks', accessor: row => row.milestoneData?.totalTasks || 0 },
+      { header: 'Finished Tasks', accessor: row => row.milestoneData?.completedTasks || 0 },
+      { header: 'Task Completion (%)', accessor: row => `${row.milestoneData?.taskCompletionRate || 0}%` },
+      { header: 'Milestone Completion (%)', accessor: row => `${row.milestoneData?.milestoneCompletionRate || 0}%` },
       {
         header: 'Actions',
         accessor: (row) => (

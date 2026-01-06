@@ -63,6 +63,7 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
           const enquiryDate = new Date(value);
           const today = new Date();
           today.setHours(0, 0, 0, 0);
+          enquiryDate.setHours(0, 0, 0, 0);
           if (enquiryDate > today) {
             error = 'Enquiry date cannot be in the future';
           }

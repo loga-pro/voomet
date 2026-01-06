@@ -33,7 +33,6 @@ const projectSchema = new mongoose.Schema({
   },
   scopeOfWork: [{
     type: String,
-    enum: ['electrical', 'data', 'cctv', 'partion', 'fire_and_safety', 'access']
   }],
   stage: {
     type: String,
