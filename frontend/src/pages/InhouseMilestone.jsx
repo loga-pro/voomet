@@ -270,7 +270,7 @@ const InhouseMilestone = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      showSuccess('Milestone data exported successfully');
+      showSuccess('INHOUSE Milestone data exported successfully');
     } catch (error) {
       console.error('Error exporting CSV:', error);
       showError('Failed to export milestone data');

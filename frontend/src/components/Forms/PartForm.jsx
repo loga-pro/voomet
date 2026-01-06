@@ -18,6 +18,8 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
   const [loading, setLoading] = useState(false);
   const [existingParts, setExistingParts] = useState([]);
   const [vendors, setVendors] = useState([]);
+  const [priceMode, setPriceMode] = useState('new'); // 'new' or 'existing'
+  const [priceHistory, setPriceHistory] = useState([]);
 
   const scopeOptions = [
     { value: 'electrical', label: 'Electrical' },
@@ -47,6 +49,17 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
         vendorName: part.vendorName || '',
         reorderLevel: part.reorderLevel || ''
       });
+      // Set price history if available
+      setPriceHistory(part.priceHistory || []);
+      // Set price mode to 'existing' if part has price history
+      if (part.priceHistory && part.priceHistory.length > 0) {
+        setPriceMode('existing');
+      } else {
+        setPriceMode('new');
+      }
+    } else {
+      // Reset to 'new' mode when creating a new part
+      setPriceMode('new');
     }
   }, [part]);
 
@@ -237,7 +250,9 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
         // Only include vendorName if it has a value
         ...(formData.vendorName && formData.vendorName.trim() && { vendorName: formData.vendorName.trim() }),
         // Include reorderLevel (default to 0 if empty)
-        reorderLevel: formData.reorderLevel ? parseInt(formData.reorderLevel) : 0
+        reorderLevel: formData.reorderLevel ? parseInt(formData.reorderLevel) : 0,
+        // Include price mode flag when updating
+        ...(part && { useNewPrice: priceMode === 'new' })
       };
 
       console.log('Submitting part data:', JSON.stringify(submitData, null, 2));
@@ -350,18 +365,79 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
         required
       />
 
-      <FloatingInput
-        label="Part Price (₹)"
-        name="partPrice"
-        value={formData.partPrice}
-        onChange={handleChange}
-        type="number"
-        error={errors.partPrice}
-        step="0.01"
-        min="0"
-        max="99999999.99"
-        required
-      />
+
+      {/* Price Section with Mode Selection */}
+      <div className="space-y-2">
+        {/* Show mode buttons only when editing a part with price history */}
+        {part && priceHistory && priceHistory.length > 0 && (
+          <div className="flex gap-2 mb-3">
+            <button
+              type="button"
+              onClick={() => {
+                setPriceMode('new');
+                setFormData(prev => ({ ...prev, partPrice: '' }));
+              }}
+              className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${priceMode === 'new'
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+            >
+              New Price
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setPriceMode('existing');
+                // Set to current price by default
+                setFormData(prev => ({ ...prev, partPrice: part.partPrice || '' }));
+              }}
+              className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${priceMode === 'existing'
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+            >
+              Existing Price
+            </button>
+          </div>
+        )}
+
+        {/* Conditional rendering based on price mode */}
+        {priceMode === 'new' || !part ? (
+          <FloatingInput
+            label="Part Price (₹)"
+            name="partPrice"
+            value={formData.partPrice}
+            onChange={handleChange}
+            type="number"
+            error={errors.partPrice}
+            step="0.01"
+            min="0"
+            max="99999999.99"
+            required
+          />
+        ) : (
+          <FloatingInput
+            label="Select Price from History"
+            name="partPrice"
+            value={formData.partPrice}
+            onChange={handleChange}
+            type="select"
+            options={priceHistory
+              .sort((a, b) => new Date(b.effectiveDate) - new Date(a.effectiveDate))
+              .map((item, index) => ({
+                value: item.price.toString(),
+                label: `₹${item.price.toFixed(2)} - ${new Date(item.effectiveDate).toLocaleDateString('en-IN', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+                })}${index === 0 ? ' (Current)' : ''}`
+              }))}
+            error={errors.partPrice}
+            required
+          />
+        )}
+      </div>
+
 
       <FloatingInput
         label="Reorder Level"
@@ -391,7 +467,7 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
           {loading ? 'Saving...' : part ? 'Update' : 'Create'}
         </button>
       </div>
-    </form>
+    </form >
   );
 };
 

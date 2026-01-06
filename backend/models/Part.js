@@ -28,6 +28,21 @@ const partSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  priceHistory: [{
+    price: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    effectiveDate: {
+      type: Date,
+      default: Date.now
+    },
+    updatedBy: {
+      type: String,
+      required: false
+    }
+  }],
   vendorName: {
     type: String,
     required: false

@@ -1230,7 +1230,7 @@ const CustomerBoqManagement = () => {
                               </div>
                             </td>
                             <td className="py-3 text-sm text-gray-900 text-center">
-                              {item.numberOfUnits || item.quantity || 0} {item.unitType || item.unit || ""}
+                              {item.numberOfUnits || item.quantity || 0}
                             </td>
                             <td className="py-3 text-sm text-gray-900 text-center">
                               {formatCurrency(item.unitPrice || 0)}
@@ -1422,7 +1422,7 @@ const CustomerBoqManagement = () => {
                       {item.partName}
                     </td>
                     <td className="px-4 py-3 text-center text-sm text-gray-900">
-                      {item.numberOfUnits} {item.unitType}
+                      {item.numberOfUnits} 
                     </td>
                     <td className="px-4 py-3 text-center text-sm text-gray-900">
                       ₹{item.unitPrice?.toLocaleString('en-IN')}

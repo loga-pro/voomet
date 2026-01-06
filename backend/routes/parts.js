@@ -41,7 +41,15 @@ router.get('/:id', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
   try {
     // Allow custom unitType values by removing enum constraint if it exists
-    const partData = { ...req.body };
+    const partData = { 
+      ...req.body,
+      // Initialize price history with the initial price
+      priceHistory: [{
+        price: req.body.partPrice,
+        effectiveDate: new Date(),
+        updatedBy: req.user?.email || 'system'
+      }]
+    };
     
     console.log('Creating part with data:', partData);
     
@@ -69,13 +77,46 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Part not found' });
     }
 
+    const updateData = { ...req.body };
+    
+    // Handle price updates with history tracking
+    if (updateData.partPrice !== undefined) {
+      const newPrice = parseFloat(updateData.partPrice);
+      const currentPrice = parseFloat(originalPart.partPrice);
+      
+      // Check if this is a new price or using existing price
+      if (updateData.useNewPrice === true) {
+        // Only add to history if price actually changed
+        if (newPrice !== currentPrice) {
+          // Initialize priceHistory if it doesn't exist
+          const priceHistory = originalPart.priceHistory || [];
+          
+          // Add new price to history
+          priceHistory.push({
+            price: newPrice,
+            effectiveDate: new Date(),
+            updatedBy: req.user?.email || 'system'
+          });
+          
+          updateData.priceHistory = priceHistory;
+        }
+      } else if (updateData.useNewPrice === false) {
+        // Using existing price from history - don't add to history
+        // Just update the partPrice field
+        // The price is already in updateData.partPrice
+      }
+      
+      // Remove the useNewPrice flag from update data
+      delete updateData.useNewPrice;
+    }
+
     // Use collection.updateOne to bypass Mongoose validation entirely
     // Ensure we cast the id to ObjectId for native collection operations
     const mongoose = require('mongoose');
     const objectId = new mongoose.Types.ObjectId(req.params.id);
     const result = await Part.collection.updateOne(
       { _id: objectId },
-      { $set: req.body }
+      { $set: updateData }
     );
     
     if (result.matchedCount === 0) {
