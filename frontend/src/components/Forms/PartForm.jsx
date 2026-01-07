@@ -373,7 +373,7 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
 
 
 
-      <div className="relative">
+      {/* <div className="relative">
         <FloatingInput
           label="Sub Work"
           name="newSubWorkItem"
@@ -394,7 +394,7 @@ const PartForm = ({ part, onSubmit, onCancel }) => {
         >
           {editingSubWorkIndex !== null ? 'Update' : 'Add'}
         </button>
-      </div>
+      </div> */}
 
       {formData.subWorks.length > 0 && (
         <div className={`space-y-2 mt-3 ${formData.subWorks.length > 2 ? 'max-h-32 overflow-y-auto pr-2' : ''}`}>

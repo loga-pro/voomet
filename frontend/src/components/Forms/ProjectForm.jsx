@@ -15,6 +15,7 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
     projectCategory: ''
   });
   const [scopeOptions, setScopeOptions] = useState([]);
+  const [partsData, setPartsData] = useState([]);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [projectType, setProjectType] = useState(project ? 'existing' : 'new');
@@ -274,6 +275,8 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
   const fetchScopeOptions = async () => {
     try {
       const response = await partsAPI.getAll();
+      setPartsData(response.data);
+      // Initially show all scopes
       const scopes = [...new Set(response.data.map(part => part.scopeOfWork))];
       setScopeOptions(scopes);
     } catch (error) {
@@ -289,6 +292,37 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
       console.error('Error fetching projects:', error);
     }
   };
+
+  // Filter scope options based on selected project category
+  useEffect(() => {
+    if (formData.projectCategory && partsData.length > 0) {
+      // Filter parts that match the selected project category
+      const filteredParts = partsData.filter(part =>
+        part.workCategory === formData.projectCategory
+      );
+
+      // Extract unique scope of work values from filtered parts
+      const filteredScopes = [...new Set(filteredParts.map(part => part.scopeOfWork))];
+
+      setScopeOptions(filteredScopes);
+
+      // Clear selected scopes that are no longer available
+      const validScopes = formData.scopeOfWork.filter(scope =>
+        filteredScopes.includes(scope)
+      );
+
+      if (validScopes.length !== formData.scopeOfWork.length) {
+        setFormData(prev => ({
+          ...prev,
+          scopeOfWork: validScopes
+        }));
+      }
+    } else if (partsData.length > 0) {
+      // If no category selected, show all scopes
+      const allScopes = [...new Set(partsData.map(part => part.scopeOfWork))];
+      setScopeOptions(allScopes);
+    }
+  }, [formData.projectCategory, partsData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -607,7 +641,10 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
                 onBlur={handleBlur}
                 options={[
                   { value: 'residential', label: 'Residential' },
-                  { value: 'commercial', label: 'Commercial' }
+                  { value: 'commercial', label: 'Commercial' },
+                  { value: 'school', label: 'School' },
+                  { value: 'hotel', label: 'Hotel' },
+                  { value: 'hospital', label: 'Hospital' }
                 ]}
                 error={errors.projectCategory}
                 required
@@ -628,53 +665,59 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
                 required
                 placeholder="Select stage"
               />
-            </div>
 
-            <FloatingInput
-              label="Total Project Value (₹) "
-              name="totalProjectValue"
-              type="number"
-              value={formData.totalProjectValue}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              error={errors.totalProjectValue}
-              step="0.01"
-              min="0.01"
-              max="99999999.99"
-              required
-            />
+              <FloatingInput
+                label="Total Project Value (₹) "
+                name="totalProjectValue"
+                type="number"
+                value={formData.totalProjectValue}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                error={errors.totalProjectValue}
+                step="0.01"
+                min="0.01"
+                max="99999999.99"
+                required
+              />
+            </div>
           </div>
 
-          {/* Scope of Work Section */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">
-              Scope of Work
-            </h3>
+          {/* Scope of Work Section - Only show when Project Category is selected */}
+          {formData.projectCategory && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">
+                Scope of Work
+              </h3>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Select Scope of Work * {errors.scopeOfWork && <span className="text-red-600 text-sm">- {errors.scopeOfWork}</span>}
-              </label>
-              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border border-gray-200 rounded-lg">
-                {scopeOptions.map(scope => (
-                  <button
-                    key={scope}
-                    type="button"
-                    onClick={() => handleScopeChange(scope)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${formData.scopeOfWork.includes(scope)
-                      ? 'bg-primary-600 text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-                      }`}
-                  >
-                    {formatScopeName(scope)}
-                  </button>
-                ))}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Select Scope of Work * {errors.scopeOfWork && <span className="text-red-600 text-sm">- {errors.scopeOfWork}</span>}
+                </label>
+                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border border-gray-200 rounded-lg">
+                  {scopeOptions.length > 0 ? (
+                    scopeOptions.map(scope => (
+                      <button
+                        key={scope}
+                        type="button"
+                        onClick={() => handleScopeChange(scope)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${formData.scopeOfWork.includes(scope)
+                          ? 'bg-primary-600 text-white shadow-sm'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                          }`}
+                      >
+                        {formatScopeName(scope)}
+                      </button>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500 py-2">No scope of work available for the selected category</p>
+                  )}
+                </div>
+                {!errors.scopeOfWork && touchedFields.scopeOfWork && formData.scopeOfWork.length === 0 && (
+                  <p className="mt-2 text-sm text-red-500">Please select at least one scope of work</p>
+                )}
               </div>
-              {!errors.scopeOfWork && touchedFields.scopeOfWork && formData.scopeOfWork.length === 0 && (
-                <p className="mt-2 text-sm text-red-500">Please select at least one scope of work</p>
-              )}
             </div>
-          </div>
+          )}
         </form>
       </div>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { partsAPI, boqAPI, projectsAPI, customersAPI, API_BASE_URL,FILE_BASE_URL } from '../../services/api';
+import { partsAPI, boqAPI, projectsAPI, customersAPI, API_BASE_URL, FILE_BASE_URL } from '../../services/api';
 import FloatingInput from './FloatingInput';
 import NotificationComponent from '../Notifications/Notification';
 import { UploadOutlined } from '@ant-design/icons';
@@ -197,7 +197,9 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
         : [{ discount: '', Installment: 1 }]
     };
 
-    console.log('BOQForm: Setting formData with projectName =', finalFormData.projectName);
+    console.log('BOQForm Edit Mode - Full BOQ object:', boq);
+    console.log('BOQForm Edit Mode - Extracted projectName:', boq.projectName);
+    console.log('BOQForm Edit Mode - Final formData:', finalFormData);
     setFormData(finalFormData);
     setIsInitialLoad(false);
   }, [boq]);
@@ -264,7 +266,8 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
           setProjects(projectsData || []);
 
           // If there's only one project, auto-populate the project name
-          if (projectsData && projectsData.length === 1 && !formData.projectName) {
+          // BUT only if we're NOT in edit mode (boq doesn't exist)
+          if (!boq && projectsData && projectsData.length === 1 && !formData.projectName) {
             setFormData(prev => ({
               ...prev,
               projectName: projectsData[0].projectName
@@ -280,10 +283,13 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       } else {
         setProjects([]);
         // Clear project name when customer is cleared
-        setFormData(prev => ({
-          ...prev,
-          projectName: ''
-        }));
+        // BUT only if we're NOT in edit mode
+        if (!boq) {
+          setFormData(prev => ({
+            ...prev,
+            projectName: ''
+          }));
+        }
       }
     };
 
@@ -422,15 +428,42 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       return;
     }
 
-    // When customer changes, clear project name
+    // When customer changes, clear project name and scope
     if (name === 'customer') {
       setFormData(prev => ({
         ...prev,
         [name]: value,
-        projectName: '' // Clear project when customer changes
+        projectName: '', // Clear project when customer changes
+        scopeOfWork: [] // Clear scope when customer changes
       }));
       if (errors[name]) {
-        setErrors(prev => ({ ...prev, [name]: '', projectName: '' }));
+        setErrors(prev => ({ ...prev, [name]: '', projectName: '', scopeOfWork: '' }));
+      }
+      return;
+    }
+
+    // When project name changes, populate scope of work from the selected project
+    if (name === 'projectName') {
+      const selectedProject = projects.find(p => p.projectName === value);
+      if (selectedProject) {
+        const scopeOfWorkArray = Array.isArray(selectedProject.scopeOfWork)
+          ? selectedProject.scopeOfWork
+          : (selectedProject.scopeOfWork || '').split(',').map(s => s.trim()).filter(Boolean);
+
+        setFormData(prev => ({
+          ...prev,
+          projectName: value,
+          scopeOfWork: scopeOfWorkArray
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          projectName: value,
+          scopeOfWork: []
+        }));
+      }
+      if (errors[name]) {
+        setErrors(prev => ({ ...prev, [name]: '', scopeOfWork: '' }));
       }
       return;
     }
@@ -646,7 +679,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
           name: img.name,
           status: img.status || 'done',
           // url: img.url   // this allows preview
-           url: `${FILE_BASE_URL}${img.path}`, 
+          url: `${FILE_BASE_URL}${img.path}`,
         }]
         : []
     };
@@ -1282,63 +1315,88 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
               )}
 
               {/* Project Name */}
-              <FloatingInput
-                label="Project Name"
-                name="projectName"
-                value={formData.projectName}
-                onChange={handleChange}
-                error={errors.projectName}
-                type="select"
-                options={[
-                  { value: '', label: 'Select Project' },
-                  ...projects.map(project => ({
-                    value: project.projectName,
-                    label: project.projectName
-                  }))
-                ]}
-                required
-                disabled={!formData.customer || projects.length === 0}
-              />
+              {boq ? (
+                <FloatingInput
+                  label="Project Name"
+                  name="projectName"
+                  value={formData.projectName || '(No project name saved)'}
+                  disabled
+                  error={errors.projectName}
+                  required
+                />
+              ) : (
+                <FloatingInput
+                  label="Project Name"
+                  name="projectName"
+                  value={formData.projectName}
+                  onChange={handleChange}
+                  error={errors.projectName}
+                  type="select"
+                  options={[
+                    { value: '', label: 'Select Project' },
+                    ...projects.map(project => ({
+                      value: project.projectName,
+                      label: project.projectName
+                    }))
+                  ]}
+                  required
+                  disabled={!formData.customer || projects.length === 0}
+                />
+              )}
 
-              {/* Scope of Work */}
-              <div className="relative">
-                <div className="max-h-32 overflow-y-auto p-3 border border-gray-300 rounded-md bg-white hover:border-gray-400 focus-within:border-blue-500 transition-colors duration-200">
-                  <div className="flex flex-wrap gap-3">
-                    {scopeOfWorkOptions.map(scope => (
-                      <div key={scope} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id={`scope-${scope}`}
-                          checked={formData.scopeOfWork.includes(scope)}
-                          onChange={() => handleScopeOfWorkChange(scope)}
-                          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                        />
-                        <label htmlFor={`scope-${scope}`} className="ml-2 block text-sm text-gray-700">
-                          {capitalizeWords(scope)}
-                        </label>
+
+              {/* Scope of Work - Only show when Project Name is selected */}
+              {formData.projectName && (() => {
+                // Get the selected project to find its available scopes
+                const selectedProject = projects.find(p => p.projectName === formData.projectName);
+                const availableScopes = selectedProject?.scopeOfWork || [];
+
+                return (
+                  <div className="relative">
+                    <div className="max-h-32 overflow-y-auto p-3 border border-gray-300 rounded-md bg-white hover:border-gray-400 focus-within:border-blue-500 transition-colors duration-200">
+                      <div className="flex flex-wrap gap-3">
+                        {availableScopes.length > 0 ? (
+                          availableScopes.map(scope => (
+                            <div key={scope} className="flex items-center">
+                              <input
+                                type="checkbox"
+                                id={`scope-${scope}`}
+                                checked={formData.scopeOfWork.includes(scope)}
+                                onChange={() => handleScopeOfWorkChange(scope)}
+                                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                              />
+                              <label htmlFor={`scope-${scope}`} className="ml-2 block text-sm text-gray-700">
+                                {capitalizeWords(scope)}
+                              </label>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-gray-500">No scope of work available for this project</p>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    </div>
 
-                {/* Floating Label for Scope of Work */}
-                <label className="absolute -top-2 left-2 text-xs text-blue-600 font-medium bg-white px-1 transition-all duration-200">
-                  Scope of Work <span className="text-red-500">*</span>
-                </label>
+                    {/* Floating Label for Scope of Work */}
+                    <label className="absolute -top-2 left-2 text-xs text-blue-600 font-medium bg-white px-1 transition-all duration-200">
+                      Scope of Work <span className="text-red-500">*</span>
+                    </label>
 
-                {errors.scopeOfWork && (
-                  <div className="mt-1 flex items-start">
-                    <svg className="w-4 h-4 mt-0.5 mr-1 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path
-                        fillRule="evenodd"
-                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <p className="text-xs text-red-600">{errors.scopeOfWork}</p>
+                    {errors.scopeOfWork && (
+                      <div className="mt-1 flex items-start">
+                        <svg className="w-4 h-4 mt-0.5 mr-1 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path
+                            fillRule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <p className="text-xs text-red-600">{errors.scopeOfWork}</p>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                );
+              })()}
+
             </div>
           </div>
 
@@ -1658,20 +1716,20 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="space-y-1">
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              value={term.discount}
-                              onChange={(e) => handlePaymentTermChange(index, e.target.value)}
-                              onBlur={(e) => handlePaymentTermBlur(index, e.target.value)}
-                              readOnly={isOriginalTerm}
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={term.discount}
+                                onChange={(e) => handlePaymentTermChange(index, e.target.value)}
+                                onBlur={(e) => handlePaymentTermBlur(index, e.target.value)}
+                                readOnly={isOriginalTerm}
                                 className={`block w-full rounded-md shadow-sm focus:ring-primary-500 sm:text-sm p-2 border ${errors[`paymentTerm-${index}-discount`]
                                   ? 'border-red-500 focus:border-red-500'
                                   : 'border-gray-300 focus:border-primary-500'
                                   } ${isOriginalTerm ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                              placeholder="0-100"
-                            />
+                                placeholder="0-100"
+                              />
                               {errors[`paymentTerm-${index}-discount`] && (
                                 <p className="text-xs text-red-600">{errors[`paymentTerm-${index}-discount`]}</p>
                               )}
@@ -1682,19 +1740,19 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="space-y-1">
-                            <input
-                              type="date"
-                              value={term.dueDate || ''}
-                              onChange={(e) => {
-                                const newTerms = [...formData.paymentTerms];
-                                newTerms[index] = { ...newTerms[index], dueDate: e.target.value };
-                                setFormData(prev => ({ ...prev, paymentTerms: newTerms }));
-                              }}
+                              <input
+                                type="date"
+                                value={term.dueDate || ''}
+                                onChange={(e) => {
+                                  const newTerms = [...formData.paymentTerms];
+                                  newTerms[index] = { ...newTerms[index], dueDate: e.target.value };
+                                  setFormData(prev => ({ ...prev, paymentTerms: newTerms }));
+                                }}
                                 className={`block w-full rounded-md shadow-sm focus:ring-primary-500 sm:text-sm p-2 border ${errors[`paymentTerm-${index}-dueDate`]
                                   ? 'border-red-500 focus:border-red-500'
                                   : 'border-gray-300 focus:border-primary-500'
                                   }`}
-                            />
+                              />
                               {errors[`paymentTerm-${index}-dueDate`] && (
                                 <p className="text-xs text-red-600">{errors[`paymentTerm-${index}-dueDate`]}</p>
                               )}
