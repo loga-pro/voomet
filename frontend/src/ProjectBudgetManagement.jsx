@@ -369,14 +369,14 @@ const ProjectBudgetManagement = () => {
     <>
       {/* Main Content */}
       <div className="bg-gray-50 min-h-screen p-2 sm:p-4 lg:p-5 overflow-x-hidden relative font-sans">
-      <Notification
-        message={notification.message}
-        type={notification.type}
-        isVisible={notification.isVisible}
-        onClose={hideNotification}
-      />
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          isVisible={notification.isVisible}
+          onClose={hideNotification}
+        />
 
-      <div className="w-full max-w-full px-1 sm:px-2">
+        <div className="w-full max-w-full px-1 sm:px-2">
           {/* Sticky KPI Cards Section */}
           <div className={`grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-1.5 sm:gap-2 mb-3 sm:mb-4 transition-all duration-300 ${isHeaderFixed ? 'pt-16' : ''}`}>
             {/* Total Projects Card */}
@@ -385,7 +385,7 @@ const ProjectBudgetManagement = () => {
                 <div className="flex items-center justify-center mb-2">
                   <ChartBarIcon className="h-5 w-5 text-blue-600 mr-2" />
                   <p className="text-xs font-medium text-gray-600">Total Projects</p>
-              </div>
+                </div>
                 <p className="text-xl font-bold text-gray-900">{totalProjects}</p>
               </div>
             </div>
@@ -404,7 +404,7 @@ const ProjectBudgetManagement = () => {
                   })}
                 </p>
               </div>
-          </div>
+            </div>
 
             {/* Total Amount Spent Card */}
             <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
@@ -412,7 +412,7 @@ const ProjectBudgetManagement = () => {
                 <div className="flex items-center justify-center mb-2">
                   <CurrencyRupeeIcon className="h-5 w-5 text-orange-600 mr-2" />
                   <p className="text-xs font-medium text-gray-600">Total Spent</p>
-              </div>
+                </div>
                 <p className="text-xl font-bold text-gray-900">
                   ₹{totalAmountSpent.toLocaleString('en-IN', { 
                     minimumFractionDigits: 0, 
@@ -428,7 +428,7 @@ const ProjectBudgetManagement = () => {
                 <div className="flex items-center justify-center mb-2">
                   {getProfitLossIcon(netProfitLoss)}
                   <p className="text-xs font-medium text-gray-600 ml-2">Net Profit/Loss</p>
-              </div>
+                </div>
                 <p className={`text-xl font-bold ${getProfitLossColor(netProfitLoss)}`}>
                   ₹{Math.abs(netProfitLoss).toLocaleString('en-IN', { 
                     minimumFractionDigits: 0, 
@@ -440,8 +440,8 @@ const ProjectBudgetManagement = () => {
                     {getProfitLossText(netProfitLoss)}
                   </span>
                 </p>
+              </div>
             </div>
-          </div>
 
             {/* Profitable Projects Card */}
             <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
@@ -449,185 +449,185 @@ const ProjectBudgetManagement = () => {
                 <div className="flex items-center justify-center mb-2">
                   <BuildingStorefrontIcon className="h-5 w-5 text-purple-600 mr-2" />
                   <p className="text-xs font-medium text-gray-600">Profitable Projects</p>
-              </div>
+                </div>
                 <p className="text-xl font-bold text-gray-900">
                   {profitableProjects}/{totalProjects}
                 </p>
                 {/* <p className="text-xs mt-1 text-gray-500">
                   {totalProjects > 0 ? `${Math.round((profitableProjects / totalProjects) * 100)}% success` : 'No projects'}
                 </p> */}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Main Content Card */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          {/* Main Content Card */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             {/* Sticky Toolbar */}
             <div className={`px-4 py-4 sm:px-6 border-b border-gray-200 bg-white ${isHeaderFixed ? 'fixed top-0 left-0 right-0 z-50 shadow-md' : ''}`}>
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-3 sm:space-y-0">
-              <div className="flex items-center space-x-3">
-                <div className="relative flex-1 max-w-md">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="text"
-                    value={filters.search}
-                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                <div className="flex items-center space-x-3">
+                  <div className="relative flex-1 max-w-md">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      value={filters.search}
+                      onChange={(e) => handleFilterChange('search', e.target.value)}
                       className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    placeholder="Search projects, clients, locations..."
-                  />
+                      placeholder="Search projects, clients, locations..."
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`inline-flex items-center px-3.5 py-2.5 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters || Object.values(filters).some(Boolean)
+                        ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
+                        : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                      }`}
+                  >
+                    <FunnelIcon className="h-5 w-5 mr-2" />
+                    Filters
+                    {Object.values(filters).some(Boolean) && (
+                      <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-600 rounded-full">
+                        {Object.values(filters).filter(Boolean).length}
+                      </span>
+                    )}
+                  </button>
+
+                  {Object.values(filters).some(Boolean) && (
+                    <button
+                      onClick={clearFilters}
+                      className="inline-flex items-center px-3.5 py-2.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      <XMarkIcon className="h-5 w-5 mr-2" />
+                      Clear
+                    </button>
+                  )}
+
+                  <button
+                    onClick={exportToCSV}
+                    className="inline-flex items-center px-3.5 py-2.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
+                    Export CSV
+                  </button>
+
+                  <button
+                    onClick={() => setShowModal(true)}
+                    className="inline-flex items-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <PlusIcon className="h-5 w-5 mr-2" />
+                    Add Budget
+                  </button>
                 </div>
               </div>
-
-              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                    className={`inline-flex items-center px-3.5 py-2.5 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters || Object.values(filters).some(Boolean)
-                    ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
-                    : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
-                    }`}
-                >
-                  <FunnelIcon className="h-5 w-5 mr-2" />
-                  Filters
-                  {Object.values(filters).some(Boolean) && (
-                    <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-600 rounded-full">
-                      {Object.values(filters).filter(Boolean).length}
-                    </span>
-                  )}
-                </button>
-
-                {Object.values(filters).some(Boolean) && (
-                  <button
-                    onClick={clearFilters}
-                      className="inline-flex items-center px-3.5 py-2.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    <XMarkIcon className="h-5 w-5 mr-2" />
-                    Clear
-                  </button>
-                )}
-
-                <button
-                  onClick={exportToCSV}
-                    className="inline-flex items-center px-3.5 py-2.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
-                  Export CSV
-                </button>
-
-                <button
-                  onClick={() => setShowModal(true)}
-                    className="inline-flex items-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <PlusIcon className="h-5 w-5 mr-2" />
-                  Add Budget
-                </button>
-              </div>
             </div>
-          </div>
 
             {/* Sticky Filters */}
-          {showFilters && (
+            {showFilters && (
               <div className={`px-4 py-4 sm:px-6 bg-gray-50 border-b border-gray-200 ${isHeaderFixed ? 'fixed top-16 left-0 right-0 z-40 shadow-md' : ''}`}>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Financial Year</label>
-                  <select
-                    value={filters.financialYear}
-                    onChange={(e) => handleFilterChange('financialYear', e.target.value)}
+                    <select
+                      value={filters.financialYear}
+                      onChange={(e) => handleFilterChange('financialYear', e.target.value)}
                       className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2.5 px-3"
-                  >
-                    <option value="">All Years</option>
-                    {uniqueFinancialYears.map(year => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    >
+                      <option value="">All Years</option>
+                      {uniqueFinancialYears.map(year => (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Project Name</label>
-                  <select
-                    value={filters.projectName}
-                    onChange={(e) => handleFilterChange('projectName', e.target.value)}
+                    <select
+                      value={filters.projectName}
+                      onChange={(e) => handleFilterChange('projectName', e.target.value)}
                       className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2.5 px-3"
-                  >
-                    <option value="">All Projects</option>
-                    {uniqueProjectNames.map(projectName => (
-                      <option key={projectName} value={projectName}>
-                        {projectName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    >
+                      <option value="">All Projects</option>
+                      {uniqueProjectNames.map(projectName => (
+                        <option key={projectName} value={projectName}>
+                          {projectName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Client Name</label>
-                  <select
-                    value={filters.customerName}
-                    onChange={(e) => handleFilterChange('customerName', e.target.value)}
+                    <select
+                      value={filters.customerName}
+                      onChange={(e) => handleFilterChange('customerName', e.target.value)}
                       className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2.5 px-3"
-                  >
+                    >
                       <option value="">All Clients</option>
-                    {uniqueCustomerNames.map(customerName => (
-                      <option key={customerName} value={customerName}>
-                        {customerName}
-                      </option>
-                    ))}
-                  </select>
+                      {uniqueCustomerNames.map(customerName => (
+                        <option key={customerName} value={customerName}>
+                          {customerName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Enhanced Table */}
-          <div className="overflow-hidden">
-            {/* Desktop Table */}
-            <div className="hidden lg:block">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Project Name
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Financial Year
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Quoted (₹)
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Negotiated (₹)
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Spent (₹)
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Net Profit/Loss
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Business Impact
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {currentItems.map((budget) => (
-                    <tr key={budget._id} className="hover:bg-gray-50 transition-colors duration-150">
-                      <td className="px-6 py-4 text-center">
+            {/* Enhanced Table */}
+            <div className="overflow-hidden">
+              {/* Desktop Table */}
+              <div className="hidden lg:block">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Project Name
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Financial Year
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Quoted (₹)
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Negotiated (₹)
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Spent (₹)
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Net Profit/Loss
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Business Impact
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {currentItems.map((budget) => (
+                      <tr key={budget._id} className="hover:bg-gray-50 transition-colors duration-150">
+                        <td className="px-6 py-4 text-center">
                           <div className="flex flex-col items-center">
                             <div className="text-sm font-medium text-gray-900">{budget.projectName}</div>
                             {/* <div className="text-xs text-gray-500">{budget.customerName}</div> */}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-center">
                           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                             {budget.financialYear}
-                        </span>
-                      </td>
+                          </span>
+                        </td>
                         <td className="px-6 py-4 text-center text-sm text-gray-900">
                           ₹{budget.quotedPrice?.toLocaleString('en-IN')}
                         </td>
@@ -637,243 +637,243 @@ const ProjectBudgetManagement = () => {
                         <td className="px-6 py-4 text-center text-sm text-gray-900">
                           ₹{budget.amountSpent?.toLocaleString('en-IN')}
                         </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className={`text-sm font-semibold ${getProfitLossColor(budget.netProfitLoss)}`}>
+                        <td className="px-6 py-4 text-center">
+  <div className={`text-sm font-semibold ${getProfitLossColor(budget.netProfitLoss)}`}>
     ₹{Math.abs(budget.netProfitLoss)?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </div>
+  </div>
   <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-medium mt-1 ${
     budget.netProfitLoss > 0 
       ? 'bg-green-100 text-green-800' 
       : budget.netProfitLoss < 0 
         ? 'bg-red-100 text-red-800' 
         : 'bg-gray-100 text-gray-800'
-                          }`}>
+  }`}>
     {budget.netProfitLoss > 0 ? 'Profit' : budget.netProfitLoss < 0 ? 'Loss' : 'Neither'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
+  </span>
+</td>
+                        <td className="px-6 py-4 text-center">
                           <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium ${getBusinessImpactColor(budget.overallBusinessImpact)}`}>
                             {budget.overallBusinessImpact}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex justify-center space-x-2">
-                          <button
-                            onClick={() => handleView(budget)}
-                            className="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors duration-150"
-                            title="View Details"
-                          >
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex justify-center space-x-2">
+                            <button
+                              onClick={() => handleView(budget)}
+                              className="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors duration-150"
+                              title="View Details"
+                            >
                               <EyeIcon className="h-5 w-5" />
-                          </button>
-                          <button
-                            onClick={() => handleEdit(budget)}
-                            className="text-indigo-600 hover:text-indigo-900 p-2 rounded-lg hover:bg-indigo-50 transition-colors duration-150"
-                            title="Edit"
-                          >
+                            </button>
+                            <button
+                              onClick={() => handleEdit(budget)}
+                              className="text-indigo-600 hover:text-indigo-900 p-2 rounded-lg hover:bg-indigo-50 transition-colors duration-150"
+                              title="Edit"
+                            >
                               <PencilSquareIcon className="h-5 w-5" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(budget)}
-                            className="text-red-600 hover:text-red-900 p-2 rounded-lg hover:bg-red-50 transition-colors duration-150"
-                            title="Delete"
-                          >
+                            </button>
+                            <button
+                              onClick={() => handleDelete(budget)}
+                              className="text-red-600 hover:text-red-900 p-2 rounded-lg hover:bg-red-50 transition-colors duration-150"
+                              title="Delete"
+                            >
                               <TrashIcon className="h-5 w-5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-            {/* Mobile Cards */}
-            <div className="lg:hidden">
-              {currentItems.map((budget) => (
+              {/* Mobile Cards */}
+              <div className="lg:hidden">
+                {currentItems.map((budget) => (
                   <div key={budget._id} className="border-b border-gray-200 p-3 hover:bg-gray-50 transition-colors duration-150">
                     <div className="flex justify-between items-start mb-3">
-                    <div className="flex items-center flex-1 min-w-0">
+                      <div className="flex items-center flex-1 min-w-0">
                         <div className="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-lg flex items-center justify-center">
                           <BuildingStorefrontIcon className="h-5 w-5 text-blue-600" />
-                      </div>
+                        </div>
                         <div className="ml-3 min-w-0 flex-1">
                           <h3 className="text-sm font-semibold text-gray-900 truncate">{budget.projectName}</h3>
-                        <p className="text-xs text-gray-500 truncate">{budget.customerName}</p>
-                        <p className="text-xs text-gray-400 truncate flex items-center">
-                          <MapPinIcon className="h-3 w-3 mr-1" />
-                          {budget.siteLocation}
-                        </p>
+                          <p className="text-xs text-gray-500 truncate">{budget.customerName}</p>
+                          <p className="text-xs text-gray-400 truncate flex items-center">
+                            <MapPinIcon className="h-3 w-3 mr-1" />
+                            {budget.siteLocation}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex space-x-1">
+                        <button
+                          onClick={() => handleView(budget)}
+                          className="text-blue-600 hover:text-blue-900 p-1.5 rounded transition-colors duration-150"
+                          title="View"
+                        >
+                          <EyeIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(budget)}
+                          className="text-indigo-600 hover:text-indigo-900 p-1.5 rounded transition-colors duration-150"
+                          title="Edit"
+                        >
+                          <PencilSquareIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(budget)}
+                          className="text-red-600 hover:text-red-900 p-1.5 rounded transition-colors duration-150"
+                          title="Delete"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
-                    <div className="flex space-x-1">
-                      <button
-                        onClick={() => handleView(budget)}
-                          className="text-blue-600 hover:text-blue-900 p-1.5 rounded transition-colors duration-150"
-                        title="View"
-                      >
-                        <EyeIcon className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleEdit(budget)}
-                          className="text-indigo-600 hover:text-indigo-900 p-1.5 rounded transition-colors duration-150"
-                        title="Edit"
-                      >
-                        <PencilSquareIcon className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(budget)}
-                          className="text-red-600 hover:text-red-900 p-1.5 rounded transition-colors duration-150"
-                        title="Delete"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                       <div className="bg-gray-50 rounded-md p-2 border border-gray-200">
                         <div className="font-medium text-gray-500 mb-1">Year</div>
                         <div className="font-semibold text-gray-900">{budget.financialYear}</div>
-                    </div>
+                      </div>
                       <div className="bg-gray-50 rounded-md p-2 border border-gray-200">
                         <div className="font-medium text-gray-500 mb-1">Quoted</div>
                         <div className="font-semibold text-gray-900">₹{budget.quotedPrice?.toLocaleString('en-IN')}</div>
-                    </div>
+                      </div>
                       <div className="bg-gray-50 rounded-md p-2 border border-gray-200">
                         <div className="font-medium text-gray-500 mb-1">Negotiated</div>
                         <div className="font-semibold text-gray-900">₹{budget.negotiatedPrice?.toLocaleString('en-IN')}</div>
-                    </div>
+                      </div>
                       <div className="bg-gray-50 rounded-md p-2 border border-gray-200">
                         <div className="font-medium text-gray-500 mb-1">Spent</div>
                         <div className="font-semibold text-gray-900">₹{budget.amountSpent?.toLocaleString('en-IN')}</div>
-                    </div>
+                      </div>
                       <div className="bg-gray-50 rounded-md p-2 border border-gray-200 col-span-2">
                         <div className="font-medium text-gray-500 mb-1">Net Profit/Loss</div>
                         <div className="flex items-center justify-between">
                           <span className={`font-semibold ${getProfitLossColor(budget.netProfitLoss)}`}>
-                        ₹{Math.abs(budget.netProfitLoss)?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
+                            ₹{Math.abs(budget.netProfitLoss)?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${budget.netProfitLoss >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {budget.netProfitLoss >= 0 ? 'Profit' : 'Loss'}
-                      </span>
-                    </div>
+                            {budget.netProfitLoss >= 0 ? 'Profit' : 'Loss'}
+                          </span>
+                        </div>
                       </div>
                       <div className="bg-gray-50 rounded-md p-2 border border-gray-200">
                         <div className="font-medium text-gray-500 mb-1">Impact</div>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getBusinessImpactColor(budget.overallBusinessImpact)}`}>
-                        {budget.overallBusinessImpact}
-                      </span>
+                          {budget.overallBusinessImpact}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Updated Pagination */}
-          {filteredBudgets.length > 0 && (
-              <div className="bg-white px-4 py-4 flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 sm:px-6">
-              <div className="flex items-center mb-4 sm:mb-0">
-                <span className="text-sm text-gray-700 mr-2">Items per page:</span>
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => {
-                    setItemsPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                    className="border border-gray-300 rounded-md text-sm p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                </select>
+                ))}
               </div>
+            </div>
+
+            {/* Updated Pagination */}
+            {filteredBudgets.length > 0 && (
+              <div className="bg-white px-4 py-4 flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 sm:px-6">
+                <div className="flex items-center mb-4 sm:mb-0">
+                  <span className="text-sm text-gray-700 mr-2">Items per page:</span>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="border border-gray-300 rounded-md text-sm p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
 
                 <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                <span className="text-sm text-gray-700">
-                  Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredBudgets.length)} of {filteredBudgets.length} results
-                </span>
+                  <span className="text-sm text-gray-700">
+                    Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredBudgets.length)} of {filteredBudgets.length} results
+                  </span>
 
                   <nav className="flex space-x-1">
-                  <button
-                    onClick={() => paginate(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
+                    <button
+                      onClick={() => paginate(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1}
                       className="relative inline-flex items-center px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ChevronLeftIcon className="h-5 w-5" />
-                  </button>
+                    >
+                      <ChevronLeftIcon className="h-5 w-5" />
+                    </button>
 
-                  {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter(page =>
-                      page === 1 ||
-                      page === totalPages ||
-                      (page >= currentPage - 1 && page <= currentPage + 1)
-                    )
-                    .map((page, index, array) => {
-                      const showEllipsis = index > 0 && page - array[index - 1] > 1;
-                      return (
-                        <React.Fragment key={page}>
-                          {showEllipsis && (
-                            <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
-                              ...
-                            </span>
-                          )}
-                          <button
-                            onClick={() => paginate(page)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
-                              ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                              }`}
-                          >
-                            {page}
-                          </button>
-                        </React.Fragment>
-                      );
-                    })}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(page =>
+                        page === 1 ||
+                        page === totalPages ||
+                        (page >= currentPage - 1 && page <= currentPage + 1)
+                      )
+                      .map((page, index, array) => {
+                        const showEllipsis = index > 0 && page - array[index - 1] > 1;
+                        return (
+                          <React.Fragment key={page}>
+                            {showEllipsis && (
+                              <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                ...
+                              </span>
+                            )}
+                            <button
+                              onClick={() => paginate(page)}
+                              className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
+                                  ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                  : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                }`}
+                            >
+                              {page}
+                            </button>
+                          </React.Fragment>
+                        );
+                      })}
 
-                  <button
-                    onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
-                    disabled={currentPage === totalPages}
+                    <button
+                      onClick={() => paginate(Math.min(totalPages, currentPage + 1))}
+                      disabled={currentPage === totalPages}
                       className="relative inline-flex items-center px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ChevronRightIcon className="h-5 w-5" />
-                  </button>
-                </nav>
+                    >
+                      <ChevronRightIcon className="h-5 w-5" />
+                    </button>
+                  </nav>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Empty State */}
-          {filteredBudgets.length === 0 && (
-            <div className="text-center py-12">
-              <ChartBarIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No project budgets</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                {budgets.length === 0
-                  ? "Get started by adding your first project budget."
-                  : "No budgets match your current filters."
-                }
-              </p>
-              <div className="mt-6">
-                <button
-                  onClick={() => {
-                    if (budgets.length === 0) {
-                      setShowModal(true);
-                    } else {
-                      clearFilters();
-                    }
-                  }}
+            {/* Empty State */}
+            {filteredBudgets.length === 0 && (
+              <div className="text-center py-12">
+                <ChartBarIcon className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No project budgets</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {budgets.length === 0
+                    ? "Get started by adding your first project budget."
+                    : "No budgets match your current filters."
+                  }
+                </p>
+                <div className="mt-6">
+                  <button
+                    onClick={() => {
+                      if (budgets.length === 0) {
+                        setShowModal(true);
+                      } else {
+                        clearFilters();
+                      }
+                    }}
                     className="inline-flex items-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <PlusIcon className="h-5 w-5 mr-2" />
-                  {budgets.length === 0 ? 'Add Project Budget' : 'Clear Filters'}
-                </button>
+                  >
+                    <PlusIcon className="h-5 w-5 mr-2" />
+                    {budgets.length === 0 ? 'Add Project Budget' : 'Clear Filters'}
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
       </div>
 
       {/* Add/Edit Modal */}
@@ -889,9 +889,9 @@ const ProjectBudgetManagement = () => {
                   </h3>
                   <button
                     onClick={() => {
-          setShowModal(false);
-          setEditingBudget(null);
-        }}
+                      setShowModal(false);
+                      setEditingBudget(null);
+                    }}
                     className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <XMarkIcon className="h-6 w-6" />
@@ -900,16 +900,16 @@ const ProjectBudgetManagement = () => {
               </div>
 
               <div className="bg-white px-4 py-5 sm:p-6 max-h-[80vh] overflow-y-auto">
-        <ProjectBudgetForm
-          budget={editingBudget}
-          onSubmit={(formData) => handleFormSubmit(!!editingBudget, formData)}
-          onCancel={() => {
-            setShowModal(false);
-            setEditingBudget(null);
-          }}
-          showNotification={showSuccess}
-          showError={showError}
-        />
+                <ProjectBudgetForm
+                  budget={editingBudget}
+                  onSubmit={(formData) => handleFormSubmit(!!editingBudget, formData)}
+                  onCancel={() => {
+                    setShowModal(false);
+                    setEditingBudget(null);
+                  }}
+                  showNotification={showSuccess}
+                  showError={showError}
+                />
               </div>
             </div>
           </div>
@@ -928,9 +928,9 @@ const ProjectBudgetManagement = () => {
             </h3>
             <button
               onClick={() => {
-          setViewModal(false);
-          setSelectedBudget(null);
-        }}
+                setViewModal(false);
+                setSelectedBudget(null);
+              }}
               className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <XMarkIcon className="h-6 w-6" />
@@ -939,9 +939,9 @@ const ProjectBudgetManagement = () => {
         </div>
 
         <div className="bg-white px-4 py-5 sm:p-6 max-h-[80vh] overflow-y-auto">
-        {selectedBudget && (
+          {selectedBudget && (
             <div className="flex flex-col">
-
+              
               {/* Project Information - 4 Columns */}
               <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
                 <div className="flex items-center mb-3">
@@ -952,28 +952,28 @@ const ProjectBudgetManagement = () => {
                   <div>
                     <span className="text-xs text-gray-500 block mb-1">Project Name</span>
                     <p className="text-sm font-medium text-gray-900 truncate">{selectedBudget.projectName}</p>
-              </div>
+                  </div>
                   <div>
                     <span className="text-xs text-gray-500 block mb-1">Customer Name</span>
                     <p className="text-sm font-medium text-gray-900 truncate">{selectedBudget.customerName}</p>
-                </div>
+                  </div>
                   <div>
                     <span className="text-xs text-gray-500 block mb-1">Financial Year</span>
                     <p className="text-sm font-medium text-gray-900">{selectedBudget.financialYear}</p>
-              </div>
+                  </div>
                   <div>
                     <span className="text-xs text-gray-500 block mb-1">Site Location</span>
                     <p className="text-sm font-medium text-gray-900 truncate">{selectedBudget.siteLocation}</p>
+                  </div>
                 </div>
               </div>
-            </div>
 
               {/* Financial Overview - 4 Columns */}
               <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
                 <div className="flex items-center mb-3">
                   <CurrencyRupeeIcon className="h-5 w-5 text-green-600 mr-2" />
                   <h3 className="font-semibold text-gray-900">Financial Overview</h3>
-                  </div>
+                </div>
                 <div className="grid grid-cols-4 gap-2">
                   <div className="text-center p-2 border border-gray-100 rounded">
                     <span className="text-xs text-gray-500 block mb-1">Quoted Price</span>
@@ -1008,28 +1008,28 @@ const ProjectBudgetManagement = () => {
                       {selectedBudget.netProfitLoss > 0 ? 'Profit' : selectedBudget.netProfitLoss < 0 ? 'Loss' : 'Neither'}
                     </span>
                   </div>
-                  </div>
                 </div>
-            {/* Action Buttons */}
+              </div>
+              {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 mt-4">
-              <button
-                onClick={() => setViewModal(false)}
+                <button
+                  onClick={() => setViewModal(false)}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-sm"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => {
-                  setViewModal(false);
-                  handleEdit(selectedBudget);
-                }}
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    setViewModal(false);
+                    handleEdit(selectedBudget);
+                  }}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm"
-              >
-                Edit Budget
-              </button>
+                >
+                  Edit Budget
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
         </div>
       </div>
     </div>
@@ -1056,61 +1056,61 @@ const ProjectBudgetManagement = () => {
               </div>
 
               <div className="bg-white px-4 py-5 sm:p-6">
-          <div className="flex items-center mb-4">
-            <div className="flex-shrink-0">
-              <svg className="h-10 w-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <div className="ml-4">
-              <h3 className="text-lg font-medium text-gray-900">Delete Project Budget</h3>
-              <p className="text-sm text-gray-500">
-                Are you sure you want to delete this project budget? This action cannot be undone.
-              </p>
-            </div>
-          </div>
+                <div className="flex items-center mb-4">
+                  <div className="flex-shrink-0">
+                    <svg className="h-10 w-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900">Delete Project Budget</h3>
+                    <p className="text-sm text-gray-500">
+                      Are you sure you want to delete this project budget? This action cannot be undone.
+                    </p>
+                  </div>
+                </div>
 
-          {budgetToDelete && (
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium text-gray-700">Project Name:</span>
-                  <p className="text-gray-900">{budgetToDelete.projectName}</p>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-700">Customer:</span>
-                  <p className="text-gray-900">{budgetToDelete.customerName}</p>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-700">Financial Year:</span>
-                  <p className="text-gray-900">{budgetToDelete.financialYear}</p>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-700">Net Profit/Loss:</span>
-                  <p className={`text-gray-900 ${getProfitLossColor(budgetToDelete.netProfitLoss)}`}>
-                    ₹{Math.abs(budgetToDelete.netProfitLoss)?.toLocaleString('en-IN')}
-                  </p>
+                {budgetToDelete && (
+                  <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="font-medium text-gray-700">Project Name:</span>
+                        <p className="text-gray-900">{budgetToDelete.projectName}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Customer:</span>
+                        <p className="text-gray-900">{budgetToDelete.customerName}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Financial Year:</span>
+                        <p className="text-gray-900">{budgetToDelete.financialYear}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Net Profit/Loss:</span>
+                        <p className={`text-gray-900 ${getProfitLossColor(budgetToDelete.netProfitLoss)}`}>
+                          ₹{Math.abs(budgetToDelete.netProfitLoss)?.toLocaleString('en-IN')}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setShowDeleteModal(false)}
+                    className="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    className="px-4 py-2.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-sm"
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
             </div>
-          )}
-
-          <div className="flex justify-end space-x-3">
-            <button
-              onClick={() => setShowDeleteModal(false)}
-                    className="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-sm"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={confirmDelete}
-                    className="px-4 py-2.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-sm"
-            >
-              Delete
-            </button>
-          </div>
-        </div>
-    </div>
           </div>
         </div>
       )}
