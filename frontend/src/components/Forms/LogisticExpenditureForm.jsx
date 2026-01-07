@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import FloatingInput from './FloatingInput';
 import { customersAPI, projectsAPI, transportersAPI, projectBudgetsAPI, partsAPI } from '../../services/api';
 
-const LogisticExpenditureForm = ({ 
+const LogisticExpenditureForm = ({
   initialData = [],
   onSave,
   onCancel,
@@ -13,38 +13,38 @@ const LogisticExpenditureForm = ({
   projectName
 }) => {
   const [expenditures, setExpenditures] = useState(
-    initialData.length > 0 
-      ? initialData 
+    initialData.length > 0
+      ? initialData
       : [{
-          purpose: '',
-          vehicleType: '',
-          transporterName: '',
-          from: '',
-          to: '',
-          kmTravelled: '',
-          totalPrice: ''
-        }]
+        purpose: '',
+        vehicleType: '',
+        transporterName: '',
+        from: '',
+        to: '',
+        kmTravelled: '',
+        totalPrice: ''
+      }]
   );
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
-  
+
   // Master data states
   const [financialYears, setFinancialYears] = useState([]);
   const [projectBudgets, setProjectBudgets] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [projects, setProjects] = useState([]);
   const [parts, setParts] = useState([]);
-  
+
   // Selected masters
   const [selectedFinancialYear, setSelectedFinancialYear] = useState(financialYear || '');
   const [selectedCustomer, setSelectedCustomer] = useState(customerName || '');
   const [selectedProject, setSelectedProject] = useState(projectName || '');
-  
+
   // Number of rows before scrolling starts
   const MAX_VISIBLE_ROWS = 4;
-  
+
   // Validation patterns
   const validationPatterns = {
     purpose: {
@@ -82,14 +82,14 @@ const LogisticExpenditureForm = ({
     if (!value && field !== 'from' && field !== 'to') {
       return `${field.charAt(0).toUpperCase() + field.slice(1)} is required`;
     }
-    
+
     if (validationPatterns[field]) {
       const { pattern, message } = validationPatterns[field];
       if (value && !pattern.test(value)) {
         return message;
       }
     }
-    
+
     // Additional specific validations
     if (field === 'kmTravelled' && value) {
       const km = parseFloat(value);
@@ -100,7 +100,7 @@ const LogisticExpenditureForm = ({
         return 'KM cannot exceed 99,999,999.99';
       }
     }
-    
+
     if (field === 'totalPrice' && value) {
       const price = parseFloat(value);
       if (price <= 0) {
@@ -110,7 +110,7 @@ const LogisticExpenditureForm = ({
         return 'Amount cannot exceed ₹99,999,999.99';
       }
     }
-    
+
     return '';
   };
 
@@ -172,9 +172,9 @@ const LogisticExpenditureForm = ({
       setLoading(true);
       const response = await projectBudgetsAPI.getAll({ financialYear });
       const budgets = response?.data?.budgets || response?.budgets || [];
-      
+
       setProjectBudgets(budgets);
-      
+
       // Extract unique customers from budgets
       const uniqueCustomers = [...new Set(budgets.map(budget => budget.customerName))];
       setCustomers(uniqueCustomers.map(customerName => ({
@@ -206,7 +206,7 @@ const LogisticExpenditureForm = ({
       setLoading(true);
       // Filter project budgets by customer name
       const customerBudgets = projectBudgets.filter(budget => budget.customerName === customerName);
-      
+
       // Extract unique projects for this customer
       const uniqueProjects = [...new Set(customerBudgets.map(budget => budget.projectName))];
       setProjects(uniqueProjects.map(projectName => ({
@@ -229,7 +229,7 @@ const LogisticExpenditureForm = ({
       // Fetch all parts from parts API
       const response = await partsAPI.getAll();
       const allParts = response.data || [];
-      
+
       // Set all parts
       setParts(allParts.map(part => ({
         partName: part.partName || '',
@@ -290,22 +290,22 @@ const LogisticExpenditureForm = ({
     if (field === 'kmTravelled') {
       // Allow only numbers and decimal point
       const cleanedValue = value.replace(/[^0-9.]/g, '');
-      
+
       // Ensure only one decimal point
       const parts = cleanedValue.split('.');
       if (parts.length > 2) {
         return; // Don't update if multiple decimal points
       }
-      
+
       // Restrict to 8 digits before decimal and 2 after
       if (parts[0].length > 8) {
         return; // Don't update if more than 8 digits before decimal
       }
-      
+
       if (parts[1] && parts[1].length > 2) {
         return; // Don't update if more than 2 digits after decimal
       }
-      
+
       value = cleanedValue;
     }
 
@@ -313,11 +313,11 @@ const LogisticExpenditureForm = ({
     if (field === 'totalPrice') {
       const cleanedValue = value.replace(/[^0-9.]/g, '');
       const parts = cleanedValue.split('.');
-      
+
       if (parts.length > 2) return;
       if (parts[0].length > 8) return;
       if (parts[1] && parts[1].length > 2) return;
-      
+
       value = cleanedValue;
     }
 
@@ -363,7 +363,7 @@ const LogisticExpenditureForm = ({
       'HCV': 18,
       'Other': 10
     };
-    
+
     // Check if vehicle type matches any known types (case-insensitive)
     const normalizedType = vehicleType?.trim().toLowerCase();
     for (const [key, rate] of Object.entries(rates)) {
@@ -371,7 +371,7 @@ const LogisticExpenditureForm = ({
         return rate;
       }
     }
-    
+
     return 10; // Default rate
   };
 
@@ -379,7 +379,7 @@ const LogisticExpenditureForm = ({
   const handleBlur = (index, field, value) => {
     const errorKey = `expenditures.${index}.${field}`;
     const error = validateField(field, value);
-    
+
     if (error) {
       setErrors(prev => ({
         ...prev,
@@ -408,7 +408,7 @@ const LogisticExpenditureForm = ({
   const removeRow = (index) => {
     if (expenditures.length > 1) {
       setExpenditures(prev => prev.filter((_, i) => i !== index));
-      
+
       // Also remove errors for this row
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -447,7 +447,7 @@ const LogisticExpenditureForm = ({
     // Validate expenditures
     expenditures.forEach((exp, index) => {
       const fieldsToValidate = ['purpose', 'vehicleType', 'transporterName', 'kmTravelled'];
-      
+
       fieldsToValidate.forEach(field => {
         const error = validateField(field, exp[field]);
         if (error) {
@@ -460,7 +460,7 @@ const LogisticExpenditureForm = ({
         const error = validateField('from', exp.from);
         if (error) newErrors[`expenditures.${index}.from`] = error;
       }
-      
+
       if (exp.to) {
         const error = validateField('to', exp.to);
         if (error) newErrors[`expenditures.${index}.to`] = error;
@@ -578,13 +578,13 @@ const LogisticExpenditureForm = ({
             {/* Fixed header */}
             <thead className="bg-gray-100 text-gray-600 sticky top-0 z-10">
               <tr>
-                <th className="px-3 py-2 min-w-[150px]">Purpose*</th>
-                <th className="px-3 py-2 min-w-[120px]">Vehicle Type*</th>
-                <th className="px-3 py-2 min-w-[150px]">Transporter*</th>
-                <th className="px-3 py-2 min-w-[120px]">From</th>
-                <th className="px-3 py-2 min-w-[120px]">To</th>
-                <th className="px-3 py-2 min-w-[100px]">KM*</th>
-                <th className="px-3 py-2 min-w-[120px]">Total (₹)</th>
+                <th className="px-3 py-2 min-w-[150px] text-center">Purpose*</th>
+                <th className="px-3 py-2 min-w-[120px] text-center">Vehicle Type*</th>
+                <th className="px-3 py-2 min-w-[150px] text-center">Transporter*</th>
+                <th className="px-3 py-2 min-w-[120px] text-center">From</th>
+                <th className="px-3 py-2 min-w-[120px] text-center">To</th>
+                <th className="px-3 py-2 min-w-[100px] text-center">KM*</th>
+                <th className="px-3 py-2 min-w-[120px] text-center">Total (₹)</th>
                 <th className="px-3 py-2 min-w-[80px] text-center">Actions</th>
               </tr>
             </thead>
@@ -594,7 +594,7 @@ const LogisticExpenditureForm = ({
               {expenditures.map((exp, index) => (
                 <tr key={index} className="hover:bg-gray-50">
                   {/* Purpose */}
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2 text-center">
                     <input
                       className="w-full px-2 py-1 border rounded bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                       value={exp.purpose}
@@ -612,7 +612,7 @@ const LogisticExpenditureForm = ({
                   </td>
 
                   {/* Vehicle Type */}
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2 text-center">
                     <input
                       className="w-full px-2 py-1 border rounded bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                       value={exp.vehicleType}
@@ -630,7 +630,7 @@ const LogisticExpenditureForm = ({
                   </td>
 
                   {/* Transporter */}
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2 text-center">
                     <input
                       className="w-full px-2 py-1 border rounded bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                       value={exp.transporterName}
@@ -648,7 +648,7 @@ const LogisticExpenditureForm = ({
                   </td>
 
                   {/* From */}
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2 text-center">
                     <input
                       className="w-full px-2 py-1 border rounded bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                       value={exp.from}
@@ -666,7 +666,7 @@ const LogisticExpenditureForm = ({
                   </td>
 
                   {/* To */}
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2 text-center">
                     <input
                       className="w-full px-2 py-1 border rounded bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                       value={exp.to}
@@ -684,10 +684,10 @@ const LogisticExpenditureForm = ({
                   </td>
 
                   {/* KM Travelled */}
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2 text-center">
                     <input
                       type="text"
-                      className="w-full px-2 py-1 border rounded bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none text-right"
+                      className="w-full px-2 py-1 border rounded bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                       value={exp.kmTravelled}
                       onChange={(e) => handleExpenditureChange(index, 'kmTravelled', e.target.value)}
                       onBlur={(e) => handleBlur(index, 'kmTravelled', e.target.value)}
@@ -703,11 +703,11 @@ const LogisticExpenditureForm = ({
                   </td>
 
                   {/* Total Price */}
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2 text-center">
                     <input
                       type="text"
                       readOnly
-                      className="w-full px-2 py-1 border rounded bg-gray-100 font-medium text-right"
+                      className="w-full px-2 py-1 border rounded bg-gray-100 font-medium"
                       value={exp.totalPrice}
                       placeholder="Auto-calculated"
                     />
@@ -738,7 +738,7 @@ const LogisticExpenditureForm = ({
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0V5a2 2 0 012-2h2a2 2 0 012 2v2"
+                            d="M6 18L18 6M6 6l12 12"
                           />
                         </svg>
                       </button>

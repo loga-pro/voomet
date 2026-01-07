@@ -299,8 +299,8 @@ const MiscellaneousExpenditureManagement = () => {
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters || Object.values(filters).some(Boolean)
-                      ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
-                      : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                    ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
+                    : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
                     }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
@@ -613,8 +613,8 @@ const MiscellaneousExpenditureManagement = () => {
                           <button
                             onClick={() => setCurrentPage(page)}
                             className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
-                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                              ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                               }`}
                           >
                             {page}
@@ -644,123 +644,127 @@ const MiscellaneousExpenditureManagement = () => {
             setViewingExpenditure(null);
           }}
           title="Miscellaneous Expenditure Details"
-          size="4xl"
+          size="xl"
         >
           {viewingExpenditure && (
-            <div className="space-y-6">
-              {/* Basic Information */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Financial Year</label>
-                    <p className="mt-1 text-sm text-gray-900">{viewingExpenditure.financialYear}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Client Name</label>
-                    <p className="mt-1 text-sm text-gray-900">{viewingExpenditure.customerName || viewingExpenditure.customer?.name}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Project</label>
-                    <p className="mt-1 text-sm text-gray-900">{viewingExpenditure.projectName || viewingExpenditure.project?.name}</p>
-                  </div>
+            <div className="p-3 text-sm">
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Total Amount</label>
-                    <p className="mt-1 text-lg font-semibold text-gray-900">
-                      ₹{viewingExpenditure.totalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Created Date</label>
-                    <p className="mt-1 text-sm text-gray-900">{formatDate(viewingExpenditure.createdAt)}</p>
+              {/* BASIC INFORMATION */}
+              <div className="mb-3">
+                <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                  Basic Information
+                </h3>
+
+                <div className="border rounded-md p-3">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase">Financial Year</p>
+                      <p className="font-medium text-gray-800">
+                        {viewingExpenditure.financialYear}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase">Client Name</p>
+                      <p className="text-gray-700">
+                        {viewingExpenditure.customerName || viewingExpenditure.customer?.name}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase">Project</p>
+                      <p className="text-gray-700">
+                        {viewingExpenditure.projectName || viewingExpenditure.project?.name}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase">Total Amount</p>
+                      <p className="font-semibold text-gray-900 text-lg">
+                        ₹{viewingExpenditure.totalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+
                   </div>
                 </div>
               </div>
 
-              {/* Expenses Table */}
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Expenses ({viewingExpenditure.expenses?.length || 0})</h3>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Payment Method</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Receipt</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {viewingExpenditure.expenses?.map((expense, index) => (
-                        <tr key={index}>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                            {formatDate(expense.date)}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                              {expense.expenseCategory}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 text-sm text-gray-900">
-                            {expense.expenseDescription}
-                            {expense.remarks && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                Remarks: {expense.remarks}
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                            ₹{expense.amount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                            {expense.paymentMethod}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                            {expense.receipt ? (
-                              <a
-                                href={`${process.env.REACT_APP_API_URL}/${expense.receipt.path}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800"
-                              >
-                                View Receipt
-                              </a>
-                            ) : (
-                              <span className="text-gray-400">No receipt</span>
-                            )}
-                          </td>
+              {/* EXPENSES TABLE */}
+              <div className="mb-3">
+                <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                  Expenses ({viewingExpenditure.expenses?.length || 0})
+                </h3>
+
+                <div className="border rounded-md overflow-hidden">
+                  <div className="overflow-x-auto max-h-64">
+                    <table className="min-w-full divide-y divide-gray-200 text-sm">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">DATE</th>
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">CATEGORY</th>
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">DESCRIPTION</th>
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">AMOUNT</th>
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">PAYMENT METHOD</th>
                         </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="bg-gray-50">
-                      <tr>
-                        <td colSpan="3" className="px-3 py-2 text-right text-sm font-medium text-gray-900">
-                          Total:
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm font-bold text-gray-900">
-                          ₹{viewingExpenditure.totalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </td>
-                        <td colSpan="2"></td>
-                      </tr>
-                    </tfoot>
-                  </table>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {viewingExpenditure.expenses?.map((expense, index) => (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="px-3 py-2 text-center text-gray-900">
+                              {formatDate(expense.date)}
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              <span className="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                                {expense.expenseCategory || '-'}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-center text-gray-900">
+                              {expense.expenseDescription || '-'}
+                              {expense.remarks && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  Remarks: {expense.remarks}
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-center font-semibold text-gray-900">
+                              ₹{expense.amount?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '-'}
+                            </td>
+                            <td className="px-3 py-2 text-center text-gray-900">
+                              {expense.paymentMethod || '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-gray-50 sticky bottom-0">
+                        <tr>
+                          <td colSpan="3" className="px-3 py-2 text-right text-sm font-medium text-gray-900">
+                            Total:
+                          </td>
+                          <td className="px-3 py-2 text-center text-sm font-bold text-gray-900">
+                            ₹{viewingExpenditure.totalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td colSpan="2"></td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex justify-end pt-4">
+              {/* ACTIONS */}
+              <div className="flex justify-end gap-3 pt-3 border-t">
                 <button
                   onClick={() => {
                     setShowViewModal(false);
                     setViewingExpenditure(null);
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  className="px-3 py-1.5 text-sm border rounded-md hover:bg-gray-50"
                 >
                   Close
                 </button>
               </div>
+
             </div>
           )}
         </Modal>

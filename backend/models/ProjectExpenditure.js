@@ -10,6 +10,11 @@ const itemSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  quantityToBeOrdered: {
+    type: Number,
+    required: true,
+    min: 0
+  },
   quantity: {
     type: Number,
     required: true,
@@ -29,6 +34,10 @@ const itemSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  remarks: {
+    type: String,
+    trim: true
+  }
 }, { _id: false });
 
 const projectExpenditureSchema = new mongoose.Schema({

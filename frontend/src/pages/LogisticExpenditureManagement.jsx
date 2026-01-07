@@ -326,8 +326,7 @@ const LogisticExpenditureManagement = () => {
       'Total KM',
       'Trips Count',
       'Vehicle Types',
-      'Transporters',
-      'Created Date'
+      'Transporters'
     ];
 
     const csvData = filteredExpenditures.map(exp => {
@@ -345,8 +344,7 @@ const LogisticExpenditureManagement = () => {
         items.length,
         exp.status || '',
         vehicleTypes,
-        transporters,
-        new Date(exp.createdAt).toLocaleDateString()
+        transporters
       ];
     });
 
@@ -438,8 +436,8 @@ const LogisticExpenditureManagement = () => {
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${showFilters || Object.values(filters).some(Boolean)
-                      ? 'border-green-500 text-green-700 bg-green-50 hover:bg-green-100'
-                      : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                    ? 'border-green-500 text-green-700 bg-green-50 hover:bg-green-100'
+                    : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
                     }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
@@ -858,8 +856,8 @@ const LogisticExpenditureManagement = () => {
                           <button
                             onClick={() => setCurrentPage(page)}
                             className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
-                                ? 'z-10 bg-green-50 border-green-500 text-green-600'
-                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                              ? 'z-10 bg-green-50 border-green-500 text-green-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                               }`}
                           >
                             {page}
@@ -892,137 +890,164 @@ const LogisticExpenditureManagement = () => {
           size="xl"
         >
           {viewingExpenditure && (
-            <div className="space-y-6">
-              {/* Basic Information */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Financial Year</label>
-                    <p className="mt-1 text-sm text-gray-900">{viewingExpenditure.financialYear}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Client Name</label>
-                    <p className="mt-1 text-sm text-gray-900">{viewingExpenditure.customerName || viewingExpenditure.customer?.name}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Project</label>
-                    <p className="mt-1 text-sm text-gray-900">{viewingExpenditure.projectName || viewingExpenditure.project?.name}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Total Amount</label>
-                    <p className="mt-1 text-lg font-semibold text-gray-900">
-                      ₹{viewingExpenditure.totalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Total Distance</label>
-                    <p className="mt-1 text-lg font-semibold text-gray-900 flex items-center">
-                      <TruckIcon className="h-5 w-5 mr-2 text-gray-400" />
-                      {viewingExpenditure.items?.reduce((sum, item) => sum + (item.kmTravelled || 0), 0).toLocaleString()} KM
-                    </p>
+            <div className="p-3 text-sm">
+
+              {/* BASIC INFORMATION */}
+              <div className="mb-3">
+                <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                  Basic Information
+                </h3>
+
+                <div className="border rounded-md p-3">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase">Financial Year</p>
+                      <p className="font-medium text-gray-800">
+                        {viewingExpenditure.financialYear}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase">Client Name</p>
+                      <p className="text-gray-700">
+                        {viewingExpenditure.customerName || viewingExpenditure.customer?.name}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase">Project</p>
+                      <p className="text-gray-700">
+                        {viewingExpenditure.projectName || viewingExpenditure.project?.name}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase">Total Amount</p>
+                      <p className="font-semibold text-gray-900 text-lg">
+                        ₹{viewingExpenditure.totalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+
                   </div>
                 </div>
               </div>
 
-              {/* Summary Statistics */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Summary Statistics</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-white p-3 rounded-lg border">
-                    <div className="text-sm text-gray-500">Total Trips</div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      {viewingExpenditure.items?.length || 0}
+              {/* SUMMARY STATISTICS */}
+              <div className="mb-3">
+                <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                  Summary Statistics
+                </h3>
+
+                <div className="border rounded-md p-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase">Total Trips</p>
+                      <p className="font-semibold text-gray-900">
+                        {viewingExpenditure.items?.length || 0}
+                      </p>
                     </div>
-                  </div>
-                  <div className="bg-white p-3 rounded-lg border">
-                    <div className="text-sm text-gray-500">Avg Cost/KM</div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      ₹{
-                        (viewingExpenditure.totalAmount /
-                          (viewingExpenditure.items?.reduce((sum, item) => sum + (item.kmTravelled || 0), 0) || 1))
-                          .toFixed(2)
-                      }
+
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase">Total Distance</p>
+                      <p className="font-semibold text-gray-900">
+                        {viewingExpenditure.items?.reduce((sum, item) => sum + (item.kmTravelled || 0), 0).toLocaleString()} KM
+                      </p>
                     </div>
-                  </div>
-                  <div className="bg-white p-3 rounded-lg border">
-                    <div className="text-sm text-gray-500">Vehicle Types</div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      {[...new Set(viewingExpenditure.items?.map(item => item.vehicleType))].length}
+
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase">Avg Cost/KM</p>
+                      <p className="font-semibold text-gray-900">
+                        ₹{
+                          (viewingExpenditure.totalAmount /
+                            (viewingExpenditure.items?.reduce((sum, item) => sum + (item.kmTravelled || 0), 0) || 1))
+                            .toFixed(2)
+                        }
+                      </p>
                     </div>
-                  </div>
-                  <div className="bg-white p-3 rounded-lg border">
-                    <div className="text-sm text-gray-500">Transporters</div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      {[...new Set(viewingExpenditure.items?.map(item => item.transporterName))].length}
+
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase">Vehicle Types</p>
+                      <p className="font-semibold text-gray-900">
+                        {[...new Set(viewingExpenditure.items?.map(item => item.vehicleType))].length}
+                      </p>
                     </div>
+
                   </div>
                 </div>
               </div>
 
-              {/* Items Table */}
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Trips ({viewingExpenditure.items?.length || 0})</h3>
-                <div className="overflow-x-auto max-h-96">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50 sticky top-0">
-                      <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Purpose</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Route</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Vehicle</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Transporter</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">KM</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cost</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cost/KM</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {viewingExpenditure.items?.map((item, index) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                            {item.purpose}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                            <div className="flex items-center">
-                              <MapIcon className="h-3 w-3 mr-1 text-gray-400" />
-                              <span>{item.from} → {item.to}</span>
-                            </div>
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getVehicleTypeColor(item.vehicleType)}`}>
-                              {item.vehicleType}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                            {item.transporterName}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                            {item.kmTravelled?.toLocaleString()} KM
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm font-semibold text-gray-900">
-                            ₹{item.totalPrice?.toLocaleString('en-IN')}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                            ₹{item.kmTravelled > 0 ? (item.totalPrice / item.kmTravelled).toFixed(2) : 0}
-                          </td>
+              {/* TRIPS TABLE */}
+              <div className="mb-3">
+                <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                  Trips ({viewingExpenditure.items?.length || 0})
+                </h3>
+
+                <div className="border rounded-md overflow-hidden">
+                  <div className="overflow-x-auto max-h-64">
+                    <table className="min-w-full divide-y divide-gray-200 text-sm">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">PURPOSE</th>
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">ROUTE</th>
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">VEHICLE</th>
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">TRANSPORTER</th>
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">KM</th>
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">COST</th>
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">COST/KM</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {viewingExpenditure.items?.map((item, index) => (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="px-3 py-2 text-center text-gray-900">
+                              {item.purpose || '-'}
+                            </td>
+                            <td className="px-3 py-2 text-center text-gray-900">
+                              <div className="flex items-center justify-center">
+                                <MapIcon className="h-3 w-3 mr-1 text-gray-400" />
+                                <span>{item.from || '-'} → {item.to || '-'}</span>
+                              </div>
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${getVehicleTypeColor(item.vehicleType)}`}>
+                                {item.vehicleType || '-'}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-center text-gray-900">
+                              {item.transporterName || '-'}
+                            </td>
+                            <td className="px-3 py-2 text-center text-gray-900">
+                              {item.kmTravelled?.toLocaleString() || 0} KM
+                            </td>
+                            <td className="px-3 py-2 text-center font-semibold text-gray-900">
+                              ₹{item.totalPrice?.toLocaleString('en-IN') || '-'}
+                            </td>
+                            <td className="px-3 py-2 text-center text-gray-500">
+                              ₹{item.kmTravelled > 0 ? (item.totalPrice / item.kmTravelled).toFixed(2) : 0}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex justify-end pt-4">
+              {/* ACTIONS */}
+              <div className="flex justify-end gap-3 pt-3 border-t">
                 <button
                   onClick={() => {
                     setShowViewModal(false);
                     setViewingExpenditure(null);
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  className="px-3 py-1.5 text-sm border rounded-md hover:bg-gray-50"
                 >
                   Close
                 </button>
               </div>
+
             </div>
           )}
         </Modal>

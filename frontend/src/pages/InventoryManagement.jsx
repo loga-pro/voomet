@@ -231,25 +231,40 @@ const StockMaster = () => {
     const dispatchRejects = matchingDispatches.filter(d => d.dispatchCategory === 'reject');
 
     // Calculate totals for regular receipts only (excluding returns)
-    const regularReceiptsTotal = regularReceipts.reduce((sum, r) => sum + (r.totalValue || 0), 0);
+    const regularReceiptsTotal = regularReceipts.reduce((sum, r) => sum + parseFloat(r.totalValue || 0), 0);
 
     // Calculate regular dispatch totals (excluding returns and rejects)
-    const regularDispatchesTotal = regularDispatches.reduce((sum, d) => sum + (d.totalValue || 0), 0);
+    const regularDispatchesTotal = regularDispatches.reduce((sum, d) => sum + parseFloat(d.totalValue || 0), 0);
 
     // Calculate reject totals
-    const rejectsTotal = dispatchRejects.reduce((sum, d) => sum + (d.totalValue || 0), 0);
+    const rejectsTotal = dispatchRejects.reduce((sum, d) => sum + parseFloat(d.totalValue || 0), 0);
 
     // Calculate return totals from both receipts and dispatches
-    const receiptReturnsTotal = receiptReturns.reduce((sum, r) => sum + (r.totalValue || 0), 0);
-    const dispatchReturnsTotal = dispatchReturns.reduce((sum, d) => sum + (d.totalValue || 0), 0);
+    const receiptReturnsTotal = receiptReturns.reduce((sum, r) => sum + parseFloat(r.totalValue || 0), 0);
+    const dispatchReturnsTotal = dispatchReturns.reduce((sum, d) => sum + parseFloat(d.totalValue || 0), 0);
 
     const totalReturnsValue = receiptReturnsTotal + dispatchReturnsTotal;
+
+    // Debug logging for problematic rows
+    if (regularReceiptsTotal > 10000000 || regularDispatchesTotal > 10000000) {
+      console.log(`High value detected for ${workCategory} - ${partName}:`, {
+        regularReceiptsTotal,
+        regularDispatchesTotal,
+        rejectsTotal,
+        totalReturnsValue,
+        receiptCount: regularReceipts.length,
+        dispatchCount: regularDispatches.length,
+        receiptValues: regularReceipts.map(r => ({ totalValue: r.totalValue, qty: r.quantity, price: r.unitPrice })),
+        dispatchValues: regularDispatches.map(d => ({ totalValue: d.totalValue, qty: d.quantity, price: d.unitPrice }))
+      });
+    }
 
     return {
       stockValueAtFactory: regularReceiptsTotal,
       stockValueSentToCustomer: regularDispatchesTotal,
       stockValueReturnFromCustomer: totalReturnsValue,
-      totalStockValue: (regularReceiptsTotal - regularDispatchesTotal - rejectsTotal - receiptReturnsTotal) + dispatchReturnsTotal
+      // Total Stock Value = Factory Stock - Dispatched - Rejected + Returns (minimum 0)
+      totalStockValue: Math.max(0, regularReceiptsTotal - regularDispatchesTotal - rejectsTotal + totalReturnsValue)
     };
   };
 

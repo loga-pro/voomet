@@ -44,24 +44,24 @@ const InventorySummaryTable = ({
     const dispatchRejects = matchingDispatches.filter(d => d.dispatchCategory === 'reject');
 
     // Calculate totals for regular receipts only (excluding returns)
-    const regularReceiptsTotal = regularReceipts.reduce((sum, r) => sum + (r.totalValue || 0), 0);
+    const regularReceiptsTotal = regularReceipts.reduce((sum, r) => sum + parseFloat(r.totalValue || 0), 0);
     const regularReceiptsQty = regularReceipts.reduce((sum, r) => sum + (r.quantity || 0), 0);
 
     // Calculate regular dispatch totals (excluding returns and rejects)
-    const regularDispatchesTotal = regularDispatches.reduce((sum, d) => sum + (d.totalValue || 0), 0);
+    const regularDispatchesTotal = regularDispatches.reduce((sum, d) => sum + parseFloat(d.totalValue || 0), 0);
     const regularDispatchesQty = regularDispatches.reduce((sum, d) => sum + (d.quantity || 0), 0);
 
     // Calculate reject totals
-    const rejectsTotal = dispatchRejects.reduce((sum, d) => sum + (d.totalValue || 0), 0);
+    const rejectsTotal = dispatchRejects.reduce((sum, d) => sum + parseFloat(d.totalValue || 0), 0);
     const rejectsQty = dispatchRejects.reduce((sum, d) => sum + (d.quantity || 0), 0);
 
     // Calculate return totals separately
     // Receipt returns = Stock Return to Vendor
-    const receiptReturnsTotal = receiptReturns.reduce((sum, r) => sum + (r.totalValue || 0), 0);
+    const receiptReturnsTotal = receiptReturns.reduce((sum, r) => sum + parseFloat(r.totalValue || 0), 0);
     const receiptReturnsQty = receiptReturns.reduce((sum, r) => sum + (r.quantity || 0), 0);
 
     // Dispatch returns = Stock Return from Customer
-    const dispatchReturnsTotal = dispatchReturns.reduce((sum, d) => sum + (d.totalValue || 0), 0);
+    const dispatchReturnsTotal = dispatchReturns.reduce((sum, d) => sum + parseFloat(d.totalValue || 0), 0);
     const dispatchReturnsQty = dispatchReturns.reduce((sum, d) => sum + (d.quantity || 0), 0);
 
     // Total returns for overall stock calculation
@@ -89,9 +89,10 @@ const InventorySummaryTable = ({
       stockReturnToVendor: receiptReturnsQty,
       stockValueReturnToVendor: receiptReturnsTotal,
 
-      // Total stock: Original formula (receipts - dispatches - rejects - returns to vendor + returns from customer)
-      totalStock: Math.max(0, regularReceiptsQty - regularDispatchesQty - rejectsQty - receiptReturnsQty) + dispatchReturnsQty,
-      totalStockValue: (regularReceiptsTotal - regularDispatchesTotal - rejectsTotal - receiptReturnsTotal) + dispatchReturnsTotal
+      // Total stock: Original formula (receipts - dispatches - rejects + all returns)
+      totalStock: Math.max(0, regularReceiptsQty - regularDispatchesQty - rejectsQty + totalReturnsQty),
+      // Total Stock Value = Factory Stock - Dispatched - Rejected + Returns (minimum 0)
+      totalStockValue: Math.max(0, regularReceiptsTotal - regularDispatchesTotal - rejectsTotal + totalReturnsValue)
     };
   };
 

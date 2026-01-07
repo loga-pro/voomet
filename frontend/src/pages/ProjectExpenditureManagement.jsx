@@ -43,7 +43,6 @@ const ProjectExpenditureManagement = () => {
     customer: '',
     project: '',
     typeOfWork: '',
-    status: '',
     search: ''
   });
   const [showFilters, setShowFilters] = useState(false);
@@ -163,11 +162,6 @@ const ProjectExpenditureManagement = () => {
       );
     }
 
-    if (filters.status) {
-      filtered = filtered.filter(exp =>
-        exp.status === filters.status
-      );
-    }
 
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
@@ -199,7 +193,6 @@ const ProjectExpenditureManagement = () => {
       customer: '',
       project: '',
       typeOfWork: '',
-      status: '',
       search: ''
     });
   };
@@ -218,7 +211,7 @@ const ProjectExpenditureManagement = () => {
       items: expenditure.items?.map(item => ({
         typeOfWork: item.typeOfWork || '',
         partName: item.description || '', // Backend uses 'description', form uses 'partName'
-        quantityToBeOrdered: item.quantity || '', // Use quantity as the base
+        quantityToBeOrdered: item.quantityToBeOrdered || item.quantity || '', // Use stored BOQ quantity or fallback to quantity
         unit: item.unit || 'nos',
         quantityOrderedActual: item.quantity || '', // Actual quantity ordered
         price: item.rate || '', // Backend uses 'rate', form uses 'price'
@@ -277,11 +270,6 @@ const ProjectExpenditureManagement = () => {
       await fetchExpenditures();
       console.log('Expenditures list refreshed');
     } catch (error) {
-      console.error('=== ERROR SUBMITTING FORM ===');
-      console.error('Error:', error);
-      console.error('Error response data:', error.response?.data);
-      console.error('Error response status:', error.response?.status);
-      console.error('Error message:', error.message);
 
       let errorMessage = 'Failed to save expenditure record';
 
@@ -419,35 +407,57 @@ const ProjectExpenditureManagement = () => {
   };
 
   const exportToCSV = () => {
+    // Create detailed CSV with all items
     const headers = [
       'Financial Year',
       'Customer',
       'Project',
-      'Total Amount',
-      'Material Cost',
-      'Labor Cost',
-      'Equipment Cost',
-      'Subcontractor Cost',
-      'Status',
-      'Completion %',
-      'Items Count',
+      'Type of Work',
+      'Item Name',
+      'Qty to Order',
+      'Qty Actual',
+      'Unit',
+      'Price (₹)',
+      'Total (₹)',
       'Created Date'
     ];
 
-    const csvData = filteredExpenditures.map(exp => [
-      exp.financialYear || '',
-      exp.customerName || exp.customer?.name || '',
-      exp.projectName || exp.project?.name || '',
-      exp.totalAmount || 0,
-      exp.totalMaterialCost || 0,
-      exp.totalLaborCost || 0,
-      exp.totalEquipmentCost || 0,
-      exp.totalSubcontractorCost || 0,
-      exp.status || '',
-      exp.completionPercentage || 0,
-      exp.items?.length || 0,
-      new Date(exp.createdAt).toLocaleDateString()
-    ]);
+    // Flatten the data - one row per item
+    const csvData = [];
+    filteredExpenditures.forEach(exp => {
+      if (exp.items && exp.items.length > 0) {
+        exp.items.forEach(item => {
+          csvData.push([
+            exp.financialYear || '',
+            exp.customerName || exp.customer?.name || '',
+            exp.projectName || exp.project?.name || '',
+            item.typeOfWork || '',
+            item.description || item.partName || '',
+            item.quantityToBeOrdered || '',
+            item.quantity || item.quantityOrderedActual || '',
+            item.unit || '',
+            item.rate || item.price || 0,
+            item.amount || item.totalPrice || 0,
+            new Date(exp.createdAt).toLocaleDateString()
+          ]);
+        });
+      } else {
+        // If no items, add a row with expenditure info only
+        csvData.push([
+          exp.financialYear || '',
+          exp.customerName || exp.customer?.name || '',
+          exp.projectName || exp.project?.name || '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          0,
+          exp.totalAmount || 0,
+          new Date(exp.createdAt).toLocaleDateString()
+        ]);
+      }
+    });
 
     const csvContent = [
       headers.join(','),
@@ -458,33 +468,12 @@ const ProjectExpenditureManagement = () => {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `project-expenditures-${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `project-expenditures-detailed-${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     window.URL.revokeObjectURL(url);
 
     showSuccess('CSV exported successfully!');
   };
-
-  const getStatusColor = (status) => {
-    const colors = {
-      'Draft': 'bg-gray-100 text-gray-800',
-      'Submitted': 'bg-blue-100 text-blue-800',
-      'Approved': 'bg-green-100 text-green-800',
-      'In Progress': 'bg-yellow-100 text-yellow-800',
-      'Completed': 'bg-purple-100 text-purple-800',
-      'Cancelled': 'bg-red-100 text-red-800'
-    };
-    return colors[status] || 'bg-gray-100 text-gray-800';
-  };
-
-  const getCompletionColor = (percentage) => {
-    if (percentage >= 90) return 'text-green-600 bg-green-50';
-    if (percentage >= 50) return 'text-yellow-600 bg-yellow-50';
-    return 'text-red-600 bg-red-50';
-  };
-
-  const typeOfWorkOptions = ['Material', 'Labor', 'Equipment', 'Subcontractor', 'Other'];
-  const statusOptions = ['Draft', 'Submitted', 'Approved', 'In Progress', 'Completed', 'Cancelled'];
 
   if (loading && expenditures.length === 0) {
     return (
@@ -527,8 +516,8 @@ const ProjectExpenditureManagement = () => {
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className={`inline-flex items-center px-3 py-2 border shadow-sm text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${showFilters || Object.values(filters).some(Boolean)
-                      ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
-                      : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                    ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
+                    : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
                     }`}
                 >
                   <FunnelIcon className="h-5 w-5 mr-2" />
@@ -779,32 +768,6 @@ const ProjectExpenditureManagement = () => {
                       <div>
                         <span className="font-medium">Items:</span> {expenditure.items?.length || 0}
                       </div>
-                      <div>
-                        <span className="font-medium">Status:</span>
-                        <span className={`ml-1 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusColor(expenditure.status)}`}>
-                          {expenditure.status}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium">Completion:</span>
-                        <span className={`ml-1 font-medium ${getCompletionColor(expenditure.completionPercentage)}`}>
-                          {expenditure.completionPercentage || 0}%
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-xs text-gray-600 space-y-1">
-                      <div className="flex justify-between">
-                        <span>Material:</span>
-                        <span className="font-medium">₹{expenditure.totalMaterialCost?.toLocaleString('en-IN')}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Labor:</span>
-                        <span className="font-medium">₹{expenditure.totalLaborCost?.toLocaleString('en-IN')}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Equipment:</span>
-                        <span className="font-medium">₹{expenditure.totalEquipmentCost?.toLocaleString('en-IN')}</span>
-                      </div>
                     </div>
                   </div>
                 ))
@@ -871,8 +834,8 @@ const ProjectExpenditureManagement = () => {
                           <button
                             onClick={() => setCurrentPage(page)}
                             className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
-                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                              ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                               }`}
                           >
                             {page}
@@ -905,137 +868,128 @@ const ProjectExpenditureManagement = () => {
           size="xl"
         >
           {viewingExpenditure && (
-            <div className="space-y-6">
-              {/* Basic Information */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Financial Year</label>
-                    <p className="mt-1 text-sm text-gray-900">{viewingExpenditure.financialYear}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Client Name</label>
-                    <p className="mt-1 text-sm text-gray-900">{viewingExpenditure.customerName || viewingExpenditure.customer?.name}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Project</label>
-                    <p className="mt-1 text-sm text-gray-900">{viewingExpenditure.projectName || viewingExpenditure.project?.name}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Status</label>
-                    <p className="mt-1">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(viewingExpenditure.status)}`}>
-                        {viewingExpenditure.status}
-                      </span>
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Total Amount</label>
-                    <p className="mt-1 text-lg font-semibold text-gray-900">
-                      ₹{viewingExpenditure.totalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Completion</label>
-                    <div className="mt-1 flex items-center">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className={`h-2 rounded-full ${getCompletionColor(viewingExpenditure.completionPercentage)}`}
-                          style={{ width: `${Math.min(100, viewingExpenditure.completionPercentage || 0)}%` }}
-                        ></div>
-                      </div>
-                      <span className={`ml-2 text-sm font-medium ${getCompletionColor(viewingExpenditure.completionPercentage)}`}>
-                        {viewingExpenditure.completionPercentage || 0}%
-                      </span>
+            <div className="p-3 text-sm">
+
+              {/* BASIC INFORMATION */}
+              <div className="mb-3">
+                <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                  Basic Information
+                </h3>
+
+                <div className="border rounded-md p-3">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase">Financial Year</p>
+                      <p className="font-medium text-gray-800">
+                        {viewingExpenditure.financialYear}
+                      </p>
                     </div>
+
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase">Client Name</p>
+                      <p className="text-gray-700">
+                        {viewingExpenditure.customerName || viewingExpenditure.customer?.name}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase">Project</p>
+                      <p className="text-gray-700">
+                        {viewingExpenditure.projectName || viewingExpenditure.project?.name}
+                      </p>
+                    </div>
+
+
+
                   </div>
                 </div>
               </div>
 
-              {/* Category Breakdown */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Category Breakdown</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-white p-3 rounded-lg border">
-                    <div className="text-sm text-gray-500">Material</div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      ₹{viewingExpenditure.totalMaterialCost?.toLocaleString('en-IN')}
+              {/* FINANCIAL SUMMARY */}
+              <div className="mb-3">
+                <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                  Financial Summary
+                </h3>
+
+                <div className="border rounded-md p-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase">Total Amount</p>
+                      <p className="font-semibold text-gray-900 text-lg">
+                        ₹{viewingExpenditure.totalAmount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </p>
                     </div>
-                  </div>
-                  <div className="bg-white p-3 rounded-lg border">
-                    <div className="text-sm text-gray-500">Labor</div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      ₹{viewingExpenditure.totalLaborCost?.toLocaleString('en-IN')}
+
+
+
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase">Items Count</p>
+                      <p className="font-medium text-gray-800">
+                        {viewingExpenditure.items?.length || 0}
+                      </p>
                     </div>
-                  </div>
-                  <div className="bg-white p-3 rounded-lg border">
-                    <div className="text-sm text-gray-500">Equipment</div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      ₹{viewingExpenditure.totalEquipmentCost?.toLocaleString('en-IN')}
-                    </div>
-                  </div>
-                  <div className="bg-white p-3 rounded-lg border">
-                    <div className="text-sm text-gray-500">Subcontractor</div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      ₹{viewingExpenditure.totalSubcontractorCost?.toLocaleString('en-IN')}
-                    </div>
+
                   </div>
                 </div>
               </div>
 
-              {/* Items Table */}
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Items ({viewingExpenditure.items?.length || 0})</h3>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Item Name</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Qty</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {viewingExpenditure.items?.map((item, index) => (
-                        <tr key={index}>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{item.typeOfWork}</td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{item.partName}</td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                            {item.quantityOrderedActual || item.quantityToBeOrdered} {item.unit}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                            ₹{item.price?.toLocaleString('en-IN')}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm font-semibold text-gray-900">
-                            ₹{item.totalPrice?.toLocaleString('en-IN')}
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap">
-                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                              {item.status}
-                            </span>
-                          </td>
+
+              {/* ITEMS TABLE */}
+              <div className="mb-3">
+                <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                  Items ({viewingExpenditure.items?.length || 0})
+                </h3>
+
+                <div className="border rounded-md overflow-hidden">
+                  <div className="overflow-x-auto max-h-64">
+                    <table className="min-w-full divide-y divide-gray-200 text-sm">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">TYPE</th>
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">ITEM NAME</th>
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">QTY</th>
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">PRICE</th>
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">TOTAL</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {viewingExpenditure.items?.map((item, index) => (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="px-3 py-2 text-center text-gray-900">{item.typeOfWork || '-'}</td>
+                            <td className="px-3 py-2 text-center text-gray-900">{item.description || item.partName || '-'}</td>
+                            <td className="px-3 py-2 text-center text-gray-900">
+                              {item.quantity || item.quantityOrderedActual || item.quantityToBeOrdered || '-'} {item.unit || ''}
+                            </td>
+                            <td className="px-3 py-2 text-center text-gray-900">
+                              ₹{(item.rate || item.price)?.toLocaleString('en-IN') || '-'}
+                            </td>
+                            <td className="px-3 py-2 text-center font-semibold text-gray-900">
+                              ₹{(item.amount || item.totalPrice)?.toLocaleString('en-IN') || '-'}
+                            </td>
+
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex justify-end pt-4">
+              {/* ACTIONS */}
+              <div className="flex justify-end gap-3 pt-3 border-t">
                 <button
                   onClick={() => {
                     setShowViewModal(false);
                     setViewingExpenditure(null);
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  className="px-3 py-1.5 text-sm border rounded-md hover:bg-gray-50"
                 >
                   Close
                 </button>
               </div>
+
             </div>
           )}
         </Modal>

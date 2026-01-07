@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import FloatingInput from './FloatingInput';
 import { boqAPI, projectBudgetsAPI, customersAPI, projectsAPI } from '../../services/api';
 
-const ProjectExpenditureForm = ({ 
+const ProjectExpenditureForm = ({
   initialData = [],
   onSave,
   onCancel,
@@ -13,35 +13,35 @@ const ProjectExpenditureForm = ({
   projectName
 }) => {
   const [expenditures, setExpenditures] = useState(
-    initialData.length > 0 
-      ? initialData 
+    initialData.length > 0
+      ? initialData
       : [{
-          typeOfWork: '',
-          partName: '',
-          quantityToBeOrdered: '',
-          unit: 'nos',
-          quantityOrderedActual: '',
-          price: '',
-          totalPrice: ''
-        }]
+        typeOfWork: '',
+        partName: '',
+        quantityToBeOrdered: '',
+        unit: 'nos',
+        quantityOrderedActual: '',
+        price: '',
+        totalPrice: ''
+      }]
   );
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [hasFetchedFinancialYears, setHasFetchedFinancialYears] = useState(false);
-  
+
   // Master data states
   const [financialYears, setFinancialYears] = useState([]);
   const [projectBudgets, setProjectBudgets] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [projects, setProjects] = useState([]);
   const [parts, setParts] = useState([]);
-  
+
   // Selected masters
   const [selectedFinancialYear, setSelectedFinancialYear] = useState(financialYear || '');
   const [selectedCustomer, setSelectedCustomer] = useState(customerName || '');
   const [selectedProject, setSelectedProject] = useState(projectName || '');
-  
+
   // Validation constants
   const VALIDATION_RULES = {
     TYPE_OF_WORK: {
@@ -60,10 +60,10 @@ const ProjectExpenditureForm = ({
     },
     QUANTITY: {
       MAX_LENGTH: 30,
-      PATTERN: /^\d{1,10}(\.\d{1,3})?$/
+      PATTERN: /^\d{1,10}$/ // Only integers, no decimals
     }
   };
-  
+
   // Update expenditures when initialData changes (for edit mode)
   useEffect(() => {
     console.log('initialData changed:', initialData);
@@ -72,7 +72,7 @@ const ProjectExpenditureForm = ({
       setExpenditures(initialData);
     }
   }, [initialData]);
-  
+
   // Fetch master data on component mount
   useEffect(() => {
     if (!hasFetchedFinancialYears) {
@@ -120,13 +120,13 @@ const ProjectExpenditureForm = ({
       console.log('Financial years API response:', response);
       console.log('Financial years response status:', response?.status);
       console.log('Financial years response data:', response?.data);
-      
+
       if (response?.status !== 200) {
         console.error('Unexpected response status:', response?.status);
         showError && showError('Failed to load financial years: Invalid response');
         return;
       }
-      
+
       const years = response?.data?.financialYears || [];
       console.log('Extracted years:', years);
       const yearOptions = years.map(year => ({ value: year, label: year }));
@@ -147,9 +147,9 @@ const ProjectExpenditureForm = ({
       setLoading(true);
       const response = await projectBudgetsAPI.getAll({ financialYear });
       const budgets = response?.data?.budgets || response?.budgets || [];
-      
+
       setProjectBudgets(budgets);
-      
+
       // Extract unique customers from budgets
       const uniqueCustomers = [...new Set(budgets.map(budget => budget.customerName))];
       setCustomers(uniqueCustomers.map(customerName => ({
@@ -171,7 +171,7 @@ const ProjectExpenditureForm = ({
       setLoading(true);
       // Filter project budgets by customer name
       const customerBudgets = projectBudgets.filter(budget => budget.customerName === customerName);
-      
+
       // Extract unique projects for this customer
       const uniqueProjects = [...new Set(customerBudgets.map(budget => budget.projectName))];
       setProjects(uniqueProjects.map(projectName => ({
@@ -192,40 +192,40 @@ const ProjectExpenditureForm = ({
     try {
       setLoading(true);
       console.log('Fetching BOQ parts for project:', projectName);
-      
+
       // Fetch BOQ data for the selected project
       console.log('Calling boqAPI.getAll with projectName:', projectName);
       const response = await boqAPI.getAll({ projectName });
       console.log('BOQ API response:', response);
       console.log('BOQ API request params:', { projectName });
-      
+
       const boqData = response?.data?.data || [];
       console.log('BOQ data extracted:', boqData);
       console.log('Number of BOQ records found:', boqData.length);
-      
+
       // Validate that boqData is an array
       if (!Array.isArray(boqData)) {
         console.error('BOQ data is not an array:', boqData);
         setParts([]);
         return;
       }
-      
+
       // Check if any BOQ records were found for this project
       if (boqData.length === 0) {
         console.warn('No BOQ records found for project:', projectName);
         setParts([]);
         return;
       }
-      
+
       // Verify that the returned BOQ records are for the requested project
       const projectsInResponse = [...new Set(boqData.map(boq => boq.projectName))];
       console.log('Projects found in BOQ response:', projectsInResponse);
       console.log('Requested project:', projectName);
-      
+
       // Filter BOQ records to ensure they match the requested project
       const filteredBoqData = boqData.filter(boq => boq.projectName === projectName);
       console.log('Filtered BOQ data for project:', filteredBoqData.length, 'records');
-      
+
       // Extract parts from BOQ items - only saved parts from BOQ
       const boqParts = [];
       filteredBoqData.forEach((boq, boqIndex) => {
@@ -249,34 +249,34 @@ const ProjectExpenditureForm = ({
           console.log(`BOQ ${boqIndex} has no items or items is not an array`);
         }
       });
-      
+
       console.log('Total extracted BOQ parts:', boqParts);
       console.log('Total unique parts found:', boqParts.length);
-    
-    // Remove duplicates based on partName
-    const uniqueParts = boqParts.reduce((acc, current) => {
-      const exists = acc.find(item => item.partName === current.partName);
-      if (!exists) {
-        acc.push(current);
-      }
-      return acc;
-    }, []);
-    
-    console.log('Setting parts from BOQ:', uniqueParts);
-    console.log('Final unique parts count:', uniqueParts.length);
-      
+
+      // Remove duplicates based on partName
+      const uniqueParts = boqParts.reduce((acc, current) => {
+        const exists = acc.find(item => item.partName === current.partName);
+        if (!exists) {
+          acc.push(current);
+        }
+        return acc;
+      }, []);
+
+      console.log('Setting parts from BOQ:', uniqueParts);
+      console.log('Final unique parts count:', uniqueParts.length);
+
       if (uniqueParts.length === 0) {
         console.warn('No parts found in BOQ for project:', projectName);
         showError && showError(`No BOQ parts found for project "${projectName}". Please ensure BOQ data exists for this project.`);
       }
-      
+
       setParts(uniqueParts);
-  } catch (error) {
+    } catch (error) {
       console.error('Error fetching BOQ parts:', error);
       console.error('BOQ API error response:', error.response);
       console.error('BOQ API error status:', error.response?.status);
       console.error('BOQ API error message:', error.message);
-      
+
       let errorMessage = 'Failed to load parts from BOQ';
       if (error.response?.status === 404) {
         errorMessage = 'No BOQ data found for this project';
@@ -285,7 +285,7 @@ const ProjectExpenditureForm = ({
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       }
-      
+
       showError && showError(errorMessage);
       setParts([]);
     } finally {
@@ -296,29 +296,29 @@ const ProjectExpenditureForm = ({
   // Validation functions
   const validateTypeOfWork = (value) => {
     if (!value || value === '') return { isValid: true, message: '' };
-    
+
     if (value.length > VALIDATION_RULES.TYPE_OF_WORK.MAX_LENGTH) {
       return {
         isValid: false,
         message: `Maximum ${VALIDATION_RULES.TYPE_OF_WORK.MAX_LENGTH} characters allowed`
       };
     }
-    
+
     if (!VALIDATION_RULES.TYPE_OF_WORK.PATTERN.test(value)) {
       return {
         isValid: false,
         message: 'Only letters, numbers, spaces, and basic punctuation allowed'
       };
     }
-    
+
     return { isValid: true, message: '' };
   };
 
   const validatePrice = (value) => {
     if (!value || value === '') return { isValid: true, message: '' };
-    
+
     const strValue = value.toString();
-    
+
     // Check max length
     if (strValue.length > VALIDATION_RULES.PRICE.MAX_LENGTH) {
       return {
@@ -326,7 +326,7 @@ const ProjectExpenditureForm = ({
         message: `Maximum ${VALIDATION_RULES.PRICE.MAX_LENGTH} characters allowed`
       };
     }
-    
+
     // Check if it's a valid number
     if (isNaN(parseFloat(value))) {
       return {
@@ -334,34 +334,34 @@ const ProjectExpenditureForm = ({
         message: 'Please enter a valid number'
       };
     }
-    
+
     // Remove leading zeros for pattern matching
     const trimmedValue = strValue.replace(/^0+/, '') || '0';
-    
+
     // Check pattern for digits and decimals
     if (!VALIDATION_RULES.PRICE.PATTERN.test(trimmedValue)) {
       const [integerPart, decimalPart] = trimmedValue.split('.');
-      
+
       if (integerPart.length > VALIDATION_RULES.PRICE.MAX_DIGITS) {
         return {
           isValid: false,
           message: `Maximum ${VALIDATION_RULES.PRICE.MAX_DIGITS} digits before decimal`
         };
       }
-      
+
       if (decimalPart && decimalPart.length > VALIDATION_RULES.PRICE.MAX_DECIMALS) {
         return {
           isValid: false,
           message: `Maximum ${VALIDATION_RULES.PRICE.MAX_DECIMALS} decimal places`
         };
       }
-      
+
       return {
         isValid: false,
         message: 'Invalid format. Use up to 8 digits and 2 decimal places'
       };
     }
-    
+
     // Additional check for maximum value
     const numValue = parseFloat(value);
     const maxValue = Math.pow(10, VALIDATION_RULES.PRICE.MAX_DIGITS) - 0.01;
@@ -371,15 +371,15 @@ const ProjectExpenditureForm = ({
         message: `Maximum value is ${maxValue.toLocaleString()}`
       };
     }
-    
+
     return { isValid: true, message: '' };
   };
 
   const validateQuantity = (value) => {
     if (!value || value === '') return { isValid: true, message: '' };
-    
+
     const strValue = value.toString();
-    
+
     // Check max length
     if (strValue.length > VALIDATION_RULES.QUANTITY.MAX_LENGTH) {
       return {
@@ -387,32 +387,32 @@ const ProjectExpenditureForm = ({
         message: `Maximum ${VALIDATION_RULES.QUANTITY.MAX_LENGTH} characters allowed`
       };
     }
-    
-    // Check if it's a valid number
-    if (isNaN(parseFloat(value))) {
+
+    // Check if it's a valid integer
+    if (isNaN(parseInt(value)) || !Number.isInteger(Number(value))) {
       return {
         isValid: false,
-        message: 'Please enter a valid number'
+        message: 'Please enter a valid whole number (no decimals)'
       };
     }
-    
+
     // Check if it's positive
-    const numValue = parseFloat(value);
+    const numValue = parseInt(value);
     if (numValue <= 0) {
       return {
         isValid: false,
         message: 'Value must be greater than 0'
       };
     }
-    
-    // Check pattern for quantity
+
+    // Check pattern for quantity (integers only)
     if (!VALIDATION_RULES.QUANTITY.PATTERN.test(strValue)) {
       return {
         isValid: false,
-        message: 'Invalid format. Use up to 10 digits and 3 decimal places'
+        message: 'Only whole numbers allowed (no decimals)'
       };
     }
-    
+
     return { isValid: true, message: '' };
   };
 
@@ -453,12 +453,12 @@ const ProjectExpenditureForm = ({
           price: selectedPart.unitPrice || '',
           unit: selectedPart.unitType || 'nos'
         };
-        
+
         // Calculate total price
         const quantity = parseFloat(newExpenditures[index].quantityOrderedActual) || 0;
         const price = parseFloat(newExpenditures[index].price) || 0;
         newExpenditures[index].totalPrice = (quantity * price).toFixed(2);
-        
+
         console.log('Updated expenditure with unit type:', newExpenditures[index]);
         return newExpenditures;
       });
@@ -473,18 +473,31 @@ const ProjectExpenditureForm = ({
       delete newErrors[`expenditures.${index}.${field}`];
       return newErrors;
     });
-    
+
     // Validate based on field type
     let validationResult = { isValid: true, message: '' };
-    
+
     if (field === 'typeOfWork') {
       validationResult = validateTypeOfWork(value);
     } else if (field === 'price') {
       validationResult = validatePrice(value);
     } else if (field === 'quantityOrderedActual' || field === 'quantityToBeOrdered') {
       validationResult = validateQuantity(value);
+
+      // Additional validation for Qty Actual: cannot exceed Qty to Order
+      if (field === 'quantityOrderedActual' && validationResult.isValid) {
+        const qtyToOrder = parseInt(expenditures[index].quantityToBeOrdered) || 0;
+        const qtyActual = parseInt(value) || 0;
+
+        if (qtyActual > qtyToOrder) {
+          validationResult = {
+            isValid: false,
+            message: `Qty Actual cannot exceed Qty to Order (${qtyToOrder})`
+          };
+        }
+      }
     }
-    
+
     if (!validationResult.isValid) {
       setErrors(prev => ({
         ...prev,
@@ -492,7 +505,7 @@ const ProjectExpenditureForm = ({
       }));
       return; // Don't update if validation fails
     }
-    
+
     setExpenditures(prev => {
       const newExpenditures = [...prev];
       newExpenditures[index] = {
@@ -505,7 +518,7 @@ const ProjectExpenditureForm = ({
         const quantity = parseFloat(newExpenditures[index].quantityOrderedActual) || 0;
         const price = parseFloat(newExpenditures[index].price) || 0;
         newExpenditures[index].totalPrice = (quantity * price).toFixed(2);
-        
+
         // Validate the calculated total
         if (newExpenditures[index].totalPrice !== '0.00') {
           const totalValidation = validatePrice(newExpenditures[index].totalPrice);
@@ -571,14 +584,14 @@ const ProjectExpenditureForm = ({
     }
 
     // Validate expenditures
-    const hasAnyExpenditure = expenditures.some(exp => 
+    const hasAnyExpenditure = expenditures.some(exp =>
       exp.typeOfWork || exp.partName || exp.quantityToBeOrdered || exp.price
     );
-    
+
     if (!hasAnyExpenditure) {
       newErrors.expenditures = 'At least one expenditure entry is required';
     }
-    
+
     expenditures.forEach((exp, index) => {
       if (exp.typeOfWork || exp.partName || exp.quantityToBeOrdered || exp.price) {
         // Validate type of work
@@ -590,12 +603,12 @@ const ProjectExpenditureForm = ({
             newErrors[`expenditures.${index}.typeOfWork`] = typeOfWorkValidation.message;
           }
         }
-        
+
         // Validate part name
         if (!exp.partName) {
           newErrors[`expenditures.${index}.partName`] = 'Item name is required';
         }
-        
+
         // Validate quantity to be ordered
         if (!exp.quantityToBeOrdered) {
           newErrors[`expenditures.${index}.quantityToBeOrdered`] = 'Quantity is required';
@@ -605,7 +618,22 @@ const ProjectExpenditureForm = ({
             newErrors[`expenditures.${index}.quantityToBeOrdered`] = quantityValidation.message;
           }
         }
-        
+
+        // Validate quantity ordered actual
+        if (exp.quantityOrderedActual) {
+          const qtyActualValidation = validateQuantity(exp.quantityOrderedActual);
+          if (!qtyActualValidation.isValid) {
+            newErrors[`expenditures.${index}.quantityOrderedActual`] = qtyActualValidation.message;
+          } else {
+            // Check if Qty Actual exceeds Qty to Order
+            const qtyToOrder = parseInt(exp.quantityToBeOrdered) || 0;
+            const qtyActual = parseInt(exp.quantityOrderedActual) || 0;
+            if (qtyActual > qtyToOrder) {
+              newErrors[`expenditures.${index}.quantityOrderedActual`] = `Qty Actual cannot exceed Qty to Order (${qtyToOrder})`;
+            }
+          }
+        }
+
         // Validate price
         if (!exp.price) {
           newErrors[`expenditures.${index}.price`] = 'Price is required';
@@ -615,7 +643,7 @@ const ProjectExpenditureForm = ({
             newErrors[`expenditures.${index}.price`] = priceValidation.message;
           }
         }
-        
+
         // Validate total price
         if (exp.totalPrice && exp.totalPrice !== '0.00') {
           const totalValidation = validatePrice(exp.totalPrice);
@@ -659,7 +687,7 @@ const ProjectExpenditureForm = ({
         console.log('Customers API response:', customersResponse);
         const customersList = customersResponse?.data || [];
         const matchingCustomer = customersList.find(c => c.customerName === customerLabel);
-        
+
         if (matchingCustomer) {
           customerId = matchingCustomer._id;
           console.log('Found customer ID:', customerId);
@@ -682,7 +710,7 @@ const ProjectExpenditureForm = ({
         console.log('Projects API response:', projectsResponse);
         const projectsList = projectsResponse?.data || [];
         const matchingProject = projectsList.find(p => p.projectName === projectLabel);
-        
+
         if (matchingProject) {
           projectId = matchingProject._id;
           projectNumber = matchingProject.projectNumber || 'N/A';
@@ -713,11 +741,11 @@ const ProjectExpenditureForm = ({
           return {
             description: exp.partName.trim(),
             typeOfWork: exp.typeOfWork.trim(),
-            quantity: parseFloat(exp.quantityOrderedActual) || parseFloat(exp.quantityToBeOrdered) || 0,
+            quantityToBeOrdered: parseInt(exp.quantityToBeOrdered) || 0,
+            quantity: parseInt(exp.quantityOrderedActual) || 0,
             unit: exp.unit || 'nos',
             rate: parseFloat(exp.price) || 0,
-            amount: parseFloat(exp.totalPrice) || 0,
-            remarks: `Qty to Order: ${exp.quantityToBeOrdered}, Qty Actual: ${exp.quantityOrderedActual || 0}`
+            amount: parseFloat(exp.totalPrice) || 0
           };
         });
 
@@ -816,205 +844,203 @@ const ProjectExpenditureForm = ({
           </button>
         </div>
 
-        <div className="overflow-x-auto border rounded-md">
-          <table className="min-w-full divide-y divide-gray-300 text-sm">
-            <thead className="bg-gray-100 text-gray-600">
-              <tr>
-                <th className="px-3 py-2">Type of Work</th>
-                <th className="px-3 py-2">Item Name</th>
-                <th className="px-3 py-2">Qty to Order</th>
-                <th className="px-3 py-2">Unit</th>
-                <th className="px-3 py-2">Qty Actual</th>
-                <th className="px-3 py-2">Price (₹)</th>
-                <th className="px-3 py-2">Total (₹)</th>
-                <th className="px-3 py-2 text-center">Actions</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-gray-200">
-              {expenditures.map((exp, index) => (
-                <tr key={index}>
-                  <td className="px-3 py-2">
-                    <input
-                      type="text"
-                      className={`w-full px-2 py-1 border rounded bg-white ${
-                        errors[`expenditures.${index}.typeOfWork`] ? 'border-red-500' : ''
-                      }`}
-                      value={exp.typeOfWork}
-                      onChange={(e) => handleExpenditureChange(index, 'typeOfWork', e.target.value)}
-                      placeholder="Enter type of work"
-                      maxLength={VALIDATION_RULES.TYPE_OF_WORK.MAX_LENGTH}
-                      disabled={!selectedProject}
-                    />
-                    {errors[`expenditures.${index}.typeOfWork`] && (
-                      <div className="text-red-500 text-xs mt-1">
-                        {errors[`expenditures.${index}.typeOfWork`]}
-                      </div>
-                    )}
-                  </td>
-                  
-                  <td className="px-3 py-2">
-                    <select
-                      value={exp.partName}
-                      onChange={(e) => handlePartSelect(index, e.target.value)}
-                      className={`w-full px-2 py-1 border rounded bg-white ${
-                        errors[`expenditures.${index}.partName`] ? 'border-red-500' : ''
-                      }`}
-                      disabled={!selectedProject}
-                      title={parts.length === 0 ? "No BOQ parts available for this project" : "Select part from BOQ"}
-                    >
-                      <option value="">{parts.length === 0 ? "No BOQ Parts Available" : "Select Part from BOQ"}</option>
-                      {parts.map((part, i) => (
-                        <option key={i} value={part.partName}>
-                          {part.partName}
-                        </option>
-                      ))}
-                    </select>
-                    {errors[`expenditures.${index}.partName`] && (
-                      <div className="text-red-500 text-xs mt-1">
-                        {errors[`expenditures.${index}.partName`]}
-                      </div>
-                    )}
-                  </td>
-                  
-                  <td className="px-3 py-2">
-                    <input
-                      type="number"
-                      className={`w-full px-2 py-1 border rounded bg-white ${
-                        errors[`expenditures.${index}.quantityToBeOrdered`] ? 'border-red-500' : ''
-                      }`}
-                      value={exp.quantityToBeOrdered}
-                      onChange={(e) => handleExpenditureChange(index, 'quantityToBeOrdered', e.target.value)}
-                      onBlur={(e) => {
-                        // Format to 3 decimal places on blur
-                        if (e.target.value && !isNaN(parseFloat(e.target.value))) {
-                          const formattedValue = parseFloat(e.target.value).toFixed(3);
-                          handleExpenditureChange(index, 'quantityToBeOrdered', formattedValue);
-                        }
-                      }}
-                    
-                      maxLength={VALIDATION_RULES.QUANTITY.MAX_LENGTH}
-                      step="0.001"
-                      min="0"
-                      disabled={!selectedProject}
-                    />
-                    {errors[`expenditures.${index}.quantityToBeOrdered`] && (
-                      <div className="text-red-500 text-xs mt-1">
-                        {errors[`expenditures.${index}.quantityToBeOrdered`]}
-                      </div>
-                    )}
-                  </td>
-                  
-                  <td className="px-3 py-2">
-                    <input
-                      type="text"
-                      className="w-full px-2 py-1 border rounded bg-gray-100"
-                      value={exp.unit}
-                      readOnly
-                      disabled={!selectedProject}
-                      title="Unit type fetched from BOQ data"
-                    />
-                  </td>
-                  
-                  <td className="px-3 py-2">
-                    <input
-                      type="number"
-                      className={`w-full px-2 py-1 border rounded bg-white ${
-                        errors[`expenditures.${index}.quantityOrderedActual`] ? 'border-red-500' : ''
-                      }`}
-                      value={exp.quantityOrderedActual}
-                      onChange={(e) => handleExpenditureChange(index, 'quantityOrderedActual', e.target.value)}
-                      onBlur={(e) => {
-                        // Format to 3 decimal places on blur
-                        if (e.target.value && !isNaN(parseFloat(e.target.value))) {
-                          const formattedValue = parseFloat(e.target.value).toFixed(3);
-                          handleExpenditureChange(index, 'quantityOrderedActual', formattedValue);
-                        }
-                      }}
-
-                      maxLength={VALIDATION_RULES.QUANTITY.MAX_LENGTH}
-                      step="0.001"
-                      min="0"
-                      disabled={!selectedProject}
-                    />
-                    {errors[`expenditures.${index}.quantityOrderedActual`] && (
-                      <div className="text-red-500 text-xs mt-1">
-                        {errors[`expenditures.${index}.quantityOrderedActual`]}
-                      </div>
-                    )}
-                  </td>
-                  
-                  <td className="px-3 py-2">
-                    <input
-                      type="number"
-                      className={`w-full px-2 py-1 border rounded bg-white ${
-                        errors[`expenditures.${index}.price`] ? 'border-red-500' : ''
-                      }`}
-                      value={exp.price}
-                      onChange={(e) => handleExpenditureChange(index, 'price', e.target.value)}
-                      onBlur={(e) => {
-                        // Format to 2 decimal places on blur
-                        if (e.target.value && !isNaN(parseFloat(e.target.value))) {
-                          const formattedValue = parseFloat(e.target.value).toFixed(2);
-                          handleExpenditureChange(index, 'price', formattedValue);
-                        }
-                      }}
-                      placeholder="0.00"
-                      maxLength={VALIDATION_RULES.PRICE.MAX_LENGTH}
-                      step="0.01"
-                      min="0"
-                      disabled={!selectedProject}
-                    />
-                    {errors[`expenditures.${index}.price`] && (
-                      <div className="text-red-500 text-xs mt-1">
-                        {errors[`expenditures.${index}.price`]}
-                      </div>
-                    )}
-                  </td>
-                  
-                  <td className="px-3 py-2">
-                    <input
-                      readOnly
-                      className={`w-full px-2 py-1 border rounded bg-gray-100 ${
-                        errors[`expenditures.${index}.totalPrice`] ? 'border-red-500' : ''
-                      }`}
-                      value={exp.totalPrice}
-                    />
-                    {errors[`expenditures.${index}.totalPrice`] && (
-                      <div className="text-red-500 text-xs mt-1">
-                        {errors[`expenditures.${index}.totalPrice`]}
-                      </div>
-                    )}
-                  </td>
-                  
-                  <td className="px-3 py-2 text-center">
-                    {expenditures.length > 1 && (
-                      <button
-                        type="button"
-                        className="inline-flex items-center justify-center text-red-600 hover:text-red-800"
-                        onClick={() => removeRow(index)}
-                        aria-label="Delete row"
-                      >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0V5a2 2 0 012-2h2a2 2 0 012 2v2"
-                          />
-                        </svg>
-                      </button>
-                    )}
-                  </td>
+        <div className="border rounded-md">
+          <div className="overflow-x-auto">
+            <table className="min-w-full table-fixed divide-y divide-gray-300 text-sm">
+              <thead className="bg-gray-100 text-gray-600 sticky top-0 z-10">
+                <tr>
+                  <th className="w-[15%] px-3 py-2 text-center">Type of Work</th>
+                  <th className="w-[18%] px-3 py-2 text-center">Item Name</th>
+                  <th className="w-[11%] px-3 py-2 text-center">Qty to Order</th>
+                  <th className="w-[8%] px-3 py-2 text-center">Unit</th>
+                  <th className="w-[11%] px-3 py-2 text-center">Qty Actual</th>
+                  <th className="w-[12%] px-3 py-2 text-center">Price (₹)</th>
+                  <th className="w-[12%] px-3 py-2 text-center">Total (₹)</th>
+                  <th className="w-[8%] px-3 py-2 text-center">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+            </table>
+          </div>
+
+          <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '280px' }}>
+            <table className="min-w-full table-fixed divide-y divide-gray-300 text-sm">
+              <tbody className="divide-y divide-gray-200">
+                {expenditures.map((exp, index) => (
+                  <tr key={index}>
+                    <td className="w-[15%] px-3 py-2 text-center">
+                      <input
+                        type="text"
+                        className={`w-full px-2 py-1 border rounded bg-white ${errors[`expenditures.${index}.typeOfWork`] ? 'border-red-500' : ''
+                          }`}
+                        value={exp.typeOfWork}
+                        onChange={(e) => handleExpenditureChange(index, 'typeOfWork', e.target.value)}
+                        placeholder="Enter type of work"
+                        maxLength={VALIDATION_RULES.TYPE_OF_WORK.MAX_LENGTH}
+                        disabled={!selectedProject}
+                      />
+                      {errors[`expenditures.${index}.typeOfWork`] && (
+                        <div className="text-red-500 text-xs mt-1">
+                          {errors[`expenditures.${index}.typeOfWork`]}
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="w-[18%] px-3 py-2 text-center">
+                      <select
+                        value={exp.partName}
+                        onChange={(e) => handlePartSelect(index, e.target.value)}
+                        className={`w-full px-2 py-1 border rounded bg-white ${errors[`expenditures.${index}.partName`] ? 'border-red-500' : ''
+                          }`}
+                        disabled={!selectedProject}
+                        title={parts.length === 0 ? "No BOQ parts available for this project" : "Select part from BOQ"}
+                      >
+                        <option value="">{parts.length === 0 ? "No BOQ Parts Available" : "Select Part from BOQ"}</option>
+                        {parts.map((part, i) => (
+                          <option key={i} value={part.partName}>
+                            {part.partName}
+                          </option>
+                        ))}
+                      </select>
+                      {errors[`expenditures.${index}.partName`] && (
+                        <div className="text-red-500 text-xs mt-1">
+                          {errors[`expenditures.${index}.partName`]}
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="w-[11%] px-3 py-2 text-center">
+                      <input
+                        type="number"
+                        className="w-full px-2 py-1 border rounded bg-gray-100 cursor-not-allowed"
+                        value={exp.quantityToBeOrdered}
+                        readOnly
+                        disabled
+                        title="Quantity from BOQ (read-only)"
+                        step="1"
+                        min="0"
+                      />
+                      {errors[`expenditures.${index}.quantityToBeOrdered`] && (
+                        <div className="text-red-500 text-xs mt-1">
+                          {errors[`expenditures.${index}.quantityToBeOrdered`]}
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="w-[8%] px-3 py-2 text-center">
+                      <input
+                        type="text"
+                        className="w-full px-2 py-1 border rounded bg-gray-100"
+                        value={exp.unit}
+                        readOnly
+                        disabled={!selectedProject}
+                        title="Unit type fetched from BOQ data"
+                      />
+                    </td>
+
+                    <td className="w-[11%] px-3 py-2 text-center">
+                      <input
+                        type="number"
+                        className={`w-full px-2 py-1 border rounded bg-white ${errors[`expenditures.${index}.quantityOrderedActual`] ? 'border-red-500' : ''
+                          }`}
+                        value={exp.quantityOrderedActual}
+                        onChange={(e) => {
+                          // Only allow integers (no decimals)
+                          const value = e.target.value;
+                          if (value === '' || /^\d+$/.test(value)) {
+                            handleExpenditureChange(index, 'quantityOrderedActual', value);
+                          }
+                        }}
+                        onKeyPress={(e) => {
+                          // Prevent decimal point entry
+                          if (e.key === '.' || e.key === ',') {
+                            e.preventDefault();
+                          }
+                        }}
+                        maxLength={VALIDATION_RULES.QUANTITY.MAX_LENGTH}
+                        step="1"
+                        min="0"
+                        max={exp.quantityToBeOrdered || undefined}
+                        placeholder="Enter whole number"
+                        title={exp.quantityToBeOrdered ? `Maximum allowed: ${exp.quantityToBeOrdered}` : 'Enter quantity'}
+                        disabled={!selectedProject}
+                      />
+                      {errors[`expenditures.${index}.quantityOrderedActual`] && (
+                        <div className="text-red-500 text-xs mt-1">
+                          {errors[`expenditures.${index}.quantityOrderedActual`]}
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="w-[12%] px-3 py-2 text-center">
+                      <input
+                        type="number"
+                        className={`w-full px-2 py-1 border rounded bg-white ${errors[`expenditures.${index}.price`] ? 'border-red-500' : ''
+                          }`}
+                        value={exp.price}
+                        onChange={(e) => handleExpenditureChange(index, 'price', e.target.value)}
+                        onBlur={(e) => {
+                          // Format to 2 decimal places on blur
+                          if (e.target.value && !isNaN(parseFloat(e.target.value))) {
+                            const formattedValue = parseFloat(e.target.value).toFixed(2);
+                            handleExpenditureChange(index, 'price', formattedValue);
+                          }
+                        }}
+                        placeholder="0.00"
+                        maxLength={VALIDATION_RULES.PRICE.MAX_LENGTH}
+                        step="0.01"
+                        min="0"
+                        disabled={!selectedProject}
+                      />
+                      {errors[`expenditures.${index}.price`] && (
+                        <div className="text-red-500 text-xs mt-1">
+                          {errors[`expenditures.${index}.price`]}
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="w-[12%] px-3 py-2 text-center">
+                      <input
+                        readOnly
+                        className={`w-full px-2 py-1 border rounded bg-gray-100 ${errors[`expenditures.${index}.totalPrice`] ? 'border-red-500' : ''
+                          }`}
+                        value={exp.totalPrice}
+                      />
+                      {errors[`expenditures.${index}.totalPrice`] && (
+                        <div className="text-red-500 text-xs mt-1">
+                          {errors[`expenditures.${index}.totalPrice`]}
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="w-[8%] px-3 py-2 text-center">
+                      {expenditures.length > 1 && (
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center text-red-600 hover:text-red-800"
+                          onClick={() => removeRow(index)}
+                          aria-label="Delete row"
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 

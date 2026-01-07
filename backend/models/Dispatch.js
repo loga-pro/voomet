@@ -81,7 +81,9 @@ const dispatchSchema = new mongoose.Schema({
 // Pre-save middleware to calculate total value
 dispatchSchema.pre('save', function(next) {
   if (this.invoiceValueWithoutGST && this.gstValue && this.quantity) {
-    this.totalValue = (parseFloat(this.invoiceValueWithoutGST) + parseFloat(this.gstValue)) * parseFloat(this.quantity);
+    // Frontend sends gstValue as total GST amount (already multiplied by quantity)
+    // So formula is: (price per unit * quantity) + total GST amount
+    this.totalValue = (parseFloat(this.invoiceValueWithoutGST) * parseFloat(this.quantity)) + parseFloat(this.gstValue);
   }
   next();
 });

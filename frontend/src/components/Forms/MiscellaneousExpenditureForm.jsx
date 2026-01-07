@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import FloatingInput from './FloatingInput';
 import { customersAPI, projectsAPI, projectBudgetsAPI } from '../../services/api';
 
-const MiscellaneousExpenditureForm = ({ 
+const MiscellaneousExpenditureForm = ({
   initialData = {},
   financialYear,
   customerName,
@@ -14,12 +14,12 @@ const MiscellaneousExpenditureForm = ({
 }) => {
   const [formData, setFormData] = useState({
     financialYear: initialData.financialYear || financialYear || '',
-    customer: (initialData.customer && typeof initialData.customer === 'object') 
-      ? initialData.customer._id 
+    customer: (initialData.customer && typeof initialData.customer === 'object')
+      ? initialData.customer._id
       : (initialData.customer || ''),
     customerName: initialData.customerName || customerName || '',
-    project: (initialData.project && typeof initialData.project === 'object') 
-      ? initialData.project._id 
+    project: (initialData.project && typeof initialData.project === 'object')
+      ? initialData.project._id
       : (initialData.project || ''),
     projectName: initialData.projectName || projectName || '',
     expenses: initialData.expenses || [{
@@ -41,7 +41,7 @@ const MiscellaneousExpenditureForm = ({
   const [financialYears, setFinancialYears] = useState([]);
   const [projectBudgets, setProjectBudgets] = useState([]);
   const [selectedBudget, setSelectedBudget] = useState(null);
-  
+
   // Expense category options
   const expenseCategories = [
     'Labour',
@@ -54,7 +54,7 @@ const MiscellaneousExpenditureForm = ({
     'Maintenance',
     'Others'
   ];
-  
+
   // Payment method options
   const paymentMethods = [
     'Cash',
@@ -94,11 +94,11 @@ const MiscellaneousExpenditureForm = ({
     if (formData.financialYear && projectBudgets.length > 0) {
       const relevantBudgets = projectBudgets.filter(b => b.financialYear === formData.financialYear);
       const customerNames = [...new Set(relevantBudgets.map(b => b.customerName))];
-      
-      const filteredCustomers = customers.filter(c => 
+
+      const filteredCustomers = customers.filter(c =>
         customerNames.some(name => name && c.label && name.trim().toLowerCase() === c.label.trim().toLowerCase())
       );
-      
+
       setAvailableDetails(prev => ({
         ...prev,
         customers: filteredCustomers
@@ -119,13 +119,13 @@ const MiscellaneousExpenditureForm = ({
   // 4. Filter Projects once they are loaded and we have context
   useEffect(() => {
     if (formData.financialYear && formData.customerName && projectBudgets.length > 0) {
-      const relevantBudgets = projectBudgets.filter(b => 
-        b.financialYear === formData.financialYear && 
+      const relevantBudgets = projectBudgets.filter(b =>
+        b.financialYear === formData.financialYear &&
         b.customerName?.trim().toLowerCase() === formData.customerName?.trim().toLowerCase()
       );
       const projectNames = [...new Set(relevantBudgets.map(b => b.projectName))];
-      
-      const filteredProjects = projects.filter(p => 
+
+      const filteredProjects = projects.filter(p =>
         projectNames.some(name => name && p.label && name.trim().toLowerCase() === p.label.trim().toLowerCase())
       );
 
@@ -141,11 +141,11 @@ const MiscellaneousExpenditureForm = ({
   const fetchMasterData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch financial years
       const yearsResponse = await projectBudgetsAPI.getFinancialYears();
       setFinancialYears(yearsResponse.data?.financialYears?.map(year => ({ value: year, label: year })) || []);
-      
+
       // Fetch customers
       const customersResponse = await customersAPI.getAll();
       setCustomers(customersResponse.data?.map(customer => ({
@@ -164,8 +164,8 @@ const MiscellaneousExpenditureForm = ({
     try {
       const response = await projectBudgetsAPI.getAll();
       // Ensure we always set an array
-      const budgets = Array.isArray(response.data) 
-        ? response.data 
+      const budgets = Array.isArray(response.data)
+        ? response.data
         : (response.data?.budgets || response.data?.data || []);
       setProjectBudgets(budgets);
     } catch (error) {
@@ -195,10 +195,10 @@ const MiscellaneousExpenditureForm = ({
     const budget = projectBudgets.find(b => b._id === budgetId);
     if (budget) {
       setSelectedBudget(budget);
-      
+
       // Find customer by name
       const customer = customers.find(c => c.label === budget.customerName);
-      
+
       setFormData(prev => ({
         ...prev,
         financialYear: budget.financialYear,
@@ -207,7 +207,7 @@ const MiscellaneousExpenditureForm = ({
         project: '', // Will be set after projects are loaded
         projectName: budget.projectName
       }));
-      
+
       // Fetch projects for this customer and then set the project
       if (customer) {
         fetchProjects(customer.value).then(() => {
@@ -229,7 +229,7 @@ const MiscellaneousExpenditureForm = ({
   const handleMasterChange = (field, value) => {
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
-      
+
       if (field === 'customer') {
         const customer = customers.find(c => c.value === value);
         newData.customerName = customer?.label || '';
@@ -239,7 +239,7 @@ const MiscellaneousExpenditureForm = ({
         const project = projects.find(p => p.value === value);
         newData.projectName = project?.label || '';
       }
-      
+
       return newData;
     });
   };
@@ -251,13 +251,13 @@ const MiscellaneousExpenditureForm = ({
         ...newExpenses[index],
         [field]: value
       };
-      
+
       // Auto-calculate total if amount changes
       if (field === 'amount') {
         const totalAmount = newExpenses.reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
         return { ...prev, expenses: newExpenses, totalAmount };
       }
-      
+
       return { ...prev, expenses: newExpenses };
     });
   };
@@ -344,7 +344,7 @@ const MiscellaneousExpenditureForm = ({
 
     try {
       setLoading(true);
-      
+
       // Prepare form data for submission
       const submitData = {
         ...formData,
@@ -367,14 +367,14 @@ const MiscellaneousExpenditureForm = ({
   };
 
   const calculateTotal = () => {
-    return formData.expenses.reduce((total, expense) => 
+    return formData.expenses.reduce((total, expense) =>
       total + (parseFloat(expense.amount) || 0), 0
     );
   };
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
-      
+
 
       {/* Master Data Section */}
       <div className="mb-6">
@@ -441,157 +441,158 @@ const MiscellaneousExpenditureForm = ({
           </button>
         </div>
 
-        <div className="overflow-x-auto border rounded-md">
-          <table className="min-w-full divide-y divide-gray-300 text-sm">
-            <thead className="bg-gray-100 text-gray-600">
-              <tr>
-                <th className="px-3 py-2">Date</th>
-                <th className="px-3 py-2">Category</th>
-                <th className="px-3 py-2">Description</th>
-                <th className="px-3 py-2">Amount (₹)</th>
-                <th className="px-3 py-2">Payment Method</th>
-                <th className="px-3 py-2">Receipt</th>
-                <th className="px-3 py-2 text-center">Actions</th>
-              </tr>
-            </thead>
+        <div className="border rounded-md">
+          <div className="overflow-x-auto">
+            <table className="min-w-full table-fixed divide-y divide-gray-300 text-sm">
+              <thead className="bg-gray-100 text-gray-600 sticky top-0 z-10">
+                <tr>
+                  <th className="w-[14%] px-3 py-2 text-center">Date</th>
+                  <th className="w-[15%] px-3 py-2 text-center">Category</th>
+                  <th className="w-[20%] px-3 py-2 text-center">Description</th>
+                  <th className="w-[12%] px-3 py-2 text-center">Amount (₹)</th>
+                  <th className="w-[16%] px-3 py-2 text-center">Payment Method</th>
+                  <th className="w-[17%] px-3 py-2 text-center">Receipt</th>
+                  <th className="w-[6%] px-3 py-2 text-center">Actions</th>
+                </tr>
+              </thead>
+            </table>
+          </div>
 
-            <tbody className="divide-y divide-gray-200">
-              {formData.expenses.map((expense, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-3 py-2">
-                    <input
-                      type="date"
-                      className={`w-full px-2 py-1 border rounded ${
-                        errors[`expenses.${index}.date`] ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      value={expense.date ? expense.date.split('T')[0] : ''}
-                      onChange={(e) => handleExpenseChange(index, 'date', e.target.value)}
-                      disabled={!formData.project}
-                    />
-                    {errors[`expenses.${index}.date`] && (
-                      <div className="text-red-500 text-xs mt-1">
-                        {errors[`expenses.${index}.date`]}
-                      </div>
-                    )}
-                  </td>
-                  
-                  <td className="px-3 py-2">
-                    <select
-                      className={`w-full px-2 py-1 border rounded ${
-                        errors[`expenses.${index}.expenseCategory`] ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      value={expense.expenseCategory}
-                      onChange={(e) => handleExpenseChange(index, 'expenseCategory', e.target.value)}
-                      disabled={!formData.project}
-                    >
-                      {expenseCategories.map(category => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  
-                  <td className="px-3 py-2">
-                    <input
-                      type="text"
-                      className={`w-full px-2 py-1 border rounded ${
-                        errors[`expenses.${index}.expenseDescription`] ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      value={expense.expenseDescription}
-                      onChange={(e) => handleExpenseChange(index, 'expenseDescription', e.target.value)}
-                      placeholder="Enter description"
-                      disabled={!formData.project}
-                    />
-                    {errors[`expenses.${index}.expenseDescription`] && (
-                      <div className="text-red-500 text-xs mt-1">
-                        {errors[`expenses.${index}.expenseDescription`]}
-                      </div>
-                    )}
-                  </td>
-                  
-                  <td className="px-3 py-2">
-                    <input
-                      type="number"
-                      className={`w-full px-2 py-1 border rounded ${
-                        errors[`expenses.${index}.amount`] ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      value={expense.amount}
-                      onChange={(e) => handleExpenseChange(index, 'amount', e.target.value)}
-                      step="0.01"
-                      min="0"
-                      placeholder="0.00"
-                      disabled={!formData.project}
-                    />
-                    {errors[`expenses.${index}.amount`] && (
-                      <div className="text-red-500 text-xs mt-1">
-                        {errors[`expenses.${index}.amount`]}
-                      </div>
-                    )}
-                  </td>
-                  
-                  <td className="px-3 py-2">
-                    <select
-                      className={`w-full px-2 py-1 border rounded ${
-                        errors[`expenses.${index}.paymentMethod`] ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      value={expense.paymentMethod}
-                      onChange={(e) => handleExpenseChange(index, 'paymentMethod', e.target.value)}
-                      disabled={!formData.project}
-                    >
-                      {paymentMethods.map(method => (
-                        <option key={method} value={method}>
-                          {method}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  
-                  <td className="px-3 py-2">
-                    <div className="relative">
+          <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '280px' }}>
+            <table className="min-w-full table-fixed divide-y divide-gray-300 text-sm">
+              <tbody className="divide-y divide-gray-200">
+                {formData.expenses.map((expense, index) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="w-[14%] px-3 py-2 text-center">
                       <input
-                        type="file"
-                        className="w-full text-xs"
-                        onChange={(e) => handleFileUpload(index, e.target.files[0])}
-                        accept=".pdf,.jpg,.jpeg,.png"
+                        type="date"
+                        className={`w-full px-2 py-1 border rounded ${errors[`expenses.${index}.date`] ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        value={expense.date ? expense.date.split('T')[0] : ''}
+                        onChange={(e) => handleExpenseChange(index, 'date', e.target.value)}
                         disabled={!formData.project}
                       />
-                      {expense.receipt && (
-                        <div className="text-xs text-green-600 mt-1">
-                          ✓ {expense.receipt.name || expense.receipt.originalName}
+                      {errors[`expenses.${index}.date`] && (
+                        <div className="text-red-500 text-xs mt-1">
+                          {errors[`expenses.${index}.date`]}
                         </div>
                       )}
-                    </div>
-                  </td>
-                  
-                  <td className="px-3 py-2 text-center">
-                    {formData.expenses.length > 1 && (
-                      <button
-                        type="button"
-                        className="text-red-600 hover:text-red-800 p-1"
-                        onClick={() => removeExpenseRow(index)}
-                        aria-label="Delete expense"
+                    </td>
+
+                    <td className="w-[15%] px-3 py-2 text-center">
+                      <select
+                        className={`w-full px-2 py-1 border rounded ${errors[`expenses.${index}.expenseCategory`] ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        value={expense.expenseCategory}
+                        onChange={(e) => handleExpenseChange(index, 'expenseCategory', e.target.value)}
+                        disabled={!formData.project}
                       >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                        {expenseCategories.map(category => (
+                          <option key={category} value={category}>
+                            {category}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+
+                    <td className="w-[20%] px-3 py-2 text-center">
+                      <input
+                        type="text"
+                        className={`w-full px-2 py-1 border rounded ${errors[`expenses.${index}.expenseDescription`] ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        value={expense.expenseDescription}
+                        onChange={(e) => handleExpenseChange(index, 'expenseDescription', e.target.value)}
+                        placeholder="Enter description"
+                        disabled={!formData.project}
+                      />
+                      {errors[`expenses.${index}.expenseDescription`] && (
+                        <div className="text-red-500 text-xs mt-1">
+                          {errors[`expenses.${index}.expenseDescription`]}
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="w-[12%] px-3 py-2 text-center">
+                      <input
+                        type="number"
+                        className={`w-full px-2 py-1 border rounded ${errors[`expenses.${index}.amount`] ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        value={expense.amount}
+                        onChange={(e) => handleExpenseChange(index, 'amount', e.target.value)}
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        disabled={!formData.project}
+                      />
+                      {errors[`expenses.${index}.amount`] && (
+                        <div className="text-red-500 text-xs mt-1">
+                          {errors[`expenses.${index}.amount`]}
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="w-[16%] px-3 py-2 text-center">
+                      <select
+                        className={`w-full px-2 py-1 border rounded ${errors[`expenses.${index}.paymentMethod`] ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        value={expense.paymentMethod}
+                        onChange={(e) => handleExpenseChange(index, 'paymentMethod', e.target.value)}
+                        disabled={!formData.project}
+                      >
+                        {paymentMethods.map(method => (
+                          <option key={method} value={method}>
+                            {method}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+
+                    <td className="w-[17%] px-3 py-2 text-center">
+                      <div className="relative">
+                        <input
+                          type="file"
+                          className="w-full text-xs"
+                          onChange={(e) => handleFileUpload(index, e.target.files[0])}
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          disabled={!formData.project}
+                        />
+                        {expense.receipt && (
+                          <div className="text-xs text-green-600 mt-1 truncate">
+                            ✓ {expense.receipt.name || expense.receipt.originalName}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="w-[6%] px-3 py-2 text-center">
+                      {formData.expenses.length > 1 && (
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center text-red-600 hover:text-red-800 p-1"
+                          onClick={() => removeExpenseRow(index)}
+                          aria-label="Delete expense"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0V5a2 2 0 012-2h2a2 2 0 012 2v2"
-                          />
-                        </svg>
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -601,8 +602,8 @@ const MiscellaneousExpenditureForm = ({
           <div className="text-xl font-bold">
             Total Amount: ₹{calculateTotal().toFixed(2)}
           </div>
-          
-          
+
+
         </div>
 
         <FloatingInput
