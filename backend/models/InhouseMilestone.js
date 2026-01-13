@@ -30,17 +30,6 @@ const taskSchema = new mongoose.Schema({
   status: {
     type: String,
     default: 'Not Started',
-    enum: [
-      'Not Started', 
-      'On track', 
-      'Delayed', 
-      'Likely Delay', 
-      'Completed',
-      'Completed Earlier',
-      'Completed (On Time)',
-      'Completed with Delayed',
-      'Completed with Likely Delayed'
-    ]
   },
   completion: {
     type: Number,

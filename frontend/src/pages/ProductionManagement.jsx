@@ -143,8 +143,8 @@ const ProductionManagement = () => {
         if (!isNaN(searchDate)) {
           const dateString = searchDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
           const matchesDate =
-            item.overallProduction.startDate?.includes(dateString) ||
-            item.overallProduction.endDate?.includes(dateString);
+            item.startDate?.includes(dateString) ||
+            item.endDate?.includes(dateString);
 
           if (matchesDate) return true;
         }
@@ -179,7 +179,7 @@ const ProductionManagement = () => {
     // Filter by date range
     if (filters.dateFrom) {
       filtered = filtered.filter((item) => {
-        const startDate = new Date(item.overallProduction.startDate);
+        const startDate = new Date(item.startDate);
         const filterDateFrom = new Date(filters.dateFrom);
         return startDate >= filterDateFrom;
       });
@@ -187,7 +187,7 @@ const ProductionManagement = () => {
 
     if (filters.dateTo) {
       filtered = filtered.filter((item) => {
-        const endDate = new Date(item.overallProduction.endDate);
+        const endDate = new Date(item.endDate);
         const filterDateTo = new Date(filters.dateTo);
         return endDate <= filterDateTo;
       });

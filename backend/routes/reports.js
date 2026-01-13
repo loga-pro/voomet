@@ -4,6 +4,7 @@ const { jsPDF } = require('jspdf');
 require('jspdf-autotable');
 const Project = require('../models/Project');
 const Milestone = require('../models/Milestone');
+const InhouseMilestone = require('../models/InhouseMilestone');
 const Inventory = require('../models/Inventory');
 const Quality = require('../models/Quality');
 const Payment = require('../models/Payment');
@@ -648,30 +649,43 @@ router.post('/send-email', auth, upload.array('attachments'), async (req, res) =
 router.get('/project-comprehensive', auth, async (req, res) => {
   try {
     const projects = await Project.find().lean();
-    const milestones = await Milestone.find().lean();
+    const inhouseMilestones = await InhouseMilestone.find().lean();
     const payments = await Payment.find().lean();
 
     // Combine data for comprehensive project report
     const comprehensiveData = projects.map(project => {
-      // Find related milestones
-      const projectMilestones = milestones.filter(m => m.projectName === project.projectName);
+      // Find related milestones from InhouseMilestone (Milestone Tracking) only
+      const projectMilestones = inhouseMilestones.filter(m => m.projectName === project.projectName);
 
       // Find related payments
       const projectPayments = payments.filter(p => p.projectName === project.projectName);
 
       // Calculate task metrics
       let totalTasks = 0;
-      let completedTasks = 0;
+      let totalCompletionSum = 0;
 
       projectMilestones.forEach(milestone => {
         if (milestone.tasks && milestone.tasks.length > 0) {
           totalTasks += milestone.tasks.length;
-          completedTasks += milestone.tasks.filter(task => task.status === 'Completed').length;
+          // Sum up the completion percentages of all tasks
+          totalCompletionSum += milestone.tasks.reduce((sum, task) => 
+            sum + (task.completion || 0), 0);
         }
       });
 
+      // Calculate average task completion rate across all tasks
       const taskCompletionRate = totalTasks > 0 ?
-        Math.round((completedTasks / totalTasks) * 100) : 0;
+        Math.round(totalCompletionSum / totalTasks) : 0;
+
+      // Count tasks that are 100% complete
+      const completedTasks = projectMilestones.reduce((count, milestone) => {
+        if (milestone.tasks && milestone.tasks.length > 0) {
+          return count + milestone.tasks.filter(task => 
+            (task.completion || 0) === 100 || task.status === 'Completed'
+          ).length;
+        }
+        return count;
+      }, 0);
 
       // Calculate payment metrics
       const totalInvoiceValue = projectPayments.reduce((sum, payment) =>
@@ -703,14 +717,51 @@ router.get('/project-comprehensive', auth, async (req, res) => {
           taskCompletionRate,
           totalMilestones: projectMilestones.length,
           completedMilestones: projectMilestones.filter(m =>
-            m.tasks && m.tasks.every(task => task.status === 'Completed')
+            m.tasks && m.tasks.every(task => 
+              (task.completion || 0) === 100 || task.status === 'Completed'
+            )
           ).length,
           milestoneCompletionRate: projectMilestones.length > 0 ?
             Math.round((projectMilestones.filter(m =>
-              m.tasks && m.tasks.every(task => task.status === 'Completed')
+              m.tasks && m.tasks.every(task => 
+                (task.completion || 0) === 100 || task.status === 'Completed'
+              )
             ).length / projectMilestones.length) * 100) : 0,
           avgTaskCompletion,
-          milestones: projectMilestones
+          milestones: (() => {
+            // Group all tasks by phase across all milestones
+            const phaseMap = new Map();
+            
+            projectMilestones.forEach(milestone => {
+              if (milestone.tasks && milestone.tasks.length > 0) {
+                milestone.tasks.forEach(task => {
+                  const phase = task.phase || 'Uncategorized';
+                  if (!phaseMap.has(phase)) {
+                    phaseMap.set(phase, {
+                      name: phase,
+                      tasks: [],
+                      totalCompletion: 0,
+                      taskCount: 0
+                    });
+                  }
+                  const phaseData = phaseMap.get(phase);
+                  phaseData.tasks.push(task);
+                  phaseData.totalCompletion += (task.completion || 0);
+                  phaseData.taskCount++;
+                });
+              }
+            });
+            
+            // Convert map to array with completion rates
+            return Array.from(phaseMap.values()).map(phase => ({
+              name: phase.name,
+              completionRate: phase.taskCount > 0 
+                ? Math.round(phase.totalCompletion / phase.taskCount) 
+                : 0,
+              taskCount: phase.taskCount,
+              tasks: phase.tasks
+            }));
+          })()
         },
         paymentData: {
           totalInvoiceValue,

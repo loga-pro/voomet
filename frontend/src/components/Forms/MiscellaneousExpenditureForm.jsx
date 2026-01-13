@@ -274,6 +274,68 @@ const MiscellaneousExpenditureForm = ({
     });
   };
 
+  const viewReceipt = (receipt) => {
+    console.log('viewReceipt called with:', receipt);
+
+    if (!receipt) {
+      showError && showError('No receipt file available to view');
+      return;
+    }
+
+    try {
+      // If it's a File object (newly uploaded), create a blob URL
+      if (receipt instanceof File) {
+        console.log('Opening File object:', receipt.name, receipt.type);
+        const blobUrl = URL.createObjectURL(receipt);
+        const newWindow = window.open(blobUrl, '_blank');
+
+        if (!newWindow) {
+          showError && showError('Please allow popups to view the receipt');
+        }
+
+        // Clean up the blob URL after a delay
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+        return;
+      }
+
+      // If it's a string (URL from server)
+      if (typeof receipt === 'string') {
+        console.log('Opening string URL:', receipt);
+        // Handle different URL formats
+        if (receipt.startsWith('http') || receipt.startsWith('data:')) {
+          window.open(receipt, '_blank');
+        } else if (receipt.startsWith('/')) {
+          window.open(`${window.location.origin}${receipt}`, '_blank');
+        } else {
+          window.open(`${window.location.origin}/${receipt}`, '_blank');
+        }
+        return;
+      }
+
+      // If it's an object with a path or url property
+      if (typeof receipt === 'object' && (receipt.path || receipt.url)) {
+        console.log('Opening object with path/url:', receipt);
+        const url = receipt.path || receipt.url;
+        if (url.startsWith('http') || url.startsWith('data:')) {
+          window.open(url, '_blank');
+        } else if (url.startsWith('/')) {
+          window.open(`${window.location.origin}${url}`, '_blank');
+        } else {
+          window.open(`${window.location.origin}/${url}`, '_blank');
+        }
+        return;
+      }
+
+      // If we get here, we don't know how to handle this receipt type
+      console.error('Unknown receipt type:', typeof receipt, receipt);
+      showError && showError('Unable to view receipt - unknown file format');
+
+    } catch (error) {
+      console.error('Error viewing receipt:', error);
+      showError && showError('Failed to open receipt file');
+    }
+  };
+
   const addExpenseRow = () => {
     setFormData(prev => ({
       ...prev,
@@ -548,7 +610,7 @@ const MiscellaneousExpenditureForm = ({
                     </td>
 
                     <td className="w-[17%] px-3 py-2 text-center">
-                      <div className="relative">
+                      <div className="relative flex items-center gap-2">
                         <input
                           type="file"
                           className="w-full text-xs"
@@ -557,11 +619,43 @@ const MiscellaneousExpenditureForm = ({
                           disabled={!formData.project}
                         />
                         {expense.receipt && (
-                          <div className="text-xs text-green-600 mt-1 truncate">
-                            ✓ {expense.receipt.name || expense.receipt.originalName}
-                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              viewReceipt(expense.receipt);
+                            }}
+                            className="flex-shrink-0 text-blue-600 hover:text-blue-800 p-1 transition-colors duration-150"
+                            title="View Receipt"
+                          >
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                              />
+                            </svg>
+                          </button>
                         )}
                       </div>
+                      {expense.receipt && (
+                        <div className="text-xs text-green-600 mt-1 truncate">
+                          ✓ {expense.receipt.name || expense.receipt.originalName || 'File uploaded'}
+                        </div>
+                      )}
                     </td>
 
                     <td className="w-[6%] px-3 py-2 text-center">

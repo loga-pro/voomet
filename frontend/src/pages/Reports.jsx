@@ -87,24 +87,45 @@ const SpecificProjectReport = React.memo(({ project }) => {
       name: milestone.name || `Milestone ${index + 1}`,
       progress: milestone.completionRate || 0
     })) || [
-        { name: 'Planning', progress: project.taskCompletionRate || 0 },
-        { name: 'Execution', progress: Math.min((project.taskCompletionRate || 0) * 1.2, 100) },
-        { name: 'Completion', progress: Math.min((project.taskCompletionRate || 0) * 0.8, 100) },
+        { name: 'RFQ', progress: Math.min((project.taskCompletionRate || 0) * 0.2, 100) },
+        { name: 'BOQ', progress: Math.min((project.taskCompletionRate || 0) * 0.4, 100) },
+        { name: 'Awarded', progress: Math.min((project.taskCompletionRate || 0) * 0.6, 100) },
+        { name: 'Under Execution', progress: Math.min((project.taskCompletionRate || 0) * 0.8, 100) },
+        { name: 'Completed', progress: project.taskCompletionRate || 0 },
+        { name: 'Post Implementation', progress: Math.min((project.taskCompletionRate || 0) * 1.2, 100) },
       ];
   }, [project.milestoneData, project.taskCompletionRate]);
 
   const phases = React.useMemo(() => {
     const milestoneNames = project.milestoneData?.milestones?.map(m => m.name);
     return (milestoneNames && milestoneNames.length > 0) ? milestoneNames :
-      ['Planning', 'Design', 'Execution', 'Completion'];
+      ['RFQ', 'BOQ', 'Awarded', 'Under Execution', 'Completed', 'Post Implementation'];
   }, [project.milestoneData]);
 
   const currentPhaseIndex = React.useMemo(() => {
-    return project.stage?.includes('PLANNING') ? 0 :
-      project.stage?.includes('PROGRESS') ? Math.floor((project.taskCompletionRate || 0) / 25) :
-        project.stage?.includes('COMPLETED') ? phases.length - 1 :
-          Math.floor((project.taskCompletionRate || 0) / 25);
-  }, [project.stage, project.taskCompletionRate, phases.length]);
+    // If we have milestone data with phases, find the first incomplete phase
+    if (project.milestoneData?.milestones && project.milestoneData.milestones.length > 0) {
+      const firstIncompleteIndex = project.milestoneData.milestones.findIndex(
+        m => (m.completionRate || 0) < 100
+      );
+      // If all phases are complete, return the last index
+      // If we found an incomplete phase, return its index
+      // Otherwise return 0
+      return firstIncompleteIndex === -1
+        ? project.milestoneData.milestones.length - 1
+        : firstIncompleteIndex;
+    }
+
+    // Fallback to project stage mapping
+    const stage = project.stage?.toLowerCase();
+    if (stage === 'rfq') return 0;
+    if (stage === 'boq') return 1;
+    if (stage === 'awarded') return 2;
+    if (stage === 'under_execution') return 3;
+    if (stage === 'completed') return 4;
+    if (stage === 'post_implementation') return 5;
+    return 0; // Default to first phase
+  }, [project.milestoneData, project.stage]);
 
   const getPhaseClass = React.useCallback((index) => {
     if (index < currentPhaseIndex) return 'bg-blue-500 border-blue-500'; // Completed
