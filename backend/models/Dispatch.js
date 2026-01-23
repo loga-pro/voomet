@@ -15,8 +15,6 @@ const dispatchSchema = new mongoose.Schema({
   },
   dispatchCategory: {
     type: String,
-    enum: ['dispatch', 'return', 'reject', 'site'],
-    default: 'dispatch'
   },
   deliveryChalan: {
     type: String,

@@ -2,6 +2,7 @@ const express = require('express');
 const Quality = require('../models/Quality');
 const auth = require('../middleware/auth');
 const uploadQualityImage = require('../middleware/uploadQualityImage');
+const { sendQualityNotification } = require('../services/adminNotificationService');
 
 const router = express.Router();
 
@@ -61,6 +62,15 @@ router.post('/', auth, async (req, res) => {
     const qualityIssue = new Quality(req.body);
     await qualityIssue.save();
     console.log('Quality issue created successfully:', qualityIssue._id);
+    
+    // Send email notification to admins
+    try {
+      await sendQualityNotification('create', qualityIssue.toObject(), req.user.name || req.user.email);
+      console.log('✅ Admin notification sent for quality issue creation');
+    } catch (emailError) {
+      console.error('⚠️ Failed to send admin notification:', emailError.message);
+    }
+    
     res.status(201).json(qualityIssue);
   } catch (error) {
     console.error('Error creating quality issue:', error);
@@ -76,15 +86,28 @@ router.post('/', auth, async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   try {
     console.log('Updating quality issue:', req.params.id, 'with data:', req.body);
+    
+    // Get old quality issue data before updating
+    const oldQualityIssue = await Quality.findById(req.params.id);
+    if (!oldQualityIssue) {
+      return res.status(404).json({ message: 'Quality issue not found' });
+    }
+    
     const qualityIssue = await Quality.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true, runValidators: true }
     );
-    if (!qualityIssue) {
-      return res.status(404).json({ message: 'Quality issue not found' });
-    }
     console.log('Quality issue updated successfully:', qualityIssue._id);
+    
+    // Send email notification to admins with before/after comparison
+    try {
+      await sendQualityNotification('update', qualityIssue.toObject(), req.user.name || req.user.email, oldQualityIssue.toObject());
+      console.log('✅ Admin notification sent for quality issue update');
+    } catch (emailError) {
+      console.error('⚠️ Failed to send admin notification:', emailError.message);
+    }
+    
     res.json(qualityIssue);
   } catch (error) {
     console.error('Error updating quality issue:', error);
@@ -99,10 +122,22 @@ router.put('/:id', auth, async (req, res) => {
 // Delete quality issue
 router.delete('/:id', auth, async (req, res) => {
   try {
-    const qualityIssue = await Quality.findByIdAndDelete(req.params.id);
+    const qualityIssue = await Quality.findById(req.params.id);
     if (!qualityIssue) {
       return res.status(404).json({ message: 'Quality issue not found' });
     }
+    
+    const qualityData = qualityIssue.toObject();
+    await Quality.findByIdAndDelete(req.params.id);
+    
+    // Send email notification to admins
+    try {
+      await sendQualityNotification('delete', qualityData, req.user.name || req.user.email);
+      console.log('✅ Admin notification sent for quality issue deletion');
+    } catch (emailError) {
+      console.error('⚠️ Failed to send admin notification:', emailError.message);
+    }
+    
     res.json({ message: 'Quality issue deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });

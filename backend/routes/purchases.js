@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Purchase = require('../models/Purchase');
 const auth = require('../middleware/auth');
+const { sendPurchaseOrderNotification } = require('../services/adminNotificationService');
 
 // Apply authentication middleware to all routes
 router.use(auth);
@@ -128,6 +129,14 @@ router.post('/', async (req, res) => {
     };
 
     const purchase = await Purchase.create(purchaseData);
+    
+    // Send email notification to admins
+    try {
+      await sendPurchaseOrderNotification('create', purchase.toObject(), req.user.name || req.user.email);
+      console.log('✅ Admin notification sent for purchase order creation');
+    } catch (emailError) {
+      console.error('⚠️ Failed to send admin notification:', emailError.message);
+    }
 
     res.status(201).json({
       success: true,
@@ -195,11 +204,28 @@ router.put('/:id', async (req, res) => {
       totalValue: req.body.totalValue
     };
 
+    // Get old data before updating
+    const oldPurchase = await Purchase.findById(req.params.id);
+    if (!oldPurchase) {
+      return res.status(404).json({
+        success: false,
+        message: 'Purchase not found'
+      });
+    }
+
     const updatedPurchase = await Purchase.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true, runValidators: true }
     );
+    
+    // Send email notification to admins with before/after comparison
+    try {
+      await sendPurchaseOrderNotification('update', updatedPurchase.toObject(), req.user.name || req.user.email, oldPurchase.toObject());
+      console.log('✅ Admin notification sent for purchase order update');
+    } catch (emailError) {
+      console.error('⚠️ Failed to send admin notification:', emailError.message);
+    }
 
     res.json({
       success: true,
@@ -241,8 +267,17 @@ router.delete('/:id', async (req, res) => {
         message: 'Purchase not found'
       });
     }
-
+    
+    const purchaseData = purchase.toObject();
     await Purchase.findByIdAndDelete(req.params.id);
+    
+    // Send email notification to admins
+    try {
+      await sendPurchaseOrderNotification('delete', purchaseData, req.user.name || req.user.email);
+      console.log('✅ Admin notification sent for purchase order deletion');
+    } catch (emailError) {
+      console.error('⚠️ Failed to send admin notification:', emailError.message);
+    }
 
     res.json({
       success: true,

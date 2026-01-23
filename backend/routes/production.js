@@ -3,6 +3,7 @@ const router = express.Router();
 const Production = require('../models/Production');
 const auth = require('../middleware/auth');
 const { check, validationResult } = require('express-validator');
+const { sendProductionNotification } = require('../services/adminNotificationService');
 
 // Validation middleware
 const validateProduction = [
@@ -361,6 +362,14 @@ router.post('/', auth, validateProduction, async (req, res) => {
 
     // Populate createdBy field
     await production.populate('createdBy', 'name email');
+    
+    // Send email notification to admins
+    try {
+      await sendProductionNotification('create', production.toObject(), req.user.name || req.user.email);
+      console.log('✅ Admin notification sent for production creation');
+    } catch (emailError) {
+      console.error('⚠️ Failed to send admin notification:', emailError.message);
+    }
 
     res.status(201).json({
       success: true,
@@ -457,6 +466,9 @@ router.put('/:id', auth, validateProduction, async (req, res) => {
       }
     }
 
+    // Capture old data for notification (already found on line 421 as 'production')
+    const oldProductionData = production.toObject();
+
     // Update production record
     production = await Production.findByIdAndUpdate(
       req.params.id,
@@ -466,6 +478,14 @@ router.put('/:id', auth, validateProduction, async (req, res) => {
       },
       { new: true, runValidators: true }
     ).populate('createdBy', 'name email');
+    
+    // Send email notification to admins with before/after comparison
+    try {
+      await sendProductionNotification('update', production.toObject(), req.user.name || req.user.email, oldProductionData);
+      console.log('✅ Admin notification sent for production update');
+    } catch (emailError) {
+      console.error('⚠️ Failed to send admin notification:', emailError.message);
+    }
 
     res.json({
       success: true,
@@ -521,8 +541,17 @@ router.delete('/:id', auth, async (req, res) => {
         message: 'Production record not found'
       });
     }
-
+    
+    const productionData = production.toObject();
     await production.deleteOne();
+    
+    // Send email notification to admins
+    try {
+      await sendProductionNotification('delete', productionData, req.user.name || req.user.email);
+      console.log('✅ Admin notification sent for production deletion');
+    } catch (emailError) {
+      console.error('⚠️ Failed to send admin notification:', emailError.message);
+    }
 
     res.json({
       success: true,

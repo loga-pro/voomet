@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const auth = require('../middleware/auth');
 const PurchaseRequest = require('../models/PurchaseRequest');
+const { sendPurchaseRequisitionNotification } = require('../services/adminNotificationService');
 
 const upload = require('../middleware/upload');
 
@@ -279,6 +280,14 @@ router.post('/', auth, upload.any(), async (req, res) => {
 
     // Populate createdBy field
     await purchaseRequest.populate('createdBy', 'name email');
+    
+    // Send email notification to admins
+    try {
+      await sendPurchaseRequisitionNotification('create', purchaseRequest.toObject(), req.user.name || req.user.email);
+      console.log('✅ Admin notification sent for purchase requisition creation');
+    } catch (emailError) {
+      console.error('⚠️ Failed to send admin notification:', emailError.message);
+    }
 
     res.status(201).json({
       success: true,
@@ -386,6 +395,9 @@ router.put('/:id', auth, upload.any(), async (req, res) => {
       });
     }
 
+    // Capture old data for notification
+    const oldPurchaseRequestData = purchaseRequest.toObject();
+
     // Update fields
     Object.keys(updateData).forEach(key => {
       purchaseRequest[key] = updateData[key];
@@ -396,6 +408,14 @@ router.put('/:id', auth, upload.any(), async (req, res) => {
     // Populate fields
     await purchaseRequest.populate('createdBy', 'name email');
     await purchaseRequest.populate('approvedBy', 'name email');
+    
+    // Send email notification to admins with before/after comparison
+    try {
+      await sendPurchaseRequisitionNotification('update', purchaseRequest.toObject(), req.user.name || req.user.email, oldPurchaseRequestData);
+      console.log('✅ Admin notification sent for purchase requisition update');
+    } catch (emailError) {
+      console.error('⚠️ Failed to send admin notification:', emailError.message);
+    }
 
     res.json({
       success: true,
@@ -505,8 +525,17 @@ router.delete('/:id', auth, async (req, res) => {
         message: 'Cannot delete an approved or completed purchase request'
       });
     }
-
+    
+    const requisitionData = purchaseRequest.toObject();
     await purchaseRequest.deleteOne();
+    
+    // Send email notification to admins
+    try {
+      await sendPurchaseRequisitionNotification('delete', requisitionData, req.user.name || req.user.email);
+      console.log('✅ Admin notification sent for purchase requisition deletion');
+    } catch (emailError) {
+      console.error('⚠️ Failed to send admin notification:', emailError.message);
+    }
 
     res.json({
       success: true,

@@ -30,6 +30,11 @@ const logisticItemSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  ratePerKm: {
+    type: Number,
+    required: true,
+    min: 0
+  },
   totalPrice: {
     type: Number,
     required: true,

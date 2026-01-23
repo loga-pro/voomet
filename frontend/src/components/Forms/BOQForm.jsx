@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { partsAPI, boqAPI, projectsAPI, customersAPI, API_BASE_URL, FILE_BASE_URL } from '../../services/api';
+import { boqAPI, projectsAPI, customersAPI, API_BASE_URL, FILE_BASE_URL } from '../../services/api';
 import FloatingInput from './FloatingInput';
 import NotificationComponent from '../Notifications/Notification';
 import { UploadOutlined } from '@ant-design/icons';
@@ -56,8 +56,6 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     paymentTerms: [{ discount: '', Installment: 1, dueDate: '' }],
   });
   const [selectedProject, setSelectedProject] = useState('');
-  const [parts, setParts] = useState([]);
-  const [filteredParts, setFilteredParts] = useState([]);
   const [projects, setProjects] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [errors, setErrors] = useState({});
@@ -91,38 +89,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     }, 3000);
   }, []);
 
-  // Fetch parts
-  const fetchParts = useCallback(async () => {
-    try {
-      const response = await partsAPI.getAll();
-      setParts(response.data || []);
-      setFilteredParts(response.data || []);
-    } catch (error) {
-      console.error('Error fetching parts:', error);
-      showLocalNotification('Error fetching parts data', 'error');
-    }
-  }, [showLocalNotification]);
-
-  useEffect(() => {
-    fetchParts();
-  }, [fetchParts]);
-
-  // Scope of work options with capitalized display
-  const scopeOfWorkOptions = parts.length > 0
-    ? [...new Set(parts.map(part => part.scopeOfWork))].filter(Boolean)
-    : [];
-
-  // Filter parts when scope changes
-  useEffect(() => {
-    if (formData.scopeOfWork && formData.scopeOfWork.length > 0) {
-      const filtered = parts.filter(part =>
-        formData.scopeOfWork.includes(part.scopeOfWork)
-      );
-      setFilteredParts(filtered);
-    } else {
-      setFilteredParts([]);
-    }
-  }, [formData.scopeOfWork, parts]);
+  // Parts API removed - items are now manually entered
 
   // Initialize form data for edit mode
   useEffect(() => {
@@ -485,30 +452,9 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
         currentScopes.push(scope);
       }
 
-      // Filter parts based on new scopes
-      const newFilteredParts = currentScopes.length > 0
-        ? parts.filter(part => currentScopes.includes(part.scopeOfWork))
-        : [];
-
-      // Clear items that don't match the new scope selection
-      const updatedItems = prev.items.map(item => {
-        // If no scopes selected or item's part doesn't match any selected scope
-        const itemPart = newFilteredParts.find(p => p.partName === item.partName);
-        if (!itemPart) {
-          return {
-            ...item,
-            partName: '',
-            unitType: '',
-            unitPrice: ''
-          };
-        }
-        return item;
-      });
-
       return {
         ...prev,
-        scopeOfWork: currentScopes,
-        items: updatedItems
+        scopeOfWork: currentScopes
       };
     });
   };
@@ -545,33 +491,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     setFormData({ ...newData, ...calculated });
   };
 
-  // When a part is selected or custom input is used
-  const handlePartSelect = (index, partName, isCustomInput = false) => {
-    const selectedPart = filteredParts.find(part => part.partName === partName);
-    let updatedItems = [...formData.items];
-
-    if (selectedPart && !isCustomInput) {
-      // Selected from dropdown
-      updatedItems[index] = {
-        ...updatedItems[index],
-        partName: selectedPart.partName,
-        unitType: selectedPart.unitType || '',
-        unitPrice: String(selectedPart.partPrice ?? ''),
-        isCustom: false
-      };
-    } else {
-      // Custom input or manual entry
-      updatedItems[index] = {
-        ...updatedItems[index],
-        partName,
-        isCustom: true
-      };
-    }
-
-    const newData = { ...formData, items: updatedItems };
-    const calculated = calculateBoqMetrics(newData);
-    setFormData({ ...newData, ...calculated });
-  };
+  // handlePartSelect removed - no longer needed since items are manually entered
 
   // File input handler
   const handleItemFileChange = (index, e) => {
@@ -1441,35 +1361,15 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
 
                   {/* First Row - Main Fields */}
                   <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-                    {/* Item Name - Dropdown for first item or if not custom, Text input for custom items */}
-                    {item.isCustom ? (
-                      <FloatingInput
-                        label="Item Name"
-                        value={item.partName}
-                        onChange={(e) => handlePartSelect(index, e.target.value, true)}
-                        error={errors[`item-${index}-partName`]}
-                        type="text"
-                        required
-                      />
-                    ) : (
-                      <FloatingInput
-                        label="Item Name"
-                        value={item.partName}
-                        onChange={(e) => handlePartSelect(index, e.target.value)}
-                        error={errors[`item-${index}-partName`]}
-                        type="select"
-                        options={
-                          formData.scopeOfWork && formData.scopeOfWork.length > 0
-                            ? [{ value: '', label: 'Select Part' }, ...filteredParts.map(part => ({
-                              value: part.partName,
-                              label: `${part.partName}`
-                            }))]
-                            : [{ value: '', label: 'Select Scope of Work first' }]
-                        }
-                        disabled={!formData.scopeOfWork || formData.scopeOfWork.length === 0}
-                        required
-                      />
-                    )}
+                    {/* Item Name - Text Input */}
+                    <FloatingInput
+                      label="Item Name"
+                      value={item.partName}
+                      onChange={(e) => handleItemChange(index, 'partName', e.target.value)}
+                      error={errors[`item-${index}-partName`]}
+                      type="text"
+                      required
+                    />
 
                     <FloatingInput
                       label="No of Quantity"
@@ -1494,7 +1394,6 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                       value={item.unitType}
                       onChange={(e) => handleItemChange(index, 'unitType', e.target.value)}
                       type="text"
-                      readOnly={!item.isCustom}
                     />
 
                     <FloatingInput
@@ -1505,7 +1404,6 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                       type="number"
                       step="0.01"
                       min="0"
-                      readOnly={!item.isCustom}
                       required
                     />
 

@@ -994,8 +994,8 @@ const LogisticExpenditureManagement = () => {
                           <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">VEHICLE</th>
                           <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">TRANSPORTER</th>
                           <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">KM</th>
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">RATE/KM</th>
                           <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">COST</th>
-                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">COST/KM</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -1021,11 +1021,11 @@ const LogisticExpenditureManagement = () => {
                             <td className="px-3 py-2 text-center text-gray-900">
                               {item.kmTravelled?.toLocaleString() || 0} KM
                             </td>
+                            <td className="px-3 py-2 text-center text-gray-500">
+                              ₹{item.ratePerKm?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
+                            </td>
                             <td className="px-3 py-2 text-center font-semibold text-gray-900">
                               ₹{item.totalPrice?.toLocaleString('en-IN') || '-'}
-                            </td>
-                            <td className="px-3 py-2 text-center text-gray-500">
-                              ₹{item.kmTravelled > 0 ? (item.totalPrice / item.kmTravelled).toFixed(2) : 0}
                             </td>
                           </tr>
                         ))}

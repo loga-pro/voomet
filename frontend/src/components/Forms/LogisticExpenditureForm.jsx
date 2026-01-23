@@ -22,6 +22,7 @@ const LogisticExpenditureForm = ({
         from: '',
         to: '',
         kmTravelled: '',
+        ratePerKm: '',
         totalPrice: ''
       }]
   );
@@ -71,6 +72,10 @@ const LogisticExpenditureForm = ({
       pattern: /^\d{1,8}(\.\d{1,2})?$/,
       message: 'KM must be 1-8 digits with optional 2 decimal places'
     },
+    ratePerKm: {
+      pattern: /^\d{1,8}(\.\d{1,2})?$/,
+      message: 'Rate must be 1-8 digits with optional 2 decimal places'
+    },
     totalPrice: {
       pattern: /^\d{1,8}(\.\d{1,2})?$/,
       message: 'Amount must be 1-8 digits with optional 2 decimal places'
@@ -98,6 +103,16 @@ const LogisticExpenditureForm = ({
       }
       if (km > 99999999.99) {
         return 'KM cannot exceed 99,999,999.99';
+      }
+    }
+
+    if (field === 'ratePerKm' && value) {
+      const rate = parseFloat(value);
+      if (rate <= 0) {
+        return 'Rate must be greater than 0';
+      }
+      if (rate > 99999999.99) {
+        return 'Rate cannot exceed ₹99,999,999.99';
       }
     }
 
@@ -260,6 +275,7 @@ const LogisticExpenditureForm = ({
       from: '',
       to: '',
       kmTravelled: '',
+      ratePerKm: '',
       totalPrice: ''
     }]);
   };
@@ -309,6 +325,18 @@ const LogisticExpenditureForm = ({
       value = cleanedValue;
     }
 
+    // For ratePerKm field, similar restrictions
+    if (field === 'ratePerKm') {
+      const cleanedValue = value.replace(/[^0-9.]/g, '');
+      const parts = cleanedValue.split('.');
+
+      if (parts.length > 2) return;
+      if (parts[0].length > 8) return;
+      if (parts[1] && parts[1].length > 2) return;
+
+      value = cleanedValue;
+    }
+
     // For totalPrice field, similar restrictions
     if (field === 'totalPrice') {
       const cleanedValue = value.replace(/[^0-9.]/g, '');
@@ -339,41 +367,20 @@ const LogisticExpenditureForm = ({
         [field]: value
       };
 
-      // Auto-calculate totals based on KM if KM field is changed
-      if (field === 'kmTravelled' && value) {
-        const km = parseFloat(value) || 0;
-        const vehicleType = newExpenditures[index].vehicleType;
-        const ratePerKm = getRatePerKm(vehicleType);
-        newExpenditures[index].totalPrice = (km * ratePerKm).toFixed(2);
+      // Auto-calculate totalPrice when KM or ratePerKm changes
+      if ((field === 'kmTravelled' || field === 'ratePerKm') && value) {
+        const km = parseFloat(newExpenditures[index].kmTravelled) || 0;
+        const rate = parseFloat(newExpenditures[index].ratePerKm) || 0;
+        if (km > 0 && rate > 0) {
+          newExpenditures[index].totalPrice = (km * rate).toFixed(2);
+        }
       }
 
       return newExpenditures;
     });
   };
 
-  // Get rate per KM based on vehicle type
-  const getRatePerKm = (vehicleType) => {
-    const rates = {
-      'Truck': 15,
-      'Trailer': 20,
-      'Container': 25,
-      'Pickup': 10,
-      'Tempo': 12,
-      'LCV': 14,
-      'HCV': 18,
-      'Other': 10
-    };
 
-    // Check if vehicle type matches any known types (case-insensitive)
-    const normalizedType = vehicleType?.trim().toLowerCase();
-    for (const [key, rate] of Object.entries(rates)) {
-      if (normalizedType === key.toLowerCase()) {
-        return rate;
-      }
-    }
-
-    return 10; // Default rate
-  };
 
   // Handle blur event for validation
   const handleBlur = (index, field, value) => {
@@ -399,6 +406,7 @@ const LogisticExpenditureForm = ({
         from: '',
         to: '',
         kmTravelled: '',
+        ratePerKm: '',
         totalPrice: ''
       }
     ]);
@@ -446,7 +454,7 @@ const LogisticExpenditureForm = ({
 
     // Validate expenditures
     expenditures.forEach((exp, index) => {
-      const fieldsToValidate = ['purpose', 'vehicleType', 'transporterName', 'kmTravelled'];
+      const fieldsToValidate = ['purpose', 'vehicleType', 'transporterName', 'kmTravelled', 'ratePerKm', 'totalPrice'];
 
       fieldsToValidate.forEach(field => {
         const error = validateField(field, exp[field]);
@@ -479,7 +487,7 @@ const LogisticExpenditureForm = ({
     }
 
     const validExpenditures = expenditures
-      .filter(exp => exp.purpose && exp.vehicleType && exp.transporterName && exp.kmTravelled)
+      .filter(exp => exp.purpose && exp.vehicleType && exp.transporterName && exp.kmTravelled && exp.ratePerKm && exp.totalPrice)
       .map(exp => ({
         purpose: exp.purpose.trim(),
         vehicleType: exp.vehicleType.trim(),
@@ -487,6 +495,7 @@ const LogisticExpenditureForm = ({
         from: (exp.from || '').trim(),
         to: (exp.to || '').trim(),
         kmTravelled: parseFloat(exp.kmTravelled) || 0,
+        ratePerKm: parseFloat(exp.ratePerKm) || 0,
         totalPrice: parseFloat(exp.totalPrice) || 0
       }));
 
@@ -584,7 +593,8 @@ const LogisticExpenditureForm = ({
                 <th className="px-3 py-2 min-w-[120px] text-center">From</th>
                 <th className="px-3 py-2 min-w-[120px] text-center">To</th>
                 <th className="px-3 py-2 min-w-[100px] text-center">KM*</th>
-                <th className="px-3 py-2 min-w-[120px] text-center">Total (₹)</th>
+                <th className="px-3 py-2 min-w-[100px] text-center">Rate/KM (₹)*</th>
+                <th className="px-3 py-2 min-w-[120px] text-center">Total (₹)*</th>
                 <th className="px-3 py-2 min-w-[80px] text-center">Actions</th>
               </tr>
             </thead>
@@ -702,14 +712,36 @@ const LogisticExpenditureForm = ({
                     )}
                   </td>
 
+                  {/* Rate Per KM */}
+                  <td className="px-3 py-2 text-center">
+                    <input
+                      type="text"
+                      className="w-full px-2 py-1 border rounded bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                      value={exp.ratePerKm}
+                      onChange={(e) => handleExpenditureChange(index, 'ratePerKm', e.target.value)}
+                      onBlur={(e) => handleBlur(index, 'ratePerKm', e.target.value)}
+                      placeholder="0.00"
+                      disabled={!selectedProject}
+                      inputMode="decimal"
+                    />
+                    {errors[`expenditures.${index}.ratePerKm`] && (
+                      <div className="text-red-500 text-xs mt-1">
+                        {errors[`expenditures.${index}.ratePerKm`]}
+                      </div>
+                    )}
+                  </td>
+
                   {/* Total Price */}
                   <td className="px-3 py-2 text-center">
                     <input
                       type="text"
-                      readOnly
-                      className="w-full px-2 py-1 border rounded bg-gray-100 font-medium"
+                      className="w-full px-2 py-1 border rounded bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                       value={exp.totalPrice}
-                      placeholder="Auto-calculated"
+                      onChange={(e) => handleExpenditureChange(index, 'totalPrice', e.target.value)}
+                      onBlur={(e) => handleBlur(index, 'totalPrice', e.target.value)}
+                      placeholder="0.00"
+                      disabled={!selectedProject}
+                      inputMode="decimal"
                     />
                     {errors[`expenditures.${index}.totalPrice`] && (
                       <div className="text-red-500 text-xs mt-1">

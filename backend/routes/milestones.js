@@ -2,6 +2,7 @@ const express = require('express');
 const Milestone = require('../models/Milestone');
 const InhouseMilestone = require('../models/InhouseMilestone');
 const auth = require('../middleware/auth');
+const { sendMilestoneNotification } = require('../services/adminNotificationService');
 
 const router = express.Router();
 
@@ -183,6 +184,16 @@ router.post('/', auth, async (req, res) => {
     
     const milestone = new Milestone(req.body);
     await milestone.save();
+    
+    // Send email notification to admins
+    try {
+      await sendMilestoneNotification('create', milestone.toObject(), req.user.name || req.user.email);
+      console.log('✅ Admin notification sent for milestone creation');
+    } catch (emailError) {
+      console.error('⚠️ Failed to send admin notification:', emailError.message);
+      // Don't fail the request if email fails
+    }
+    
     res.status(201).json(milestone);
   } catch (error) {
     console.error('Error creating milestone:', error);
@@ -194,6 +205,12 @@ router.post('/', auth, async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   try {
     const { customer, projectName } = req.body;
+    
+    // Get old data before updating
+    const oldMilestone = await Milestone.findById(req.params.id);
+    if (!oldMilestone) {
+      return res.status(404).json({ message: 'Milestone not found' });
+    }
     
     // If customer or projectName is being updated, check for duplicates
     if (customer || projectName) {
@@ -216,8 +233,13 @@ router.put('/:id', auth, async (req, res) => {
       { new: true, runValidators: true }
     );
     
-    if (!milestone) {
-      return res.status(404).json({ message: 'Milestone not found' });
+    // Send email notification to admins with before/after comparison
+    try {
+      await sendMilestoneNotification('update', milestone.toObject(), req.user.name || req.user.email, oldMilestone.toObject());
+      console.log('✅ Admin notification sent for milestone update');
+    } catch (emailError) {
+      console.error('⚠️ Failed to send admin notification:', emailError.message);
+      // Don't fail the request if email fails
     }
     
     res.json({ 
@@ -240,6 +262,7 @@ router.delete('/:id', auth, async (req, res) => {
 
     // Store customer and projectName before deleting
     const { customer, projectName } = milestone;
+    const milestoneData = milestone.toObject();
 
     // Delete the milestone
     await Milestone.findByIdAndDelete(req.params.id);
@@ -252,6 +275,15 @@ router.delete('/:id', auth, async (req, res) => {
 
     if (deletedInhouseMilestone) {
       console.log(`Also deleted corresponding inhouse milestone for ${customer} - ${projectName}`);
+    }
+
+    // Send email notification to admins
+    try {
+      await sendMilestoneNotification('delete', milestoneData, req.user.name || req.user.email);
+      console.log('✅ Admin notification sent for milestone deletion');
+    } catch (emailError) {
+      console.error('⚠️ Failed to send admin notification:', emailError.message);
+      // Don't fail the request if email fails
     }
 
     res.json({ 

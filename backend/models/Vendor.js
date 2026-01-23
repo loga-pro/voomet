@@ -3,13 +3,10 @@ const mongoose = require('mongoose');
 const vendorSchema = new mongoose.Schema({
   vendorType: {
     type: String,
-    enum: ['residential', 'commercial'],
     required: true
   },
   category: {
     type: String,
-    enum: ['vendor', 'contractor'],
-    default: 'vendor',
     required: true
   },
   vendorName: {

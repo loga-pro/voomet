@@ -6,6 +6,7 @@ const auth = require('../middleware/auth');
 const dailyEmailScheduler = require('../services/dailyEmailScheduler');
 const dailyReportAggregator = require('../services/dailyReportAggregator');
 const pdfReportGenerator = require('../services/pdfReportGenerator');
+const { sendInventoryNotification } = require('../services/adminNotificationService');
 
 const router = express.Router();
 
@@ -117,6 +118,15 @@ router.post('/receipts', auth, async (req, res) => {
     await Inventory.calculateSummary(inventory._id);
     console.log('Summary calculated successfully');
     
+    // Send email notification to admins
+    try {
+      const inventoryData = await Inventory.findById(inventory._id);
+      await sendInventoryNotification('create', { ...receipt.toObject(), ...inventoryData.toObject() }, req.user.name || req.user.email);
+      console.log('✅ Admin notification sent for receipt creation');
+    } catch (emailError) {
+      console.error('⚠️ Failed to send admin notification:', emailError.message);
+    }
+    
     res.status(201).json(receipt);
   } catch (error) {
     console.error('Error creating receipt:', error);
@@ -132,6 +142,12 @@ router.post('/receipts', auth, async (req, res) => {
 // Update receipt
 router.put('/receipts/:id', auth, async (req, res) => {
   try {
+    // Get old receipt data before updating
+    const oldReceipt = await Receipt.findById(req.params.id);
+    if (!oldReceipt) {
+      return res.status(404).json({ message: 'Receipt not found' });
+    }
+
     // Update the receipt in the Receipt collection
     const receipt = await Receipt.findByIdAndUpdate(
       req.params.id,
@@ -139,14 +155,25 @@ router.put('/receipts/:id', auth, async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    if (!receipt) {
-      return res.status(404).json({ message: 'Receipt not found' });
-    }
-
     // Find inventory that contains this receipt and recalculate summary
     const inventory = await Inventory.findOne({ receipts: req.params.id });
     if (inventory) {
       await Inventory.calculateSummary(inventory._id);
+      
+      // Send email notification to admins with before/after comparison
+      try {
+        const inventoryData = await Inventory.findById(inventory._id);
+        const oldInventory = await Inventory.findById(inventory._id); // Get old inventory state
+        await sendInventoryNotification(
+          'update', 
+          { ...receipt.toObject(), ...inventoryData.toObject() }, 
+          req.user.name || req.user.email,
+          { ...oldReceipt.toObject(), ...oldInventory.toObject() }
+        );
+        console.log('✅ Admin notification sent for receipt update');
+      } catch (emailError) {
+        console.error('⚠️ Failed to send admin notification:', emailError.message);
+      }
     }
 
     res.json(receipt);
@@ -176,6 +203,15 @@ router.delete('/receipts/:id', auth, async (req, res) => {
       
       // Recalculate inventory summary
       await Inventory.calculateSummary(inventory._id);
+      
+      // Send email notification to admins
+      try {
+        const inventoryData = await Inventory.findById(inventory._id);
+        await sendInventoryNotification('delete', { ...receipt.toObject(), ...inventoryData.toObject() }, req.user.name || req.user.email);
+        console.log('✅ Admin notification sent for receipt deletion');
+      } catch (emailError) {
+        console.error('⚠️ Failed to send admin notification:', emailError.message);
+      }
     }
 
     res.json({ message: 'Receipt deleted successfully' });
@@ -236,6 +272,15 @@ router.post('/dispatches', auth, async (req, res) => {
     await Inventory.calculateSummary(inventory._id);
     console.log('Summary calculated successfully');
     
+    // Send email notification to admins
+    try {
+      const inventoryData = await Inventory.findById(inventory._id);
+      await sendInventoryNotification('create', { ...dispatch.toObject(), ...inventoryData.toObject() }, req.user.name || req.user.email);
+      console.log('✅ Admin notification sent for dispatch creation');
+    } catch (emailError) {
+      console.error('⚠️ Failed to send admin notification:', emailError.message);
+    }
+    
     res.status(201).json(dispatch);
   } catch (error) {
     console.error('Error creating dispatch:', error);
@@ -251,6 +296,12 @@ router.post('/dispatches', auth, async (req, res) => {
 // Update dispatch
 router.put('/dispatches/:id', auth, async (req, res) => {
   try {
+    // Get old dispatch data before updating
+    const oldDispatch = await Dispatch.findById(req.params.id);
+    if (!oldDispatch) {
+      return res.status(404).json({ message: 'Dispatch not found' });
+    }
+
     // Update the dispatch in the Dispatch collection
     const dispatch = await Dispatch.findByIdAndUpdate(
       req.params.id,
@@ -258,14 +309,25 @@ router.put('/dispatches/:id', auth, async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    if (!dispatch) {
-      return res.status(404).json({ message: 'Dispatch not found' });
-    }
-
     // Find inventory that contains this dispatch and recalculate summary
     const inventory = await Inventory.findOne({ dispatches: req.params.id });
     if (inventory) {
       await Inventory.calculateSummary(inventory._id);
+      
+      // Send email notification to admins with before/after comparison
+      try {
+        const inventoryData = await Inventory.findById(inventory._id);
+        const oldInventory = await Inventory.findById(inventory._id); // Get old inventory state
+        await sendInventoryNotification(
+          'update', 
+          { ...dispatch.toObject(), ...inventoryData.toObject() }, 
+          req.user.name || req.user.email,
+          { ...oldDispatch.toObject(), ...oldInventory.toObject() }
+        );
+        console.log('✅ Admin notification sent for dispatch update');
+      } catch (emailError) {
+        console.error('⚠️ Failed to send admin notification:', emailError.message);
+      }
     }
 
     res.json(dispatch);
@@ -295,6 +357,15 @@ router.delete('/dispatches/:id', auth, async (req, res) => {
       
       // Recalculate inventory summary
       await Inventory.calculateSummary(inventory._id);
+      
+      // Send email notification to admins
+      try {
+        const inventoryData = await Inventory.findById(inventory._id);
+        await sendInventoryNotification('delete', { ...dispatch.toObject(), ...inventoryData.toObject() }, req.user.name || req.user.email);
+        console.log('✅ Admin notification sent for dispatch deletion');
+      } catch (emailError) {
+        console.error('⚠️ Failed to send admin notification:', emailError.message);
+      }
     }
 
     res.json({ message: 'Dispatch deleted successfully' });
