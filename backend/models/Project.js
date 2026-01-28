@@ -51,7 +51,7 @@ const projectSchema = new mongoose.Schema({
   },
   projectCategory: {
     type: String,
-    enum: ['residential', 'commercial'],
+    enum: ['residential', 'commercial', 'school', 'hotel', 'hospital'],
     required: true
   },
   projectType: {

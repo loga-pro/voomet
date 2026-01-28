@@ -180,7 +180,7 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
           let projectsData = response.data || response;
 
           // Filter projects by stage (exclude RFQ), but always include the current project
-          const allowedStages = ['boq', 'awarded', 'under_execution', 'completed', 'post_implementation'];
+          const allowedStages = ['rfq', 'boq', 'awarded', 'under_execution', 'completed', 'post_implementation'];
           projectsData = (projectsData || []).filter(project =>
             allowedStages.includes(project.stage) || project.projectName === boq.projectName
           );
@@ -224,21 +224,41 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
           const response = await projectsAPI.getAll({ customerName: formData.customer });
           let projectsData = response.data || response;
 
-          // Filter projects by stage (exclude RFQ), but always include the current project if editing
-          const allowedStages = ['boq', 'awarded', 'under_execution', 'completed', 'post_implementation'];
+          // Filter projects by stage (include RFQ), but always include the current project if editing
+          const allowedStages = ['rfq', 'boq', 'awarded', 'under_execution', 'completed', 'post_implementation'];
           projectsData = (projectsData || []).filter(project =>
             allowedStages.includes(project.stage) || (boq && project.projectName === boq.projectName)
           );
 
           setProjects(projectsData || []);
 
-          // If there's only one project, auto-populate the project name
-          // BUT only if we're NOT in edit mode (boq doesn't exist)
-          if (!boq && projectsData && projectsData.length === 1 && !formData.projectName) {
-            setFormData(prev => ({
-              ...prev,
-              projectName: projectsData[0].projectName
-            }));
+          // Auto-population logic
+          if (!boq && projectsData && projectsData.length > 0 && !formData.projectName) {
+            // Priority 1: If there's a match with a previously selected reference project
+            const referenceProjectName = selectedProject?.projectName;
+            const matchingProject = referenceProjectName
+              ? projectsData.find(project => project.projectName === referenceProjectName)
+              : null;
+
+            if (matchingProject) {
+              setFormData(prev => ({
+                ...prev,
+                projectName: matchingProject.projectName,
+                scopeOfWork: Array.isArray(matchingProject.scopeOfWork)
+                  ? matchingProject.scopeOfWork
+                  : (matchingProject.scopeOfWork || '').split(',').map(s => s.trim()).filter(Boolean)
+              }));
+            }
+            // Priority 2: If there's only one project available for this customer
+            else if (projectsData.length === 1) {
+              setFormData(prev => ({
+                ...prev,
+                projectName: projectsData[0].projectName,
+                scopeOfWork: Array.isArray(projectsData[0].scopeOfWork)
+                  ? projectsData[0].scopeOfWork
+                  : (projectsData[0].scopeOfWork || '').split(',').map(s => s.trim()).filter(Boolean)
+              }));
+            }
           }
         } catch (error) {
           console.error('Error fetching projects:', error);

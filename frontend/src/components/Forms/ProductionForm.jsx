@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { inhouseMilestonesAPI, partsAPI } from '../../services/api';
+import { inhouseMilestonesAPI, partsAPI, projectsAPI, customersAPI } from '../../services/api';
 import FloatingInput from './FloatingInput';
 import {
   PlusCircleIcon,
@@ -136,22 +136,17 @@ const useFormData = (production) => {
 const useExternalData = () => {
   const [customers, setCustomers] = useState([]);
   const [parts, setParts] = useState([]);
-  const [inhouseMilestones, setInhouseMilestones] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [milestonesRes, partsRes] = await Promise.all([
-          inhouseMilestonesAPI.getAll(),
+        const [customersRes, partsRes] = await Promise.all([
+          customersAPI.getAll(),
           partsAPI.getAll()
         ]);
 
-        const milestones = milestonesRes.data?.milestones || milestonesRes.data || [];
-        setInhouseMilestones(milestones);
-
-        const uniqueCustomers = [...new Set(milestones.map(m => m.customer).filter(Boolean))];
-        setCustomers(uniqueCustomers.map(c => ({ customerName: c })));
-
+        const customerListData = customersRes.data || customersRes || [];
+        setCustomers(Array.isArray(customerListData) ? customerListData : []);
         setParts(partsRes.data || []);
       } catch (err) {
         console.error('Failed to fetch external data:', err);
@@ -161,10 +156,10 @@ const useExternalData = () => {
     fetchData();
   }, []);
 
-  return { customers, parts, inhouseMilestones };
+  return { customers, parts };
 };
 
-const useFilteredProjects = (customerName, inhouseMilestones) => {
+const useFilteredProjects = (customerName) => {
   const [filteredProjects, setFilteredProjects] = useState([]);
 
   useEffect(() => {
@@ -173,10 +168,19 @@ const useFilteredProjects = (customerName, inhouseMilestones) => {
       return;
     }
 
-    const customerMilestones = inhouseMilestones.filter(m => m.customer === customerName);
-    const uniqueProjects = [...new Set(customerMilestones.map(m => m.projectName).filter(Boolean))];
-    setFilteredProjects(uniqueProjects.map(p => ({ projectName: p })));
-  }, [customerName, inhouseMilestones]);
+    const fetchProjects = async () => {
+      try {
+        const response = await projectsAPI.getAll({ customerName });
+        const projectsData = response.data || response || [];
+        setFilteredProjects(Array.isArray(projectsData) ? projectsData : []);
+      } catch (err) {
+        console.error('Failed to fetch projects:', err);
+        setFilteredProjects([]);
+      }
+    };
+
+    fetchProjects();
+  }, [customerName]);
 
   return filteredProjects;
 };
@@ -665,8 +669,8 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
   const [showValidation, setShowValidation] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
-  const { customers, parts, inhouseMilestones } = useExternalData();
-  const filteredProjects = useFilteredProjects(formData.customerName, inhouseMilestones);
+  const { customers, parts } = useExternalData();
+  const filteredProjects = useFilteredProjects(formData.customerName);
 
   // Debug: Log formData.items whenever it changes
   useEffect(() => {
@@ -702,19 +706,40 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
 
   // Auto-fetch milestone dates when project is selected
   useEffect(() => {
-    if (formData.customerName && formData.projectName) {
-      const selectedMilestone = inhouseMilestones.find(
-        m => m.customer === formData.customerName && m.projectName === formData.projectName
-      );
-      if (selectedMilestone) {
-        setFormData(prev => ({
-          ...prev,
-          milestoneStartDate: selectedMilestone.startDate ? formatDateForInput(selectedMilestone.startDate) : '',
-          milestoneEndDate: selectedMilestone.endDate ? formatDateForInput(selectedMilestone.endDate) : ''
-        }));
+    const fetchMilestoneDates = async () => {
+      if (formData.customerName && formData.projectName) {
+        try {
+          const response = await inhouseMilestonesAPI.getAll({
+            customer: formData.customerName,
+            projectName: formData.projectName
+          });
+          const milestones = response.data?.milestones || response.data || [];
+          const selectedMilestone = milestones.find(
+            m => m.customer === formData.customerName && m.projectName === formData.projectName
+          );
+
+          if (selectedMilestone) {
+            setFormData(prev => ({
+              ...prev,
+              milestoneStartDate: selectedMilestone.startDate ? formatDateForInput(selectedMilestone.startDate) : '',
+              milestoneEndDate: selectedMilestone.endDate ? formatDateForInput(selectedMilestone.endDate) : ''
+            }));
+          } else {
+            setFormData(prev => ({
+              ...prev,
+              milestoneStartDate: '',
+              milestoneEndDate: ''
+            }));
+          }
+        } catch (error) {
+          console.error('Error fetching milestone dates:', error);
+          setFormData(prev => ({ ...prev, milestoneStartDate: '', milestoneEndDate: '' }));
+        }
       }
-    }
-  }, [formData.customerName, formData.projectName, inhouseMilestones]);
+    };
+
+    fetchMilestoneDates();
+  }, [formData.customerName, formData.projectName]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -934,6 +959,7 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
             error={showValidation && errors.projectName}
             required
             size={isMobile ? "small" : "medium"}
+            disabled={!formData.customerName}
           />
         </div>
 

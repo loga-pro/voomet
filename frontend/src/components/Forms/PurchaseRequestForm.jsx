@@ -8,7 +8,7 @@ import {
 import { UploadOutlined } from '@ant-design/icons';
 import { Button, Upload } from 'antd';
 import FloatingInput from './FloatingInput';
-import { purchaseRequestsAPI, inhouseMilestonesAPI, FILE_BASE_URL } from '../../services/api';
+import { purchaseRequestsAPI, inhouseMilestonesAPI, FILE_BASE_URL, projectsAPI, customersAPI } from '../../services/api';
 
 const scopeOptions = [
   { value: '', label: 'Select Scope' },
@@ -187,42 +187,71 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
   }, [purchaseRequest]);
 
   useEffect(() => {
-    const fetchInhouseMilestones = async () => {
+    const fetchCustomers = async () => {
       try {
-        const milestonesRes = await inhouseMilestonesAPI.getAll();
-        const milestones = milestonesRes.data?.milestones || milestonesRes.data || [];
-        setInhouseMilestones(milestones);
-        const uniqueCustomers = [...new Set(milestones.map(m => m.customer).filter(Boolean))];
-        setInhouseCustomers(uniqueCustomers.map(c => ({ customerName: c })));
+        const response = await customersAPI.getAll();
+        const customersData = response.data || response || [];
+        setInhouseCustomers(Array.isArray(customersData) ? customersData : []);
       } catch (error) {
-        console.error('Error fetching inhouse milestones:', error);
+        console.error('Error fetching customers:', error);
       }
     };
-    fetchInhouseMilestones();
+    fetchCustomers();
   }, []);
 
   useEffect(() => {
-    if (formData.customerName) {
-      const customerMilestones = inhouseMilestones.filter(milestone => milestone.customer === formData.customerName);
-      const uniqueProjects = [...new Set(customerMilestones.map(m => m.projectName).filter(Boolean))];
-      setFilteredProjects(uniqueProjects.map(p => ({ projectName: p })));
-    } else {
-      setFilteredProjects([]);
-    }
-  }, [formData.customerName, inhouseMilestones]);
+    const fetchProjects = async () => {
+      if (formData.customerName) {
+        try {
+          const response = await projectsAPI.getAll({ customerName: formData.customerName });
+          const projectsData = response.data || response || [];
+          setFilteredProjects(Array.isArray(projectsData) ? projectsData : []);
+        } catch (error) {
+          console.error('Error fetching projects:', error);
+          setFilteredProjects([]);
+        }
+      } else {
+        setFilteredProjects([]);
+      }
+    };
+    fetchProjects();
+  }, [formData.customerName]);
 
   useEffect(() => {
-    if (formData.customerName && formData.projectName) {
-      const selectedMilestone = inhouseMilestones.find(m => m.customer === formData.customerName && m.projectName === formData.projectName);
-      if (selectedMilestone) {
-        setFormData(prev => ({
-          ...prev,
-          milestoneStartDate: selectedMilestone.startDate ? formatDateForInput(selectedMilestone.startDate) : '',
-          milestoneEndDate: selectedMilestone.endDate ? formatDateForInput(selectedMilestone.endDate) : ''
-        }));
+    const fetchMilestoneDates = async () => {
+      if (formData.customerName && formData.projectName) {
+        try {
+          const response = await inhouseMilestonesAPI.getAll({
+            customer: formData.customerName,
+            projectName: formData.projectName
+          });
+          const milestones = response.data?.milestones || response.data || [];
+          const selectedMilestone = milestones.find(
+            m => m.customer === formData.customerName && m.projectName === formData.projectName
+          );
+
+          if (selectedMilestone) {
+            setFormData(prev => ({
+              ...prev,
+              milestoneStartDate: selectedMilestone.startDate ? formatDateForInput(selectedMilestone.startDate) : '',
+              milestoneEndDate: selectedMilestone.endDate ? formatDateForInput(selectedMilestone.endDate) : ''
+            }));
+          } else {
+            setFormData(prev => ({
+              ...prev,
+              milestoneStartDate: '',
+              milestoneEndDate: ''
+            }));
+          }
+        } catch (error) {
+          console.error('Error fetching milestone dates:', error);
+          setFormData(prev => ({ ...prev, milestoneStartDate: '', milestoneEndDate: '' }));
+        }
       }
-    }
-  }, [formData.customerName, formData.projectName, inhouseMilestones]);
+    };
+
+    fetchMilestoneDates();
+  }, [formData.customerName, formData.projectName]);
 
   // Validation functions
   const validateDescription = (value) => {
@@ -820,6 +849,7 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
             error={showValidation && errors.projectName}
             required
             size="medium"
+            disabled={!formData.customerName}
           />
         </div>
 

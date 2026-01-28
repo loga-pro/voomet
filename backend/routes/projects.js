@@ -76,8 +76,15 @@ router.get('/:id', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
   try {
     const { user } = req;
+    const body = { ...req.body };
+    if (body.scopeOfWork && Array.isArray(body.scopeOfWork)) {
+      body.scopeOfWork = body.scopeOfWork
+        .map(s => (typeof s === 'string' ? s.trim() : s))
+        .filter(s => s !== '');
+    }
+
     const projectData = {
-      ...req.body,
+      ...body,
       changeHistory: [{
         field: 'created',
         oldValue: null,
@@ -119,14 +126,22 @@ router.put('/:id', auth, async (req, res) => {
       }
     }
 
+    // Sanitize scopeOfWork if present
+    const body = { ...req.body };
+    if (body.scopeOfWork && Array.isArray(body.scopeOfWork)) {
+      body.scopeOfWork = body.scopeOfWork
+        .map(s => (typeof s === 'string' ? s.trim() : s))
+        .filter(s => s !== '');
+    }
+
     // Track changes
     const changes = [];
-    Object.keys(req.body).forEach(key => {
-      if (JSON.stringify(project[key]) !== JSON.stringify(req.body[key])) {
+    Object.keys(body).forEach(key => {
+      if (JSON.stringify(project[key]) !== JSON.stringify(body[key])) {
         changes.push({
           field: key,
           oldValue: project[key],
-          newValue: req.body[key],
+          newValue: body[key],
           updatedBy: user.name || user.email,
           updatedAt: new Date()
         });
@@ -137,7 +152,7 @@ router.put('/:id', auth, async (req, res) => {
     const updatedProject = await Project.findByIdAndUpdate(
       req.params.id,
       {
-        ...req.body,
+        ...body,
         $push: { changeHistory: { $each: changes } }
       },
       { new: true, runValidators: true }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { projectsAPI, partsAPI, customersAPI } from '../../services/api';
+import { projectsAPI, customersAPI } from '../../services/api';
 import FloatingInput from './FloatingInput';
 import useNotification from '../../hooks/useNotification';
 
@@ -14,8 +14,7 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
     projectName: '',
     projectCategory: ''
   });
-  const [scopeOptions, setScopeOptions] = useState([]);
-  const [partsData, setPartsData] = useState([]);
+  const [scopeInput, setScopeInput] = useState('');
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [projectType, setProjectType] = useState(project ? 'existing' : 'new');
@@ -130,43 +129,7 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
     return { isValid: true };
   };
 
-  // Format scope of work display name - CORRECTED VERSION
-  const formatScopeName = (scope) => {
-    // Define specific mappings for known scope values
-    const scopeMappings = {
-      'electrical_fire_safety': 'Electrical, Fire and Safety',
-      'fire_safety': 'Fire and Safety',
-      'electrical': 'Electrical',
-      'mechanical': 'Mechanical',
-      'civil': 'Civil',
-      'plumbing': 'Plumbing',
-      'hvac': 'HVAC',
-    };
 
-    // Return mapped value if exists
-    const lowerCaseScope = scope.toLowerCase();
-    if (scopeMappings[lowerCaseScope]) {
-      return scopeMappings[lowerCaseScope];
-    }
-
-    // Fallback: Handle the specific case from your image
-    if (scope.includes('Fire') && scope.includes('And') && scope.includes('safety')) {
-      return 'Fire and safety';
-    }
-
-    // General case: replace underscores with spaces and capitalize each word
-    return scope
-      .split('_')
-      .map(word => {
-        // Skip empty words and common conjunctions
-        if (!word || word.toLowerCase() === 'and') {
-          return '';
-        }
-        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-      })
-      .filter(word => word !== '') // Remove empty strings
-      .join(' and ');
-  };
 
   // Fetch customer data first (on mount)
   useEffect(() => {
@@ -186,7 +149,6 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
 
   // Set form data after customerData is loaded
   useEffect(() => {
-    fetchScopeOptions();
     fetchAvailableProjects();
 
     // Only set form data if we have a project to edit AND customerData is loaded
@@ -272,57 +234,7 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
     }
   }, [projectType, project]);
 
-  const fetchScopeOptions = async () => {
-    try {
-      const response = await partsAPI.getAll();
-      setPartsData(response.data);
-      // Initially show all scopes
-      const scopes = [...new Set(response.data.map(part => part.scopeOfWork))];
-      setScopeOptions(scopes);
-    } catch (error) {
-      console.error('Error fetching scope options:', error);
-    }
-  };
-
-  const fetchAvailableProjects = async () => {
-    try {
-      const response = await projectsAPI.getAll();
-      setAvailableProjects(response.data);
-    } catch (error) {
-      console.error('Error fetching projects:', error);
-    }
-  };
-
-  // Filter scope options based on selected project category
-  useEffect(() => {
-    if (formData.projectCategory && partsData.length > 0) {
-      // Filter parts that match the selected project category
-      const filteredParts = partsData.filter(part =>
-        part.workCategory === formData.projectCategory
-      );
-
-      // Extract unique scope of work values from filtered parts
-      const filteredScopes = [...new Set(filteredParts.map(part => part.scopeOfWork))];
-
-      setScopeOptions(filteredScopes);
-
-      // Clear selected scopes that are no longer available
-      const validScopes = formData.scopeOfWork.filter(scope =>
-        filteredScopes.includes(scope)
-      );
-
-      if (validScopes.length !== formData.scopeOfWork.length) {
-        setFormData(prev => ({
-          ...prev,
-          scopeOfWork: validScopes
-        }));
-      }
-    } else if (partsData.length > 0) {
-      // If no category selected, show all scopes
-      const allScopes = [...new Set(partsData.map(part => part.scopeOfWork))];
-      setScopeOptions(allScopes);
-    }
-  }, [formData.projectCategory, partsData]);
+  // Removed useEffect for scope filtering as it's now manual input
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -397,15 +309,25 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
     }
   };
 
-  const handleScopeChange = (scope) => {
-    const newScopeOfWork = formData.scopeOfWork.includes(scope)
-      ? formData.scopeOfWork.filter(s => s !== scope)
-      : [...formData.scopeOfWork, scope];
+  const handleAddScope = () => {
+    const trimmedScope = scopeInput.trim();
+    if (!trimmedScope) {
+      setErrors(prev => ({ ...prev, scopeOfWorkInput: 'Please enter somthing' }));
+      return;
+    }
 
+    if (formData.scopeOfWork.includes(trimmedScope)) {
+      setErrors(prev => ({ ...prev, scopeOfWorkInput: 'This scope is already added' }));
+      return;
+    }
+
+    const newScopeOfWork = [...formData.scopeOfWork, trimmedScope];
     setFormData(prev => ({
       ...prev,
       scopeOfWork: newScopeOfWork
     }));
+    setScopeInput('');
+    setErrors(prev => ({ ...prev, scopeOfWorkInput: '' }));
 
     // Mark scopeOfWork as touched
     if (!touchedFields.scopeOfWork) {
@@ -416,8 +338,33 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
     const fieldError = validateField('scopeOfWork', newScopeOfWork);
     if (fieldError) {
       setErrors(prev => ({ ...prev, scopeOfWork: fieldError }));
-    } else if (errors.scopeOfWork) {
+    } else {
       setErrors(prev => ({ ...prev, scopeOfWork: '' }));
+    }
+  };
+
+  const handleRemoveScope = (scopeToRemove) => {
+    const newScopeOfWork = formData.scopeOfWork.filter(s => s !== scopeToRemove);
+    setFormData(prev => ({
+      ...prev,
+      scopeOfWork: newScopeOfWork
+    }));
+
+    // Validate scope in real-time
+    const fieldError = validateField('scopeOfWork', newScopeOfWork);
+    if (fieldError) {
+      setErrors(prev => ({ ...prev, scopeOfWork: fieldError }));
+    } else {
+      setErrors(prev => ({ ...prev, scopeOfWork: '' }));
+    }
+  };
+
+  const fetchAvailableProjects = async () => {
+    try {
+      const response = await projectsAPI.getAll();
+      setAvailableProjects(response.data);
+    } catch (error) {
+      console.error('Error fetching projects:', error);
     }
   };
 
@@ -690,31 +637,65 @@ const ProjectForm = ({ project, onSubmit, onCancel, existingProjects = [] }) => 
               </h3>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Select Scope of Work * {errors.scopeOfWork && <span className="text-red-600 text-sm">- {errors.scopeOfWork}</span>}
-                </label>
-                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border border-gray-200 rounded-lg">
-                  {scopeOptions.length > 0 ? (
-                    scopeOptions.map(scope => (
-                      <button
-                        key={scope}
-                        type="button"
-                        onClick={() => handleScopeChange(scope)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${formData.scopeOfWork.includes(scope)
-                          ? 'bg-primary-600 text-white shadow-sm'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-                          }`}
+                <div className="flex items-start space-x-2">
+                  <div className="flex-1">
+                    <FloatingInput
+                      label="Add Scope of Work"
+                      name="scopeOfWorkInput"
+                      value={scopeInput}
+                      onChange={(e) => {
+                        setScopeInput(e.target.value);
+                        if (errors.scopeOfWorkInput) {
+                          setErrors(prev => ({ ...prev, scopeOfWorkInput: '' }));
+                        }
+                      }}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddScope();
+                        }
+                      }}
+                      error={errors.scopeOfWorkInput || (formData.scopeOfWork.length === 0 ? errors.scopeOfWork : null)}
+                      required
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddScope}
+                    className="mt-0.5 px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium shadow-sm hover:shadow-md"
+                  >
+                    Add
+                  </button>
+                </div>
+
+                <div className={`flex flex-wrap gap-2 min-h-[50px] p-3 border rounded-lg bg-gray-50 transition-colors mb-4 ${errors.scopeOfWork && formData.scopeOfWork.length === 0
+                  ? 'border-red-300'
+                  : 'border-gray-200'
+                  }`}>
+                  {formData.scopeOfWork.length > 0 ? (
+                    formData.scopeOfWork.map((scope, index) => (
+                      <div
+                        key={`${scope}-${index}`}
+                        className="flex items-center bg-white border border-primary-200 text-primary-700 px-3 py-1.5 rounded-full text-sm font-medium shadow-sm animate-fadeIn"
                       >
-                        {formatScopeName(scope)}
-                      </button>
+                        <span>{scope}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveScope(scope)}
+                          className="ml-2 text-primary-400 hover:text-red-500 transition-colors focus:outline-none"
+                          title="Remove scope"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
                     ))
                   ) : (
-                    <p className="text-sm text-gray-500 py-2">No scope of work available for the selected category</p>
+                    <p className="text-sm text-gray-400 py-2.5 px-1 italic">No scope items added yet. Enter a scope above and click Add.</p>
                   )}
                 </div>
-                {!errors.scopeOfWork && touchedFields.scopeOfWork && formData.scopeOfWork.length === 0 && (
-                  <p className="mt-2 text-sm text-red-500">Please select at least one scope of work</p>
-                )}
+
               </div>
             </div>
           )}
