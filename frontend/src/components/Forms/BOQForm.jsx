@@ -159,9 +159,10 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       paymentTerms: boq.paymentTerms && boq.paymentTerms.length > 0
         ? boq.paymentTerms.map(term => ({
           discount: String(term.discount || ''),
-          Installment: term.Installment || 1
+          Installment: term.Installment || 1,
+          dueDate: term.dueDate || ''
         }))
-        : [{ discount: '', Installment: 1 }]
+        : [{ discount: '', Installment: 1, dueDate: '' }]
     };
 
     console.log('BOQForm Edit Mode - Full BOQ object:', boq);

@@ -970,7 +970,6 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
             value={formData.milestoneStartDate}
             onChange={() => { }}
             type="date"
-            readOnly
             size="small"
             className="bg-gray-50 cursor-not-allowed"
           />
@@ -980,7 +979,6 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
             value={formData.milestoneEndDate}
             onChange={() => { }}
             type="date"
-            readOnly
             size="small"
             className="bg-gray-50 cursor-not-allowed"
           />

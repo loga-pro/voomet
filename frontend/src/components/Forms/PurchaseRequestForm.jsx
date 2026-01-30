@@ -854,8 +854,8 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-          <FloatingInput label="Project Start Date" name="milestoneStartDate" value={formData.milestoneStartDate} onChange={() => { }} type="date" readOnly size="small" className="bg-gray-50 cursor-not-allowed" />
-          <FloatingInput label="Project End Date" name="milestoneEndDate" value={formData.milestoneEndDate} onChange={() => { }} type="date" readOnly size="small" className="bg-gray-50 cursor-not-allowed" />
+          <FloatingInput label="Project Start Date" name="milestoneStartDate" value={formData.milestoneStartDate} onChange={() => { }} type="date" size="small" className="bg-gray-50 cursor-not-allowed" />
+          <FloatingInput label="Project End Date" name="milestoneEndDate" value={formData.milestoneEndDate} onChange={() => { }} type="date" size="small" className="bg-gray-50 cursor-not-allowed" />
           <FloatingInput label="Production Start Date" name="startDate" value={formData.startDate} onChange={handleChange} type="date" error={showValidation && errors.startDate} required size="small" />
           <FloatingInput label="Production End Date" name="endDate" value={formData.endDate} onChange={handleChange} type="date" error={showValidation && errors.endDate} required size="small" />
         </div>
