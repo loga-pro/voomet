@@ -595,6 +595,9 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
     if (!formData.customerName) newErrors.customerName = 'Customer name is required';
     if (!formData.projectName) newErrors.projectName = 'Project name is required';
 
+    if (!formData.milestoneStartDate) newErrors.milestoneStartDate = 'Project start date is required';
+    if (!formData.milestoneEndDate) newErrors.milestoneEndDate = 'Project end date is required';
+
     if (!formData.startDate) newErrors.startDate = 'Start date is required';
     else if (new Date(formData.startDate) > new Date(formData.endDate)) newErrors.startDate = 'Start date must be before end date';
 
@@ -830,8 +833,8 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-          <FloatingInput label="Project Start Date" name="milestoneStartDate" value={formData.milestoneStartDate} onChange={handleChange} type="date" size="small" />
-          <FloatingInput label="Project End Date" name="milestoneEndDate" value={formData.milestoneEndDate} onChange={handleChange} type="date" size="small" disabled={!formData.milestoneStartDate} min={formData.milestoneStartDate ? (() => { const d = new Date(formData.milestoneStartDate); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })() : undefined} />
+          <FloatingInput label="Project Start Date" name="milestoneStartDate" value={formData.milestoneStartDate} onChange={handleChange} type="date" size="small" error={showValidation && errors.milestoneStartDate} required />
+          <FloatingInput label="Project End Date" name="milestoneEndDate" value={formData.milestoneEndDate} onChange={handleChange} type="date" size="small" disabled={!formData.milestoneStartDate} min={formData.milestoneStartDate ? (() => { const d = new Date(formData.milestoneStartDate); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })() : undefined} error={showValidation && errors.milestoneEndDate} required />
           <FloatingInput label="Production Start Date" name="startDate" value={formData.startDate} onChange={handleChange} type="date" error={showValidation && errors.startDate} required size="small" />
           <FloatingInput label="Production End Date" name="endDate" value={formData.endDate} onChange={handleChange} type="date" error={showValidation && errors.endDate} required size="small" disabled={!formData.startDate} min={formData.startDate ? (() => { const d = new Date(formData.startDate); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })() : undefined} />
         </div>
@@ -845,7 +848,7 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
             <button
               type="button"
               onClick={() => setActiveTab('materials')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'materials'
+              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center ${activeTab === 'materials'
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
@@ -854,11 +857,17 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
               <span className="ml-2 bg-blue-100 text-blue-600 text-xs font-medium px-2 py-0.5 rounded-full">
                 {formData.items.length}
               </span>
+              {showValidation && errors.items && (Object.keys(errors.items).length > 0 || errors.items.general) && (
+                <span className="ml-2 flex items-center" title="This tab has validation errors">
+                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                  <span className="ml-1 text-red-500 text-xs font-medium">Error</span>
+                </span>
+              )}
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('hardware')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'hardware'
+              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center ${activeTab === 'hardware'
                 ? 'border-indigo-500 text-indigo-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
@@ -867,6 +876,12 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
               <span className="ml-2 bg-indigo-100 text-indigo-600 text-xs font-medium px-2 py-0.5 rounded-full">
                 {formData.hardwareItems.length}
               </span>
+              {showValidation && errors.hardwareItems && (Object.keys(errors.hardwareItems).length > 0 || errors.hardwareItems.general) && (
+                <span className="ml-2 flex items-center" title="This tab has validation errors">
+                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                  <span className="ml-1 text-red-500 text-xs font-medium">Error</span>
+                </span>
+              )}
             </button>
           </nav>
         </div>

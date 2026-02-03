@@ -815,6 +815,8 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
     // Basic form validation
     if (!formData.customerName) newErrors.customerName = 'Customer required';
     if (!formData.projectName) newErrors.projectName = 'Project required';
+    if (!formData.milestoneStartDate) newErrors.milestoneStartDate = 'Project start date required';
+    if (!formData.milestoneEndDate) newErrors.milestoneEndDate = 'Project end date required';
     if (!formData.startDate) newErrors.startDate = 'Start date required';
     if (!formData.endDate) newErrors.endDate = 'End date required';
 
@@ -948,6 +950,8 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
             onChange={handleChange}
             type="date"
             size="small"
+            error={showValidation && errors.milestoneStartDate}
+            required
           />
           <FloatingInput
             label="Project End Date"
@@ -958,6 +962,8 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
             size="small"
             disabled={!formData.milestoneStartDate}
             min={formData.milestoneStartDate ? (() => { const d = new Date(formData.milestoneStartDate); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })() : undefined}
+            error={showValidation && errors.milestoneEndDate}
+            required
           />
           <FloatingInput
             label="Production Start Date"
@@ -989,7 +995,15 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden h-full flex flex-col">
           {/* Table Header with Add Button */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 md:px-6 py-3 md:py-4 border-b border-gray-200 bg-gray-50 gap-3">
-            <h3 className="text-base md:text-lg font-medium text-gray-900">Production Items</h3>
+            <div className="flex items-center">
+              <h3 className="text-base md:text-lg font-medium text-gray-900">Production Items</h3>
+              {showValidation && errors.items && (Object.keys(errors.items).length > 0 || errors.items.general) && (
+                <span className="ml-3 flex items-center" title="This section has validation errors">
+                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                  <span className="ml-1 text-red-500 text-xs font-medium">Error</span>
+                </span>
+              )}
+            </div>
             <button
               type="button"
               onClick={addItem}
