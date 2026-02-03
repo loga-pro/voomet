@@ -200,7 +200,7 @@ const FloatingInput = ({
               ${error ? 'border-red-500' : isFocused ? 'border-blue-500' : 'border-gray-300'} 
               focus:outline-none focus:border-blue-500 transition-all duration-200
               ${props.disabled || props.readOnly ? 'cursor-default' : ''}
-              ${type === 'date' ? '[&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-1 [&::-webkit-calendar-picker-indicator]:w-3 [&::-webkit-calendar-picker-indicator]:h-3 [&::-webkit-calendar-picker-indicator]:cursor-pointer' : ''}`}
+              ${type === 'date' ? `[&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-1 [&::-webkit-calendar-picker-indicator]:w-3 [&::-webkit-calendar-picker-indicator]:h-3 ${props.readOnly || props.disabled ? '[&::-webkit-calendar-picker-indicator]:pointer-events-none' : '[&::-webkit-calendar-picker-indicator]:cursor-pointer'}` : ''}`}
               />
               <label
                 htmlFor={name}

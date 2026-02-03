@@ -8,7 +8,7 @@ import {
 import { UploadOutlined } from '@ant-design/icons';
 import { Button, Upload } from 'antd';
 import FloatingInput from './FloatingInput';
-import { purchaseRequestsAPI, inhouseMilestonesAPI, FILE_BASE_URL, projectsAPI, customersAPI } from '../../services/api';
+import { purchaseRequestsAPI, FILE_BASE_URL, projectsAPI, customersAPI } from '../../services/api';
 
 const scopeOptions = [
   { value: '', label: 'Select Scope' },
@@ -217,41 +217,7 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
     fetchProjects();
   }, [formData.customerName]);
 
-  useEffect(() => {
-    const fetchMilestoneDates = async () => {
-      if (formData.customerName && formData.projectName) {
-        try {
-          const response = await inhouseMilestonesAPI.getAll({
-            customer: formData.customerName,
-            projectName: formData.projectName
-          });
-          const milestones = response.data?.milestones || response.data || [];
-          const selectedMilestone = milestones.find(
-            m => m.customer === formData.customerName && m.projectName === formData.projectName
-          );
 
-          if (selectedMilestone) {
-            setFormData(prev => ({
-              ...prev,
-              milestoneStartDate: selectedMilestone.startDate ? formatDateForInput(selectedMilestone.startDate) : '',
-              milestoneEndDate: selectedMilestone.endDate ? formatDateForInput(selectedMilestone.endDate) : ''
-            }));
-          } else {
-            setFormData(prev => ({
-              ...prev,
-              milestoneStartDate: '',
-              milestoneEndDate: ''
-            }));
-          }
-        } catch (error) {
-          console.error('Error fetching milestone dates:', error);
-          setFormData(prev => ({ ...prev, milestoneStartDate: '', milestoneEndDate: '' }));
-        }
-      }
-    };
-
-    fetchMilestoneDates();
-  }, [formData.customerName, formData.projectName]);
 
   // Validation functions
   const validateDescription = (value) => {
@@ -328,6 +294,16 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
 
     if (name === 'customerName') {
       setFormData(prev => ({ ...prev, projectName: '', milestoneStartDate: '', milestoneEndDate: '', startDate: '', endDate: '' }));
+    }
+
+    // Reset Project End Date when Project Start Date changes
+    if (name === 'milestoneStartDate') {
+      setFormData(prev => ({ ...prev, milestoneStartDate: validatedValue, milestoneEndDate: '' }));
+    }
+
+    // Reset Production End Date when Production Start Date changes
+    if (name === 'startDate') {
+      setFormData(prev => ({ ...prev, startDate: validatedValue, endDate: '' }));
     }
   };
 
@@ -854,10 +830,10 @@ const PurchaseRequestForm = ({ purchaseRequest, onSubmit, onCancel, showSuccess,
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-          <FloatingInput label="Project Start Date" name="milestoneStartDate" value={formData.milestoneStartDate} onChange={() => { }} type="date" size="small" className="bg-gray-50 cursor-not-allowed" />
-          <FloatingInput label="Project End Date" name="milestoneEndDate" value={formData.milestoneEndDate} onChange={() => { }} type="date" size="small" className="bg-gray-50 cursor-not-allowed" />
+          <FloatingInput label="Project Start Date" name="milestoneStartDate" value={formData.milestoneStartDate} onChange={handleChange} type="date" size="small" />
+          <FloatingInput label="Project End Date" name="milestoneEndDate" value={formData.milestoneEndDate} onChange={handleChange} type="date" size="small" disabled={!formData.milestoneStartDate} min={formData.milestoneStartDate ? (() => { const d = new Date(formData.milestoneStartDate); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })() : undefined} />
           <FloatingInput label="Production Start Date" name="startDate" value={formData.startDate} onChange={handleChange} type="date" error={showValidation && errors.startDate} required size="small" />
-          <FloatingInput label="Production End Date" name="endDate" value={formData.endDate} onChange={handleChange} type="date" error={showValidation && errors.endDate} required size="small" />
+          <FloatingInput label="Production End Date" name="endDate" value={formData.endDate} onChange={handleChange} type="date" error={showValidation && errors.endDate} required size="small" disabled={!formData.startDate} min={formData.startDate ? (() => { const d = new Date(formData.startDate); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })() : undefined} />
         </div>
       </div>
 

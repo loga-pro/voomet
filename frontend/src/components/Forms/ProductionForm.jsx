@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { inhouseMilestonesAPI, partsAPI, projectsAPI, customersAPI } from '../../services/api';
+import { partsAPI, projectsAPI, customersAPI } from '../../services/api';
 import FloatingInput from './FloatingInput';
 import {
   PlusCircleIcon,
@@ -704,42 +704,7 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
     }
   }, [formData.items.map(i => `${i.productionQuantityPlan}-${i.actualProduction}`).join(',')]);
 
-  // Auto-fetch milestone dates when project is selected
-  useEffect(() => {
-    const fetchMilestoneDates = async () => {
-      if (formData.customerName && formData.projectName) {
-        try {
-          const response = await inhouseMilestonesAPI.getAll({
-            customer: formData.customerName,
-            projectName: formData.projectName
-          });
-          const milestones = response.data?.milestones || response.data || [];
-          const selectedMilestone = milestones.find(
-            m => m.customer === formData.customerName && m.projectName === formData.projectName
-          );
 
-          if (selectedMilestone) {
-            setFormData(prev => ({
-              ...prev,
-              milestoneStartDate: selectedMilestone.startDate ? formatDateForInput(selectedMilestone.startDate) : '',
-              milestoneEndDate: selectedMilestone.endDate ? formatDateForInput(selectedMilestone.endDate) : ''
-            }));
-          } else {
-            setFormData(prev => ({
-              ...prev,
-              milestoneStartDate: '',
-              milestoneEndDate: ''
-            }));
-          }
-        } catch (error) {
-          console.error('Error fetching milestone dates:', error);
-          setFormData(prev => ({ ...prev, milestoneStartDate: '', milestoneEndDate: '' }));
-        }
-      }
-    };
-
-    fetchMilestoneDates();
-  }, [formData.customerName, formData.projectName]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -754,8 +719,20 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
         ...prev,
         projectName: '',
         milestoneStartDate: '',
-        milestoneEndDate: ''
+        milestoneEndDate: '',
+        startDate: '',
+        endDate: ''
       }));
+    }
+
+    // Reset Project End Date when Project Start Date changes
+    if (name === 'milestoneStartDate') {
+      setFormData(prev => ({ ...prev, milestoneStartDate: value, milestoneEndDate: '' }));
+    }
+
+    // Reset Production End Date when Production Start Date changes
+    if (name === 'startDate') {
+      setFormData(prev => ({ ...prev, startDate: value, endDate: '' }));
     }
   };
 
@@ -968,19 +945,19 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
             label="Project Start Date"
             name="milestoneStartDate"
             value={formData.milestoneStartDate}
-            onChange={() => { }}
+            onChange={handleChange}
             type="date"
             size="small"
-            className="bg-gray-50 cursor-not-allowed"
           />
           <FloatingInput
             label="Project End Date"
             name="milestoneEndDate"
             value={formData.milestoneEndDate}
-            onChange={() => { }}
+            onChange={handleChange}
             type="date"
             size="small"
-            className="bg-gray-50 cursor-not-allowed"
+            disabled={!formData.milestoneStartDate}
+            min={formData.milestoneStartDate ? (() => { const d = new Date(formData.milestoneStartDate); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })() : undefined}
           />
           <FloatingInput
             label="Production Start Date"
@@ -1001,6 +978,8 @@ const ProductionForm = ({ production, onSubmit, onCancel, showSuccess, showError
             error={showValidation && errors.endDate}
             required
             size="small"
+            disabled={!formData.startDate}
+            min={formData.startDate ? (() => { const d = new Date(formData.startDate); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })() : undefined}
           />
         </div>
       </div>
