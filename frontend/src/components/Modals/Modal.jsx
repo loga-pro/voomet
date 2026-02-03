@@ -10,6 +10,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
     lg: 'sm:max-w-4xl',
     xl: 'sm:max-w-6xl',
     '4xl': 'sm:max-w-7xl',
+    '5xl': 'sm:max-w-[90rem]',
     full: 'sm:max-w-full'
   };
 

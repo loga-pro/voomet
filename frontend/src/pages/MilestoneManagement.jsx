@@ -970,7 +970,7 @@ const MilestoneManagement = () => {
           setEditingMilestone(null);
         }}
         title={editingMilestone ? 'Edit Milestone' : 'Add Milestone'}
-        size="xl"
+        size="5xl"
       >
         <MilestoneForm
           milestone={editingMilestone}

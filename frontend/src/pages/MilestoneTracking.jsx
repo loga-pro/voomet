@@ -378,6 +378,15 @@ const MilestoneTracking = () => {
     if (value > 100) value = 100;
     if (value < 0) value = 0;
 
+    // Validation: Cannot set 100% completion without Actual End Date
+    if (value === 100) {
+      const task = trackingData[index];
+      if (!task.actualEndDate) {
+        showError('Please enter the Actual End Date before setting completion to 100%');
+        return;
+      }
+    }
+
     setTrackingData(prev => {
       const newData = [...prev];
       const task = { ...newData[index] };
@@ -1484,7 +1493,22 @@ const MilestoneTracking = () => {
                             type="date"
                             value={task.actualStartDate}
                             onChange={(e) => handleTrackingChange(index, 'actualStartDate', e.target.value)}
-                            min="1900-01-01"
+                            min={(() => {
+                              // Get the previous task's actual end date if it exists
+                              const prevTask = index > 0 ? trackingData[index - 1] : null;
+                              if (prevTask && prevTask.actualEndDate) {
+                                // Disable dates up to and including the previous End Date
+                                // So min should be the day after previous end date
+                                const prevEndDate = new Date(prevTask.actualEndDate);
+                                prevEndDate.setDate(prevEndDate.getDate() + 1);
+                                return prevEndDate.toISOString().split('T')[0];
+                              }
+                              // If no previous End Date, use the current task's Planned Start Date
+                              if (task.startDate) {
+                                return task.startDate;
+                              }
+                              return '1900-01-01';
+                            })()}
                             max="2100-12-31"
                             className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm text-center"
                           />

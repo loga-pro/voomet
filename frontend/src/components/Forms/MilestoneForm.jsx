@@ -365,11 +365,65 @@ const MilestoneForm = ({ milestone, onSuccess, onCancel, viewMode = false, onEma
     }
   };
 
+  // Handle task start date change - propagate to subsequent tasks
+  const handleTaskStartDateChange = (index, newStartDate) => {
+    // First record (index 0) should not be editable directly
+    // This is handled in the UI, but we add protection here too
+    if (index === 0) return;
+
+    const newTasks = [...formData.tasks];
+
+    // Update the start date for the selected task
+    const startDate = new Date(newStartDate);
+    newTasks[index].startDate = startDate.toISOString().split('T')[0];
+
+    // Calculate end date based on duration
+    if (newTasks[index].duration > 0) {
+      newTasks[index].endDate = calculateBusinessDays(startDate, newTasks[index].duration);
+    } else {
+      newTasks[index].endDate = startDate.toISOString().split('T')[0];
+    }
+
+    // Propagate changes to all subsequent tasks
+    let currentStartDate = new Date(newTasks[index].endDate);
+    currentStartDate.setDate(currentStartDate.getDate() + 1);
+
+    for (let i = index + 1; i < newTasks.length; i++) {
+      newTasks[i].startDate = currentStartDate.toISOString().split('T')[0];
+
+      if (newTasks[i].duration > 0) {
+        newTasks[i].endDate = calculateBusinessDays(currentStartDate, newTasks[i].duration);
+      } else {
+        newTasks[i].endDate = currentStartDate.toISOString().split('T')[0];
+      }
+
+      currentStartDate = new Date(newTasks[i].endDate);
+      currentStartDate.setDate(currentStartDate.getDate() + 1);
+    }
+
+    // Update the overall end date based on the last task
+    const lastTask = newTasks[newTasks.length - 1];
+    if (lastTask && lastTask.endDate) {
+      const newEndDate = lastTask.endDate;
+      setOriginalEndDate(newEndDate);
+      setFormData(prev => ({
+        ...prev,
+        endDate: newEndDate,
+        tasks: newTasks
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        tasks: newTasks
+      }));
+    }
+  };
+
   const handleTaskChange = (index, field, value) => {
     if (field === 'phase' && value.length > 30) {
       value = value.substring(0, 30);
-    } else if (field === 'task' && value.length > 30) {
-      value = value.substring(0, 30);
+    } else if (field === 'task' && value.length > 250) {
+      value = value.substring(0, 250);
     } else if (field === 'responsiblePerson' && value.length > 30) {
       value = value.substring(0, 30);
     }
@@ -779,121 +833,121 @@ const MilestoneForm = ({ milestone, onSuccess, onCancel, viewMode = false, onEma
               onClose={() => setErrors(prev => ({ ...prev, submit: null }))}
             />
           )}
-          
+
           {/* Compact Form Header - Similar to your image */}
           <Card size="small" className="shadow-sm mb-4">
-  <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
 
-    <FloatingInput
-      label="Client Name"
-      type="select"
-      size="small"
-      value={formData.customer}
-      onChange={e =>
-        setFormData(prev => ({
-          ...prev,
-          customer: e.target.value,
-          projectName: ''
-        }))
-      }
-      options={customers.map(c => ({
-        value: c.customerName,
-        label: c.customerName
-      }))}
-      error={errors.customer}
-      required
-      disabled={viewMode}
-    />
+              <FloatingInput
+                label="Client Name"
+                type="select"
+                size="small"
+                value={formData.customer}
+                onChange={e =>
+                  setFormData(prev => ({
+                    ...prev,
+                    customer: e.target.value,
+                    projectName: ''
+                  }))
+                }
+                options={customers.map(c => ({
+                  value: c.customerName,
+                  label: c.customerName
+                }))}
+                error={errors.customer}
+                required
+                disabled={viewMode}
+              />
 
-    <FloatingInput
-      label="Project Name"
-      type="select"
-      size="small"
-      value={formData.projectName}
-      onChange={e =>
-        setFormData(prev => ({
-          ...prev,
-          projectName: e.target.value
-        }))
-      }
-      options={filteredProjects.map(p => ({
-        value: p.projectName,
-        label: p.projectName
-      }))}
-      error={errors.projectName}
-      required
-      disabled={!formData.customer || viewMode}
-    />
+              <FloatingInput
+                label="Project Name"
+                type="select"
+                size="small"
+                value={formData.projectName}
+                onChange={e =>
+                  setFormData(prev => ({
+                    ...prev,
+                    projectName: e.target.value
+                  }))
+                }
+                options={filteredProjects.map(p => ({
+                  value: p.projectName,
+                  label: p.projectName
+                }))}
+                error={errors.projectName}
+                required
+                disabled={!formData.customer || viewMode}
+              />
 
-    <FloatingInput
-      label="Email ID"
-      size="small"
-      value={formData.emailId}
-      readOnly
-      disabled
-      required
-    />
+              <FloatingInput
+                label="Email ID"
+                size="small"
+                value={formData.emailId}
+                readOnly
+                disabled
+                required
+              />
 
-    <FloatingInput
-      label="Start Date"
-      type="date"
-      size="small"
-      value={formData.startDate}
-      onChange={e => {
-        setFormData(prev => ({ ...prev, startDate: e.target.value }));
-        if (e.target.value && formData.tasks.length > 0) {
-          updateTaskDates(e.target.value);
-        }
-      }}
-      error={errors.startDate}
-      required
-      disabled={viewMode}
-    />
+              <FloatingInput
+                label="Start Date"
+                type="date"
+                size="small"
+                value={formData.startDate}
+                onChange={e => {
+                  setFormData(prev => ({ ...prev, startDate: e.target.value }));
+                  if (e.target.value && formData.tasks.length > 0) {
+                    updateTaskDates(e.target.value);
+                  }
+                }}
+                error={errors.startDate}
+                required
+                disabled={viewMode}
+              />
 
-   <FloatingInput
-  label="End Date"
-  type="date"
-  size="small"
-  value={formData.endDate}
-  readOnly
-  disabled
-/>
+              <FloatingInput
+                label="End Date"
+                type="date"
+                size="small"
+                value={formData.endDate}
+                readOnly
+                disabled
+              />
 
 
-  </div>
-</Card>
+            </div>
+          </Card>
 
 
           {/* Project Flexibility Section */}
-<Card size="small" className="shadow-sm mb-4">
-  <div className="flex flex-col gap-2">
+          <Card size="small" className="shadow-sm mb-4">
+            <div className="flex flex-col gap-2">
 
-    <div className="flex justify-between items-center">
-      <span className="text-xs font-medium text-gray-700">
-        Timeline Flexibility
-      </span>
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-medium text-gray-700">
+                  Timeline Flexibility
+                </span>
 
-      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-        {formData.flexibilityPercentage}%
-      </span>
-    </div>
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                  {formData.flexibilityPercentage}%
+                </span>
+              </div>
 
-    <Slider
-      min={0}
-      max={100}
-      value={formData.flexibilityPercentage}
-      onChange={handleFlexibilityChange}
-      disabled={viewMode || !formData.startDate || formData.tasks.length === 0}
-      tooltip={{ formatter: v => `${v}%` }}
-      className="mt-1"
-    />
+              <Slider
+                min={0}
+                max={100}
+                value={formData.flexibilityPercentage}
+                onChange={handleFlexibilityChange}
+                disabled={viewMode || !formData.startDate || formData.tasks.length === 0}
+                tooltip={{ formatter: v => `${v}%` }}
+                className="mt-1"
+              />
 
-    <p className="text-[11px] text-gray-500 leading-tight">
-      Adjusts project timeline by adding days proportionally to all tasks
-    </p>
+              <p className="text-[11px] text-gray-500 leading-tight">
+                Adjusts project timeline by adding days proportionally to all tasks
+              </p>
 
-  </div>
-</Card>
+            </div>
+          </Card>
 
 
           {/* Tasks Table Section */}
@@ -928,7 +982,7 @@ const MilestoneForm = ({ milestone, onSuccess, onCancel, viewMode = false, onEma
               }}
             >
               <table className="min-w-[900px] w-full divide-y divide-gray-200 table-fixed">
-                <colgroup><col className="w-[18%]" /><col className="w-[30%]" /><col className="w-[10%]" /><col className="w-[16%]" /><col className="w-[8%]" /><col className="w-[8%]" />{!viewMode && <col className="w-[4%]" />}</colgroup>
+                <colgroup><col className="w-[18%]" /><col className="w-[26%]" /><col className="w-[10%]" /><col className="w-[16%]" /><col className="w-[12%]" /><col className="w-[8%]" />{!viewMode && <col className="w-[4%]" />}</colgroup>
 
                 <thead className="bg-gray-50">
                   <tr>
@@ -1019,7 +1073,7 @@ const MilestoneForm = ({ milestone, onSuccess, onCancel, viewMode = false, onEma
                                   : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
                                   }`}
                                 placeholder="Task description"
-                                maxLength={50}
+                                maxLength={250}
                               />
                             </Tooltip>
                           )}
@@ -1098,11 +1152,40 @@ const MilestoneForm = ({ milestone, onSuccess, onCancel, viewMode = false, onEma
 
                         {/* Start Date */}
                         <td className="px-3 md:px-4 py-2 md:py-3">
-                          <div className="text-xs text-gray-600">
-                            {task.startDate
-                              ? new Date(task.startDate).toLocaleDateString()
-                              : '-'}
-                          </div>
+                          {viewMode || index === 0 ? (
+                            // View mode or first record - display as read-only text
+                            <div className="text-xs text-gray-600">
+                              {task.startDate
+                                ? new Date(task.startDate).toLocaleDateString()
+                                : '-'}
+                              {index === 0 && !viewMode && (
+                                <span className="block text-[10px] text-gray-400 italic mt-0.5">
+                                  (Fixed)
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            // Editable date picker for non-first records
+                            <div className="relative">
+                              <input
+                                type="date"
+                                value={task.startDate || ''}
+                                onChange={e => handleTaskStartDateChange(index, e.target.value)}
+                                className={`w-full border rounded px-2 py-1 text-xs ${!formData.startDate
+                                  ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                                  : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                                  }`}
+                                min={formData.tasks[index - 1]?.endDate || formData.startDate}
+                                disabled={!formData.startDate}
+                                title={!formData.startDate ? 'Set project Start Date first' : ''}
+                              />
+                              {!formData.startDate && (
+                                <span className="block text-[10px] text-gray-400 italic mt-0.5">
+                                  Set Start Date first
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </td>
 
                         {/* End Date */}

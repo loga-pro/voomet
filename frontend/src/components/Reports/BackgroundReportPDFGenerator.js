@@ -847,70 +847,80 @@ const BackgroundReportPDFGenerator = ({ reportData, reportType, reportTitle, onC
                           >
                             <td style={{
                               border: '1px solid #d1d5db',
-                              padding: '5px 4px',
+                              padding: '6px 5px',
                               fontSize: '9px',
                               color: '#374151',
                               textAlign: 'center',
                               whiteSpace: 'normal',
                               wordWrap: 'break-word',
-                              verticalAlign: 'middle'
+                              verticalAlign: 'top',
+                              lineHeight: '1.4'
                             }}>
                               {task.phase || '-'}
                             </td>
                             <td style={{
                               border: '1px solid #d1d5db',
-                              padding: '5px 4px',
+                              padding: '6px 5px',
                               fontSize: '9px',
                               color: '#374151',
-                              textAlign: 'center',
+                              textAlign: 'left',
                               whiteSpace: 'normal',
                               wordWrap: 'break-word',
-                              verticalAlign: 'middle'
+                              overflowWrap: 'break-word',
+                              wordBreak: 'break-word',
+                              verticalAlign: 'top',
+                              lineHeight: '1.4',
+                              minHeight: 'auto',
+                              maxWidth: '0'
                             }}>
                               {task.task || '-'}
                             </td>
                             <td style={{
                               border: '1px solid #d1d5db',
-                              padding: '5px 4px',
+                              padding: '6px 5px',
                               fontSize: '9px',
                               color: '#374151',
                               textAlign: 'center',
                               whiteSpace: 'nowrap',
-                              verticalAlign: 'middle'
+                              verticalAlign: 'top',
+                              lineHeight: '1.4'
                             }}>
                               {task.duration || 0} day{task.duration !== 1 ? 's' : ''}
                             </td>
                             <td style={{
                               border: '1px solid #d1d5db',
-                              padding: '5px 4px',
+                              padding: '6px 5px',
                               fontSize: '9px',
                               color: '#374151',
                               textAlign: 'center',
                               whiteSpace: 'nowrap',
-                              verticalAlign: 'middle'
+                              verticalAlign: 'top',
+                              lineHeight: '1.4'
                             }}>
                               {task.startDate ? new Date(task.startDate).toLocaleDateString('en-IN') : '-'}
                             </td>
                             <td style={{
                               border: '1px solid #d1d5db',
-                              padding: '5px 4px',
+                              padding: '6px 5px',
                               fontSize: '9px',
                               color: '#374151',
                               textAlign: 'center',
                               whiteSpace: 'nowrap',
-                              verticalAlign: 'middle'
+                              verticalAlign: 'top',
+                              lineHeight: '1.4'
                             }}>
                               {task.endDate ? new Date(task.endDate).toLocaleDateString('en-IN') : '-'}
                             </td>
                             <td style={{
                               border: '1px solid #d1d5db',
-                              padding: '5px 4px',
+                              padding: '6px 5px',
                               fontSize: '9px',
                               color: '#374151',
                               textAlign: 'center',
                               whiteSpace: 'normal',
                               wordWrap: 'break-word',
-                              verticalAlign: 'middle'
+                              verticalAlign: 'top',
+                              lineHeight: '1.4'
                             }}>
                               {task.responsiblePerson || '-'}
                             </td>
