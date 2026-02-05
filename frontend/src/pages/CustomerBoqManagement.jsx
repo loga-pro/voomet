@@ -1090,7 +1090,9 @@ const CustomerBoqManagement = () => {
         title={editingItem ? "Edit BOQ" : "Add BOQ"}
         size="xl"
       >
+        {/* Key prop forces complete remount when switching between Add/Edit modes */}
         <BOQForm
+          key={editingItem ? `edit-${editingItem._id}` : 'add-new'}
           boqItems={boqItems}
           boq={editingItem}
           boqType={"CUSTOMER"}
@@ -1422,7 +1424,7 @@ const CustomerBoqManagement = () => {
                       {item.partName}
                     </td>
                     <td className="px-4 py-3 text-center text-sm text-gray-900">
-                      {item.numberOfUnits} 
+                      {item.numberOfUnits}
                     </td>
                     <td className="px-4 py-3 text-center text-sm text-gray-900">
                       ₹{item.unitPrice?.toLocaleString('en-IN')}

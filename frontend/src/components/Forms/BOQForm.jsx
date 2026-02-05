@@ -3,7 +3,8 @@ import { boqAPI, projectsAPI, customersAPI, API_BASE_URL, FILE_BASE_URL } from '
 import FloatingInput from './FloatingInput';
 import NotificationComponent from '../Notifications/Notification';
 import { UploadOutlined } from '@ant-design/icons';
-import { Button, Upload } from 'antd';
+import { Button, Upload, Collapse, Badge, Tag } from 'antd';
+import { CaretRightOutlined } from '@ant-design/icons';
 const TrashIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
     <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -43,7 +44,8 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       remarks: '',
       uploadImg: '',
       image: null,
-      isCustom: false
+      isCustom: false,
+      scopeOfWork: '' // Will be assigned to first checked scope
     }],
     finalTotalWithoutGST: '0',
     discountPercentage: '0',
@@ -89,11 +91,60 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     }, 3000);
   }, []);
 
+  // Define initial/default form data (used for Add mode and reset)
+  const getInitialFormData = useCallback(() => ({
+    customer: '',
+    projectName: '',
+    scopeOfWork: [],
+    items: [{
+      partName: '',
+      numberOfUnits: '',
+      specification: '',
+      unitType: '',
+      unitPrice: '',
+      margin: '0',
+      totalPrice: '',
+      remarks: '',
+      uploadImg: '',
+      image: null,
+      isCustom: false,
+      scopeOfWork: ''
+    }],
+    finalTotalWithoutGST: '0',
+    discountPercentage: '0',
+    discountAmount: '0.00',
+    totalAfterDiscount: '0.00',
+    transportationCharges: '0',
+    gstPercentage: '18',
+    totalWithGST: '0',
+    overallRemarks: '',
+    paymentTerms: [{ discount: '', Installment: 1, dueDate: '' }],
+  }), []);
+
+  // CRITICAL: Reset form data for Add mode (when boq is null/undefined)
+  // This ensures Add BOQ always starts with empty fields
+  useEffect(() => {
+    if (boq === null || boq === undefined) {
+      // Reset to initial empty state for Add mode
+      console.log('BOQForm Add Mode - Resetting to empty form');
+      setFormData(getInitialFormData());
+      setSelectedProject('');
+      setProjects([]);
+      setErrors({});
+      setIsInitialLoad(true);
+    }
+  }, [boq, getInitialFormData]);
+
   // Parts API removed - items are now manually entered
 
-  // Initialize form data for edit mode
+  // Initialize form data for Edit mode only
   useEffect(() => {
     if (!boq) return;
+
+    console.log('=== EDIT BOQ - Loading Data ===');
+    console.log('Raw BOQ object:', boq);
+    console.log('BOQ items:', boq.items);
+    console.log('BOQ scopeOfWork:', boq.scopeOfWork);
 
     // Scope of work formatting
     const scopeOfWorkArray = Array.isArray(boq.scopeOfWork)
@@ -103,26 +154,43 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     // Items formatting
     let formattedItems = Array.isArray(boq.items) ? boq.items : [];
 
-    formattedItems = formattedItems.map(item => ({
-      partName: item.partName || '',
-      numberOfUnits: String(item.numberOfUnits || ''),
-      specification: item.specification || '',
-      unitType: item.unitType || '',
-      unitPrice: String(item.unitPrice || ''),
-      margin: String(item.margin || '0'),
-      totalPrice: String(item.totalPrice || ''),
-      remarks: item.remarks || '',
-      isCustom: item.isCustom || false,
-      image: item.image
-        ? {
-          ...item.image,
-          name: item.image.originalName || item.image.filename, // FIX
-          url: `${API_BASE_URL}${item.image.path}`,              // FULL URL FIX
-          status: 'done'
-        }
-        : null
+    formattedItems = formattedItems.map((item, index) => {
+      // If item doesn't have a scopeOfWork, assign it to the first available scope
+      let itemScope = item.scopeOfWork || '';
 
-    }));
+      console.log(`Item ${index} (${item.partName}):`, {
+        originalScope: item.scopeOfWork,
+        assignedScope: itemScope,
+        willUseFirstScope: !itemScope && scopeOfWorkArray.length > 0
+      });
+
+      // If no scope is assigned and we have available scopes, assign to the first one
+      if (!itemScope && scopeOfWorkArray.length > 0) {
+        itemScope = scopeOfWorkArray[0]; // Assign to the first checked scope
+        console.warn(`Item "${item.partName}" has no scopeOfWork, assigning to first scope: ${itemScope}`);
+      }
+
+      return {
+        partName: item.partName || '',
+        numberOfUnits: String(item.numberOfUnits || ''),
+        specification: item.specification || '',
+        unitType: item.unitType || '',
+        unitPrice: String(item.unitPrice || ''),
+        margin: String(item.margin || '0'),
+        totalPrice: String(item.totalPrice || ''),
+        remarks: item.remarks || '',
+        isCustom: item.isCustom || false,
+        scopeOfWork: itemScope,
+        image: item.image
+          ? {
+            ...item.image,
+            name: item.image.originalName || item.image.filename, // FIX
+            url: `${API_BASE_URL}${item.image.path}`,              // FULL URL FIX
+            status: 'done'
+          }
+          : null
+      };
+    });
 
     if (formattedItems.length === 0) {
       formattedItems = [{
@@ -135,7 +203,8 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
         totalPrice: '',
         remarks: '',
         image: null,
-        isCustom: false
+        isCustom: false,
+        scopeOfWork: ''
       }];
     }
 
@@ -270,12 +339,27 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
         }
       } else {
         setProjects([]);
-        // Clear project name when customer is cleared
+        // Clear project name, scopeOfWork, and items when customer is cleared
         // BUT only if we're NOT in edit mode
         if (!boq) {
           setFormData(prev => ({
             ...prev,
-            projectName: ''
+            projectName: '',
+            scopeOfWork: [],
+            items: [{
+              partName: '',
+              numberOfUnits: '',
+              specification: '',
+              unitType: '',
+              unitPrice: '',
+              margin: '0',
+              totalPrice: '',
+              remarks: '',
+              uploadImg: '',
+              image: null,
+              isCustom: false,
+              scopeOfWork: ''
+            }]
           }));
         }
       }
@@ -416,14 +500,35 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       return;
     }
 
-    // When customer changes, clear project name and scope
+
+    // When customer changes, clear project name, scope, and items (Add mode only)
     if (name === 'customer') {
-      setFormData(prev => ({
-        ...prev,
+      const resetData = {
+        ...formData,
         [name]: value,
         projectName: '', // Clear project when customer changes
         scopeOfWork: [] // Clear scope when customer changes
-      }));
+      };
+
+      // In Add mode, also reset items to empty
+      if (!boq) {
+        resetData.items = [{
+          partName: '',
+          numberOfUnits: '',
+          specification: '',
+          unitType: '',
+          unitPrice: '',
+          margin: '0',
+          totalPrice: '',
+          remarks: '',
+          uploadImg: '',
+          image: null,
+          isCustom: false,
+          scopeOfWork: ''
+        }];
+      }
+
+      setFormData(resetData);
       if (errors[name]) {
         setErrors(prev => ({ ...prev, [name]: '', projectName: '', scopeOfWork: '' }));
       }
@@ -627,7 +732,8 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
   };
 
 
-  const addItemRow = () => {
+
+  const addItemRow = (scopeOfWork = '') => {
     setFormData(prev => ({
       ...prev,
       items: [
@@ -643,13 +749,14 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
           remarks: '',
           uploadImg: '',
           image: null,
-          isCustom: false  // Items from parts master
+          isCustom: false,  // Items from parts master
+          scopeOfWork: scopeOfWork
         }
       ]
     }));
   };
 
-  const addCustomItemRow = () => {
+  const addCustomItemRow = (scopeOfWork = '') => {
     setFormData(prev => ({
       ...prev,
       items: [
@@ -665,7 +772,8 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
           remarks: '',
           uploadImg: '',
           image: null,
-          isCustom: true  // Custom items with text input
+          isCustom: true,  // Custom items with text input
+          scopeOfWork: scopeOfWork
         }
       ]
     }));
@@ -906,16 +1014,34 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
 
     if (formData.items && Array.isArray(formData.items)) {
       formData.items.forEach((item, index) => {
+        // Skip validation for completely empty rows (placeholder rows)
+        const hasAnyData = item.partName || item.numberOfUnits || item.unitPrice || item.unitType;
+
+        if (!hasAnyData) {
+          // This is an empty placeholder row, skip validation
+          return;
+        }
+
+        // If row has any data, validate all required fields
         if (!item.partName) newErrors[`item-${index}-partName`] = 'Item name is required';
         if (!item.numberOfUnits || Number(item.numberOfUnits) <= 0) newErrors[`item-${index}-numberOfUnits`] = 'Valid number of units is required';
         if (item.numberOfUnits && !/^\d{1,8}$/.test(item.numberOfUnits)) {
           newErrors[`item-${index}-numberOfUnits`] = 'Maximum 8 digits allowed';
         }
+        if (!item.unitType) newErrors[`item-${index}-unitType`] = 'Unit type is required';
         if (!item.unitPrice || Number(item.unitPrice) <= 0) newErrors[`item-${index}-unitPrice`] = 'Valid unit price is required';
         if (item.unitPrice && !/^\d{1,8}(\.\d{1,2})?$/.test(item.unitPrice)) {
           newErrors[`item-${index}-unitPrice`] = 'Maximum 8 digits and 2 decimal places allowed';
         }
       });
+
+      // Ensure at least one item has data
+      const hasAtLeastOneItem = formData.items.some(item =>
+        item.partName || item.numberOfUnits || item.unitPrice || item.unitType
+      );
+      if (!hasAtLeastOneItem) {
+        newErrors.items = 'At least one item is required';
+      }
     }
 
     // Payment Terms Validation
@@ -932,16 +1058,21 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
         }
       });
 
-      // Optional: Check if total is 100% (User asked for fields mandatory, but usually 100% is required for BOQ)
-      if (Math.abs(totalPercent - 100) > 0.1) {
-        if (!newErrors.submit) {
-          newErrors.submit = `Total payment percentage must be 100% (Current: ${totalPercent.toFixed(2)}%)`;
-        }
-      }
+      // REMOVED: 100% payment requirement - partial payments are allowed
+      // if (Math.abs(totalPercent - 100) > 0.1) {
+      //   if (!newErrors.submit) {
+      //     newErrors.submit = `Total payment percentage must be 100% (Current: ${totalPercent.toFixed(2)}%)`;
+      //   }
+      // }
     }
 
+    console.log('=== VALIDATION CHECK ===');
+    console.log('Form Data:', formData);
+    console.log('Validation Errors:', newErrors);
+    console.log('Error Count:', Object.keys(newErrors).length);
+
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return { isValid: Object.keys(newErrors).length === 0, errors: newErrors };
   };
 
   // Submit handler
@@ -961,8 +1092,15 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       }
     }
 
-    if (!validateForm()) {
-      showLocalNotification('Please fix validation errors', 'error');
+    const validation = validateForm();
+    if (!validation.isValid) {
+      console.error('Validation Errors:', validation.errors);
+      const errorFields = Object.keys(validation.errors).map(key => {
+        const fieldName = key.replace(/item-\d+-/, 'Item ').replace(/paymentTerm-\d+-/, 'Payment Term ');
+        return `${fieldName}: ${validation.errors[key]}`;
+      }).join('\n');
+      console.error('Failed Fields:\n', errorFields);
+      showLocalNotification(`Please fix validation errors:\n${errorFields}`, 'error');
       return;
     }
 
@@ -970,7 +1108,16 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
     try {
       const submitData = new FormData();
 
-      const itemsForSubmit = (formData.items || []).map((item, index) => {
+      // Filter out empty items (placeholder rows) before submitting
+      const validItems = (formData.items || []).filter(item => {
+        // Keep only items that have all required fields
+        return item.partName && item.numberOfUnits && item.unitPrice && item.unitType;
+      });
+
+      console.log('Items before filtering:', formData.items);
+      console.log('Valid items for submission:', validItems);
+
+      const itemsForSubmit = validItems.map((item, index) => {
         if (item.image && item.image instanceof File) {
           submitData.append(`itemImage_${index}`, item.image);
           const { image, ...rest } = item;
@@ -1047,26 +1194,36 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
       : (project.scopeOfWork || '').split(',').map(s => s.trim()).filter(Boolean);
 
     let formattedItems = Array.isArray(project.items) ? project.items : [];
-    formattedItems = formattedItems.map(item => ({
-      partName: item.partName || '',
-      numberOfUnits: String(item.numberOfUnits || ''),
-      specification: item.specification || '',
-      unitType: item.unitType || '',
-      unitPrice: String(item.unitPrice || ''),
-      margin: String(item.margin || '0'),
-      totalPrice: String(item.totalPrice || ''),
-      remarks: item.remarks || '',
-      isCustom: item.isCustom || false,
-      image: item.image
-        ? {
-          ...item.image,
-          name: item.image.originalName || item.image.filename,
-          url: `${API_BASE_URL}${item.image.path}`,
-          status: 'done'
-        }
-        : null
+    formattedItems = formattedItems.map((item, index) => {
+      // If item doesn't have a scopeOfWork, assign it to the first available scope
+      let itemScope = item.scopeOfWork || '';
 
-    }));
+      // If no scope is assigned and we have available scopes, assign to the first one
+      if (!itemScope && scopeOfWorkArray.length > 0) {
+        itemScope = scopeOfWorkArray[0]; // Assign to the first checked scope
+      }
+
+      return {
+        partName: item.partName || '',
+        numberOfUnits: String(item.numberOfUnits || ''),
+        specification: item.specification || '',
+        unitType: item.unitType || '',
+        unitPrice: String(item.unitPrice || ''),
+        margin: String(item.margin || '0'),
+        totalPrice: String(item.totalPrice || ''),
+        remarks: item.remarks || '',
+        isCustom: item.isCustom || false,
+        scopeOfWork: itemScope,
+        image: item.image
+          ? {
+            ...item.image,
+            name: item.image.originalName || item.image.filename,
+            url: `${API_BASE_URL}${item.image.path}`,
+            status: 'done'
+          }
+          : null
+      };
+    });
 
     if (formattedItems.length === 0) {
       formattedItems = [{
@@ -1079,7 +1236,8 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
         totalPrice: '',
         remarks: '',
         image: null,
-        isCustom: false
+        isCustom: false,
+        scopeOfWork: ''
       }];
     }
 
@@ -1163,7 +1321,8 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
           remarks: '',
           uploadImg: '',
           image: null,
-          isCustom: false
+          isCustom: false,
+          scopeOfWork: ''
         },
       ],
       finalTotalWithoutGST: '0',
@@ -1347,148 +1506,245 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
               <h3 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">
                 Items
               </h3>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={addItemRow}
-                  className="px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                >
-                  + Add Item
-                </button>
-                <button
-                  type="button"
-                  onClick={addCustomItemRow}
-                  className="px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                >
-                  + Add Another
-                </button>
-              </div>
             </div>
 
-            <div className="space-y-4 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4 bg-gray-50">
-              {formData.items.map((item, index) => (
-                <div key={index} className="bg-white rounded-lg border p-4">
-                  <div className="flex justify-end items-center mb-3">
-                    {formData.items.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeItemRow(index)}
-                        className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                      >
-                        <TrashIcon />
-                      </button>
+            {/* Collapse-based Items grouped by Scope of Work */}
+            {(() => {
+              // Get the selected project to find available scopes
+              const currentProject = projects.find(p => p.projectName === formData.projectName);
+              const availableScopes = currentProject?.scopeOfWork || [];
+
+              // Filter to only show scopes that are BOTH checked AND available in current project
+              const checkedAndAvailableScopes = formData.scopeOfWork.filter(scope =>
+                availableScopes.includes(scope)
+              );
+
+              if (checkedAndAvailableScopes.length > 0) {
+                return (
+                  <Collapse
+                    accordion={false}
+                    defaultActiveKey={checkedAndAvailableScopes}
+                    expandIcon={({ isActive }) => (
+                      <CaretRightOutlined rotate={isActive ? 90 : 0} style={{ fontSize: '14px' }} />
                     )}
-                  </div>
+                    className="bg-white border border-gray-200 rounded-lg boq-items-collapse"
+                    style={{ background: '#f9fafb' }}
+                  >
+                    {checkedAndAvailableScopes.map((scope) => {
+                      // Filter items belonging to this scope
+                      const scopeItems = formData.items
+                        .map((item, originalIndex) => ({ ...item, originalIndex }))
+                        .filter(item => item.scopeOfWork === scope);
 
-                  {/* First Row - Main Fields */}
-                  <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-                    {/* Item Name - Text Input */}
-                    <FloatingInput
-                      label="Item Name"
-                      value={item.partName}
-                      onChange={(e) => handleItemChange(index, 'partName', e.target.value)}
-                      error={errors[`item-${index}-partName`]}
-                      type="text"
-                      required
-                    />
+                      // Calculate total value for this scope
+                      const scopeTotal = scopeItems.reduce((sum, item) => {
+                        return sum + (parseFloat(item.totalPrice || 0));
+                      }, 0);
 
-                    <FloatingInput
-                      label="No of Quantity"
-                      value={item.numberOfUnits}
-                      onChange={(e) => handleItemChange(index, 'numberOfUnits', e.target.value)}
-                      error={errors[`item-${index}-numberOfUnits`]}
-                      type="number"
-                      step="1"
-                      min="0"
-                      required
-                    />
+                      const itemCount = scopeItems.length;
 
-                    <FloatingInput
-                      label="Specification"
-                      value={item.specification}
-                      onChange={(e) => handleItemChange(index, 'specification', e.target.value)}
-                      type="text"
-                    />
+                      return (
+                        <Collapse.Panel
+                          key={scope}
+                          header={
+                            <div className="flex items-center gap-3">
+                              <span className="font-medium text-gray-800">
+                                {capitalizeWords(scope)}
+                              </span>
+                              <Badge
+                                count={itemCount}
+                                style={{
+                                  backgroundColor: itemCount > 0 ? '#3b82f6' : '#9ca3af',
+                                  marginLeft: '8px'
+                                }}
+                              />
+                            </div>
+                          }
+                          extra={
+                            <div
+                              className="flex items-center gap-3"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {/* Total Value Display */}
+                              <Tag color="green" className="text-sm font-medium">
+                                ₹{scopeTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </Tag>
 
-                    <FloatingInput
-                      label="Unit Type"
-                      value={item.unitType}
-                      onChange={(e) => handleItemChange(index, 'unitType', e.target.value)}
-                      type="text"
-                    />
-
-                    <FloatingInput
-                      label="Base Price (₹)"
-                      value={item.unitPrice}
-                      onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
-                      error={errors[`item-${index}-unitPrice`]}
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      required
-                    />
-
-                    <FloatingInput
-                      label="Margin (%)"
-                      value={item.margin}
-                      onChange={(e) => handleItemChange(index, 'margin', e.target.value)}
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="100"
-                      placeholder="0-100%"
-                    />
-
-                    <FloatingInput
-                      label="Total Price (₹)"
-                      value={item.totalPrice}
-                      readOnly
-                      type="number"
-                      step="0.01"
-                      min="0"
-                    />
-                  </div>
-
-                  {/* Second Row - Remarks and Upload Field */}
-                  <div className="grid grid-cols-1 md:grid-cols-7 gap-4 mt-4">
-                    <div className="md:col-span-5">
-                      <FloatingInput
-                        label="Remarks"
-                        value={item?.remarks}
-                        onChange={(e) => handleItemChange(index, 'remarks', e.target.value)}
-                        type="text"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <Upload
-                        {...createUploadProps(index)}
-                        accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.svg,.tiff,.pdf"
-                      >
-                        <Button
-                          icon={<UploadOutlined />}
-                          className="w-full"
-                          title={`Upload ${getAllowedFileTypesText()}, Max 5MB`}
+                              {/* Action Buttons */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  addItemRow(scope);
+                                }}
+                                className="px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary-500"
+                              >
+                                + Add Item
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  addCustomItemRow(scope);
+                                }}
+                                className="px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-green-500"
+                              >
+                                + Add Another
+                              </button>
+                            </div>
+                          }
+                          style={{
+                            marginBottom: '0',
+                            borderRadius: '8px',
+                            overflow: 'hidden'
+                          }}
                         >
-                          {item.image ? item.image.name : 'Click to Upload File'}
-                        </Button>
-                      </Upload>
+                          <div className="space-y-4 p-2">
+                            {scopeItems.length === 0 ? (
+                              <div className="text-center py-8 text-gray-500">
+                                <p>No items added for this scope yet.</p>
+                                <p className="text-sm mt-1">Click "+ Add Item" or "+ Add Another" to add items.</p>
+                              </div>
+                            ) : (
+                              scopeItems.map((item) => (
+                                <div key={item.originalIndex} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                                  <div className="flex justify-end items-center mb-3">
+                                    {formData.items.length > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => removeItemRow(item.originalIndex)}
+                                        className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                      >
+                                        <TrashIcon />
+                                      </button>
+                                    )}
+                                  </div>
 
-                      <p className="mt-1 text-xs text-gray-500">
-                        Allowed: {getAllowedFileTypesText()}, Max size: 5MB
-                      </p>
+                                  {/* First Row - Main Fields */}
+                                  <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+                                    {/* Item Name - Text Input */}
+                                    <FloatingInput
+                                      label="Item Name"
+                                      value={item.partName}
+                                      onChange={(e) => handleItemChange(item.originalIndex, 'partName', e.target.value)}
+                                      error={errors[`item-${item.originalIndex}-partName`]}
+                                      type="text"
+                                      required
+                                    />
 
-                      {item.image && (
-                        <div className="mt-2 text-sm text-gray-600">
-                          <p>File: {item.image.name}</p>
-                          <p>Size: {(item.image.size / 1024).toFixed(2)} KB</p>
-                        </div>
-                      )}
-                    </div>
+                                    <FloatingInput
+                                      label="No of Quantity"
+                                      value={item.numberOfUnits}
+                                      onChange={(e) => handleItemChange(item.originalIndex, 'numberOfUnits', e.target.value)}
+                                      error={errors[`item-${item.originalIndex}-numberOfUnits`]}
+                                      type="number"
+                                      step="1"
+                                      min="0"
+                                      required
+                                    />
+
+                                    <FloatingInput
+                                      label="Specification"
+                                      value={item.specification}
+                                      onChange={(e) => handleItemChange(item.originalIndex, 'specification', e.target.value)}
+                                      type="text"
+                                    />
+
+                                    <FloatingInput
+                                      label="Unit Type"
+                                      value={item.unitType}
+                                      onChange={(e) => handleItemChange(item.originalIndex, 'unitType', e.target.value)}
+                                      error={errors[`item-${item.originalIndex}-unitType`]}
+                                      type="text"
+                                      required
+                                    />
+
+                                    <FloatingInput
+                                      label="Base Price (₹)"
+                                      value={item.unitPrice}
+                                      onChange={(e) => handleItemChange(item.originalIndex, 'unitPrice', e.target.value)}
+                                      error={errors[`item-${item.originalIndex}-unitPrice`]}
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      required
+                                    />
+
+                                    <FloatingInput
+                                      label="Margin (%)"
+                                      value={item.margin}
+                                      onChange={(e) => handleItemChange(item.originalIndex, 'margin', e.target.value)}
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      max="100"
+                                      placeholder="0-100%"
+                                    />
+
+                                    <FloatingInput
+                                      label="Total Price (₹)"
+                                      value={item.totalPrice}
+                                      readOnly
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                    />
+                                  </div>
+
+                                  {/* Second Row - Remarks and Upload Field */}
+                                  <div className="grid grid-cols-1 md:grid-cols-7 gap-4 mt-4">
+                                    <div className="md:col-span-5">
+                                      <FloatingInput
+                                        label="Remarks"
+                                        value={item?.remarks}
+                                        onChange={(e) => handleItemChange(item.originalIndex, 'remarks', e.target.value)}
+                                        type="text"
+                                      />
+                                    </div>
+
+                                    <div className="md:col-span-2">
+                                      <Upload
+                                        {...createUploadProps(item.originalIndex)}
+                                        accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.svg,.tiff,.pdf"
+                                      >
+                                        <Button
+                                          icon={<UploadOutlined />}
+                                          className="w-full"
+                                          title={`Upload ${getAllowedFileTypesText()}, Max 5MB`}
+                                        >
+                                          {item.image ? item.image.name : 'Click to Upload File'}
+                                        </Button>
+                                      </Upload>
+
+                                      <p className="mt-1 text-xs text-gray-500">
+                                        Allowed: {getAllowedFileTypesText()}, Max size: 5MB
+                                      </p>
+
+                                      {item.image && (
+                                        <div className="mt-2 text-sm text-gray-600">
+                                          <p>File: {item.image.name}</p>
+                                          <p>Size: {(item.image.size / 1024).toFixed(2)} KB</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </Collapse.Panel>
+                      );
+                    })}
+                  </Collapse>
+                );
+              } else {
+                return (
+                  <div className="text-center py-8 bg-gray-50 border border-gray-200 rounded-lg">
+                    <p className="text-gray-500">Please select a project and check at least one scope of work to add items.</p>
                   </div>
-                </div>
-              ))}
-            </div>
+                );
+              }
+            })()}
           </div>
 
           {/* Totals Section */}

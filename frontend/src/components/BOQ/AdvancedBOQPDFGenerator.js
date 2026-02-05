@@ -56,6 +56,100 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
   const [emailMessage, setEmailMessage] = useState('');
   const [emailCompose, setEmailCompose] = useState(false);
 
+  // Scope of Work State
+  const [availableScopes, setAvailableScopes] = useState([]);
+  const [selectedScopes, setSelectedScopes] = useState([]);
+  const [fetchedProject, setFetchedProject] = useState(null);
+
+  // Helper function to normalize scope names for consistent matching
+  // This ensures "electrical", "Electrical", "ELECTRICAL" all map to the same canonical form
+  const normalizeScope = (scope) => {
+    if (!scope) return '';
+    return scope.toLowerCase().trim();
+  };
+
+  // Initialize available scopes from boqData and filtering logic
+  // Initialize available scopes from boqData and filtering logic
+  useEffect(() => {
+    let scopes = [];
+    
+    // Priority 1: Use fetchedProject data if available (Highest Source of Truth)
+    // This fixes the issue where staled/incorrect scopes in boqData overwrite actual project scopes
+    if (fetchedProject && fetchedProject.scopeOfWork) {
+         if (Array.isArray(fetchedProject.scopeOfWork)) {
+            scopes = fetchedProject.scopeOfWork;
+         } else if (typeof fetchedProject.scopeOfWork === 'string') {
+            scopes = fetchedProject.scopeOfWork.split(',').map(s => s.trim()).filter(Boolean);
+         }
+    }
+
+    // Priority 2: Use boqData.scopeOfWork (Fallback if project data not ready or missing)
+    if (scopes.length === 0 && boqData && boqData.scopeOfWork) {
+      if (Array.isArray(boqData.scopeOfWork)) {
+        scopes = boqData.scopeOfWork;
+      } else if (typeof boqData.scopeOfWork === 'string') {
+        scopes = boqData.scopeOfWork.split(',').map(s => s.trim()).filter(Boolean);
+      }
+    }
+    
+    // Priority 3: Fallback to unique scopes from items if header scopes are missing
+    if (scopes.length === 0 && boqData && boqData.items && boqData.items.length > 0) {
+       scopes = [...new Set(boqData.items.map(item => item.scopeOfWork))].filter(Boolean);
+    }
+    
+    // Ensure uniqueness and remove empty
+    scopes = [...new Set(scopes)].filter(Boolean);
+
+    console.log('=== SCOPE INITIALIZATION DEBUG ===');
+    console.log('Fetched Project:', fetchedProject);
+    console.log('BOQ Data:', boqData);
+    console.log('Available Scopes (after processing):', scopes);
+    console.log('BOQ Items:', boqData?.items);
+    console.log('Item Scopes:', boqData?.items?.map(item => ({
+      partName: item.partName,
+      scopeOfWork: item.scopeOfWork,
+      normalized: normalizeScope(item.scopeOfWork)
+    })));
+
+    setAvailableScopes(scopes);
+    setSelectedScopes(scopes); // Default select all
+  }, [boqData, fetchedProject]);
+
+  // Auto-assign scope to items that don't have one
+  // This handles cases where items were created before scope assignment was implemented
+  useEffect(() => {
+    if (!boqData || !boqData.items || boqData.items.length === 0) return;
+    if (availableScopes.length === 0) return;
+
+    let needsUpdate = false;
+    const updatedItems = boqData.items.map(item => {
+      if (!item.scopeOfWork || item.scopeOfWork.trim() === '') {
+        console.warn(`Item "${item.partName}" has no scopeOfWork, assigning to first available scope: ${availableScopes[0]}`);
+        needsUpdate = true;
+        return { ...item, scopeOfWork: availableScopes[0] };
+      }
+      return item;
+    });
+
+    if (needsUpdate) {
+      console.log('=== AUTO-ASSIGNING SCOPES TO ITEMS ===');
+      console.log('Items before:', boqData.items);
+      console.log('Items after:', updatedItems);
+      // Update boqData with corrected items
+      boqData.items = updatedItems;
+    }
+  }, [boqData, availableScopes]);
+
+  const handleScopeSelection = (scope) => {
+    setSelectedScopes(prev => {
+      if (prev.includes(scope)) {
+        return prev.filter(s => s !== scope);
+      } else {
+        return [...prev, scope];
+      }
+    });
+  };
+
   // Initialize custom estimate number from boqData
   useEffect(() => {
     if (boqData.estimateNumber) {
@@ -81,25 +175,31 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await projectsAPI.getAll();
-        const allProjects = response.data || [];
-        setProjects(allProjects);
+        // Use filtered API call to reduce data and get specific results
+        const response = await projectsAPI.getAll({ customerName: boqData.customer });
+        const filteredProjects = response.data || [];
+        setProjects(filteredProjects); // We can keep this if needed for other logic, but filtered
 
-        // Find project matching the customer
-        const matchingProject = allProjects.find(
-          project => project.customerName === boqData.customer
-        );
+        // Find project matching the customer AND project name if available
+        // This ensures we get the EXACT project's scope
+        const matchingProject = filteredProjects.find(
+          project => project.customerName === boqData.customer && 
+                    (!boqData.projectName || project.projectName === boqData.projectName)
+        ) || filteredProjects[0]; // Fallback to first if strict match fails but customer matches
 
         if (matchingProject) {
           setProjectName(matchingProject.projectName);
+          setFetchedProject(matchingProject); // Save the full project object
         }
       } catch (error) {
         console.error('Error fetching projects:', error);
       }
     };
 
-    fetchProjects();
-  }, [boqData.customer]);
+    if (boqData.customer) {
+        fetchProjects();
+    }
+  }, [boqData.customer, boqData.projectName]);
 
   // Generate unique BOQ code
   const generateBOQCode = () => {
@@ -329,32 +429,116 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
     return `${baseUrl}${image.path}`;
   };
 
-  // Calculate totals
-  const itemsTotal = boqData.items?.reduce((sum, item) => {
+  // Calculate totals based on selected scopes
+  // Use normalized (lowercase) matching for robustness
+  console.log('=== FILTERED ITEMS CALCULATION ===');
+  console.log('Selected Scopes:', selectedScopes);
+  console.log('All BOQ Items:', boqData.items);
+  console.log('Items count:', boqData.items?.length || 0);
+  
+  const filteredItems = (boqData.items || []).filter(item => 
+    selectedScopes.some(s => normalizeScope(s) === normalizeScope(item.scopeOfWork))
+  );
+  
+  console.log('Filtered Items:', filteredItems);
+  console.log('Filtered Items count:', filteredItems.length);
+
+  const itemsTotal = filteredItems.reduce((sum, item) => {
     return sum + (parseFloat(item.totalPrice) || 0);
   }, 0) || 0;
 
   const transportationCharges = parseFloat(boqData.transportationCharges) || 0;
   const finalTotalWithoutGST = itemsTotal + transportationCharges;
-  // const gstPercentage = parseFloat(boqData.gstPercentage) || 18;
-  // const gstAmount = finalTotalWithoutGST * (gstPercentage / 100);
-  const totalWithGST = boqData.totalWithGST;
-  const discountPercentage = boqData.discountPercentage
-  const discountAmount = boqData.discountAmount
+  
+  // Recalculate metrics based on filtered items to ensure PDF consistency
+  const discountPercentage = parseFloat(boqData.discountPercentage) || 0;
+  const discountAmount = finalTotalWithoutGST * (discountPercentage / 100);
+  
+  const totalAfterDiscount = finalTotalWithoutGST - discountAmount;
+  
+  const gstPercentage = parseFloat(boqData.gstPercentage) || 18;
+  const totalWithGST = totalAfterDiscount * (1 + gstPercentage / 100);
 
-  // Prepare pages
-  const itemsPerPage = 12;
+  // --- Pagination Logic ---
   const pages = [];
-  const items = boqData.items || [];
+  
+  // Only generate pages if we have selected scopes, otherwise empty
+  if (selectedScopes.length > 0) {
+    let currentBlocks = [];
+    let currentLoad = 0;
+    const maxLoad = 12; // Reduced to 12 to ensure content fits with images/margins
 
-  if (items.length > 0) {
-    let k = 0;
-    while (k < items.length) {
-      pages.push(items.slice(k, k + itemsPerPage));
-      k += itemsPerPage;
-    }
+    // Helper to add block to page
+    const addBlock = (block, weight) => {
+      // If adding this block exceeds maxLoad, push current page and start new
+      if (currentLoad + weight > maxLoad) {
+        if (currentBlocks.length > 0) {
+           pages.push(currentBlocks);
+           currentBlocks = [];
+           currentLoad = 0;
+        }
+      }
+      currentBlocks.push(block);
+      currentLoad += weight;
+    };
+
+    // Helper to force new page
+    const forceNewPage = () => {
+        if (currentBlocks.length > 0) {
+            pages.push(currentBlocks);
+            currentBlocks = [];
+            currentLoad = 0;
+        }
+    };
+
+    // 1. Summary Table Block
+    // Calculate summary weight: Header (2) + Rows (count) + Spacer (1)
+    const summaryWeight = 2 + selectedScopes.length + 1;
+    
+    // Calculate totals for summary
+    const scopeTotals = {};
+    selectedScopes.forEach(scope => {
+        // Normalized (lowercase) match to handle case differences
+        const scopeItems = (boqData.items || []).filter(i => 
+          normalizeScope(i.scopeOfWork) === normalizeScope(scope)
+        );
+        const total = scopeItems.reduce((sum, item) => sum + (parseFloat(item.totalPrice) || 0), 0);
+        scopeTotals[scope] = total;
+    });
+
+    addBlock({ type: 'summary_table', scopes: selectedScopes, totals: scopeTotals }, summaryWeight);
+
+    // 2. Detailed Scope Tables
+    selectedScopes.forEach((scope, index) => {
+      // Normalized (lowercase) match to handle case differences
+      const items = (boqData.items || []).filter(i => 
+        normalizeScope(i.scopeOfWork) === normalizeScope(scope)
+      );
+
+      if (items.length > 0) {
+        // Force new page for each scope (except if it fits on the very first page after summary and summary was tiny? 
+        // No, user requested "Scope X in Page 02", implying separation.
+        // We force page break before each scope.
+        forceNewPage();
+        
+        // Scope Header
+        addBlock({ type: 'scope_header', scope }, 2);
+
+        // Items
+        items.forEach((item, idx) => {
+           // We assign a weight of 1.5 per item to be safe with descriptions/images
+           addBlock({ type: 'item_row', item, index: idx + 1, scope }, 1.5);
+        });
+        
+        // Spacer after scope
+        addBlock({ type: 'spacer' }, 1);
+      }
+    });
+
+    if (currentBlocks.length > 0) pages.push(currentBlocks);
   } else {
-    pages.push([]);
+      // Empty state page
+      pages.push([]);
   }
 
   const handleDownloadPdfForEmailCompose = async (onPdfGenerated, setPreviewLoading) => {
@@ -551,97 +735,142 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
 
         {/* Editable Controls - Only show if showEditableControls is true */}
         {showEditableControls && (
-          <div className="p-4 bg-blue-50 border-b print:hidden">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Estimate Number Editor - Only show if showEstimateNumber is true */}
-              {showEstimateNumber && (
-                <div>
-                  <h3 className="font-semibold mb-3 text-blue-700">Estimate Number</h3>
-                  <div className="flex flex-col space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="text"
-                        value={customEstimateNumber}
-                        onChange={(e) => handleEstimateNumberChange(e.target.value)}
-                        placeholder="Leave empty for auto-generated number"
-                        className="flex-1 p-2 border rounded text-sm"
-                      />
-                      {!customEstimateNumber && (
-                        <span className="text-sm text-blue-600 whitespace-nowrap">
-                          Auto: {generateBOQCode()}
-                        </span>
-                      )}
+          <div className="p-4 bg-gray-50 border-b overflow-y-auto max-h-[30vh]">
+            <div className="flex flex-row justify-between">
+             {/* Estimate, Date and Scope grouped Layout */}
+             <div className="flex flex-wrap flex-col gap-6 items-start">
+               {/* Left Group: Estimate and Date */}
+               <div className="flex-1 min-w-[300px] flex flex-row gap-6">
+                  {/* Estimate Number Editor */}
+                  {showEstimateNumber && (
+                    <div>
+                      <h3 className="font-semibold mb-3 text-blue-700">Estimate Number</h3>
+                      <div className="flex flex-col space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="text"
+                            value={customEstimateNumber}
+                            onChange={(e) => handleEstimateNumberChange(e.target.value)}
+                            placeholder="Leave empty for auto-generated number"
+                            className="flex-1 p-2 border rounded text-sm"
+                          />
+                          {!customEstimateNumber && (
+                            <span className="text-sm text-blue-600 whitespace-nowrap">
+                              Auto: {generateBOQCode()}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={saveEstimateNumber}
+                          disabled={isSavingEstimate || estimateSaved}
+                          className={`w-full px-4 py-2 rounded text-sm font-medium transition-colors ${
+                            estimateSaved
+                              ? 'bg-green-600 text-white cursor-not-allowed'
+                              : isSavingEstimate
+                              ? 'bg-blue-400 text-white cursor-wait'
+                              : 'bg-blue-600 hover:bg-blue-700 text-white'
+                          }`}
+                        >
+                          {estimateSaved ? (
+                            <span className="flex items-center justify-center">
+                              <CheckCircleIcon className="h-4 w-4 mr-2" />
+                              Saved!
+                            </span>
+                          ) : isSavingEstimate ? (
+                            'Saving...'
+                          ) : (
+                            'Save Estimate Number'
+                          )}
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      onClick={saveEstimateNumber}
-                      disabled={isSavingEstimate || estimateSaved}
-                      className={`w-full px-4 py-2 rounded text-sm font-medium transition-colors ${
-                        estimateSaved
-                          ? 'bg-green-600 text-white cursor-not-allowed'
-                          : isSavingEstimate
-                          ? 'bg-blue-400 text-white cursor-wait'
-                          : 'bg-blue-600 hover:bg-blue-700 text-white'
-                      }`}
-                    >
-                      {estimateSaved ? (
-                        <span className="flex items-center justify-center">
-                          <CheckCircleIcon className="h-4 w-4 mr-2" />
-                          Saved!
-                        </span>
-                      ) : isSavingEstimate ? (
-                        'Saving...'
-                      ) : (
-                        'Save Estimate Number'
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
+                  )}
 
-              {/* Date Editor */}
-              <div>
-                <h3 className="font-semibold mb-3 text-blue-700">Date</h3>
-                <div className="flex flex-col space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="date"
-                      value={getDateInputValue()}
-                      onChange={(e) => handleDateChange(e.target.value)}
-                      className="flex-1 p-2 border rounded text-sm"
-                    />
-                    {!customDate && (
-                      <span className="text-sm text-blue-600 whitespace-nowrap">
-                        Auto: {defaultDate}
-                      </span>
-                    )}
+                  {/* Date Editor */}
+                  <div>
+                    <h3 className="font-semibold mb-3 text-blue-700">Date</h3>
+                    <div className="flex flex-col space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="date"
+                          value={getDateInputValue()}
+                          onChange={(e) => handleDateChange(e.target.value)}
+                          className="flex-1 p-2 border rounded text-sm"
+                        />
+                        {!customDate && (
+                          <span className="text-sm text-blue-600 whitespace-nowrap">
+                            Auto: {defaultDate}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={saveDate}
+                        disabled={isSavingDate || dateSaved}
+                        className={`w-full px-4 py-2 rounded text-sm font-medium transition-colors ${
+                          dateSaved
+                            ? 'bg-green-600 text-white cursor-not-allowed'
+                            : isSavingDate
+                            ? 'bg-blue-400 text-white cursor-wait'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        }`}
+                      >
+                        {dateSaved ? (
+                          <span className="flex items-center justify-center">
+                            <CheckCircleIcon className="h-4 w-4 mr-2" />
+                            Saved!
+                          </span>
+                        ) : isSavingDate ? (
+                          'Saving...'
+                        ) : (
+                          'Save Date'
+                        )}
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    onClick={saveDate}
-                    disabled={isSavingDate || dateSaved}
-                    className={`w-full px-4 py-2 rounded text-sm font-medium transition-colors ${
-                      dateSaved
-                        ? 'bg-green-600 text-white cursor-not-allowed'
-                        : isSavingDate
-                        ? 'bg-blue-400 text-white cursor-wait'
-                        : 'bg-blue-600 hover:bg-blue-700 text-white'
-                    }`}
-                  >
-                    {dateSaved ? (
-                      <span className="flex items-center justify-center">
-                        <CheckCircleIcon className="h-4 w-4 mr-2" />
-                        Saved!
-                      </span>
-                    ) : isSavingDate ? (
-                      'Saving...'
-                    ) : (
-                      'Save Date'
-                    )}
-                  </button>
-                </div>
-              </div>
+               </div>
+
+               {/* Right Group: Scope Selection */}
+               <div className="flex-1 min-w-[300px]">
+                  {/* Scope of Work Selection */}
+                  <div className="relative">
+                     <div className="max-h-48 overflow-y-auto p-3 border border-gray-300 rounded-md bg-white hover:border-gray-400 focus-within:border-blue-500 transition-colors duration-200">
+                       <div className="flex flex-wrap gap-3">
+                         {availableScopes.length > 0 ? (
+                           availableScopes.map(scope => (
+                             <div key={scope} className="flex items-center">
+                               <input
+                                 type="checkbox"
+                                 id={`pdf-scope-${scope}`}
+                                 checked={selectedScopes.includes(scope)}
+                                 onChange={() => handleScopeSelection(scope)}
+                                 className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                               />
+                               <label htmlFor={`pdf-scope-${scope}`} className="ml-2 block text-sm text-gray-700 cursor-pointer">
+                                 {scope.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                               </label>
+                             </div>
+                           ))
+                         ) : (
+                           <p className="text-sm text-gray-500">No scope of work available</p>
+                         )}
+                       </div>
+                     </div>
+                     <label className="absolute -top-2 left-2 text-xs text-blue-600 font-medium bg-white px-1 transition-all duration-200">
+                       Scope of Work <span className="text-red-500">*</span>
+                     </label>
+                     {selectedScopes.length === 0 && (
+                       <div className="mt-1 flex items-start">
+                          <ExclamationTriangleIcon className="w-4 h-4 mt-0.5 mr-1 text-red-500 flex-shrink-0" />
+                         <span className="text-xs text-red-500">Please select at least one scope of work</span>
+                       </div>
+                     )}
+                   </div>
+               </div>
+             </div>
+
 
               {/* Terms & Conditions Editor */}
-              <div>
+              <div className=" w-full ml-2">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="font-semibold text-blue-700">Terms & Conditions</h3>
                   <button
@@ -788,95 +1017,186 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                   </div>
                 </div>
 
-                {/* Quote Table */}
+                {/* Dynamic Content Rendering */}
                 <div className="mb-4">
-                  <div className="bg-gray-600 text-white p-2 mb-0">
-                    <h3 className="font-bold text-center text-sm">DETAILED QUOTATION</h3>
-                  </div>
-
-                  <table className="w-full border-collapse border border-blue-800 text-xs">
-                    <thead>
-                      <tr className="bg-blue-200">
-                        <th className="border border-blue-800 p-2 font-bold text-center">S.NO</th>
-                        <th className="border border-blue-800 p-2 font-bold text-left">DESCRIPTION</th>
-                        <th className="border border-blue-800 p-2 font-bold text-center">SPECIFICATION</th>
-                        <th className="border border-blue-800 p-2 font-bold text-center">QTY</th>
-                        <th className="border border-blue-800 p-2 font-bold text-center">UNIT TYPE</th>
-                        {hasInOffice && <>
-                          <th className="border border-blue-800 p-2 font-bold text-center">RATE (₹)</th>
-                          <th className="border border-blue-800 p-2 font-bold text-center">AMOUNT (₹)</th>
-                          <th className="border border-blue-800 p-2 font-bold text-center">REMARKS</th>
-                          <th className="border border-blue-800 p-2 font-bold text-center">IMAGE</th>
-                        </>}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {/* Items */}
-                      {pageItems && pageItems.map((item, index) => {
-                        const serialNumber = pageIndex * itemsPerPage + index + 1;
+                  {pageItems.length === 0 ? (
+                    <div className="text-center py-20 border-2 border-dashed border-gray-300 rounded-lg">
+                      <p className="text-gray-500 font-medium">No scopes of work selected.</p>
+                      <p className="text-sm text-gray-400 mt-1">Please select at least one scope from the controls above.</p>
+                    </div>
+                  ) : (
+                    pageItems.map((block, index) => {
+                      // --- Summary Table ---
+                      if (block.type === 'summary_table') {
                         return (
-                        <tr key={index}>
-                          <td className="border border-blue-800 p-2 text-center align-top font-semibold">
-                            {serialNumber}
-                          </td>
-                          <td className="border border-blue-800 p-2 align-top">
-                            <div className="font-medium">{item.partName}</div>
-                          </td>
-                          <td className="border border-blue-800 p-2 text-center align-top">
-                            {item.specification || '-'}
-                          </td>
-                          <td className="border border-blue-800 p-2 text-center align-top font-mono">
-                            {parseFloat(item.numberOfUnits || 0).toLocaleString()}
-                          </td>
-                          <td className="border border-blue-800 p-2 text-center align-top">
-                            {item.unitType}
-                          </td>
-                          {hasInOffice && <> <td className="border border-blue-800 p-2 text-right align-top font-mono">
-                            {parseFloat(item.unitPrice || 0).toLocaleString('en-IN', {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2
-                            })}
-                          </td>
-                            <td className="border border-blue-800 p-2 text-right align-top font-mono font-semibold">
-                              {parseFloat(item.totalPrice || 0).toLocaleString('en-IN', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2
-                              })}
-                            </td>
-                            <td className="border border-blue-800 p-2 text-right align-top font-mono font-semibold">
-                              {item.remarks || " "}
-                            </td>
-                            <td className="border border-blue-800 p-2 text-center align-top">
-                              {getImageUrl(item.image) && (
-                                <img
-                                  src={getImageUrl(item.image)}
-                                  alt="Item"
-                                  className="h-24 w-24 object-contain mx-auto"
-                                  crossOrigin="anonymous"
-                                />
-                              )}
-                            </td>
-                          </>}
-                        </tr>
-                      );
-                      })}
+                          <div key={`summary-${index}`} className="mb-8">
+                            <div className="bg-gray-600 text-white p-2 mb-0">
+                                <h3 className="font-bold text-center text-sm">SUMMARY OF BOQ</h3>
+                            </div>
+                            <table className="w-full border-collapse border border-blue-800 text-xs">
+                              <thead>
+                                <tr className="bg-blue-200">
+                                  <th className="border border-blue-800 p-2 font-bold text-center w-16">S.NO</th>
+                                  <th className="border border-blue-800 p-2 font-bold text-left">SCOPE OF WORK</th>
+                                  <th className="border border-blue-800 p-2 font-bold text-right w-40">AMOUNT (₹)</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {block.scopes.map((scope, idx) => (
+                                  <tr key={scope}>
+                                    <td className="border border-blue-800 p-2 text-center">{idx + 1}</td>
+                                    <td className="border border-blue-800 p-2 font-medium">
+                                      {scope.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                                    </td>
+                                    <td className="border border-blue-800 p-2 text-right font-mono font-bold">
+                                      {(block.totals[scope] || 0).toLocaleString('en-IN', {
+                                        minimumFractionDigits: 2, maximumFractionDigits: 2
+                                      })}
+                                    </td>
+                                  </tr>
+                                ))}
+                                {/* Total Row in Summary */}
+                                <tr className="bg-blue-50 font-bold">
+                                  <td className="border border-blue-800 p-2 text-center" colSpan="2">TOTAL</td>
+                                  <td className="border border-blue-800 p-2 text-right font-mono">
+                                    {Object.values(block.totals).reduce((a, b) => a + b, 0).toLocaleString('en-IN', {
+                                        minimumFractionDigits: 2, maximumFractionDigits: 2
+                                      })}
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      }
 
-                      {/* Transportation Charges Row - Only on last page */}
-                      {pageIndex === pages.length - 1 && hasInOffice && transportationCharges > 0 && (
-                        <tr className="bg-blue-50">
-                          <td className="border border-blue-800 p-2 font-medium" colSpan="6">
-                            Transportation & Handling Charges
-                          </td>
-                          <td className="border border-blue-800 p-2 text-right font-mono font-semibold">
-                            {transportationCharges.toLocaleString('en-IN', {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2
-                            })}
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                      // --- Scope Header ---
+                      if (block.type === 'scope_header') {
+                        return (
+                           <div key={`header-${index}`} className="bg-gray-600 text-white p-2 mb-0 mt-6 border border-b-0 border-blue-800">
+                              <h3 className="font-bold text-center text-sm">
+                                DETAILED QUOTATION - {block.scope.replace(/_/g, ' ').toUpperCase()}
+                              </h3>
+                           </div>
+                        );
+                      }
+
+                      // --- Item Table (Grouped) ---
+                      if (block.type === 'item_row') {
+                        // Only render table start if previous block was NOT an item_row
+                        // This prevents creating a new table for every row
+                        const isFirstRow = index === 0 || pageItems[index - 1].type !== 'item_row';
+                        
+                        if (!isFirstRow) return null;
+
+                        // Gather consecutive item rows
+                        const items = [];
+                        let j = index;
+                        while(j < pageItems.length && pageItems[j].type === 'item_row') {
+                           items.push(pageItems[j]);
+                           j++;
+                        }
+
+                        return (
+                          <table key={`table-${index}`} className="w-full border-collapse border border-blue-800 text-xs mb-0">
+                            <thead>
+                              <tr className="bg-blue-200">
+                                <th className="border border-blue-800 p-2 font-bold text-center w-12">S.NO</th>
+                                <th className="border border-blue-800 p-2 font-bold text-left">DESCRIPTION</th>
+                                <th className="border border-blue-800 p-2 font-bold text-center w-24">SPECIFICATION</th>
+                                <th className="border border-blue-800 p-2 font-bold text-center w-16">QTY</th>
+                                <th className="border border-blue-800 p-2 font-bold text-center w-16">UNIT</th>
+                                {hasInOffice && <>
+                                  <th className="border border-blue-800 p-2 font-bold text-center w-24">RATE (₹)</th>
+                                  <th className="border border-blue-800 p-2 font-bold text-center w-28">AMOUNT (₹)</th>
+                                  <th className="border border-blue-800 p-2 font-bold text-center w-20">REMARKS</th>
+                                  <th className="border border-blue-800 p-2 font-bold text-center w-20">IMAGE</th>
+                                </>}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {items.map((blockItem, itemIdx) => {
+                                const item = blockItem.item;
+                                return (
+                                  <tr key={itemIdx}>
+                                    <td className="border border-blue-800 p-2 text-center align-top font-semibold">
+                                      {blockItem.index}
+                                    </td>
+                                    <td className="border border-blue-800 p-2 align-top">
+                                      <div className="font-medium">{item.partName}</div>
+                                    </td>
+                                    <td className="border border-blue-800 p-2 text-center align-top">
+                                      {item.specification || '-'}
+                                    </td>
+                                    <td className="border border-blue-800 p-2 text-center align-top font-mono">
+                                      {parseFloat(item.numberOfUnits || 0).toLocaleString()}
+                                    </td>
+                                    <td className="border border-blue-800 p-2 text-center align-top">
+                                      {item.unitType}
+                                    </td>
+                                    {hasInOffice && <> 
+                                      <td className="border border-blue-800 p-2 text-right align-top font-mono">
+                                        {parseFloat(item.unitPrice || 0).toLocaleString('en-IN', {
+                                          minimumFractionDigits: 2, maximumFractionDigits: 2
+                                        })}
+                                      </td>
+                                      <td className="border border-blue-800 p-2 text-right align-top font-mono font-semibold">
+                                        {parseFloat(item.totalPrice || 0).toLocaleString('en-IN', {
+                                          minimumFractionDigits: 2, maximumFractionDigits: 2
+                                        })}
+                                      </td>
+                                      <td className="border border-blue-800 p-2 text-right align-top font-mono font-semibold">
+                                        {item.remarks || " "}
+                                      </td>
+                                      <td className="border border-blue-800 p-2 text-center align-top">
+                                        {getImageUrl(item.image) && (
+                                          <img
+                                            src={getImageUrl(item.image)}
+                                            alt="Item"
+                                            className="h-16 w-16 object-contain mx-auto"
+                                            crossOrigin="anonymous"
+                                          />
+                                        )}
+                                      </td>
+                                    </>}
+                                  </tr>
+                                );
+                              })}
+                              
+                              {/* Transportation Charges Row - Only on last page */}
+                              {/* Note: This logic might need adjustment if transportation is per scope, 
+                                  but BOQ usually has one total transportation. 
+                                  We will render it after the last item of the last scope, 
+                                  BUT checking that here is hard. 
+                                  We'll leave it to the Totals section for now or standard flow. 
+                                  Actually, existing logic put it in the table. 
+                                  Since I can't easily detect "Last Item of Last Scope" inside this loop without complex logic,
+                                  I will handle it by checking if we are on the last page and this is the last table.
+                               */}
+                              {pageIndex === pages.length - 1 && 
+                               index + items.length >= pageItems.length - 1 && // Is this the last block group? roughly
+                               hasInOffice && transportationCharges > 0 && (
+                                <tr className="bg-blue-50">
+                                  <td className="border border-blue-800 p-2 font-medium text-right" colSpan="6">
+                                    Transportation & Handling Charges
+                                  </td>
+                                  <td className="border border-blue-800 p-2 text-right font-mono font-semibold">
+                                    {transportationCharges.toLocaleString('en-IN', {
+                                      minimumFractionDigits: 2, maximumFractionDigits: 2
+                                    })}
+                                  </td>
+                                  <td className="border border-blue-800 p-2" colSpan="2"></td>
+                                </tr>
+                              )}
+
+                            </tbody>
+                          </table>
+                        );
+                      }
+                      
+                      return <div key={`spacer-${index}`} className="h-4"></div>;
+                    })
+                  )}
                 </div>
 
                 {/* Totals Section - Only on Last Page */}
@@ -911,7 +1231,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
 
                 {/* Terms and Conditions - Only on Last Page */}
                 {pageIndex === pages.length - 1 && (
-                  <div className="mb-4">
+                  <div className="mb-4 ">
                     <div className="bg-blue-50 p-3 border-l-4 border-blue-600">
                       <h4 className="font-bold mb-2 text-blue-800 text-sm">Terms & Conditions:</h4>
                       <div className="text-xs text-blue-700">

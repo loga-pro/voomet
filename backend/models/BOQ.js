@@ -41,6 +41,11 @@ const boqItemSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  scopeOfWork: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   image: {
     filename: String,
     originalName: String,
