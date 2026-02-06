@@ -510,23 +510,10 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
         scopeOfWork: [] // Clear scope when customer changes
       };
 
-      // In Add mode, also reset items to empty
-      if (!boq) {
-        resetData.items = [{
-          partName: '',
-          numberOfUnits: '',
-          specification: '',
-          unitType: '',
-          unitPrice: '',
-          margin: '0',
-          totalPrice: '',
-          remarks: '',
-          uploadImg: '',
-          image: null,
-          isCustom: false,
-          scopeOfWork: ''
-        }];
-      }
+      // In Add mode, we DO NOT reset items immediately.
+      // We keep them so that if the user selects a new project with matching matching scopes,
+      // the items can be preserved.
+      // Filtering will happen when the project is selected.
 
       setFormData(resetData);
       if (errors[name]) {
@@ -546,7 +533,33 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
         setFormData(prev => ({
           ...prev,
           projectName: value,
-          scopeOfWork: scopeOfWorkArray
+          scopeOfWork: scopeOfWorkArray,
+          // CRITICAL: Filter existing items to keep only those that match the new scopes
+          items: (() => {
+            const preservedItems = prev.items.filter(item =>
+              item.scopeOfWork && scopeOfWorkArray.includes(item.scopeOfWork)
+            );
+
+            if (preservedItems.length > 0) {
+              return preservedItems;
+            }
+
+            // If no match, return default empty item
+            return [{
+              partName: '',
+              numberOfUnits: '',
+              specification: '',
+              unitType: '',
+              unitPrice: '',
+              margin: '0',
+              totalPrice: '',
+              remarks: '',
+              uploadImg: '',
+              image: null,
+              isCustom: false,
+              scopeOfWork: '' // Will be assigned by user or logic later
+            }];
+          })()
         }));
       } else {
         setFormData(prev => ({

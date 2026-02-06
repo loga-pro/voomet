@@ -201,17 +201,9 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
     }
   }, [boqData.customer, boqData.projectName]);
 
-  // Generate unique BOQ code
+  // Get BOQ code (Manual only)
   const generateBOQCode = () => {
-    if (customEstimateNumber.trim() !== '') {
-      return customEstimateNumber;
-    }
-    const now = new Date();
-    const year = now.getFullYear().toString().slice(-2);
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const randomNum = String(Math.floor(Math.random() * 999) + 1).padStart(3, '0');
-    return `VOO/${randomNum}/${day}${month}${year}`;
+    return customEstimateNumber;
   };
 
   const addTerm = () => {
@@ -466,7 +458,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
   if (selectedScopes.length > 0) {
     let currentBlocks = [];
     let currentLoad = 0;
-    const maxLoad = 12; // Reduced to 12 to ensure content fits with images/margins
+    const maxLoad = 16; // Increased from 12 to allow Summary content to fit on one pages
 
     // Helper to add block to page
     const addBlock = (block, weight) => {
@@ -496,6 +488,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
     const summaryWeight = 2 + selectedScopes.length + 1;
     
     // Calculate totals for summary
+    // Calculate totals for summary
     const scopeTotals = {};
     selectedScopes.forEach(scope => {
         // Normalized (lowercase) match to handle case differences
@@ -507,6 +500,29 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
     });
 
     addBlock({ type: 'summary_table', scopes: selectedScopes, totals: scopeTotals }, summaryWeight);
+
+    // 1.1 Totals Section Block (Reduced weight)
+    addBlock({ 
+        type: 'totals_section', 
+        data: { 
+            finalTotalWithoutGST, 
+            discountPercentage, 
+            discountAmount, 
+            gstPercentage, 
+            totalWithGST,
+            totalAfterDiscount 
+        } 
+    }, 3); 
+
+    // 1.2 Terms & Conditions Block (Reduced weight factor)
+    if (termsAndConditions.length > 0) {
+        addBlock({ type: 'terms_section', terms: termsAndConditions }, 1.5 + termsAndConditions.length * 0.3);
+    }
+    
+    // 1.3 Special Remarks Block (Reduced weight)
+    if (boqData.overallRemarks) {
+        addBlock({ type: 'remarks_section', remarks: boqData.overallRemarks }, 1.5);
+    }
 
     // 2. Detailed Scope Tables
     selectedScopes.forEach((scope, index) => {
@@ -751,14 +767,9 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                             type="text"
                             value={customEstimateNumber}
                             onChange={(e) => handleEstimateNumberChange(e.target.value)}
-                            placeholder="Leave empty for auto-generated number"
+                            placeholder="Enter Estimate Number (Required)"
                             className="flex-1 p-2 border rounded text-sm"
                           />
-                          {!customEstimateNumber && (
-                            <span className="text-sm text-blue-600 whitespace-nowrap">
-                              Auto: {generateBOQCode()}
-                            </span>
-                          )}
                         </div>
                         <button
                           onClick={saveEstimateNumber}
@@ -984,6 +995,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                 </div>
 
                 {/* Title and Client Info */}
+                {/* Title and Client Info - Repeated on Every Page */}
                 <div className="mb-6">
                   <div className="bg-blue-800 text-white p-3 mb-4">
                     <h2 className="text-lg font-bold text-center">BILL OF QUANTITIES (BOQ)</h2>
@@ -1066,6 +1078,69 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                                 </tr>
                               </tbody>
                             </table>
+                          </div>
+                        );
+                      }
+
+                      // --- Totals Section ---
+                      if (block.type === 'totals_section') {
+                        const { finalTotalWithoutGST, discountPercentage, discountAmount, gstPercentage, totalWithGST, totalAfterDiscount } = block.data;
+                        return (
+                          <div key={`totals-${index}`} className="bg-blue-800 text-white mb-4">
+                            <div className="grid grid-cols-4">
+                              <div className="p-3 border-r border-blue-600 text-center">
+                                <div className="text-xs font-medium mb-1">SUBTOTAL (Excl. GST)</div>
+                                <div className="text-lg font-bold font-mono">
+                                  ₹{finalTotalWithoutGST.toLocaleString('en-IN')}
+                                </div>
+                              </div>
+                              <div className="p-3 border-r border-blue-600 text-center">
+                                <div className="text-xs font-medium mb-1">Discount - ({discountPercentage}) %</div>
+                                <div className="text-lg font-bold font-mono">
+                                  ₹{(discountAmount || 0).toLocaleString('en-IN')}
+                                </div>
+                              </div>
+                              <div className="p-3 border-r border-blue-600 text-center">
+                                <div className="text-xs font-medium mb-1">GST @ {gstPercentage}%</div>
+                                <div className="text-lg font-bold font-mono text-yellow-300">
+                                  ₹{((totalWithGST - (finalTotalWithoutGST - (discountAmount || 0))) || 0).toLocaleString('en-IN')}
+                                </div>
+                              </div>
+                              <div className="p-3 text-center bg-green-600">
+                                <div className="text-xs font-medium mb-1">GRAND TOTAL</div>
+                                <div className="text-xl font-bold font-mono">
+                                  ₹{(totalWithGST || 0)?.toLocaleString('en-IN')}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // --- Terms Section ---
+                      if (block.type === 'terms_section') {
+                        return (
+                          <div key={`terms-${index}`} className="mb-4">
+                            <div className="bg-blue-50 p-3 border-l-4 border-blue-600">
+                              <h4 className="font-bold mb-2 text-blue-800 text-sm">Terms & Conditions:</h4>
+                              <div className="text-xs text-blue-700">
+                                <ul className="space-y-1">
+                                  {block.terms.map((term, idx) => (
+                                    <li key={idx}>{term}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // --- Remarks Section ---
+                      if (block.type === 'remarks_section') {
+                        return (
+                           <div key={`remarks-${index}`} className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                            <h4 className="font-bold mb-1 text-yellow-800 text-sm">Special Remarks:</h4>
+                            <p className="text-xs text-yellow-700">{block.remarks}</p>
                           </div>
                         );
                       }
@@ -1199,59 +1274,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                   )}
                 </div>
 
-                {/* Totals Section - Only on Last Page */}
-                {pageIndex === pages.length - 1 && hasInOffice && <div className="bg-blue-800 text-white mb-4">
-                  <div className="grid grid-cols-4">
-                    <div className="p-3 border-r border-blue-600 text-center">
-                      <div className="text-xs font-medium mb-1">SUBTOTAL (Excl. GST)</div>
-                      <div className="text-lg font-bold font-mono">
-                        ₹{finalTotalWithoutGST.toLocaleString('en-IN')}
-                      </div>
-                    </div>
-                    <div className="p-3 border-r border-blue-600 text-center">
-                      <div className="text-xs font-medium mb-1">Discount - ({discountPercentage}) %</div>
-                      <div className="text-lg font-bold font-mono">
-                        ₹{(discountAmount || 0).toLocaleString('en-IN')}
-                      </div>
-                    </div>
-                    <div className="p-3 border-r border-blue-600 text-center">
-                      <div className="text-xs font-medium mb-1">GST @ {boqData.gstPercentage}%</div>
-                      <div className="text-lg font-bold font-mono text-yellow-300">
-                        ₹{((totalWithGST - (finalTotalWithoutGST - (discountAmount || 0))) || 0).toLocaleString('en-IN')}
-                      </div>
-                    </div>
-                    <div className="p-3 text-center bg-green-600">
-                      <div className="text-xs font-medium mb-1">GRAND TOTAL</div>
-                      <div className="text-xl font-bold font-mono">
-                        ₹{(totalWithGST || 0)?.toLocaleString('en-IN')}
-                      </div>
-                    </div>
-                  </div>
-                </div>}
-
-                {/* Terms and Conditions - Only on Last Page */}
-                {pageIndex === pages.length - 1 && (
-                  <div className="mb-4 ">
-                    <div className="bg-blue-50 p-3 border-l-4 border-blue-600">
-                      <h4 className="font-bold mb-2 text-blue-800 text-sm">Terms & Conditions:</h4>
-                      <div className="text-xs text-blue-700">
-                        <ul className="space-y-1">
-                          {termsAndConditions.map((term, index) => (
-                            <li key={index}>{term}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Overall Remarks - Only on Last Page? Or repeats? Usually last page. */}
-                {pageIndex === pages.length - 1 && boqData.overallRemarks && (
-                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-                    <h4 className="font-bold mb-1 text-yellow-800 text-sm">Special Remarks:</h4>
-                    <p className="text-xs text-yellow-700">{boqData.overallRemarks}</p>
-                  </div>
-                )}
+                {/* Content Removed: Totals, Terms, and Remarks now handled as dynamic blocks */}
 
                 {/* Footer */}
                 <div className="mt-6 pt-3 border-t text-center text-xs text-blue-600">
