@@ -524,28 +524,69 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
 
     // When project name changes, populate scope of work from the selected project
     if (name === 'projectName') {
-      const selectedProject = projects.find(p => p.projectName === value);
-      if (selectedProject) {
-        const scopeOfWorkArray = Array.isArray(selectedProject.scopeOfWork)
-          ? selectedProject.scopeOfWork
-          : (selectedProject.scopeOfWork || '').split(',').map(s => s.trim()).filter(Boolean);
+      const targetProject = projects.find(p => p.projectName === value);
+      if (targetProject) {
+        const scopeOfWorkArray = Array.isArray(targetProject.scopeOfWork)
+          ? targetProject.scopeOfWork
+          : (targetProject.scopeOfWork || '').split(',').map(s => s.trim()).filter(Boolean);
 
-        setFormData(prev => ({
-          ...prev,
-          projectName: value,
-          scopeOfWork: scopeOfWorkArray,
-          // CRITICAL: Filter existing items to keep only those that match the new scopes
-          items: (() => {
-            const preservedItems = prev.items.filter(item =>
+        setFormData(prev => {
+          let newItems = [];
+
+          // 1. Try to get items from the "Selected Reference Project" (state) if scopes match
+          if (selectedProject && Object.keys(selectedProject).length > 0 && selectedProject.items) {
+            const refItems = Array.isArray(selectedProject.items) ? selectedProject.items : [];
+
+            const matchedRefItems = refItems
+              .filter(item => {
+                // Case-insensitive check for scope matching
+                return item.scopeOfWork && scopeOfWorkArray.some(scope =>
+                  scope.toLowerCase() === item.scopeOfWork.toLowerCase()
+                );
+              })
+              .map(item => {
+                // Find the matching scope string from the NEW project to ensure exact match for grouping
+                const matchingNewScope = scopeOfWorkArray.find(scope =>
+                  scope.toLowerCase() === item.scopeOfWork.toLowerCase()
+                );
+
+                return {
+                  partName: item.partName || '',
+                  numberOfUnits: String(item.numberOfUnits || ''),
+                  specification: item.specification || '',
+                  unitType: item.unitType || '',
+                  unitPrice: String(item.unitPrice || ''),
+                  margin: String(item.margin || '0'),
+                  totalPrice: String(item.totalPrice || ''),
+                  remarks: item.remarks || '',
+                  isCustom: item.isCustom || false,
+                  scopeOfWork: matchingNewScope, // Use the new project's casing
+                  image: item.image
+                    ? {
+                      ...item.image,
+                      name: item.image.originalName || item.image.filename,
+                      url: `${API_BASE_URL}${item.image.path}`,
+                      status: 'done'
+                    }
+                    : null
+                };
+              });
+
+            if (matchedRefItems.length > 0) {
+              newItems = matchedRefItems;
+            }
+          }
+
+          // 2. If no items from reference project, try preserving existing items
+          if (newItems.length === 0) {
+            newItems = prev.items.filter(item =>
               item.scopeOfWork && scopeOfWorkArray.includes(item.scopeOfWork)
             );
+          }
 
-            if (preservedItems.length > 0) {
-              return preservedItems;
-            }
-
-            // If no match, return default empty item
-            return [{
+          // 3. Fallback to empty item
+          if (newItems.length === 0) {
+            newItems = [{
               partName: '',
               numberOfUnits: '',
               specification: '',
@@ -559,8 +600,15 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
               isCustom: false,
               scopeOfWork: '' // Will be assigned by user or logic later
             }];
-          })()
-        }));
+          }
+
+          return {
+            ...prev,
+            projectName: value,
+            scopeOfWork: scopeOfWorkArray,
+            items: newItems
+          };
+        });
       } else {
         setFormData(prev => ({
           ...prev,
@@ -1369,35 +1417,39 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
             </h3>
 
             {!boq && (
-              <div className="grid grid-cols-1 md:grid-cols-2 relative">
-                <FloatingInput
-                  label="Selected Project"
-                  name="selectedProject"
-                  type="select"
-                  onChange={handleProjectSelect}
-                  value={
-                    Object.keys(selectedProject).length > 0
-                      ? JSON.stringify(selectedProject)
-                      : ""
-                  }
-                  options={[
-                    { value: "", label: "Select Project" },
-                    ...boqItems.map((project) => ({
-                      value: JSON.stringify(project),
-                      label: `${project.customer} - ${project.projectName}`,
-                    })),
-                  ]}
-                />
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 mb-6">
+                <h4 className="text-md font-semibold text-gray-700 mb-3 border-b border-gray-200 pb-2">
+                  Reference Project Section
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 relative">
+                  <FloatingInput
+                    label="Selected Project"
+                    name="selectedProject"
+                    type="select"
+                    onChange={handleProjectSelect}
+                    value={
+                      Object.keys(selectedProject).length > 0
+                        ? JSON.stringify(selectedProject)
+                        : ""
+                    }
+                    options={[
+                      { value: "", label: "Select Project" },
+                      ...boqItems.map((project) => ({
+                        value: JSON.stringify(project),
+                        label: `${project.customer} - ${project.projectName}`,
+                      })),
+                    ]}
+                  />
 
-
-                {Object.keys(selectedProject).length > 0 && (
-                  <button
-                    className="absolute right-3 top-3 text-red-600 hover:text-red-800"
-                    onClick={handleProjectClear}    // <-- Using function
-                  >
-                    <TrashIcon className="h-5 w-5" />
-                  </button>
-                )}
+                  {Object.keys(selectedProject).length > 0 && (
+                    <button
+                      className="absolute right-3 top-3 text-red-600 hover:text-red-800"
+                      onClick={handleProjectClear}
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
