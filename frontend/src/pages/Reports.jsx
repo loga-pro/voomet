@@ -16,9 +16,9 @@ import {
   ChevronDownIcon,
   XMarkIcon,
   ArrowTrendingUpIcon,
-  CheckCircleIcon, // Added for Quality
+  CheckCircleIcon, 
   ExclamationCircleIcon,
-  ExclamationTriangleIcon, // Added for Quality
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';

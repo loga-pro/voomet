@@ -1002,12 +1002,6 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
   };
 
   const removePaymentTerm = (index) => {
-    // If updating existing BOQ, prevent removing original terms
-    if (boq && boq.paymentTerms && index < boq.paymentTerms.length) {
-      showLocalNotification('Cannot remove original payment terms', 'error');
-      return;
-    }
-
     if (formData.paymentTerms.length > 1) {
       setFormData(prev => {
         const newTerms = [...prev.paymentTerms];
@@ -1020,11 +1014,6 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
   };
 
   const handlePaymentTermChange = (index, value) => {
-    // If updating existing BOQ, prevent editing original terms
-    if (boq && boq.paymentTerms && index < boq.paymentTerms.length) {
-      return;
-    }
-
     // Allows empty string, or positive numbers with up to 2 decimal places
     if (value !== '' && !/^\d{0,3}(\.\d{0,2})?$/.test(value)) return;
 
@@ -1947,7 +1936,6 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                     {formData.paymentTerms.map((term, index) => {
                       const discountVal = parseFloat(term.discount || 0);
                       const calculatedValue = ((parseFloat(formData.totalWithGST || 0) * discountVal) / 100).toFixed(2);
-                      const isOriginalTerm = boq && boq.paymentTerms && index < boq.paymentTerms.length;
 
                       return (
                         <tr key={index}>
@@ -1963,11 +1951,10 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                                 value={term.discount}
                                 onChange={(e) => handlePaymentTermChange(index, e.target.value)}
                                 onBlur={(e) => handlePaymentTermBlur(index, e.target.value)}
-                                readOnly={isOriginalTerm}
                                 className={`block w-full rounded-md shadow-sm focus:ring-primary-500 sm:text-sm p-2 border ${errors[`paymentTerm-${index}-discount`]
                                   ? 'border-red-500 focus:border-red-500'
                                   : 'border-gray-300 focus:border-primary-500'
-                                  } ${isOriginalTerm ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                                  }`}
                                 placeholder="0-100"
                               />
                               {errors[`paymentTerm-${index}-discount`] && (
@@ -2019,8 +2006,8 @@ const BOQForm = ({ boq, onSubmit, onCancel, showNotification, showError, boqItem
                               <button
                                 type="button"
                                 onClick={() => removePaymentTerm(index)}
-                                disabled={formData.paymentTerms.length <= 1 || isOriginalTerm}
-                                className={`p-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${formData.paymentTerms.length <= 1 || isOriginalTerm
+                                disabled={formData.paymentTerms.length <= 1}
+                                className={`p-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${formData.paymentTerms.length <= 1
                                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                   : 'bg-red-600 text-white hover:bg-red-700'
                                   }`}
