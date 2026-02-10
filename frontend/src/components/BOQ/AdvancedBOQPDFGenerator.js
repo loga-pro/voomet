@@ -72,15 +72,15 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
   // Initialize available scopes from boqData and filtering logic
   useEffect(() => {
     let scopes = [];
-    
+
     // Priority 1: Use fetchedProject data if available (Highest Source of Truth)
     // This fixes the issue where staled/incorrect scopes in boqData overwrite actual project scopes
     if (fetchedProject && fetchedProject.scopeOfWork) {
-         if (Array.isArray(fetchedProject.scopeOfWork)) {
-            scopes = fetchedProject.scopeOfWork;
-         } else if (typeof fetchedProject.scopeOfWork === 'string') {
-            scopes = fetchedProject.scopeOfWork.split(',').map(s => s.trim()).filter(Boolean);
-         }
+      if (Array.isArray(fetchedProject.scopeOfWork)) {
+        scopes = fetchedProject.scopeOfWork;
+      } else if (typeof fetchedProject.scopeOfWork === 'string') {
+        scopes = fetchedProject.scopeOfWork.split(',').map(s => s.trim()).filter(Boolean);
+      }
     }
 
     // Priority 2: Use boqData.scopeOfWork (Fallback if project data not ready or missing)
@@ -91,12 +91,12 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
         scopes = boqData.scopeOfWork.split(',').map(s => s.trim()).filter(Boolean);
       }
     }
-    
+
     // Priority 3: Fallback to unique scopes from items if header scopes are missing
     if (scopes.length === 0 && boqData && boqData.items && boqData.items.length > 0) {
-       scopes = [...new Set(boqData.items.map(item => item.scopeOfWork))].filter(Boolean);
+      scopes = [...new Set(boqData.items.map(item => item.scopeOfWork))].filter(Boolean);
     }
-    
+
     // Ensure uniqueness and remove empty
     scopes = [...new Set(scopes)].filter(Boolean);
 
@@ -183,8 +183,8 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
         // Find project matching the customer AND project name if available
         // This ensures we get the EXACT project's scope
         const matchingProject = filteredProjects.find(
-          project => project.customerName === boqData.customer && 
-                    (!boqData.projectName || project.projectName === boqData.projectName)
+          project => project.customerName === boqData.customer &&
+            (!boqData.projectName || project.projectName === boqData.projectName)
         ) || filteredProjects[0]; // Fallback to first if strict match fails but customer matches
 
         if (matchingProject) {
@@ -197,7 +197,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
     };
 
     if (boqData.customer) {
-        fetchProjects();
+      fetchProjects();
     }
   }, [boqData.customer, boqData.projectName]);
 
@@ -324,6 +324,8 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
           backgroundColor: '#ffffff',
           logging: false,
           imageTimeout: 15000,
+          windowWidth: pages[i].scrollWidth,
+          windowHeight: pages[i].scrollHeight,
           onclone: (clonedDoc) => {
             const images = clonedDoc.querySelectorAll('img');
             images.forEach(img => {
@@ -332,7 +334,8 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
           }
         });
 
-        const imgData = canvas.toDataURL('image/png', 1.0);
+        const imgData = canvas.toDataURL('image/jpeg', 0.9);
+        // Use fixed A4 dimensions to prevent content cutoff
         pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
       }
 
@@ -369,6 +372,8 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
           backgroundColor: '#ffffff',
           logging: false,
           imageTimeout: 15000,
+          windowWidth: pages[i].scrollWidth,
+          windowHeight: pages[i].scrollHeight,
           onclone: (clonedDoc) => {
             const images = clonedDoc.querySelectorAll('img');
             images.forEach(img => {
@@ -377,7 +382,8 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
           }
         });
 
-        const imgData = canvas.toDataURL('image/png', 1.0);
+        const imgData = canvas.toDataURL('image/jpeg', 0.9);
+        // Use fixed A4 dimensions to prevent content cutoff
         pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
       }
 
@@ -427,11 +433,11 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
   console.log('Selected Scopes:', selectedScopes);
   console.log('All BOQ Items:', boqData.items);
   console.log('Items count:', boqData.items?.length || 0);
-  
-  const filteredItems = (boqData.items || []).filter(item => 
+
+  const filteredItems = (boqData.items || []).filter(item =>
     selectedScopes.some(s => normalizeScope(s) === normalizeScope(item.scopeOfWork))
   );
-  
+
   console.log('Filtered Items:', filteredItems);
   console.log('Filtered Items count:', filteredItems.length);
 
@@ -441,33 +447,37 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
 
   const transportationCharges = parseFloat(boqData.transportationCharges) || 0;
   const finalTotalWithoutGST = itemsTotal + transportationCharges;
-  
+
   // Recalculate metrics based on filtered items to ensure PDF consistency
   const discountPercentage = parseFloat(boqData.discountPercentage) || 0;
   const discountAmount = finalTotalWithoutGST * (discountPercentage / 100);
-  
+
   const totalAfterDiscount = finalTotalWithoutGST - discountAmount;
-  
+
   const gstPercentage = parseFloat(boqData.gstPercentage) || 18;
   const totalWithGST = totalAfterDiscount * (1 + gstPercentage / 100);
 
   // --- Pagination Logic ---
   const pages = [];
-  
+
   // Only generate pages if we have selected scopes, otherwise empty
   if (selectedScopes.length > 0) {
     let currentBlocks = [];
     let currentLoad = 0;
-    const maxLoad = 16; // Increased from 12 to allow Summary content to fit on one pages
+    const maxLoad = 24; // Reduced from 30 to accommodate larger font size and prevent overflow
 
     // Helper to add block to page
     const addBlock = (block, weight) => {
-      // If adding this block exceeds maxLoad, push current page and start new
+      // If adding this block exceeds maxLoad
       if (currentLoad + weight > maxLoad) {
-        if (currentBlocks.length > 0) {
-           pages.push(currentBlocks);
-           currentBlocks = [];
-           currentLoad = 0;
+        // SPECIAL CASE: If current page ONLY has a header (or is empty), don't break yet.
+        // This ensures the scope header is followed by at least one row of content.
+        const isOnlyHeader = currentBlocks.length === 1 && currentBlocks[0].type === 'scope_header';
+
+        if (currentBlocks.length > 0 && !isOnlyHeader) {
+          pages.push(currentBlocks);
+          currentBlocks = [];
+          currentLoad = 0;
         }
       }
       currentBlocks.push(block);
@@ -476,76 +486,93 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
 
     // Helper to force new page
     const forceNewPage = () => {
-        if (currentBlocks.length > 0) {
-            pages.push(currentBlocks);
-            currentBlocks = [];
-            currentLoad = 0;
-        }
+      if (currentBlocks.length > 0) {
+        pages.push(currentBlocks);
+        currentBlocks = [];
+        currentLoad = 0;
+      }
     };
 
     // 1. Summary Table Block
     // Calculate summary weight: Header (2) + Rows (count) + Spacer (1)
     const summaryWeight = 2 + selectedScopes.length + 1;
-    
+
     // Calculate totals for summary
     // Calculate totals for summary
     const scopeTotals = {};
     selectedScopes.forEach(scope => {
-        // Normalized (lowercase) match to handle case differences
-        const scopeItems = (boqData.items || []).filter(i => 
-          normalizeScope(i.scopeOfWork) === normalizeScope(scope)
-        );
-        const total = scopeItems.reduce((sum, item) => sum + (parseFloat(item.totalPrice) || 0), 0);
-        scopeTotals[scope] = total;
+      // Normalized (lowercase) match to handle case differences
+      const scopeItems = (boqData.items || []).filter(i =>
+        normalizeScope(i.scopeOfWork) === normalizeScope(scope)
+      );
+      const total = scopeItems.reduce((sum, item) => sum + (parseFloat(item.totalPrice) || 0), 0);
+      scopeTotals[scope] = total;
     });
 
     addBlock({ type: 'summary_table', scopes: selectedScopes, totals: scopeTotals }, summaryWeight);
 
     // 1.1 Totals Section Block (Reduced weight)
-    addBlock({ 
-        type: 'totals_section', 
-        data: { 
-            finalTotalWithoutGST, 
-            discountPercentage, 
-            discountAmount, 
-            gstPercentage, 
-            totalWithGST,
-            totalAfterDiscount 
-        } 
-    }, 3); 
+    addBlock({
+      type: 'totals_section',
+      data: {
+        finalTotalWithoutGST,
+        discountPercentage,
+        discountAmount,
+        gstPercentage,
+        totalWithGST,
+        totalAfterDiscount
+      }
+    }, 3);
 
     // 1.2 Terms & Conditions Block (Reduced weight factor)
     if (termsAndConditions.length > 0) {
-        addBlock({ type: 'terms_section', terms: termsAndConditions }, 1.5 + termsAndConditions.length * 0.3);
+      addBlock({ type: 'terms_section', terms: termsAndConditions }, 1.5 + termsAndConditions.length * 0.3);
     }
-    
+
     // 1.3 Special Remarks Block (Reduced weight)
     if (boqData.overallRemarks) {
-        addBlock({ type: 'remarks_section', remarks: boqData.overallRemarks }, 1.5);
+      addBlock({ type: 'remarks_section', remarks: boqData.overallRemarks }, 1.5);
     }
 
     // 2. Detailed Scope Tables
     selectedScopes.forEach((scope, index) => {
       // Normalized (lowercase) match to handle case differences
-      const items = (boqData.items || []).filter(i => 
+      const items = (boqData.items || []).filter(i =>
         normalizeScope(i.scopeOfWork) === normalizeScope(scope)
       );
 
       if (items.length > 0) {
-        // Force new page for each scope (except if it fits on the very first page after summary and summary was tiny? 
-        // No, user requested "Scope X in Page 02", implying separation.
-        // We force page break before each scope.
-        forceNewPage();
-        
+        // Calculate weight for the first item to see if header + first item fit
+        const firstItem = items[0];
+        const descLength = firstItem.partName?.length || 0;
+        const specLength = firstItem.specification?.length || 0;
+        const remarksLength = firstItem.remarks?.length || 0;
+        const firstItemWeight = Math.max(2.0, (Math.ceil(Math.max(descLength, specLength, remarksLength) / 35) * 0.9) + (firstItem.image ? 4.5 : 0));
+
+        // If header + first item won't fit, force new page before adding header
+        if (currentLoad + 2 + firstItemWeight > maxLoad && currentBlocks.length > 0) {
+          forceNewPage();
+        }
+
         // Scope Header
         addBlock({ type: 'scope_header', scope }, 2);
 
-        // Items
+        // Items - reduced weight from 1.5 to 1.0 to fit more items per page
+        // Items - weight adjusted based on description, specification, and remarks length to better estimate page space
         items.forEach((item, idx) => {
-           // We assign a weight of 1.5 per item to be safe with descriptions/images
-           addBlock({ type: 'item_row', item, index: idx + 1, scope }, 1.5);
+          const descLength = item.partName?.length || 0;
+          const specLength = item.specification?.length || 0;
+          const remarksLength = item.remarks?.length || 0;
+          // Remarks and Images share a column, so we consider image presence as well
+          const hasImageWeight = item.image ? 4 : 0;
+
+          const maxTextLength = Math.max(descLength, specLength, remarksLength);
+          const estimatedLines = Math.ceil(maxTextLength / 35); // Estimated chars per line
+          const weight = Math.max(2.0, (estimatedLines * 0.9) + (item.image ? 4.5 : 0));
+
+          addBlock({ type: 'item_row', item, index: idx + 1, scope }, weight);
         });
-        
+
         // Spacer after scope
         addBlock({ type: 'spacer' }, 1);
       }
@@ -553,8 +580,8 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
 
     if (currentBlocks.length > 0) pages.push(currentBlocks);
   } else {
-      // Empty state page
-      pages.push([]);
+    // Empty state page
+    pages.push([]);
   }
 
   const handleDownloadPdfForEmailCompose = async (onPdfGenerated, setPreviewLoading) => {
@@ -577,6 +604,8 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
           backgroundColor: '#ffffff',
           logging: false,
           imageTimeout: 15000,
+          windowWidth: pages[i].scrollWidth,
+          windowHeight: pages[i].scrollHeight,
           onclone: clonedDoc => {
             const images = clonedDoc.querySelectorAll('img');
             images.forEach(img => {
@@ -585,7 +614,8 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
           }
         });
 
-        const imgData = canvas.toDataURL('image/png', 1.0);
+        const imgData = canvas.toDataURL('image/jpeg', 0.9);
+        // Use fixed A4 dimensions to prevent content cutoff
         pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
       }
 
@@ -753,10 +783,10 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
         {showEditableControls && (
           <div className="p-4 bg-gray-50 border-b overflow-y-auto max-h-[30vh]">
             <div className="flex flex-row justify-between">
-             {/* Estimate, Date and Scope grouped Layout */}
-             <div className="flex flex-wrap flex-col gap-6 items-start">
-               {/* Left Group: Estimate and Date */}
-               <div className="flex-1 min-w-[300px] flex flex-row gap-6">
+              {/* Estimate, Date and Scope grouped Layout */}
+              <div className="flex flex-wrap flex-col gap-6 items-start">
+                {/* Left Group: Estimate and Date */}
+                <div className="flex-1 min-w-[300px] flex flex-row gap-6">
                   {/* Estimate Number Editor */}
                   {showEstimateNumber && (
                     <div>
@@ -774,13 +804,12 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                         <button
                           onClick={saveEstimateNumber}
                           disabled={isSavingEstimate || estimateSaved}
-                          className={`w-full px-4 py-2 rounded text-sm font-medium transition-colors ${
-                            estimateSaved
-                              ? 'bg-green-600 text-white cursor-not-allowed'
-                              : isSavingEstimate
+                          className={`w-full px-4 py-2 rounded text-sm font-medium transition-colors ${estimateSaved
+                            ? 'bg-green-600 text-white cursor-not-allowed'
+                            : isSavingEstimate
                               ? 'bg-blue-400 text-white cursor-wait'
                               : 'bg-blue-600 hover:bg-blue-700 text-white'
-                          }`}
+                            }`}
                         >
                           {estimateSaved ? (
                             <span className="flex items-center justify-center">
@@ -817,13 +846,12 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                       <button
                         onClick={saveDate}
                         disabled={isSavingDate || dateSaved}
-                        className={`w-full px-4 py-2 rounded text-sm font-medium transition-colors ${
-                          dateSaved
-                            ? 'bg-green-600 text-white cursor-not-allowed'
-                            : isSavingDate
+                        className={`w-full px-4 py-2 rounded text-sm font-medium transition-colors ${dateSaved
+                          ? 'bg-green-600 text-white cursor-not-allowed'
+                          : isSavingDate
                             ? 'bg-blue-400 text-white cursor-wait'
                             : 'bg-blue-600 hover:bg-blue-700 text-white'
-                        }`}
+                          }`}
                       >
                         {dateSaved ? (
                           <span className="flex items-center justify-center">
@@ -838,46 +866,46 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                       </button>
                     </div>
                   </div>
-               </div>
+                </div>
 
-               {/* Right Group: Scope Selection */}
-               <div className="flex-1 min-w-[300px]">
+                {/* Right Group: Scope Selection */}
+                <div className="flex-1 min-w-[300px]">
                   {/* Scope of Work Selection */}
                   <div className="relative">
-                     <div className="max-h-48 overflow-y-auto p-3 border border-gray-300 rounded-md bg-white hover:border-gray-400 focus-within:border-blue-500 transition-colors duration-200">
-                       <div className="flex flex-wrap gap-3">
-                         {availableScopes.length > 0 ? (
-                           availableScopes.map(scope => (
-                             <div key={scope} className="flex items-center">
-                               <input
-                                 type="checkbox"
-                                 id={`pdf-scope-${scope}`}
-                                 checked={selectedScopes.includes(scope)}
-                                 onChange={() => handleScopeSelection(scope)}
-                                 className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                               />
-                               <label htmlFor={`pdf-scope-${scope}`} className="ml-2 block text-sm text-gray-700 cursor-pointer">
-                                 {scope.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                               </label>
-                             </div>
-                           ))
-                         ) : (
-                           <p className="text-sm text-gray-500">No scope of work available</p>
-                         )}
-                       </div>
-                     </div>
-                     <label className="absolute -top-2 left-2 text-xs text-blue-600 font-medium bg-white px-1 transition-all duration-200">
-                       Scope of Work <span className="text-red-500">*</span>
-                     </label>
-                     {selectedScopes.length === 0 && (
-                       <div className="mt-1 flex items-start">
-                          <ExclamationTriangleIcon className="w-4 h-4 mt-0.5 mr-1 text-red-500 flex-shrink-0" />
-                         <span className="text-xs text-red-500">Please select at least one scope of work</span>
-                       </div>
-                     )}
-                   </div>
-               </div>
-             </div>
+                    <div className="max-h-48 overflow-y-auto p-3 border border-gray-300 rounded-md bg-white hover:border-gray-400 focus-within:border-blue-500 transition-colors duration-200">
+                      <div className="flex flex-wrap gap-3">
+                        {availableScopes.length > 0 ? (
+                          availableScopes.map(scope => (
+                            <div key={scope} className="flex items-center">
+                              <input
+                                type="checkbox"
+                                id={`pdf-scope-${scope}`}
+                                checked={selectedScopes.includes(scope)}
+                                onChange={() => handleScopeSelection(scope)}
+                                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                              />
+                              <label htmlFor={`pdf-scope-${scope}`} className="ml-2 block text-sm text-gray-700 cursor-pointer">
+                                {scope.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                              </label>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-gray-500">No scope of work available</p>
+                        )}
+                      </div>
+                    </div>
+                    <label className="absolute -top-2 left-2 text-sm text-blue-600 font-medium bg-white px-1 transition-all duration-200">
+                      Scope of Work <span className="text-red-500">*</span>
+                    </label>
+                    {selectedScopes.length === 0 && (
+                      <div className="mt-1 flex items-start">
+                        <ExclamationTriangleIcon className="w-4 h-4 mt-0.5 mr-1 text-red-500 flex-shrink-0" />
+                        <span className="text-sm text-red-500">Please select at least one scope of work</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
 
 
               {/* Terms & Conditions Editor */}
@@ -912,13 +940,12 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                 <button
                   onClick={saveTermsAndConditions}
                   disabled={isSavingTerms || termsSaved}
-                  className={`w-full px-4 py-2 rounded text-sm font-medium transition-colors ${
-                    termsSaved
-                      ? 'bg-green-600 text-white cursor-not-allowed'
-                      : isSavingTerms
+                  className={`w-full px-4 py-2 rounded text-sm font-medium transition-colors ${termsSaved
+                    ? 'bg-green-600 text-white cursor-not-allowed'
+                    : isSavingTerms
                       ? 'bg-blue-400 text-white cursor-wait'
                       : 'bg-blue-600 hover:bg-blue-700 text-white'
-                  }`}
+                    }`}
                 >
                   {termsSaved ? (
                     <span className="flex items-center justify-center">
@@ -946,8 +973,8 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                 style={{
                   width: '210mm',
                   minHeight: '297mm',
-                  fontFamily: 'Arial, sans-serif',
-                  fontSize: '12px'
+                  fontFamily: '"Bookman Old Style", serif',
+                  fontSize: '14px'
                 }}
               >
                 {/* Header Section */}
@@ -971,63 +998,65 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                       }}
                     />
                     <div>
-                     
+
 
                     </div>
                   </div>
-                  <div className="text-right text-xs leading-tight">
-                    <div className="font-semibold text-gray-600">                   
-                      <p>No.166,Sy.No.40/1 ,</p> 
+                  <div className="text-right text-sm leading-tight">
+                    <div className="font-semibold text-gray-600">
+                      <p>No.166,Sy.No.40/1 ,</p>
                       <p>3rd Phase Obdenahalli Industrial Area,</p>
                       <p>Kasabahobli Doddaballapur</p>
                     </div>
                     <div className="text-gray-600">Bangalore</div>
                     <div className="text-gray-600">Karnataka, Code : 29</div>
                     <div className="text-gray-600">PIN: 561203</div>
-                    <div className="mt-1 text-gray-500 text-xs flex items-center gap-2">
-  <span>Ph: {companyInfo.phone}</span>
-  <span className="text-gray-400">|</span>
-  <span>Email: Accounts@voomet.com</span>
-  <span className="text-gray-400">|</span>
-  <span>Web: {companyInfo.website}</span>
-</div>
+                    <div className="mt-1 text-gray-500 text-sm flex items-center gap-2">
+                      <span>Ph: {companyInfo.phone}</span>
+                      <span className="text-gray-400">|</span>
+                      <span>Email: Accounts@voomet.com</span>
+                      <span className="text-gray-400">|</span>
+                      <span>Web: {companyInfo.website}</span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Title and Client Info */}
-                {/* Title and Client Info - Repeated on Every Page */}
-                <div className="mb-6">
-                  <div className="bg-blue-800 text-white p-3 mb-4">
-                    <h2 className="text-lg font-bold text-center">BILL OF QUANTITIES (BOQ)</h2>
-                  </div>
+                {/* Title and Client Info - Now only on the first page */}
+                {pageIndex === 0 && (
+                  <div className="mb-6">
+                    <div className="bg-blue-800 text-white p-3 mb-4">
+                      <h2 className="text-lg font-bold text-center">BILL OF QUANTITIES (BOQ)</h2>
+                    </div>
 
-                  <div className="grid grid-cols-2 gap-8 mb-4">
-                    <div className="space-y-2">
-                      <div className="flex">
-                        <span className="font-bold w-28 text-sm">CLIENT NAME:</span>
-                        <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm">{boqData.customer}</span>
+                    <div className="grid grid-cols-2 gap-8 mb-4">
+                      <div className="space-y-2">
+                        <div className="flex">
+                          <span className="font-bold w-28 text-sm">CLIENT NAME:</span>
+                          <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm">{boqData.customer}</span>
+                        </div>
+                        <div className="flex">
+                          <span className="font-bold w-28 text-sm">LOCATION:</span>
+                          <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm">{boqData.location || 'Bangalore'}</span>
+                        </div>
+                        <div className="flex">
+                          <span className="font-bold w-28 text-sm">PROJECT:</span>
+                          <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm">{projectName || 'Interior Design'}</span>
+                        </div>
                       </div>
-                      <div className="flex">
-                        <span className="font-bold w-28 text-sm">LOCATION:</span>
-                        <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm">{boqData.location || 'Bangalore'}</span>
-                      </div>
-                      <div className="flex">
-                        <span className="font-bold w-28 text-sm">PROJECT:</span>
-                        <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm">{projectName || 'Interior Design'}</span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex">
-                        <span className="font-bold w-28 text-sm">ESTIMATE :</span>
-                        <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm font-mono">{boqCode}</span>
-                      </div>
-                      <div className="flex">
-                        <span className="font-bold w-28 text-sm">DATE:</span>
-                        <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm">{currentDate}</span>
+                      <div className="space-y-2">
+                        <div className="flex">
+                          <span className="font-bold w-28 text-sm">ESTIMATE :</span>
+                          <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm font-mono">{boqCode}</span>
+                        </div>
+                        <div className="flex">
+                          <span className="font-bold w-28 text-sm">DATE:</span>
+                          <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm">{currentDate}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Dynamic Content Rendering */}
                 <div className="mb-4">
@@ -1043,9 +1072,9 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                         return (
                           <div key={`summary-${index}`} className="mb-8">
                             <div className="bg-gray-600 text-white p-2 mb-0">
-                                <h3 className="font-bold text-center text-sm">SUMMARY OF BOQ</h3>
+                              <h3 className="font-bold text-center text-sm">SUMMARY OF BOQ</h3>
                             </div>
-                            <table className="w-full border-collapse border border-blue-800 text-xs">
+                            <table className="w-full border-collapse border border-blue-800 text-sm">
                               <thead>
                                 <tr className="bg-blue-200">
                                   <th className="border border-blue-800 p-2 font-bold text-center w-16">S.NO</th>
@@ -1072,8 +1101,8 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                                   <td className="border border-blue-800 p-2 text-center" colSpan="2">TOTAL</td>
                                   <td className="border border-blue-800 p-2 text-right font-mono">
                                     {Object.values(block.totals).reduce((a, b) => a + b, 0).toLocaleString('en-IN', {
-                                        minimumFractionDigits: 2, maximumFractionDigits: 2
-                                      })}
+                                      minimumFractionDigits: 2, maximumFractionDigits: 2
+                                    })}
                                   </td>
                                 </tr>
                               </tbody>
@@ -1089,25 +1118,25 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                           <div key={`totals-${index}`} className="bg-blue-800 text-white mb-4">
                             <div className="grid grid-cols-4">
                               <div className="p-3 border-r border-blue-600 text-center">
-                                <div className="text-xs font-medium mb-1">SUBTOTAL (Excl. GST)</div>
+                                <div className="text-sm font-medium mb-1">SUBTOTAL (Excl. GST)</div>
                                 <div className="text-lg font-bold font-mono">
                                   ₹{finalTotalWithoutGST.toLocaleString('en-IN')}
                                 </div>
                               </div>
                               <div className="p-3 border-r border-blue-600 text-center">
-                                <div className="text-xs font-medium mb-1">Discount - ({discountPercentage}) %</div>
+                                <div className="text-sm font-medium mb-1">Discount - ({discountPercentage}) %</div>
                                 <div className="text-lg font-bold font-mono">
                                   ₹{(discountAmount || 0).toLocaleString('en-IN')}
                                 </div>
                               </div>
                               <div className="p-3 border-r border-blue-600 text-center">
-                                <div className="text-xs font-medium mb-1">GST @ {gstPercentage}%</div>
+                                <div className="text-sm font-medium mb-1">GST @ {gstPercentage}%</div>
                                 <div className="text-lg font-bold font-mono text-yellow-300">
                                   ₹{((totalWithGST - (finalTotalWithoutGST - (discountAmount || 0))) || 0).toLocaleString('en-IN')}
                                 </div>
                               </div>
                               <div className="p-3 text-center bg-green-600">
-                                <div className="text-xs font-medium mb-1">GRAND TOTAL</div>
+                                <div className="text-sm font-medium mb-1">GRAND TOTAL</div>
                                 <div className="text-xl font-bold font-mono">
                                   ₹{(totalWithGST || 0)?.toLocaleString('en-IN')}
                                 </div>
@@ -1123,7 +1152,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                           <div key={`terms-${index}`} className="mb-4">
                             <div className="bg-blue-50 p-3 border-l-4 border-blue-600">
                               <h4 className="font-bold mb-2 text-blue-800 text-sm">Terms & Conditions:</h4>
-                              <div className="text-xs text-blue-700">
+                              <div className="text-sm text-blue-700">
                                 <ul className="space-y-1">
                                   {block.terms.map((term, idx) => (
                                     <li key={idx}>{term}</li>
@@ -1138,9 +1167,9 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                       // --- Remarks Section ---
                       if (block.type === 'remarks_section') {
                         return (
-                           <div key={`remarks-${index}`} className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                          <div key={`remarks-${index}`} className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
                             <h4 className="font-bold mb-1 text-yellow-800 text-sm">Special Remarks:</h4>
-                            <p className="text-xs text-yellow-700">{block.remarks}</p>
+                            <p className="text-sm text-yellow-700">{block.remarks}</p>
                           </div>
                         );
                       }
@@ -1148,11 +1177,11 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                       // --- Scope Header ---
                       if (block.type === 'scope_header') {
                         return (
-                           <div key={`header-${index}`} className="bg-gray-600 text-white p-2 mb-0 mt-6 border border-b-0 border-blue-800">
-                              <h3 className="font-bold text-center text-sm">
-                                DETAILED QUOTATION - {block.scope.replace(/_/g, ' ').toUpperCase()}
-                              </h3>
-                           </div>
+                          <div key={`header-${index}`} className="bg-gray-600 text-white p-2 mb-0 mt-6 border border-b-0 border-blue-800">
+                            <h3 className="font-bold text-center text-sm">
+                              DETAILED QUOTATION - {block.scope.replace(/_/g, ' ').toUpperCase()}
+                            </h3>
+                          </div>
                         );
                       }
 
@@ -1161,19 +1190,19 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                         // Only render table start if previous block was NOT an item_row
                         // This prevents creating a new table for every row
                         const isFirstRow = index === 0 || pageItems[index - 1].type !== 'item_row';
-                        
+
                         if (!isFirstRow) return null;
 
                         // Gather consecutive item rows
                         const items = [];
                         let j = index;
-                        while(j < pageItems.length && pageItems[j].type === 'item_row') {
-                           items.push(pageItems[j]);
-                           j++;
+                        while (j < pageItems.length && pageItems[j].type === 'item_row') {
+                          items.push(pageItems[j]);
+                          j++;
                         }
 
                         return (
-                          <table key={`table-${index}`} className="w-full border-collapse border border-blue-800 text-xs mb-0">
+                          <table key={`table-${index}`} className="w-full border-collapse border border-blue-800 text-sm mb-0">
                             <thead>
                               <tr className="bg-blue-200">
                                 <th className="border border-blue-800 p-2 font-bold text-center w-12">S.NO</th>
@@ -1182,10 +1211,9 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                                 <th className="border border-blue-800 p-2 font-bold text-center w-16">QTY</th>
                                 <th className="border border-blue-800 p-2 font-bold text-center w-16">UNIT</th>
                                 {hasInOffice && <>
-                                  <th className="border border-blue-800 p-2 font-bold text-center w-24">RATE (₹)</th>
-                                  <th className="border border-blue-800 p-2 font-bold text-center w-28">AMOUNT (₹)</th>
-                                  <th className="border border-blue-800 p-2 font-bold text-center w-20">REMARKS</th>
-                                  <th className="border border-blue-800 p-2 font-bold text-center w-20">IMAGE</th>
+                                  <th className="border border-blue-800 p-2 font-bold text-center w-28">RATE (₹)</th>
+                                  <th className="border border-blue-800 p-2 font-bold text-center w-32">AMOUNT (₹)</th>
+                                  <th className="border border-blue-800 p-2 font-bold text-center w-40">REMARKS / IMAGE</th>
                                 </>}
                               </tr>
                             </thead>
@@ -1194,41 +1222,39 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                                 const item = blockItem.item;
                                 return (
                                   <tr key={itemIdx}>
-                                    <td className="border border-blue-800 p-2 text-center align-top font-semibold">
+                                    <td className="border border-blue-800 p-3 text-center align-middle font-semibold">
                                       {blockItem.index}
                                     </td>
-                                    <td className="border border-blue-800 p-2 align-top">
-                                      <div className="font-medium">{item.partName}</div>
+                                    <td className="border border-blue-800 p-3 align-top">
+                                      <div className="font-bold mb-1 text-xs">{item.partName}</div>
                                     </td>
-                                    <td className="border border-blue-800 p-2 text-center align-top">
+                                    <td className="border border-blue-800 p-3 text-center align-top leading-relaxed">
                                       {item.specification || '-'}
                                     </td>
-                                    <td className="border border-blue-800 p-2 text-center align-top font-mono">
+                                    <td className="border border-blue-800 p-3 text-center align-middle font-mono">
                                       {parseFloat(item.numberOfUnits || 0).toLocaleString()}
                                     </td>
-                                    <td className="border border-blue-800 p-2 text-center align-top">
+                                    <td className="border border-blue-800 p-3 text-center align-middle">
                                       {item.unitType}
                                     </td>
-                                    {hasInOffice && <> 
-                                      <td className="border border-blue-800 p-2 text-right align-top font-mono">
+                                    {hasInOffice && <>
+                                      <td className="border border-blue-800 p-3 text-right align-middle font-mono">
                                         {parseFloat(item.unitPrice || 0).toLocaleString('en-IN', {
                                           minimumFractionDigits: 2, maximumFractionDigits: 2
                                         })}
                                       </td>
-                                      <td className="border border-blue-800 p-2 text-right align-top font-mono font-semibold">
+                                      <td className="border border-blue-800 p-3 text-right align-middle font-mono font-semibold">
                                         {parseFloat(item.totalPrice || 0).toLocaleString('en-IN', {
                                           minimumFractionDigits: 2, maximumFractionDigits: 2
                                         })}
                                       </td>
-                                      <td className="border border-blue-800 p-2 text-right align-top font-mono font-semibold">
-                                        {item.remarks || " "}
-                                      </td>
-                                      <td className="border border-blue-800 p-2 text-center align-top">
+                                      <td className="border border-blue-800 p-3 text-left align-top">
+                                        <div className="mb-3 leading-relaxed">{item.remarks || " "}</div>
                                         {getImageUrl(item.image) && (
                                           <img
                                             src={getImageUrl(item.image)}
                                             alt="Item"
-                                            className="h-16 w-16 object-contain mx-auto"
+                                            className="w-full h-auto max-h-40 object-contain rounded-md border border-gray-200 shadow-sm"
                                             crossOrigin="anonymous"
                                           />
                                         )}
@@ -1237,7 +1263,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                                   </tr>
                                 );
                               })}
-                              
+
                               {/* Transportation Charges Row - Only on last page */}
                               {/* Note: This logic might need adjustment if transportation is per scope, 
                                   but BOQ usually has one total transportation. 
@@ -1248,27 +1274,27 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                                   Since I can't easily detect "Last Item of Last Scope" inside this loop without complex logic,
                                   I will handle it by checking if we are on the last page and this is the last table.
                                */}
-                              {pageIndex === pages.length - 1 && 
-                               index + items.length >= pageItems.length - 1 && // Is this the last block group? roughly
-                               hasInOffice && transportationCharges > 0 && (
-                                <tr className="bg-blue-50">
-                                  <td className="border border-blue-800 p-2 font-medium text-right" colSpan="6">
-                                    Transportation & Handling Charges
-                                  </td>
-                                  <td className="border border-blue-800 p-2 text-right font-mono font-semibold">
-                                    {transportationCharges.toLocaleString('en-IN', {
-                                      minimumFractionDigits: 2, maximumFractionDigits: 2
-                                    })}
-                                  </td>
-                                  <td className="border border-blue-800 p-2" colSpan="2"></td>
-                                </tr>
-                              )}
+                              {pageIndex === pages.length - 1 &&
+                                index + items.length >= pageItems.length - 1 && // Is this the last block group? roughly
+                                hasInOffice && transportationCharges > 0 && (
+                                  <tr className="bg-blue-50">
+                                    <td className="border border-blue-800 p-2 font-medium text-right" colSpan="6">
+                                      Transportation & Handling Charges
+                                    </td>
+                                    <td className="border border-blue-800 p-2 text-right font-mono font-semibold">
+                                      {transportationCharges.toLocaleString('en-IN', {
+                                        minimumFractionDigits: 2, maximumFractionDigits: 2
+                                      })}
+                                    </td>
+                                    <td className="border border-blue-800 p-2" colSpan="1"></td>
+                                  </tr>
+                                )}
 
                             </tbody>
                           </table>
                         );
                       }
-                      
+
                       return <div key={`spacer-${index}`} className="h-4"></div>;
                     })
                   )}
@@ -1277,8 +1303,8 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                 {/* Content Removed: Totals, Terms, and Remarks now handled as dynamic blocks */}
 
                 {/* Footer */}
-                <div className="mt-6 pt-3 border-t text-center text-xs text-blue-600">
-                  <p className="font-medium">This is a system generated quotation - {currentDate} - Page {pageIndex + 1} of {pages.length}</p>
+                <div className="mt-6 pt-3 border-t text-center text-sm text-blue-600">
+                  <p className="font-medium text-sm">This is a system generated quotation - {currentDate} - Page {pageIndex + 1} of {pages.length}</p>
                   <p className="mt-1">Thank you for choosing {companyInfo.name} for your interior design needs!</p>
                 </div>
               </div>

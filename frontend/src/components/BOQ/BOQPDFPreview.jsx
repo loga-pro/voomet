@@ -81,16 +81,40 @@ const BOQPDFPreview = ({ boqData }) => {
     const discountPercentage = boqData.discountPercentage;
     const discountAmount = boqData.discountAmount;
 
-    // Prepare pages
-    const itemsPerPage = 12;
+    // Prepare pages with smart weight-based pagination
     const pages = [];
     const items = boqData.items || [];
+    const maxLoad = 24; // Average items per page based on weight
 
     if (items.length > 0) {
-        let k = 0;
-        while (k < items.length) {
-            pages.push(items.slice(k, k + itemsPerPage));
-            k += itemsPerPage;
+        let currentPageItems = [];
+        let currentLoad = 0;
+
+        items.forEach((item) => {
+            const descLength = item.partName?.length || 0;
+            const specLength = item.specification?.length || 0;
+            const remarksLength = item.remarks?.length || 0;
+
+            const maxTextLength = Math.max(descLength, specLength, remarksLength);
+            const estimatedLines = Math.ceil(maxTextLength / 35);
+            const weight = Math.max(2.0, (estimatedLines * 0.9) + (item.image ? 4.5 : 0));
+
+            // Determine if we need to break. The first page has a larger header (BOQ Title + Client Info)
+            // Header weight for first page is approx 10.
+            const currentPageCapacity = (pages.length === 0) ? (maxLoad - 10) : maxLoad;
+
+            if (currentLoad + weight > currentPageCapacity && currentPageItems.length > 0) {
+                pages.push(currentPageItems);
+                currentPageItems = [];
+                currentLoad = 0;
+            }
+
+            currentPageItems.push(item);
+            currentLoad += weight;
+        });
+
+        if (currentPageItems.length > 0) {
+            pages.push(currentPageItems);
         }
     } else {
         pages.push([]);
@@ -106,7 +130,7 @@ const BOQPDFPreview = ({ boqData }) => {
                         width: '210mm',
                         minHeight: '297mm',
                         fontFamily: 'Arial, sans-serif',
-                        fontSize: '12px'
+                        fontSize: '14px'
                     }}
                 >
                     {/* Header Section */}
@@ -130,7 +154,7 @@ const BOQPDFPreview = ({ boqData }) => {
                                 }}
                             />
                         </div>
-                        <div className="text-right text-xs leading-tight">
+                        <div className="text-right text-sm leading-tight">
                             <div className="font-semibold text-gray-600">
                                 <p>No.166,Sy.No.40/1 ,</p>
                                 <p>3rd Phase Obdenahalli Industrial Area,</p>
@@ -139,7 +163,7 @@ const BOQPDFPreview = ({ boqData }) => {
                             <div className="text-gray-600">Bangalore</div>
                             <div className="text-gray-600">Karnataka, Code : 29</div>
                             <div className="text-gray-600">PIN: 561203</div>
-                            <div className="mt-1 text-gray-500 text-xs flex items-center gap-2">
+                            <div className="mt-1 text-gray-500 text-sm flex items-center gap-2">
                                 <span>Ph: {companyInfo.phone}</span>
                                 <span className="text-gray-400">|</span>
                                 <span>Email: Accounts@voomet.com</span>
@@ -149,39 +173,41 @@ const BOQPDFPreview = ({ boqData }) => {
                         </div>
                     </div>
 
-                    {/* Title and Client Info */}
-                    <div className="mb-6">
-                        <div className="bg-blue-800 text-white p-3 mb-4">
-                            <h2 className="text-lg font-bold text-center">BILL OF QUANTITIES (BOQ)</h2>
-                        </div>
+                    {/* Title and Client Info - Only on first page */}
+                    {pageIndex === 0 && (
+                        <div className="mb-6">
+                            <div className="bg-blue-800 text-white p-3 mb-4">
+                                <h2 className="text-lg font-bold text-center">BILL OF QUANTITIES (BOQ)</h2>
+                            </div>
 
-                        <div className="grid grid-cols-2 gap-8 mb-4">
-                            <div className="space-y-2">
-                                <div className="flex">
-                                    <span className="font-bold w-28 text-sm">CLIENT NAME:</span>
-                                    <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm">{boqData.customer}</span>
+                            <div className="grid grid-cols-2 gap-8 mb-4">
+                                <div className="space-y-2">
+                                    <div className="flex">
+                                        <span className="font-bold w-28 text-sm">CLIENT NAME:</span>
+                                        <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm">{boqData.customer}</span>
+                                    </div>
+                                    <div className="flex">
+                                        <span className="font-bold w-28 text-sm">LOCATION:</span>
+                                        <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm">{boqData.location || 'Bangalore'}</span>
+                                    </div>
+                                    <div className="flex">
+                                        <span className="font-bold w-28 text-sm">PROJECT:</span>
+                                        <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm">{projectName || 'Interior Design'}</span>
+                                    </div>
                                 </div>
-                                <div className="flex">
-                                    <span className="font-bold w-28 text-sm">LOCATION:</span>
-                                    <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm">{boqData.location || 'Bangalore'}</span>
-                                </div>
-                                <div className="flex">
-                                    <span className="font-bold w-28 text-sm">PROJECT:</span>
-                                    <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm">{projectName || 'Interior Design'}</span>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <div className="flex">
-                                    <span className="font-bold w-28 text-sm">ESTIMATE :</span>
-                                    <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm font-mono">{boqCode}</span>
-                                </div>
-                                <div className="flex">
-                                    <span className="font-bold w-28 text-sm">DATE:</span>
-                                    <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm">{currentDate}</span>
+                                <div className="space-y-2">
+                                    <div className="flex">
+                                        <span className="font-bold w-28 text-sm">ESTIMATE :</span>
+                                        <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm font-mono">{boqCode}</span>
+                                    </div>
+                                    <div className="flex">
+                                        <span className="font-bold w-28 text-sm">DATE:</span>
+                                        <span className="flex-1 border-b border-dotted border-gray-400 pb-1 text-sm">{currentDate}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Quote Table */}
                     <div className="mb-4">
@@ -189,7 +215,7 @@ const BOQPDFPreview = ({ boqData }) => {
                             <h3 className="font-bold text-center text-sm">DETAILED QUOTATION</h3>
                         </div>
 
-                        <table className="w-full border-collapse border border-blue-800 text-xs">
+                        <table className="w-full border-collapse border border-blue-800 text-sm">
                             <thead>
                                 <tr className="bg-blue-200">
                                     <th className="border border-blue-800 p-2 font-bold text-left">DESCRIPTION</th>
@@ -198,47 +224,44 @@ const BOQPDFPreview = ({ boqData }) => {
                                     <th className="border border-blue-800 p-2 font-bold text-center">UNIT TYPE</th>
                                     <th className="border border-blue-800 p-2 font-bold text-center">RATE (₹)</th>
                                     <th className="border border-blue-800 p-2 font-bold text-center">AMOUNT (₹)</th>
-                                    <th className="border border-blue-800 p-2 font-bold text-center">REMARKS</th>
-                                    <th className="border border-blue-800 p-2 font-bold text-center">IMAGE</th>
+                                    <th className="border border-blue-800 p-2 font-bold text-center w-40">REMARKS / IMAGE</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {/* Items */}
                                 {pageItems && pageItems.map((item, index) => (
                                     <tr key={index}>
-                                        <td className="border border-blue-800 p-2 align-top">
-                                            <div className="font-medium">{item.partName}</div>
+                                        <td className="border border-blue-800 p-3 align-top">
+                                            <div className="font-bold mb-1 text-xs">{item.partName}</div>
                                         </td>
-                                        <td className="border border-blue-800 p-2 text-center align-top">
+                                        <td className="border border-blue-800 p-3 text-center align-top leading-relaxed">
                                             {item.specification || '-'}
                                         </td>
-                                        <td className="border border-blue-800 p-2 text-center align-top font-mono">
+                                        <td className="border border-blue-800 p-3 text-center align-middle font-mono">
                                             {parseFloat(item.numberOfUnits || 0).toLocaleString()}
                                         </td>
-                                        <td className="border border-blue-800 p-2 text-center align-top">
+                                        <td className="border border-blue-800 p-3 text-center align-middle">
                                             {item.unitType}
                                         </td>
-                                        <td className="border border-blue-800 p-2 text-right align-top font-mono">
+                                        <td className="border border-blue-800 p-3 text-right align-middle font-mono">
                                             {parseFloat(item.unitPrice || 0).toLocaleString('en-IN', {
                                                 minimumFractionDigits: 2,
                                                 maximumFractionDigits: 2
                                             })}
                                         </td>
-                                        <td className="border border-blue-800 p-2 text-right align-top font-mono font-semibold">
+                                        <td className="border border-blue-800 p-3 text-right align-middle font-mono font-semibold">
                                             {parseFloat(item.totalPrice || 0).toLocaleString('en-IN', {
                                                 minimumFractionDigits: 2,
                                                 maximumFractionDigits: 2
                                             })}
                                         </td>
-                                        <td className="border border-blue-800 p-2 text-right align-top font-mono font-semibold">
-                                            {item.remarks || " "}
-                                        </td>
-                                        <td className="border border-blue-800 p-2 text-center align-top">
+                                        <td className="border border-blue-800 p-3 text-left align-top">
+                                            <div className="mb-3 leading-relaxed">{item.remarks || " "}</div>
                                             {getImageUrl(item.image) && (
                                                 <img
                                                     src={getImageUrl(item.image)}
                                                     alt="Item"
-                                                    className="h-16 w-16 object-contain mx-auto"
+                                                    className="w-full h-auto max-h-40 object-contain rounded-md border border-gray-200 shadow-sm"
                                                     crossOrigin="anonymous"
                                                 />
                                             )}
@@ -268,25 +291,25 @@ const BOQPDFPreview = ({ boqData }) => {
                     {pageIndex === pages.length - 1 && <div className="bg-blue-800 text-white mb-4">
                         <div className="grid grid-cols-4">
                             <div className="p-3 border-r border-blue-600 text-center">
-                                <div className="text-xs font-medium mb-1">SUBTOTAL (Excl. GST)</div>
+                                <div className="text-sm font-medium mb-1">SUBTOTAL (Excl. GST)</div>
                                 <div className="text-lg font-bold font-mono">
                                     ₹{finalTotalWithoutGST.toLocaleString('en-IN')}
                                 </div>
                             </div>
                             <div className="p-3 border-r border-blue-600 text-center">
-                                <div className="text-xs font-medium mb-1">Discount - ({discountPercentage}) %</div>
+                                <div className="text-sm font-medium mb-1">Discount - ({discountPercentage}) %</div>
                                 <div className="text-lg font-bold font-mono">
                                     ₹{(discountAmount || 0).toLocaleString('en-IN')}
                                 </div>
                             </div>
                             <div className="p-3 border-r border-blue-600 text-center">
-                                <div className="text-xs font-medium mb-1">GST @ {boqData.gstPercentage}%</div>
+                                <div className="text-sm font-medium mb-1">GST @ {boqData.gstPercentage}%</div>
                                 <div className="text-lg font-bold font-mono text-yellow-300">
                                     ₹{((totalWithGST - (finalTotalWithoutGST - (discountAmount || 0))) || 0).toLocaleString('en-IN')}
                                 </div>
                             </div>
                             <div className="p-3 text-center bg-green-600">
-                                <div className="text-xs font-medium mb-1">GRAND TOTAL</div>
+                                <div className="text-sm font-medium mb-1">GRAND TOTAL</div>
                                 <div className="text-xl font-bold font-mono">
                                     ₹{(totalWithGST || 0)?.toLocaleString('en-IN')}
                                 </div>
@@ -295,7 +318,7 @@ const BOQPDFPreview = ({ boqData }) => {
                     </div>}
 
                     {/* Footer */}
-                    <div className="mt-6 pt-3 border-t text-center text-xs text-blue-600">
+                    <div className="mt-6 pt-3 border-t text-center text-sm text-blue-600">
                         <p className="font-medium">This is a system generated quotation - {currentDate} - Page {pageIndex + 1} of {pages.length}</p>
                         <p className="mt-1">Thank you for choosing {companyInfo.name} for your interior design needs!</p>
                     </div>
