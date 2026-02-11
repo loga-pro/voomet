@@ -522,7 +522,7 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
               onBlur={handleBlur}
               error={errors.ifscCode}
               required={false}
-              maxLength="11"
+
             />
           </div>
 
