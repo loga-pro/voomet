@@ -464,7 +464,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
   if (selectedScopes.length > 0) {
     let currentBlocks = [];
     let currentLoad = 0;
-    const maxLoad = 24; // Reduced from 30 to accommodate larger font size and prevent overflow
+    const maxLoad = 28; // Increased from 24 to fill page better after font size reduction
 
     // Helper to add block to page
     const addBlock = (block, weight) => {
@@ -534,8 +534,14 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
       addBlock({ type: 'remarks_section', remarks: boqData.overallRemarks }, 1.5);
     }
 
+    // Force New Page after Summary to keep it separate
+    forceNewPage();
+
     // 2. Detailed Scope Tables
     selectedScopes.forEach((scope, index) => {
+      // Force a new page for each "DETAILED QUOTATION - [SCOPE]" section
+      forceNewPage();
+
       // Normalized (lowercase) match to handle case differences
       const items = (boqData.items || []).filter(i =>
         normalizeScope(i.scopeOfWork) === normalizeScope(scope)
@@ -547,7 +553,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
         const descLength = firstItem.partName?.length || 0;
         const specLength = firstItem.specification?.length || 0;
         const remarksLength = firstItem.remarks?.length || 0;
-        const firstItemWeight = Math.max(2.0, (Math.ceil(Math.max(descLength, specLength, remarksLength) / 35) * 0.9) + (firstItem.image ? 4.5 : 0));
+        const firstItemWeight = Math.max(1.5, (Math.ceil(Math.max(descLength, specLength, remarksLength) / 65) * 0.7) + (firstItem.image ? 4.0 : 0));
 
         // If header + first item won't fit, force new page before adding header
         if (currentLoad + 2 + firstItemWeight > maxLoad && currentBlocks.length > 0) {
@@ -557,24 +563,36 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
         // Scope Header
         addBlock({ type: 'scope_header', scope }, 2);
 
-        // Items - reduced weight from 1.5 to 1.0 to fit more items per page
         // Items - weight adjusted based on description, specification, and remarks length to better estimate page space
         items.forEach((item, idx) => {
           const descLength = item.partName?.length || 0;
           const specLength = item.specification?.length || 0;
           const remarksLength = item.remarks?.length || 0;
-          // Remarks and Images share a column, so we consider image presence as well
-          const hasImageWeight = item.image ? 4 : 0;
 
           const maxTextLength = Math.max(descLength, specLength, remarksLength);
-          const estimatedLines = Math.ceil(maxTextLength / 35); // Estimated chars per line
-          const weight = Math.max(2.0, (estimatedLines * 0.9) + (item.image ? 4.5 : 0));
+          const estimatedLines = Math.ceil(maxTextLength / 65);
+          const weight = Math.max(1.5, (estimatedLines * 0.7) + (item.image ? 4.0 : 0));
+
+          const isLast = idx === items.length - 1;
+          const upcomingWeight = isLast ? (weight + 1 + 1.5) : weight; // item + spacer + total
+
+          // If adding the item AND the upcoming total would break, break NOW
+          // so they all go to the next page together.
+          if (currentLoad + upcomingWeight > maxLoad && currentBlocks.length > 0) {
+            const isOnlyHeader = currentBlocks.length === 1 && currentBlocks[0].type === 'scope_header';
+            if (!isOnlyHeader) {
+              forceNewPage();
+            }
+          }
 
           addBlock({ type: 'item_row', item, index: idx + 1, scope }, weight);
         });
 
-        // Spacer after scope
         addBlock({ type: 'spacer' }, 1);
+
+        // Score Total Block for each scope
+        const scopeTotal = items.reduce((sum, item) => sum + (parseFloat(item.totalPrice) || 0), 0);
+        addBlock({ type: 'scope_total', total: scopeTotal, scope }, 1.5);
       }
     });
 
@@ -1089,7 +1107,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                                     <td className="border border-blue-800 p-2 font-medium">
                                       {scope.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                                     </td>
-                                    <td className="border border-blue-800 p-2 text-right font-mono font-bold">
+                                    <td className="border border-blue-800 p-2 text-center font-mono font-bold">
                                       {(block.totals[scope] || 0).toLocaleString('en-IN', {
                                         minimumFractionDigits: 2, maximumFractionDigits: 2
                                       })}
@@ -1099,7 +1117,7 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                                 {/* Total Row in Summary */}
                                 <tr className="bg-blue-50 font-bold">
                                   <td className="border border-blue-800 p-2 text-center" colSpan="2">TOTAL</td>
-                                  <td className="border border-blue-800 p-2 text-right font-mono">
+                                  <td className="border border-blue-800 p-2 text-center font-mono">
                                     {Object.values(block.totals).reduce((a, b) => a + b, 0).toLocaleString('en-IN', {
                                       minimumFractionDigits: 2, maximumFractionDigits: 2
                                     })}
@@ -1174,6 +1192,26 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                         );
                       }
 
+                      // --- Scope Total ---
+                      if (block.type === 'scope_total') {
+                        return (
+                          <div key={`scope-total-${index}`} className="flex justify-end mb-8">
+                            <table className="w-1/2 border-collapse border border-blue-800 text-sm">
+                              <tbody>
+                                <tr className="bg-blue-100 font-bold">
+                                  <td className="border border-blue-800 p-3 text-right">TOTAL {block.scope.replace(/_/g, ' ').toUpperCase()}</td>
+                                  <td className="border border-blue-800 p-3 text-center w-40 font-mono">
+                                    ₹{block.total.toLocaleString('en-IN', {
+                                      minimumFractionDigits: 2, maximumFractionDigits: 2
+                                    })}
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      }
+
                       // --- Scope Header ---
                       if (block.type === 'scope_header') {
                         return (
@@ -1205,15 +1243,14 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                           <table key={`table-${index}`} className="w-full border-collapse border border-blue-800 text-sm mb-0">
                             <thead>
                               <tr className="bg-blue-200">
-                                <th className="border border-blue-800 p-2 font-bold text-center w-12">S.NO</th>
                                 <th className="border border-blue-800 p-2 font-bold text-left">DESCRIPTION</th>
-                                <th className="border border-blue-800 p-2 font-bold text-center w-24">SPECIFICATION</th>
-                                <th className="border border-blue-800 p-2 font-bold text-center w-16">QTY</th>
-                                <th className="border border-blue-800 p-2 font-bold text-center w-16">UNIT</th>
+                                <th className="border border-blue-800 p-2 font-bold text-center w-[50px] text-[10px]">SPEC<br />IFICATION</th>
+                                <th className="border border-blue-800 p-2 font-bold text-center w-[35px] text-[10px]">QTY</th>
+                                <th className="border border-blue-800 p-2 font-bold text-center w-[35px] text-[10px]">UNIT</th>
                                 {hasInOffice && <>
-                                  <th className="border border-blue-800 p-2 font-bold text-center w-28">RATE (₹)</th>
-                                  <th className="border border-blue-800 p-2 font-bold text-center w-32">AMOUNT (₹)</th>
-                                  <th className="border border-blue-800 p-2 font-bold text-center w-40">REMARKS / IMAGE</th>
+                                  <th className="border border-blue-800 p-2 font-bold text-center w-[70px] text-[10px]">RATE(₹)</th>
+                                  <th className="border border-blue-800 p-2 font-bold text-center w-[85px] text-[10px]">AMOUNT(₹)</th>
+                                  <th className="border border-blue-800 p-2 font-bold text-center w-[100px] text-[10px]">REMARKS /<br />IMAGE</th>
                                 </>}
                               </tr>
                             </thead>
@@ -1222,39 +1259,36 @@ const AdvancedBOQPDFGenerator = ({ boqData, onClose, hasInOffice = true, showEst
                                 const item = blockItem.item;
                                 return (
                                   <tr key={itemIdx}>
-                                    <td className="border border-blue-800 p-3 text-center align-middle font-semibold">
-                                      {blockItem.index}
+                                    <td className="border border-blue-800 p-2 text-left align-top leading-tight">
+                                      <div className="text-[11px] font-medium">{item.partName}</div>
                                     </td>
-                                    <td className="border border-blue-800 p-3 align-top">
-                                      <div className="font-bold mb-1 text-xs">{item.partName}</div>
-                                    </td>
-                                    <td className="border border-blue-800 p-3 text-center align-top leading-relaxed">
+                                    <td className="border border-blue-800 p-2 text-left align-top leading-tight text-[10px]">
                                       {item.specification || '-'}
                                     </td>
-                                    <td className="border border-blue-800 p-3 text-center align-middle font-mono">
+                                    <td className="border border-blue-800 p-2 text-center align-middle font-mono text-[10px]">
                                       {parseFloat(item.numberOfUnits || 0).toLocaleString()}
                                     </td>
-                                    <td className="border border-blue-800 p-3 text-center align-middle">
+                                    <td className="border border-blue-800 p-2 text-center align-middle text-[10px]">
                                       {item.unitType}
                                     </td>
                                     {hasInOffice && <>
-                                      <td className="border border-blue-800 p-3 text-right align-middle font-mono">
+                                      <td className="border border-blue-800 p-2 text-right align-middle font-mono text-[10px]">
                                         {parseFloat(item.unitPrice || 0).toLocaleString('en-IN', {
                                           minimumFractionDigits: 2, maximumFractionDigits: 2
                                         })}
                                       </td>
-                                      <td className="border border-blue-800 p-3 text-right align-middle font-mono font-semibold">
+                                      <td className="border border-blue-800 p-2 text-right align-middle font-mono font-semibold text-[10px]">
                                         {parseFloat(item.totalPrice || 0).toLocaleString('en-IN', {
                                           minimumFractionDigits: 2, maximumFractionDigits: 2
                                         })}
                                       </td>
-                                      <td className="border border-blue-800 p-3 text-left align-top">
-                                        <div className="mb-3 leading-relaxed">{item.remarks || " "}</div>
+                                      <td className="border border-blue-800 p-2 text-left align-top text-[10px]">
+                                        <div className="mb-2 leading-tight">{item.remarks || " "}</div>
                                         {getImageUrl(item.image) && (
                                           <img
                                             src={getImageUrl(item.image)}
                                             alt="Item"
-                                            className="w-full h-auto max-h-40 object-contain rounded-md border border-gray-200 shadow-sm"
+                                            className="w-full h-auto max-h-32 object-contain rounded-md border border-gray-200"
                                             crossOrigin="anonymous"
                                           />
                                         )}

@@ -131,11 +131,6 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
         break;
 
       case 'ifscCode':
-        if (!value) {
-          error = 'IFSC code is required';
-        } else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(value)) {
-          error = 'IFSC code must be 11 characters (e.g., SBIN0001234)';
-        }
         break;
 
       case 'vendorName':
@@ -266,7 +261,6 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
       'zipCode',
       'country',
       'bankAccountNumber',
-      'ifscCode',
       'mobileNumber'
     ];
 
@@ -398,7 +392,6 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
       'zipCode',
       'country',
       'bankAccountNumber',
-      'ifscCode',
       'mobileNumber'
     ];
 
@@ -528,7 +521,7 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
               onChange={handleChange}
               onBlur={handleBlur}
               error={errors.ifscCode}
-              required={true}
+              required={false}
               maxLength="11"
             />
           </div>

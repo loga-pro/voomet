@@ -82,15 +82,9 @@ const vendorSchema = new mongoose.Schema({
   },
   ifscCode: {
     type: String,
-    required: true,
+    required: false,
     uppercase: true,
     trim: true,
-    validate: {
-      validator: function (v) {
-        return /^[A-Z]{4}0[A-Z0-9]{6}$/.test(v);
-      },
-      message: 'Invalid IFSC code format'
-    }
   },
   email: {
     type: String,
@@ -158,18 +152,18 @@ const vendorSchema = new mongoose.Schema({
 
 // Add index for better query performance and to handle unique constraints with empty values
 vendorSchema.index(
-  { email: 1 }, 
-  { 
-    unique: true, 
-    partialFilterExpression: { email: { $type: "string", $gt: "" } } 
+  { email: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { email: { $type: "string", $gt: "" } }
   }
 );
 vendorSchema.index({ mobileNumber: 1 }, { unique: true });
 vendorSchema.index(
-  { gstNumber: 1 }, 
-  { 
-    unique: true, 
-    partialFilterExpression: { gstNumber: { $type: "string", $gt: "" } } 
+  { gstNumber: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { gstNumber: { $type: "string", $gt: "" } }
   }
 );
 
