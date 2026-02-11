@@ -205,7 +205,7 @@ const VendorForm = ({ vendor, onSubmit, onCancel }) => {
       validatedValue = value.replace(/\D/g, '').slice(0, 18);
     } else if (name === 'ifscCode') {
       validatedValue = value.replace(/\s+/g, '').toUpperCase();
-      validatedValue = validatedValue.replace(/[^A-Z0-9]/g, '').slice(0, 11);
+      validatedValue = validatedValue.replace(/[^A-Z0-9]/g, '').slice(0, 50);
     } else if (name === 'gstNumber') {
       validatedValue = value.replace(/\s+/g, '').toUpperCase();
       validatedValue = validatedValue.replace(/[^A-Z0-9]/g, '').slice(0, 15);
