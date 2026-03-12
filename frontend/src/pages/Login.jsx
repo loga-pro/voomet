@@ -387,7 +387,6 @@ const Login = () => {
     }
   };
 
-
   const handleResetPassword = async (e) => {
     e.preventDefault();
     if (forgotPasswordData.newPassword !== forgotPasswordData.confirmPassword) {
