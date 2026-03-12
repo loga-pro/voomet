@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Building2, FileText, Plus, Trash2, Wallet, Truck, ChevronLeft, ChevronRight, AlertCircle, CreditCard, AlertTriangle } from 'lucide-react';
 import { Modal } from 'antd';
 import FloatingInput from './FloatingInput';
-import { customersAPI, paymentsAPI, projectsAPI, boqAPI, milestonesAPI, inhouseMilestonesAPI } from '../../services/api';
+import { customersAPI, paymentsAPI, projectsAPI, boqAPI, milestonesAPI, inhouseMilestonesAPI, purchasesAPI } from '../../services/api';
 
 const PaymentForm = ({ payment, onSubmit, onCancel }) => {
   const [isOverdueMode, setIsOverdueMode] = useState(false);
@@ -96,11 +96,12 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
   const [activeTab, setActiveTab] = useState('project');
   const [usedInvoiceNumbers, setUsedInvoiceNumbers] = useState(new Set());
   const [boqData, setBoqData] = useState(null);
-  const [invoiceValueErrors, setInvoiceValueErrors] = useState({}); // Store invoice value validation errors
-  const [showAddPayment, setShowAddPayment] = useState(false); // New state for showing add payment button
-  const [showAlreadyInvoicedPopup, setShowAlreadyInvoicedPopup] = useState(false); // Popup for already invoiced projects
-  const [existingInvoices, setExistingInvoices] = useState([]); // Store existing invoices for popup
-  const [projectStartDate, setProjectStartDate] = useState(null); // Store project start date from milestone
+  const [invoiceValueErrors, setInvoiceValueErrors] = useState({});
+  const [showAddPayment, setShowAddPayment] = useState(false);
+  const [showAlreadyInvoicedPopup, setShowAlreadyInvoicedPopup] = useState(false);
+  const [existingInvoices, setExistingInvoices] = useState([]);
+  const [projectStartDate, setProjectStartDate] = useState(null);
+  const [purchaseOrderVouchers, setPurchaseOrderVouchers] = useState([]);
 
   const fetchProjectInvoicedAmount = async (customerName, projectName) => {
     try {
@@ -195,6 +196,7 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
 
   useEffect(() => {
     fetchCustomers();
+    fetchPurchaseOrderVouchers();
     if (payment) {
       const formattedInvoices = (payment.invoices || []).map((invoice, index) => ({
         ...invoice,
@@ -336,6 +338,17 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
       }
     } catch (error) {
       console.error('Error fetching BOQ terms:', error);
+    }
+  };
+
+  const fetchPurchaseOrderVouchers = async () => {
+    try {
+      const purchases = await purchasesAPI.getAll({ limit: 1000 });
+      const purchasesList = Array.isArray(purchases) ? purchases : purchases.data || [];
+      const uniqueVouchers = [...new Set(purchasesList.map(p => p.voucherNo).filter(Boolean))];
+      setPurchaseOrderVouchers(uniqueVouchers);
+    } catch (error) {
+      console.error('Error fetching purchase order vouchers:', error);
     }
   };
 
@@ -1814,9 +1827,17 @@ const PaymentForm = ({ payment, onSubmit, onCancel }) => {
                             <FloatingInput
                               label="Buyer's Ref / Order No"
                               name="buyersRef"
+                              type="select"
                               value={invoice.buyersRef}
                               onChange={(e) => updateInvoice(invoiceIndex, 'buyersRef', e.target.value)}
                               disabled={isProjectFullyInvoiced}
+                              options={[
+                                { value: '', label: 'Select Purchase Order Ref' },
+                                ...purchaseOrderVouchers.map(voucher => ({
+                                  value: voucher,
+                                  label: voucher
+                                }))
+                              ]}
                             />
                             <FloatingInput
                               label="Buyer's Ref Date"

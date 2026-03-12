@@ -191,15 +191,15 @@ router.post('/', auth, async (req, res) => {
       });
     }
 
-    // Calculate total invoice value with tax
+    // Calculate total invoice value (base, without tax) - matches frontend validation
     const totalInvoiceValue = (invoices || []).reduce((sum, invoice) => {
-      return sum + (parseFloat(invoice.totalWithTax) || parseFloat(invoice.invoiceValue) || 0);
+      return sum + (parseFloat(invoice.invoiceValue) || 0);
     }, 0);
 
     // Calculate total of all existing invoices for this project
     const existingInvoiceTotal = existingPayments.reduce((sum, payment) => {
       return sum + payment.invoices.reduce((invSum, invoice) => {
-        return invSum + (invoice.totalWithTax || invoice.invoiceValue || 0);
+        return invSum + (parseFloat(invoice.invoiceValue) || 0);
       }, 0);
     }, 0);
 
@@ -208,10 +208,11 @@ router.post('/', auth, async (req, res) => {
     console.log('New invoice total:', totalInvoiceValue);
     console.log('Grand total invoices:', grandTotalInvoices);
 
-    // Validate that total invoices don't exceed BOQ total with GST (if BOQ exists)
-    if (boqData && grandTotalInvoices > boqTotalWithGST) {
+    // Validate against projectCost (finalTotalWithoutGST from BOQ) — matches frontend validation
+    const budgetLimit = parseFloat(projectCost);
+    if (!isNaN(budgetLimit) && budgetLimit > 0 && grandTotalInvoices > budgetLimit + 0.01) {
       return res.status(400).json({
-        message: `Total invoice amount (₹${grandTotalInvoices.toFixed(2)}) exceeds BOQ total with GST (₹${boqTotalWithGST.toFixed(2)}). Remaining amount: ₹${(boqTotalWithGST - existingInvoiceTotal).toFixed(2)}`
+        message: `Total invoice amount (₹${grandTotalInvoices.toFixed(2)}) exceeds project budget (₹${budgetLimit.toFixed(2)}). Remaining: ₹${Math.max(0, budgetLimit - existingInvoiceTotal).toFixed(2)}`
       });
     }
 
@@ -344,24 +345,25 @@ router.put('/:id', auth, async (req, res) => {
       });
     }
 
-    // Calculate total invoice value with tax
+    // Calculate total invoice value (base, without tax) - matches frontend validation
     const totalInvoiceValue = (invoices || []).reduce((sum, invoice) => {
-      return sum + (parseFloat(invoice.totalWithTax) || parseFloat(invoice.invoiceValue) || 0);
+      return sum + (parseFloat(invoice.invoiceValue) || 0);
     }, 0);
 
     // Calculate total of all existing invoices for this project (excluding current payment)
     const existingInvoiceTotal = existingPayments.reduce((sum, payment) => {
       return sum + payment.invoices.reduce((invSum, invoice) => {
-        return invSum + (invoice.totalWithTax || invoice.invoiceValue || 0);
+        return invSum + (parseFloat(invoice.invoiceValue) || 0);
       }, 0);
     }, 0);
 
     const grandTotalInvoices = existingInvoiceTotal + totalInvoiceValue;
 
-    // Validate that total invoices don't exceed BOQ total with GST (if BOQ exists)
-    if (boqData && grandTotalInvoices > boqTotalWithGST) {
+    // Validate against projectCost (finalTotalWithoutGST from BOQ) — matches frontend validation
+    const budgetLimit = parseFloat(projectCost);
+    if (!isNaN(budgetLimit) && budgetLimit > 0 && grandTotalInvoices > budgetLimit + 0.01) {
       return res.status(400).json({
-        message: `Total invoice amount (₹${grandTotalInvoices.toFixed(2)}) exceeds BOQ total with GST (₹${boqTotalWithGST.toFixed(2)}). Remaining amount: ₹${(boqTotalWithGST - existingInvoiceTotal).toFixed(2)}`
+        message: `Total invoice amount (₹${grandTotalInvoices.toFixed(2)}) exceeds project budget (₹${budgetLimit.toFixed(2)}). Remaining: ₹${Math.max(0, budgetLimit - existingInvoiceTotal).toFixed(2)}`
       });
     }
 
