@@ -1,10 +1,8 @@
 import axios from "axios";
 
-// export const API_BASE_URL = "http://localhost:5000/api";
-// export const FILE_BASE_URL = "http://localhost:5000";
+export const API_BASE_URL = "http://localhost:5000/api";
+export const FILE_BASE_URL = "http://localhost:5000";
 
-export const API_BASE_URL = 'https://voomet.onrender.com/api';
-export const FILE_BASE_URL = "https://voomet.onrender.com";
 
 // Create axios instance
 const api = axios.create({

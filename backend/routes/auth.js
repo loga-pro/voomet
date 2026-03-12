@@ -114,6 +114,27 @@ router.post('/forgot-password', async (req, res) => {
   }
 });
 
+// Verify OTP
+router.post('/verify-otp', async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    const user = await User.findOne({ 
+      email, 
+      resetOtp: otp, 
+      resetOtpExpiry: { $gt: Date.now() } 
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    res.json({ message: 'OTP verified successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Reset Password with OTP
 router.post('/reset-password', async (req, res) => {
   const { email, otp, newPassword } = req.body;

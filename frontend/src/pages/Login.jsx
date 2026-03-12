@@ -196,7 +196,7 @@ const Login = () => {
       if (lockoutEndTime) {
         const remaining = Math.max(0, Math.ceil((parseInt(lockoutEndTime) - Date.now()) / 1000));
         setLockoutTimeLeft(remaining);
-        
+
         if (remaining === 0) {
           setIsLocked(false);
           sessionStorage.removeItem('lockoutEndTime');
@@ -229,41 +229,41 @@ const Login = () => {
 
   const validatePassword = (password) => {
     const errors = [];
-    
+
     if (password.length < 8) {
       errors.push('Password must be at least 8 characters long');
     }
-    
+
     if (password.length > 30) {
       errors.push('Password must not exceed 30 characters');
     }
-    
+
     if (!/[A-Z]/.test(password)) {
       errors.push('Password must contain at least one capital letter');
     }
-    
+
     if (!/\d/.test(password)) {
       errors.push('Password must contain at least one number');
     }
-    
+
     if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
       errors.push('Password must contain at least one special character');
     }
-    
+
     return errors;
   };
 
   const getPasswordStrength = (password) => {
     if (!password) return { strength: 0, label: 'None', color: 'gray' };
-    
+
     let score = 0;
-    
+
     if (password.length >= 8 && password.length <= 30) score++;
     if (/[A-Z]/.test(password)) score++;
     if (/\d/.test(password)) score++;
     if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) score++;
     if (password.length >= 12) score++;
-    
+
     if (score <= 2) return { strength: score, label: 'Weak', color: 'red' };
     if (score <= 3) return { strength: score, label: 'Medium', color: 'yellow' };
     if (score <= 4) return { strength: score, label: 'Strong', color: 'green' };
@@ -304,7 +304,7 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (isLocked) {
       setError(`Account locked. Please try again in ${lockoutTimeLeft} seconds.`);
       return;
@@ -315,14 +315,14 @@ const Login = () => {
 
     try {
       const response = await authAPI.login(formData);
-      
+
       sessionStorage.removeItem('failedAttempts');
       sessionStorage.removeItem('lockoutEndTime');
       setFailedAttempts(0);
-      
+
       sessionStorage.setItem('token', response.data.token);
       sessionStorage.setItem('user', JSON.stringify(response.data.user));
-      
+
       if (rememberMe) {
         sessionStorage.setItem('rememberedEmail', formData.email);
         sessionStorage.setItem('rememberMe', 'true');
@@ -330,7 +330,7 @@ const Login = () => {
         sessionStorage.removeItem('rememberedEmail');
         sessionStorage.removeItem('rememberMe');
       }
-      
+
       window.history.replaceState(null, '', '/');
       navigate('/', { replace: true });
     } catch (error) {
@@ -371,16 +371,20 @@ const Login = () => {
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     setIsVerifyingOtp(true);
-    const otp = (forgotPasswordData.otp || '').trim();
-    setTimeout(() => {
-      if (otp.length >= 4) {
-        setForgotPasswordStep(3);
-        setForgotPasswordMessage('OTP verified successfully');
-      } else {
-        setForgotPasswordMessage('Invalid OTP');
-      }
+    setForgotPasswordMessage('');
+
+    try {
+      await authAPI.verifyOtp({
+        email: forgotPasswordData.email,
+        otp: forgotPasswordData.otp
+      });
+      setForgotPasswordStep(3);
+      setForgotPasswordMessage('OTP verified successfully');
+    } catch (error) {
+      setForgotPasswordMessage(error.response?.data?.message || 'Invalid or expired OTP');
+    } finally {
       setIsVerifyingOtp(false);
-    }, 600);
+    }
   };
 
   const handleResetPassword = async (e) => {
@@ -389,13 +393,13 @@ const Login = () => {
       setForgotPasswordMessage('Passwords do not match');
       return;
     }
-    
+
     const passwordErrors = validatePassword(forgotPasswordData.newPassword);
     if (passwordErrors.length > 0) {
       setForgotPasswordMessage(passwordErrors[0]);
       return;
     }
-    
+
     try {
       await authAPI.resetPassword({
         email: forgotPasswordData.email,
@@ -416,14 +420,14 @@ const Login = () => {
 
   const handlePrevImage = (e) => {
     e.stopPropagation();
-    setCurrentImageIndex((prevIndex) => 
+    setCurrentImageIndex((prevIndex) =>
       prevIndex === 0 ? imageSlides.length - 1 : prevIndex - 1
     );
   };
 
   const handleNextImage = (e) => {
     e.stopPropagation();
-    setCurrentImageIndex((prevIndex) => 
+    setCurrentImageIndex((prevIndex) =>
       (prevIndex + 1) % imageSlides.length
     );
   };
@@ -440,7 +444,7 @@ const Login = () => {
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 mb-2">Forgot Password</h1>
             <p className="text-sm sm:text-base text-gray-600">Reset your account password</p>
           </div>
-          
+
           {isSendingOtp && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
               <div className="bg-white rounded-2xl shadow-2xl p-6 w-80 text-center animate-pulse">
@@ -467,7 +471,7 @@ const Login = () => {
                 onChange={handleForgotPasswordChange}
               />
             )}
-            
+
             {forgotPasswordStep === 2 && (
               <FloatingInput
                 type="text"
@@ -489,35 +493,33 @@ const Login = () => {
                   value={forgotPasswordData.newPassword}
                   onChange={handleForgotPasswordChange}
                 />
-                
+
                 {forgotPasswordData.newPassword && (
                   <div className="mt-1">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs text-gray-600">Password Strength:</span>
-                      <span className={`text-xs font-medium ${
-                        getPasswordStrength(forgotPasswordData.newPassword).color === 'red' ? 'text-red-600' :
-                        getPasswordStrength(forgotPasswordData.newPassword).color === 'yellow' ? 'text-yellow-600' :
-                        getPasswordStrength(forgotPasswordData.newPassword).color === 'green' ? 'text-green-600' :
-                        'text-green-800'
-                      }`}>
+                      <span className={`text-xs font-medium ${getPasswordStrength(forgotPasswordData.newPassword).color === 'red' ? 'text-red-600' :
+                          getPasswordStrength(forgotPasswordData.newPassword).color === 'yellow' ? 'text-yellow-600' :
+                            getPasswordStrength(forgotPasswordData.newPassword).color === 'green' ? 'text-green-600' :
+                              'text-green-800'
+                        }`}>
                         {getPasswordStrength(forgotPasswordData.newPassword).label}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full transition-all duration-300 ${
-                          getPasswordStrength(forgotPasswordData.newPassword).strength <= 2 ? 'bg-red-500 w-1/4' :
-                          getPasswordStrength(forgotPasswordData.newPassword).strength <= 3 ? 'bg-yellow-500 w-1/2' :
-                          getPasswordStrength(forgotPasswordData.newPassword).strength <= 4 ? 'bg-green-500 w-3/4' :
-                          'bg-green-700 w-full'
-                        }`}
+                      <div
+                        className={`h-2 rounded-full transition-all duration-300 ${getPasswordStrength(forgotPasswordData.newPassword).strength <= 2 ? 'bg-red-500 w-1/4' :
+                            getPasswordStrength(forgotPasswordData.newPassword).strength <= 3 ? 'bg-yellow-500 w-1/2' :
+                              getPasswordStrength(forgotPasswordData.newPassword).strength <= 4 ? 'bg-green-500 w-3/4' :
+                                'bg-green-700 w-full'
+                          }`}
                       />
                     </div>
                   </div>
                 )}
-                
+
                 {forgotPasswordData.newPassword && <PasswordRequirements password={forgotPasswordData.newPassword} />}
-                
+
                 <FloatingInput
                   type="password"
                   name="confirmPassword"
@@ -528,13 +530,13 @@ const Login = () => {
                 />
               </>
             )}
-            
+
             {forgotPasswordMessage && (
               <div className={`text-xs sm:text-sm p-3 rounded-lg sm:rounded-xl ${forgotPasswordMessage.includes('successfully') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
                 {forgotPasswordMessage}
               </div>
             )}
-            
+
             <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
               <button
                 type="submit"
@@ -587,24 +589,24 @@ const Login = () => {
       {/* Left Side - Login Form */}
       <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 flex-1 relative overflow-hidden">
         {/* Animated Gradient Background */}
-        <div 
+        <div
           ref={gradientRef}
           className="absolute inset-0 z-0 transition-all duration-300"
         />
-        
+
         {/* Floating Particles Animation */}
-        <div 
+        <div
           ref={animationRef}
           className="absolute inset-0 z-1 overflow-hidden"
         />
-        
+
         {/* Subtle pattern overlay - Fixed SVG syntax */}
         <div className="absolute inset-0 z-2 bg-[url('data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22none%22 fill-rule=%22evenodd%22%3E%3Cg fill=%22%239C92AC%22 fill-opacity=%220.05%22%3E%3Cpath d=%22M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
-        
+
         {/* Glowing orbs */}
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-purple-400/20 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        
+
         {/* Curved Right Edge Divider for Desktop */}
         <div className="hidden lg:block absolute top-0 bottom-0 right-0 z-20 overflow-hidden">
           <div className="relative h-full w-32">
@@ -616,22 +618,22 @@ const Login = () => {
             <div className="absolute inset-y-0 right-0 w-2 bg-gradient-to-l from-gray-200/50 to-transparent"></div>
           </div>
         </div>
-        
+
         {/* Curved Corner SVG for smoother transition */}
         <div className="hidden lg:block absolute top-0 right-0 w-32 h-32 z-20">
           <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path 
-              d="M0,0 Q100,0 100,100 L100,0 Z" 
+            <path
+              d="M0,0 Q100,0 100,100 L100,0 Z"
               fill="white"
               opacity="0.98"
             />
           </svg>
         </div>
-        
+
         <div className="hidden lg:block absolute bottom-0 right-0 w-32 h-32 z-20">
           <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path 
-              d="M0,100 Q100,100 100,0 L100,100 Z" 
+            <path
+              d="M0,100 Q100,100 100,0 L100,100 Z"
               fill="white"
               opacity="0.98"
             />
@@ -639,14 +641,14 @@ const Login = () => {
         </div>
 
         {/* Voomet Branding - ABOVE the login modal on desktop */}
-       <div className="hidden lg:flex flex-col items-center mb-8 relative z-30">
-  <div className="text-center transform transition-all duration-500 hover:scale-105">
-    <h1 className="text-4xl font-bold text-white mb-3">
-      Voomet
-    </h1>
-    <p className="text-lg text-white/90 animate-pulse">Transform your space, transform your life.</p>
-  </div>
-</div>
+        <div className="hidden lg:flex flex-col items-center mb-8 relative z-30">
+          <div className="text-center transform transition-all duration-500 hover:scale-105">
+            <h1 className="text-4xl font-bold text-white mb-3">
+              Voomet
+            </h1>
+            <p className="text-lg text-white/90 animate-pulse">Transform your space, transform your life.</p>
+          </div>
+        </div>
 
         <div className="w-full max-w-md mx-4 relative z-30">
           <div className="bg-white/95 backdrop-blur-sm rounded-2xl lg:rounded-3xl shadow-2xl p-6 sm:p-8 lg:p-10 border border-white/20 transform transition-all duration-300 hover:shadow-3xl">
@@ -679,11 +681,10 @@ const Login = () => {
               />
 
               {error && (
-                <div className={`p-3 rounded-xl text-sm animate-shake ${
-                  isLocked 
-                    ? 'bg-orange-50 text-orange-700 border border-orange-200' 
+                <div className={`p-3 rounded-xl text-sm animate-shake ${isLocked
+                    ? 'bg-orange-50 text-orange-700 border border-orange-200'
                     : 'bg-red-50 text-red-700'
-                }`}>
+                  }`}>
                   {error}
                   {isLocked && (
                     <div className="mt-2 text-xs font-semibold">
@@ -702,11 +703,10 @@ const Login = () => {
                       onChange={(e) => setRememberMe(e.target.checked)}
                       className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer opacity-0 absolute"
                     />
-                    <div className={`w-4 h-4 border rounded flex items-center justify-center transition-all duration-300 ${
-                      rememberMe 
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 border-transparent' 
+                    <div className={`w-4 h-4 border rounded flex items-center justify-center transition-all duration-300 ${rememberMe
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 border-transparent'
                         : 'border-gray-300 group-hover:border-blue-500'
-                    }`}>
+                      }`}>
                       {rememberMe && (
                         <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
@@ -766,16 +766,15 @@ const Login = () => {
             <div className="absolute inset-y-0 left-0 w-2 bg-gradient-to-r from-black/20 to-transparent"></div>
           </div>
         </div>
-        
+
         <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 via-purple-900/10 to-pink-900/10 backdrop-blur-[1px]">
           {/* Current Image Display */}
           <div className="relative w-full h-full" onClick={handleImageClick}>
             {imageSlides.map((slide, index) => (
               <div
                 key={index}
-                className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-                  index === currentImageIndex ? 'opacity-100' : 'opacity-0'
-                }`}
+                className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+                  }`}
               >
                 <img
                   src={slide.src || slide.fallback}
@@ -791,7 +790,7 @@ const Login = () => {
               </div>
             ))}
           </div>
-          
+
           {/* Navigation Dots */}
           <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-2 z-10">
             {imageSlides.map((_, index) => (
@@ -801,16 +800,15 @@ const Login = () => {
                   e.stopPropagation();
                   setCurrentImageIndex(index);
                 }}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                  index === currentImageIndex 
-                    ? 'bg-blue-300 w-6' 
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${index === currentImageIndex
+                    ? 'bg-blue-300 w-6'
                     : 'bg-blue-200/50 hover:bg-blue-200/80'
-                }`}
+                  }`}
                 aria-label={`Go to slide ${index + 1}`}
               />
             ))}
           </div>
-          
+
           {/* Navigation Arrows */}
           <button
             onClick={handlePrevImage}
@@ -821,7 +819,7 @@ const Login = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          
+
           <button
             onClick={handleNextImage}
             className="absolute right-8 top-1/2 transform -translate-y-1/2 bg-blue-500/40 hover:bg-blue-500/60 text-white p-3 rounded-full transition-all duration-300 backdrop-blur-sm z-20 shadow-lg hover:shadow-xl"
@@ -831,7 +829,7 @@ const Login = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
             </svg>
           </button>
-          
+
           {/* Content Overlay */}
           <div className="absolute inset-0 flex flex-col justify-end p-12 text-white">
             <div className="max-w-xl">
@@ -851,9 +849,9 @@ const Login = () => {
               </div>
             </div>
           </div>
-          
+
           {/* Slide Counter */}
-          <div 
+          <div
             className="absolute top-8 right-8 bg-blue-900/40 backdrop-blur-sm text-blue-100 px-4 py-2 rounded-full text-sm cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
@@ -879,11 +877,11 @@ const Login = () => {
                   </svg>
                 </button>
               </div>
-              
+
               <div className="mb-8">
                 <p className="text-blue-100 leading-relaxed">{modalContent.description}</p>
               </div>
-              
+
               <div className="flex justify-end space-x-4">
                 <button
                   onClick={() => setShowModal(false)}

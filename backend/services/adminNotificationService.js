@@ -118,28 +118,137 @@ function formatValue(value) {
 /**
  * Generate before/after comparison HTML for update operations
  */
+/**
+ * Generate detailed changes for an array of objects
+ */
+function getDetailedArrayChanges(oldArr, newArr) {
+  if (!Array.isArray(oldArr) || !Array.isArray(newArr)) return '';
+  
+  const changes = [];
+  
+  // Try to find a good identifier for the items
+  const getIdentifier = (item) => {
+    if (!item) return null;
+    return item._id?.toString() || item.task || item.partName || item.itemName || item.phase || item.description || item.code;
+  };
+
+  const getName = (item) => {
+    if (!item) return 'Unknown';
+    return item.task || item.partName || item.itemName || item.phase || item.description || item.code || item.name || 'Item';
+  };
+
+  const oldMap = new Map();
+  oldArr.forEach(item => {
+    const id = getIdentifier(item);
+    if (id) oldMap.set(id, item);
+  });
+
+  const newMap = new Map();
+  newArr.forEach(item => {
+    const id = getIdentifier(item);
+    if (id) newMap.set(id, item);
+  });
+
+  // Watch these fields for changes
+  const watchFields = [
+    'status', 'completion', 'quantity', 'rate', 'totalValue', 'total', 
+    'remarks', 'remark', 'percentage', 'startDate', 'endDate',
+    'actualStartDate', 'actualEndDate', 'outlookCompletion', 'responsiblePerson',
+    'actualProduction', 'productionQuantityPlan', 'gap', 'reasonForDelay', 'specification',
+    'unitType', 'thickness', 'area', 'code'
+  ];
+
+  // Find updated and removed
+  for (const [id, oldItem] of oldMap) {
+    const newItem = newMap.get(id);
+    if (!newItem) {
+      changes.push(`<span style="color: #d32f2f;">❌ Removed: ${getName(oldItem)}</span>`);
+    } else {
+      const itemChanges = [];
+      
+      watchFields.forEach(f => {
+        if (!(f in oldItem) && !(f in newItem)) return;
+
+        const oldVal = oldItem[f];
+        const newVal = newItem[f];
+        
+        // Skip if both are non-existent or null/undefined
+        if ((oldVal === null || oldVal === undefined) && (newVal === null || newVal === undefined)) return;
+
+        // Compare values
+        const oldStr = JSON.stringify(oldVal);
+        const newStr = JSON.stringify(newVal);
+
+        if (oldStr !== newStr) {
+          const displayOld = formatValue(oldVal);
+          const displayNew = formatValue(newVal);
+          itemChanges.push(`<strong>${formatFieldName(f)}:</strong> ${displayOld} → ${displayNew}`);
+        }
+      });
+      
+      if (itemChanges.length > 0) {
+        changes.push(`<span style="color: #1976d2;">📝 Modified ${getName(oldItem)}:</span><br/>&nbsp;&nbsp;&nbsp;&nbsp;${itemChanges.join(', ')}`);
+      }
+    }
+  }
+
+  // Find added
+  for (const [id, newItem] of newMap) {
+    if (!oldMap.has(id)) {
+      changes.push(`<span style="color: #388e3c;">➕ Added: ${getName(newItem)}</span>`);
+    }
+  }
+
+  if (changes.length === 0) return '';
+  
+  return `
+    <div style="font-size: 11px; margin-top: 8px; border-top: 1px dashed #e0e0e0; padding-top: 8px; line-height: 1.5; color: #444;">
+      ${changes.join('<br/>')}
+    </div>
+  `;
+}
+
+/**
+ * Generate before/after comparison HTML for update operations
+ */
 function generateBeforeAfterComparison(oldData, newData, excludeFields = ['_id', '__v', 'createdAt', 'updatedAt']) {
   const changes = [];
   
+  // Handle mongoose documents by converting to plain objects
+  const normalizedOld = (oldData && typeof oldData.toObject === 'function') ? oldData.toObject() : (oldData || {});
+  const normalizedNew = (newData && typeof newData.toObject === 'function') ? newData.toObject() : (newData || {});
+
   // Get all unique keys from both objects
-  const allKeys = new Set([...Object.keys(oldData), ...Object.keys(newData)]);
+  const allKeys = new Set([...Object.keys(normalizedOld), ...Object.keys(normalizedNew)]);
   
   allKeys.forEach(key => {
     // Skip excluded fields
     if (excludeFields.includes(key)) return;
     
-    const oldValue = oldData[key];
-    const newValue = newData[key];
+    const oldValue = normalizedOld[key];
+    const newValue = normalizedNew[key];
     
     // Check if values are different
     const oldStr = JSON.stringify(oldValue);
     const newStr = JSON.stringify(newValue);
     
     if (oldStr !== newStr) {
+      let beforeText = formatValue(oldValue);
+      let afterText = formatValue(newValue);
+
+      // Special handling for arrays of objects to show WHAT changed
+      const firstItem = (Array.isArray(oldValue) && oldValue[0]) || (Array.isArray(newValue) && newValue[0]);
+      if (Array.isArray(oldValue) && Array.isArray(newValue) && firstItem && typeof firstItem === 'object') {
+        const detailChanges = getDetailedArrayChanges(oldValue, newValue);
+        if (detailChanges) {
+          afterText = `<strong>${newValue.length} items</strong>${detailChanges}`;
+        }
+      }
+
       changes.push({
         field: formatFieldName(key),
-        before: formatValue(oldValue),
-        after: formatValue(newValue)
+        before: beforeText,
+        after: afterText
       });
     }
   });

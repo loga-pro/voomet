@@ -66,7 +66,7 @@ const DispatchForm = ({
 
   const [formData, setFormData] = useState({
     date: initialData.date || '',
-    dispatchCategory: initialData.dispatchCategory || 'dispatch',
+    dispatchCategory: initialData.dispatchCategory || '',
     deliveryChalan: initialData.deliveryChalan || '',
     vehicleNo: initialData.vehicleNo || '',
     ewayBill: initialData.ewayBill || '',
@@ -500,7 +500,6 @@ const DispatchForm = ({
           onChange={handleInputChange}
           type="select"
           options={[
-            { value: 'dispatch', label: 'Dispatch' },
             { value: 'return', label: 'Return' },
             { value: 'reject', label: 'Reject' },
             { value: 'site', label: 'Site' }

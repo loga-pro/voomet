@@ -8,7 +8,7 @@ class DailyEmailScheduler {
   
   constructor() {
     this.scheduledJobs = new Map();
-    this.defaultSchedule = '11 11 * * *'; // 8:00 AM every day
+    this.defaultSchedule = '11 11 * * *'; // 11:11 AM every day
     this.isInitialized = false;
   }
   
@@ -23,8 +23,29 @@ class DailyEmailScheduler {
     // Schedule daily inventory report email
     this.scheduleDailyReport(this.defaultSchedule);
     
+    // Schedule weekly inventory report email (Every Monday at 8:30 AM)
+    this.scheduleWeeklyReport('30 8 * * 1');
+    
     this.isInitialized = true;
     console.log('Daily email scheduler initialized successfully');
+  }
+  
+  scheduleWeeklyReport(schedule = '30 8 * * 1') {
+    console.log(`Scheduling weekly inventory report for: ${schedule}`);
+    
+    // Stop existing job if any
+    this.stopJob('weekly-inventory-report');
+    
+    const job = cron.schedule(schedule, async () => {
+      console.log('Running scheduled weekly inventory report...');
+      await this.sendWeeklyInventoryReport();
+    }, {
+      scheduled: true,
+      timezone: 'Asia/Kolkata'
+    });
+    
+    this.scheduledJobs.set('weekly-inventory-report', job);
+    console.log('Weekly inventory report scheduled successfully');
   }
   
   scheduleDailyReport(schedule = this.defaultSchedule) {
@@ -204,7 +225,7 @@ class DailyEmailScheduler {
     const avgDailyReceipts = Math.round(totalReceipts / 7);
     
     return `
-  < body style = "margin: 0; padding: 0; background-color: #f4f7f6; font-family: ${fontFamily};" >
+  <body style="margin: 0; padding: 0; background-color: #f4f7f6; font-family: ${fontFamily};">
   <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #f4f7f6;">
     <tr>
       <td align="center" style="padding: 20px 0;">
@@ -262,7 +283,7 @@ class DailyEmailScheduler {
       </td>
     </tr>
   </table>
-</body >
+</body>
     `;
   }
 
@@ -276,7 +297,7 @@ class DailyEmailScheduler {
     const netChangeSign = reportData.netChange > 0 ? '+' : '';
 
     return `
-  < body>
+  <body>
   <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #f4f7f6;">
     <tr>
       <td align="center" style="padding: 20px 0;">
@@ -297,13 +318,13 @@ class DailyEmailScheduler {
               <table width="100%" border="0" cellpadding="0" cellspacing="0" style="text-align: center;">
                 <tr>
                   <td style="padding: 15px 10px; border-bottom: 2px solid #28a745;">
-                      <h3 style="margin: 0 0 10px 0; font-family: ${fontFamily}; color: #343a40; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">� Stock at Factory</h3>
+                      <h3 style="margin: 0 0 10px 0; font-family: ${fontFamily}; color: #343a40; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">📥 Stock at Factory</h3>
                     <p style="font-size: 32px; font-weight: bold; margin: 0; font-family: ${fontFamily}; color: #28a745;">${reportData.totalReceipts}</p>
                   </td>
                   
                   <td width="20" style="width: 20px;"></td>                   
                   <td style="padding: 15px 10px; border-bottom: 2px solid #ffc107;">
-                      <h3 style="margin: 0 0 10px 0; font-family: ${fontFamily}; color: #343a40; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">� Stock Sent</h3>
+                      <h3 style="margin: 0 0 10px 0; font-family: ${fontFamily}; color: #343a40; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">📤 Stock Sent</h3>
                     <p style="font-size: 32px; font-weight: bold; margin: 0; font-family: ${fontFamily}; color: #ffc107;">${reportData.totalDispatches}</p>
                   </td>
 
@@ -347,7 +368,7 @@ class DailyEmailScheduler {
       </td>
     </tr>
   </table>
-</body >
+</body>
     `;
   }
   
